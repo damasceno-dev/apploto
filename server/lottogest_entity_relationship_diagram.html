@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LottoGest — Entity Relationship Diagram</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #f8f8f6;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    html, body { background: #1e1e1c; }
+  }
+  #erd {
+    width: 100%;
+    height: 100vh;
+  }
+  #erd svg {
+    width: 100%;
+    height: 100%;
+  }
+  #erd svg g, #erd svg path, #erd svg line {
+    transition: opacity 0.2s ease;
+  }
+  #erd svg.erDiagram .divider path { stroke-opacity: 0.5; }
+  #erd svg.erDiagram .row-rect-odd path,
+  #erd svg.erDiagram .row-rect-odd rect,
+  #erd svg.erDiagram .row-rect-even path,
+  #erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+
+  .ctrl-panel {
+    position: fixed;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  #controls { bottom: 20px; right: 20px; }
+
+  .ctrl-panel button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #aaa;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .ctrl-panel button:hover { background: rgba(255, 255, 255, 1); }
+  .ctrl-panel button.active {
+    border-color: #e67e22;
+    background: rgba(230, 126, 34, 0.15);
+    color: #e67e22;
+  }
+  @media (prefers-color-scheme: dark) {
+    .ctrl-panel button {
+      background: rgba(50, 50, 48, 0.9);
+      color: #ddd;
+      border-color: #555;
+    }
+    .ctrl-panel button:hover { background: rgba(70, 70, 66, 1); }
+    .ctrl-panel button.active {
+      border-color: #f0a030;
+      background: rgba(240, 160, 48, 0.15);
+      color: #f0a030;
+    }
+  }
+  .ctrl-panel .separator {
+    height: 1px;
+    background: #ccc;
+    margin: 2px 4px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .ctrl-panel .separator { background: #555; }
+  }
+
+  #legend { bottom: 20px; left: 20px; }
+  #legend-content {
+    display: none;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #aaa;
+    border-radius: 8px;
+    padding: 10px 14px;
+    backdrop-filter: blur(4px);
+    font-size: 13px;
+    color: #333;
+    margin-bottom: 4px;
+    min-width: 160px;
+  }
+  #legend-content.open { display: block; }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+  }
+  .legend-symbol {
+    font-family: monospace;
+    font-weight: bold;
+    font-size: 14px;
+    min-width: 24px;
+    text-align: center;
+  }
+  @media (prefers-color-scheme: dark) {
+    #legend-content {
+      background: rgba(50, 50, 48, 0.95);
+      color: #ddd;
+      border-color: #555;
+    }
+  }
+
+  #error {
+    display: none;
+    color: #c44;
+    padding: 24px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 768px) {
+    #controls { bottom: 12px; right: 12px; }
+    #legend { bottom: 12px; left: 12px; }
+    .ctrl-panel button {
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+    }
+    #legend-content {
+      min-width: 140px;
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+    .legend-row { gap: 6px; }
+    .legend-symbol { font-size: 13px; min-width: 20px; }
+  }
+
+  @media (max-width: 480px) {
+    #controls { bottom: 8px; right: 8px; gap: 3px; }
+    #legend { bottom: 8px; left: 8px; gap: 3px; }
+    .ctrl-panel button {
+      width: 44px;
+      height: 44px;
+      font-size: 22px;
+      border-radius: 8px;
+    }
+    .ctrl-panel .separator { margin: 1px 6px; }
+  }
+
+  @media (hover: none) and (pointer: coarse) {
+    .ctrl-panel button {
+      width: 44px;
+      height: 44px;
+      font-size: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="erd"></div>
+<div id="controls" class="ctrl-panel">
+  <button id="zoom-in" title="Zoom in">+</button>
+  <button id="zoom-out" title="Zoom out">&minus;</button>
+  <div class="separator"></div>
+  <button id="zoom-reset" title="Fit to screen">&#8634;</button>
+  <div class="separator"></div>
+  <button id="two-hop-toggle" title="Show 2nd-degree connections" style="font-size:11px;font-weight:600;">2nd</button>
+</div>
+<div id="legend" class="ctrl-panel">
+  <div id="legend-content">
+    <div class="legend-row"><span class="legend-symbol">||</span> Exactly one</div>
+    <div class="legend-row"><span class="legend-symbol">o|</span> Zero or one</div>
+    <div class="legend-row"><span class="legend-symbol">}|</span> One or more</div>
+    <div class="legend-row"><span class="legend-symbol">}o</span> Zero or more</div>
+  </div>
+  <button id="legend-toggle" title="Cardinality legend">?</button>
+</div>
+<div id="error"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6/dist/svg-pan-zoom.min.js"></script>
+<script>
+(function () {
+  var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var FK_COLOR = dark ? '#f0a030' : '#c86a0a';
+  var SVGNS = 'http://www.w3.org/2000/svg';
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: 'base',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    er: { layoutDirection: 'TB', minEntityWidth: 180 },
+    themeVariables: {
+      darkMode: dark,
+      fontSize: '13px',
+      lineColor: dark ? '#9c9a92' : '#73726c',
+      textColor: dark ? '#e8e6df' : '#3d3d3a',
+      primaryColor: dark ? '#2a2a28' : '#fffdf5',
+      primaryTextColor: dark ? '#e8e6df' : '#3d3d3a',
+      primaryBorderColor: dark ? '#555' : '#ccc',
+      attributeBackgroundColorOdd: dark ? '#333330' : '#faf8f0',
+      attributeBackgroundColorEven: dark ? '#2a2a28' : '#f5f3eb',
+    },
+  });
+
+  var diagram = 'erDiagram\n' +
+    '  Branch ||--o{ BranchUser : has\n' +
+    '  Branch ||--o{ Account : has\n' +
+    '  Branch ||--o{ Operator : has\n' +
+    '  Branch ||--o{ Category : has\n' +
+    '  Branch ||--o{ Product : has\n' +
+    '  Branch ||--o{ Client : has\n' +
+    '  Branch ||--o{ Transaction : has\n' +
+    '  Branch ||--o{ DailyClose : has\n' +
+    '  Branch ||--o{ TimeEntry : has\n' +
+    '  Branch ||--o{ Holiday : has\n' +
+    '  Branch ||--|| Setting : has\n' +
+    '\n' +
+    '  User ||--o{ BranchUser : joins\n' +
+    '  User ||--o{ RefreshToken : has\n' +
+    '  User o|--o{ Operator : "logs in as"\n' +
+    '  User ||--o{ Transaction : "created by"\n' +
+    '\n' +
+    '  BranchUser {\n' +
+    '    uuid id PK\n' +
+    '    uuid userId FK\n' +
+    '    uuid branchId FK\n' +
+    '    enum role\n' +
+    '  }\n' +
+    '\n' +
+    '  Operator ||--o{ OperatorAccount : assigned\n' +
+    '  Operator ||--o{ TimeEntry : records\n' +
+    '  Operator ||--o{ Transaction : "recorded by"\n' +
+    '\n' +
+    '  Account ||--o{ OperatorAccount : assigned\n' +
+    '  Account ||--o{ Transaction : holds\n' +
+    '  Account ||--o{ DailyClose : closes\n' +
+    '  Account o|--o| Account : "tab account"\n' +
+    '\n' +
+    '  Category ||--o{ TransactionType : contains\n' +
+    '  TransactionType ||--o{ Transaction : classifies\n' +
+    '\n' +
+    '  Client ||--o{ Transaction : involved\n' +
+    '\n' +
+    '  Transaction o|--o{ Transaction : "installment origin"\n' +
+    '\n' +
+    '  DailyClose ||--o{ DailyCloseItem : contains\n' +
+    '  Product ||--o{ DailyCloseItem : measured\n' +
+    '\n' +
+    '  Branch {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    string cnpj\n' +
+    '  }\n' +
+    '\n' +
+    '  User {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    string email\n' +
+    '    string password\n' +
+    '  }\n' +
+    '\n' +
+    '  RefreshToken {\n' +
+    '    uuid id PK\n' +
+    '    string value\n' +
+    '    uuid userId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Operator {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    uuid branchId FK\n' +
+    '    uuid userId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Account {\n' +
+    '    uuid id PK\n' +
+    '    enum type\n' +
+    '    string name\n' +
+    '    string institution\n' +
+    '    string number\n' +
+    '    uuid branchId FK\n' +
+    '    uuid tabAccountId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  OperatorAccount {\n' +
+    '    uuid id PK\n' +
+    '    uuid operatorId FK\n' +
+    '    uuid accountId FK\n' +
+    '    bool isPrimary\n' +
+    '  }\n' +
+    '\n' +
+    '  Category {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    enum defaultDirection\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  TransactionType {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    uuid categoryId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Client {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    string cpf\n' +
+    '    string phone\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Transaction {\n' +
+    '    uuid id PK\n' +
+    '    date date\n' +
+    '    decimal value\n' +
+    '    string description\n' +
+    '    time transactionTime\n' +
+    '    enum direction\n' +
+    '    uuid categoryId FK\n' +
+    '    uuid transactionTypeId FK\n' +
+    '    uuid accountId FK\n' +
+    '    uuid clientId FK\n' +
+    '    date dueDate\n' +
+    '    timestamp paidAt\n' +
+    '    uuid originTransactionId FK\n' +
+    '    enum status\n' +
+    '    timestamp cancelledAt\n' +
+    '    uuid recordedByOperatorId FK\n' +
+    '    uuid createdByUserId FK\n' +
+    '    uuid cancelledByUserId FK\n' +
+    '    string cancellationReason\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Product {\n' +
+    '    uuid id PK\n' +
+    '    string name\n' +
+    '    int displayOrder\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  DailyClose {\n' +
+    '    uuid id PK\n' +
+    '    date date\n' +
+    '    enum status\n' +
+    '    uuid accountId FK\n' +
+    '    uuid submittedByOperatorId FK\n' +
+    '    timestamp submittedAt\n' +
+    '    timestamp approvedAt\n' +
+    '    uuid approvedByUserId FK\n' +
+    '    string rejectionReason\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  DailyCloseItem {\n' +
+    '    uuid id PK\n' +
+    '    decimal value\n' +
+    '    uuid dailyCloseId FK\n' +
+    '    uuid productId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  TimeEntry {\n' +
+    '    uuid id PK\n' +
+    '    date date\n' +
+    '    time clockIn\n' +
+    '    time clockOut\n' +
+    '    enum status\n' +
+    '    decimal totalHours\n' +
+    '    decimal balanceHours\n' +
+    '    uuid operatorId FK\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Holiday {\n' +
+    '    uuid id PK\n' +
+    '    date date\n' +
+    '    string description\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  Setting {\n' +
+    '    uuid id PK\n' +
+    '    date lockDate\n' +
+    '    decimal dailyTargetHours\n' +
+    '    uuid branchId FK\n' +
+    '  }';
+
+  mermaid.render('erd-svg', diagram).then(function (result) {
+    var container = document.getElementById('erd');
+    container.innerHTML = result.svg;
+
+    var svgEl = container.querySelector('svg');
+    svgEl.removeAttribute('style');
+    svgEl.setAttribute('width', '100%');
+    svgEl.setAttribute('height', '100%');
+
+    // ── Data parsing ──
+
+    var adj = {};
+    diagram.split('\n').forEach(function (line) {
+      var m = line.match(/^\s*(\w+)\s+\S+\s+(\w+)\s*:/);
+      if (m) {
+        (adj[m[1]] = adj[m[1]] || []).push(m[2]);
+        (adj[m[2]] = adj[m[2]] || []).push(m[1]);
+      }
+    });
+
+    var uniqueAdj = {};
+    Object.keys(adj).forEach(function (name) {
+      var seen = {};
+      adj[name].forEach(function (n) { seen[n] = true; });
+      uniqueAdj[name] = Object.keys(seen);
+    });
+
+    // Parse entity attribute blocks for FK highlighting
+    var entityFKs = {};
+    var curEntity = null;
+    diagram.split('\n').forEach(function (line) {
+      var es = line.match(/^\s*(\w+)\s*\{/);
+      if (es) { curEntity = es[1]; entityFKs[curEntity] = []; return; }
+      if (line.match(/^\s*\}/)) { curEntity = null; return; }
+      if (curEntity) {
+        var attr = line.match(/^\s*\w+\s+(\w+)\s+FK\s*$/);
+        if (attr) entityFKs[curEntity].push(attr[1]);
+      }
+    });
+
+    // ── SVG element discovery ──
+
+    var entityEls = {};
+    svgEl.querySelectorAll('g.node[id]').forEach(function (g) {
+      var m = g.id.match(/-entity-(\w+)-\d+$/);
+      if (!m) return;
+      entityEls[m[1]] = g;
+      g.style.cursor = 'pointer';
+    });
+
+    var relPairs = [];
+    diagram.split('\n').forEach(function (line) {
+      var m = line.match(/^\s*(\w+)\s+\S+\s+(\w+)\s*:/);
+      if (m) {
+        relPairs.push({ from: m[1], to: m[2] });
+        if (m[1] === m[2]) {
+          relPairs.push({ from: m[1], to: m[2] });
+          relPairs.push({ from: m[1], to: m[2] });
+        }
+      }
+    });
+
+    var edgePathsContainer = svgEl.querySelector('g.edgePaths');
+    var edgeLabelsContainer = svgEl.querySelector('g.edgeLabels');
+    var edgeGroupEls = edgePathsContainer ? Array.from(edgePathsContainer.children) : [];
+    var labelGroupEls = edgeLabelsContainer ? Array.from(edgeLabelsContainer.children) : [];
+
+    var edgeMap = [];
+    var relLabelEls = [];
+    var mapLen = Math.min(relPairs.length, edgeGroupEls.length);
+    for (var i = 0; i < mapLen; i++) {
+      edgeMap.push({ el: edgeGroupEls[i], from: relPairs[i].from, to: relPairs[i].to });
+      if (i < labelGroupEls.length) {
+        relLabelEls.push({ el: labelGroupEls[i], from: relPairs[i].from, to: relPairs[i].to });
+      }
+    }
+
+    // Attribute-name text elements per entity (for FK highlighting)
+    var attrNameEls = {};
+    Object.keys(entityEls).forEach(function (name) {
+      attrNameEls[name] = Array.from(entityEls[name].querySelectorAll('.attribute-name'));
+    });
+
+    function fkToEntity(colName) {
+      var lower = colName.toLowerCase();
+      if (!lower.endsWith('id')) return null;
+      var stem = lower.slice(0, -2);
+      if (!stem) return null;
+      var best = null, bestLen = 0;
+      Object.keys(entityEls).forEach(function (eName) {
+        var eLower = eName.toLowerCase();
+        if (stem.indexOf(eLower) >= 0 && eLower.length > bestLen) {
+          best = eName;
+          bestLen = eLower.length;
+        }
+      });
+      return best;
+    }
+
+    // Pre-build FK -> entity mapping per entity
+    var fkEntityMap = {};
+    Object.keys(entityFKs).forEach(function (eName) {
+      fkEntityMap[eName] = {};
+      entityFKs[eName].forEach(function (col) {
+        var target = fkToEntity(col);
+        if (target) fkEntityMap[eName][col] = target;
+      });
+    });
+
+    // ── Relationship count badges ──
+
+    Object.keys(entityEls).forEach(function (name) {
+      var count = (uniqueAdj[name] || []).length;
+      if (!count) return;
+      var g = entityEls[name];
+      var bb = g.getBBox();
+
+      var badgeW = count >= 10 ? 22 : 18;
+      var badgeH = 16;
+      var bx = bb.x + bb.width - badgeW / 2;
+      var by = bb.y - badgeH / 2;
+
+      var badgeG = document.createElementNS(SVGNS, 'g');
+      badgeG.setAttribute('class', 'rel-badge');
+      var rect = document.createElementNS(SVGNS, 'rect');
+      rect.setAttribute('x', bx);
+      rect.setAttribute('y', by);
+      rect.setAttribute('width', badgeW);
+      rect.setAttribute('height', badgeH);
+      rect.setAttribute('rx', '8');
+      rect.setAttribute('fill', dark ? 'rgba(100,100,90,0.85)' : 'rgba(180,175,160,0.85)');
+      rect.setAttribute('stroke', dark ? '#777' : '#aaa');
+      rect.setAttribute('stroke-width', '0.5');
+      var text = document.createElementNS(SVGNS, 'text');
+      text.setAttribute('x', bx + badgeW / 2);
+      text.setAttribute('y', by + badgeH / 2 + 1);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('dominant-baseline', 'central');
+      text.setAttribute('font-size', '10');
+      text.setAttribute('font-weight', '600');
+      text.setAttribute('fill', dark ? '#ddd' : '#444');
+      text.textContent = count;
+      badgeG.appendChild(rect);
+      badgeG.appendChild(text);
+      g.appendChild(badgeG);
+    });
+
+    // ── State ──
+
+    var lockedEntity = null;
+    var twoHopEnabled = false;
+    var isPanning = false;
+    var panStartPos = null;
+    var highlightedFKEls = [];
+
+    container.addEventListener('mousedown', function (e) {
+      panStartPos = { x: e.clientX, y: e.clientY };
+      isPanning = false;
+    });
+    container.addEventListener('mousemove', function (e) {
+      if (panStartPos && Math.hypot(e.clientX - panStartPos.x, e.clientY - panStartPos.y) > 5) {
+        isPanning = true;
+      }
+    });
+    window.addEventListener('mouseup', function () {
+      panStartPos = null;
+      setTimeout(function () { isPanning = false; }, 50);
+    });
+
+    // ── Highlight functions ──
+
+    function computeTiers(name) {
+      var direct = {};
+      direct[name] = true;
+      (uniqueAdj[name] || []).forEach(function (n) { direct[n] = true; });
+
+      var secondHop = {};
+      if (twoHopEnabled) {
+        Object.keys(direct).forEach(function (d) {
+          (uniqueAdj[d] || []).forEach(function (n) {
+            if (!direct[n]) secondHop[n] = true;
+          });
+        });
+      }
+
+      return { direct: direct, secondHop: secondHop };
+    }
+
+    function highlightEntity(name) {
+      var tiers = computeTiers(name);
+
+      Object.keys(entityEls).forEach(function (n) {
+        if (tiers.direct[n]) entityEls[n].style.opacity = '1';
+        else if (tiers.secondHop[n]) entityEls[n].style.opacity = '0.4';
+        else entityEls[n].style.opacity = '0.1';
+      });
+
+      edgeMap.forEach(function (e) {
+        var directEdge = (e.from === name || e.to === name);
+        var secondEdge = twoHopEnabled && !directEdge &&
+          (tiers.direct[e.from] && (tiers.direct[e.to] || tiers.secondHop[e.to]) ||
+           tiers.direct[e.to] && (tiers.direct[e.from] || tiers.secondHop[e.from]));
+
+        if (directEdge) e.el.style.opacity = '1';
+        else if (secondEdge) e.el.style.opacity = '0.35';
+        else e.el.style.opacity = '0.06';
+      });
+
+      relLabelEls.forEach(function (l) {
+        var directLabel = (l.from === name || l.to === name);
+        var secondLabel = twoHopEnabled && !directLabel &&
+          (tiers.direct[l.from] && (tiers.direct[l.to] || tiers.secondHop[l.to]) ||
+           tiers.direct[l.to] && (tiers.direct[l.from] || tiers.secondHop[l.from]));
+
+        if (directLabel) l.el.style.opacity = '1';
+        else if (secondLabel) l.el.style.opacity = '0.35';
+        else l.el.style.opacity = '0.06';
+      });
+
+      highlightFKColumns(name);
+
+      // Visual lock indicator
+      Object.keys(entityEls).forEach(function (n) {
+        var outer = entityEls[n].querySelector('.outer-path');
+        if (outer) {
+          if (n === lockedEntity) {
+            outer.style.stroke = FK_COLOR;
+            outer.style.strokeWidth = '3';
+          } else {
+            outer.style.stroke = '';
+            outer.style.strokeWidth = '';
+          }
+        }
+      });
+    }
+
+    function unhighlight() {
+      Object.keys(entityEls).forEach(function (n) {
+        entityEls[n].style.opacity = '';
+        var outer = entityEls[n].querySelector('.outer-path');
+        if (outer) { outer.style.stroke = ''; outer.style.strokeWidth = ''; }
+      });
+      edgeMap.forEach(function (e) { e.el.style.opacity = ''; });
+      relLabelEls.forEach(function (l) { l.el.style.opacity = ''; });
+      unhighlightFKColumns();
+    }
+
+    function highlightFKColumns(focusEntity) {
+      unhighlightFKColumns();
+      var related = uniqueAdj[focusEntity] || [];
+
+      Object.keys(entityEls).forEach(function (eName) {
+        if (!fkEntityMap[eName]) return;
+        var nameEls = attrNameEls[eName] || [];
+
+        nameEls.forEach(function (el) {
+          var colName = el.textContent.trim();
+          var target = fkEntityMap[eName][colName];
+          if (!target) return;
+
+          var shouldHighlight = false;
+          if (eName === focusEntity && related.indexOf(target) >= 0) shouldHighlight = true;
+          if (target === focusEntity && related.indexOf(eName) >= 0) shouldHighlight = true;
+
+          if (shouldHighlight) {
+            el._origFill = el.getAttribute('fill') || '';
+            el.setAttribute('fill', FK_COLOR);
+            el.style.fontWeight = '700';
+            highlightedFKEls.push(el);
+          }
+        });
+      });
+    }
+
+    function unhighlightFKColumns() {
+      highlightedFKEls.forEach(function (el) {
+        el.setAttribute('fill', el._origFill || '');
+        el.style.fontWeight = '';
+      });
+      highlightedFKEls = [];
+    }
+
+    // ── Event listeners ──
+
+    Object.keys(entityEls).forEach(function (name) {
+      entityEls[name].addEventListener('mouseenter', function () {
+        if (lockedEntity || isPanning) return;
+        highlightEntity(name);
+      });
+      entityEls[name].addEventListener('mouseleave', function () {
+        if (lockedEntity || isPanning) return;
+        unhighlight();
+      });
+      entityEls[name].addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (isPanning) return;
+        if (lockedEntity === name) {
+          lockedEntity = null;
+          unhighlight();
+        } else {
+          lockedEntity = name;
+          highlightEntity(name);
+        }
+      });
+    });
+
+    svgEl.addEventListener('click', function (e) {
+      if (isPanning) return;
+      if (e.target.closest('g.node[id]')) return;
+      if (lockedEntity) {
+        lockedEntity = null;
+        unhighlight();
+      }
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && lockedEntity) {
+        lockedEntity = null;
+        unhighlight();
+      }
+    });
+
+    // 2-hop toggle
+    var twoHopBtn = document.getElementById('two-hop-toggle');
+    twoHopBtn.addEventListener('click', function () {
+      twoHopEnabled = !twoHopEnabled;
+      twoHopBtn.classList.toggle('active', twoHopEnabled);
+      if (lockedEntity) highlightEntity(lockedEntity);
+    });
+
+    // Legend toggle
+    var legendContent = document.getElementById('legend-content');
+    document.getElementById('legend-toggle').addEventListener('click', function () {
+      legendContent.classList.toggle('open');
+    });
+
+    // ── Pan-zoom setup ──
+
+    var panZoom = svgPanZoom(svgEl, {
+      zoomEnabled: true,
+      controlIconsEnabled: false,
+      fit: true,
+      center: true,
+      minZoom: 0.2,
+      maxZoom: 20,
+      zoomScaleSensitivity: 0.3,
+    });
+
+    document.getElementById('zoom-in').addEventListener('click', function () {
+      panZoom.zoomIn();
+    });
+    document.getElementById('zoom-out').addEventListener('click', function () {
+      panZoom.zoomOut();
+    });
+    document.getElementById('zoom-reset').addEventListener('click', function () {
+      panZoom.resetZoom();
+      panZoom.resetPan();
+      panZoom.fit();
+      panZoom.center();
+    });
+
+    window.addEventListener('resize', function () {
+      panZoom.resize();
+      panZoom.fit();
+      panZoom.center();
+    });
+  }).catch(function (e) {
+    var errDiv = document.getElementById('error');
+    errDiv.style.display = 'block';
+    errDiv.textContent = 'Failed to render diagram: ' + e.message;
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LottoGest Backend Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#1e1e1c;--box:#2a2a28;--border:#555;--text:#e8e6df;
+  --accent:#e67e22;--dim:#9c9a92;--panel:#252523;--nav-h:56px;
+  --blue:#4a9eff;--green:#4caf50;--amber:#e67e22;--purple:#9c27b0;--teal:#26a69a;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif}
+
+.slides{display:flex;width:100%;height:calc(100vh - var(--nav-h));overflow:hidden}
+.slides-track{display:flex;transition:transform .5s cubic-bezier(.4,0,.2,1);will-change:transform}
+.slide{min-width:100vw;width:100vw;height:calc(100vh - var(--nav-h));padding:28px 48px 12px;display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);background:rgba(30,30,28,.96);backdrop-filter:blur(10px);border-top:1px solid #333;display:flex;align-items:center;justify-content:center;gap:16px;z-index:100}
+.nav-btn{background:var(--box);border:1px solid var(--border);color:var(--text);padding:8px 20px;border-radius:6px;cursor:pointer;font-size:14px;font-family:inherit;transition:all .2s;user-select:none}
+.nav-btn:hover{border-color:var(--accent);color:var(--accent)}
+.nav-btn:active{transform:scale(.96)}
+.slide-dots{display:flex;gap:8px;align-items:center}
+.slide-dot{width:10px;height:10px;border-radius:50%;background:var(--border);cursor:pointer;transition:all .3s;border:none}
+.slide-dot.active{background:var(--accent);transform:scale(1.3);box-shadow:0 0 8px rgba(230,126,34,.4)}
+.slide-dot:hover{background:#888}
+
+.title-slide{justify-content:center;align-items:center;text-align:center}
+.title-slide h1{font-size:clamp(32px,5vw,52px);font-weight:700;letter-spacing:-.02em;margin-bottom:16px;background:linear-gradient(135deg,var(--text),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.title-slide .subtitle{font-size:clamp(14px,1.8vw,18px);color:var(--dim);max-width:680px;line-height:1.7;margin-bottom:36px}
+.title-slide .bullets{list-style:none;display:flex;flex-direction:column;gap:12px}
+.title-slide .bullets li{font-size:16px;color:var(--dim);letter-spacing:.01em}
+.title-slide .bullets li::before{content:'▸ ';color:var(--accent);font-weight:600}
+
+.schema-slide{justify-content:flex-start;align-items:center;padding-top:36px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.schema-slide h2{font-size:clamp(24px,3.5vw,34px);font-weight:600;margin-bottom:28px}
+.schema-groups{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;max-width:1100px}
+.schema-group{background:var(--box);border:1px solid var(--border);border-radius:12px;padding:16px 20px;min-width:185px;flex:0 1 200px;transition:transform .2s}
+.schema-group:hover{transform:translateY(-2px)}
+.schema-group h3{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid}
+.schema-group .entity{font-size:13px;color:var(--dim);padding:3px 0;padding-left:8px;border-left:2px solid transparent}
+.schema-group .entity:hover{color:var(--text);border-left-color:inherit}
+
+.closing-slide{justify-content:center;align-items:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.closing-slide h2{font-size:clamp(26px,4vw,38px);font-weight:600;margin-bottom:36px;text-align:center}
+.closing-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:920px;width:100%}
+.closing-card{background:var(--box);border:1px solid var(--border);border-radius:12px;padding:24px 28px;transition:all .3s}
+.closing-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.closing-card h3{color:var(--accent);font-size:17px;font-weight:600;margin-bottom:10px}
+.closing-card p{color:var(--dim);font-size:14px;line-height:1.6}
+
+.intro-slide{justify-content:flex-start;align-items:center;padding:40px 60px;overflow-y:auto}
+.intro-slide h2{font-size:clamp(24px,3.5vw,36px);font-weight:600;margin-bottom:8px;text-align:center}
+.intro-slide .intro-sub{font-size:15px;color:var(--dim);text-align:center;margin-bottom:32px;font-style:italic}
+.intro-cols{display:flex;gap:28px;max-width:1100px;width:100%;align-items:flex-start}
+.intro-cols.stacked{flex-direction:column;align-items:center}
+.intro-col{flex:1;min-width:0}
+.intro-text{font-size:15px;line-height:1.8;color:#bbb;margin-bottom:16px}
+.intro-text b{color:var(--text);font-weight:600}
+.intro-text em{color:var(--accent);font-style:normal;font-weight:500}
+.intro-card{background:var(--box);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:16px;transition:all .3s}
+.intro-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.intro-card h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.intro-card h3.in-color{color:#4caf50}
+.intro-card h3.out-color{color:#ef5350}
+.intro-card h3.accent-color{color:var(--accent)}
+.intro-card h3.blue-color{color:var(--blue)}
+.intro-card h3.teal-color{color:var(--teal)}
+.intro-card p{color:var(--dim);font-size:14px;line-height:1.65}
+.intro-card code{background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)}
+.intro-card .mini-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+.intro-card .mini-table th{text-align:left;color:var(--accent);font-weight:500;padding:4px 8px;border-bottom:1px solid #444}
+.intro-card .mini-table td{padding:4px 8px;color:var(--dim);border-bottom:1px solid #333}
+.intro-highlight{border-left:3px solid var(--accent);padding-left:16px;margin:16px 0;font-size:14px;color:var(--dim);line-height:1.7}
+.intro-highlight b{color:var(--accent)}
+.intro-tree{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim);line-height:1.8;background:var(--panel);padding:14px 18px;border-radius:8px;border:1px solid #333}
+.intro-tree b{color:var(--text);font-weight:500}
+.intro-tree .hl{color:var(--accent)}
+
+.uc-slide{overflow-y:hidden}
+.uc-slide .uc-header{flex-shrink:0;margin-bottom:8px;display:flex;align-items:baseline;justify-content:space-between}
+.uc-slide .uc-header h2{font-size:22px;font-weight:600}
+.uc-slide .step-info{font-size:13px;color:var(--dim)}
+.uc-slide .step-info .step-title{color:var(--accent);font-weight:500}
+
+.uc-content{flex:1;display:flex;gap:20px;overflow:hidden;min-height:0}
+.uc-diagram{flex:0 0 50%;display:flex;align-items:center;justify-content:center;min-width:0}
+.uc-diagram svg{width:100%;height:100%;max-height:100%}
+
+.uc-panel{flex:1;display:flex;flex-direction:column;gap:10px;overflow:hidden;min-width:0}
+.uc-narrative{font-size:14.5px;line-height:1.7;color:#bbb;overflow-y:auto;flex:1 1 50%;padding-right:8px;transition:opacity .25s}
+.uc-narrative::-webkit-scrollbar{width:4px}
+.uc-narrative::-webkit-scrollbar-thumb{background:#444;border-radius:2px}
+.uc-data{background:var(--panel);border:1px solid #333;border-radius:8px;padding:12px 16px;font-family:'JetBrains Mono',monospace;font-size:11.5px;overflow-y:auto;flex:1 1 50%;transition:opacity .25s}
+.uc-data::-webkit-scrollbar{width:4px}
+.uc-data::-webkit-scrollbar-thumb{background:#444;border-radius:2px}
+
+.data-entry{margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid #333}
+.data-entry:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.data-entity-name{color:var(--accent);font-weight:500;margin-bottom:5px;font-size:12px}
+.data-row{display:flex;gap:6px;padding:2px 0;flex-wrap:wrap}
+.data-row .fn{color:#666;min-width:100px;flex-shrink:0}
+.data-row .fv{color:var(--text);word-break:break-all}
+.data-row .fv.hl{color:var(--accent);font-weight:600}
+.data-row .fv.hl-green{color:#4caf50;font-weight:600}
+.data-row .fv.hl-blue{color:var(--blue);font-weight:600}
+.data-row .fv.hl-red{color:#ef5350;font-weight:600}
+.data-sql{color:#bbb;line-height:1.6;white-space:pre-wrap;font-size:11px}
+.data-sql .kw{color:var(--blue)}
+.data-sql .res{color:var(--accent);font-weight:600}
+
+.step-controls{flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0}
+.step-btn{background:var(--box);border:1px solid var(--border);color:var(--text);padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .2s;user-select:none}
+.step-btn:hover{border-color:var(--accent);color:var(--accent)}
+.step-dots{display:flex;gap:6px;align-items:center}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--border);transition:all .3s}
+.step-dot.active{background:var(--accent);box-shadow:0 0 6px rgba(230,126,34,.4)}
+.play-btn.playing{background:var(--accent)!important;color:var(--bg)!important;border-color:var(--accent)!important}
+
+.tbl-box rect{fill:var(--box);stroke:var(--border);stroke-width:1.5;transition:all .4s}
+.tbl-box text{fill:var(--text);font-family:'Inter',sans-serif;font-size:12px;font-weight:500;transition:fill .4s}
+.tbl-box.active rect{stroke:var(--accent);stroke-width:2.5;filter:drop-shadow(0 0 10px rgba(230,126,34,.25))}
+.tbl-box.active text{fill:var(--accent)}
+.tbl-box.dimmed{opacity:.25;transition:opacity .5s}
+.tbl-box .badge{font-size:10px;fill:var(--accent);font-weight:600}
+.tbl-box .badge-bg{fill:#3a2a10;stroke:var(--accent);stroke-width:1;rx:4}
+
+.arrow-path{fill:none;stroke:var(--dim);stroke-width:1.5;marker-end:url(#ah);transition:stroke .4s,opacity .4s,stroke-width .3s}
+.arrow-path.active{stroke:var(--accent);stroke-width:2;marker-end:url(#ah-a)}
+.arrow-path.dimmed{opacity:.15}
+.arrow-path.hidden{opacity:0;pointer-events:none}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.fade-in{animation:fadeIn .4s ease both}
+
+.nav-btn.faded{opacity:.25;pointer-events:none}
+.restart-btn{margin-top:32px;background:var(--accent);border:none;color:var(--bg);padding:14px 36px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;font-family:inherit;transition:all .2s;letter-spacing:.01em}
+.restart-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(230,126,34,.35)}
+.restart-btn:active{transform:scale(.97)}
+
+@media(max-width:1024px){
+  .slide{padding:20px 28px 10px}
+  .intro-slide{padding:24px 28px}
+  .title-slide h1{font-size:28px}
+  .title-slide .subtitle{font-size:14px}
+  .intro-cols{flex-direction:column}
+  .uc-content{flex-direction:column}
+  .uc-diagram{flex:0 0 auto;height:36vh;min-height:200px}
+  .uc-panel{flex:1;min-height:0}
+  .uc-narrative{font-size:13px;flex:1 1 45%}
+  .uc-data{font-size:10.5px;flex:1 1 55%}
+  .closing-cards{grid-template-columns:1fr}
+  .schema-groups{gap:10px}
+  .schema-group{min-width:140px;padding:12px 14px}
+  .intro-card p{font-size:13px}
+  .intro-text{font-size:14px}
+  .intro-tree{font-size:10px;overflow-x:auto}
+}
+@media(max-width:680px){
+  :root{--nav-h:48px}
+  .slide{padding:12px 14px 8px}
+  .intro-slide{padding:14px 14px}
+  .title-slide h1{font-size:22px}
+  .title-slide .subtitle{font-size:13px;margin-bottom:20px}
+  .title-slide .bullets li{font-size:13px}
+  .schema-slide h2{font-size:20px;margin-bottom:16px}
+  .schema-groups{gap:8px}
+  .schema-group{min-width:120px;flex:1 1 44%;padding:10px 12px}
+  .schema-group h3{font-size:11px}
+  .schema-group .entity{font-size:11px}
+  .intro-slide h2{font-size:20px}
+  .intro-slide .intro-sub{font-size:13px;margin-bottom:18px}
+  .intro-card{padding:14px 16px;margin-bottom:10px}
+  .intro-card h3{font-size:14px}
+  .intro-card p{font-size:12px}
+  .intro-card .mini-table{font-size:11px}
+  .intro-text{font-size:13px;line-height:1.65}
+  .intro-highlight{font-size:12px;padding-left:12px}
+  .intro-tree{font-size:9px;padding:10px 12px}
+  .uc-slide .uc-header h2{font-size:17px}
+  .uc-slide .step-info{font-size:11px}
+  .uc-content{gap:10px}
+  .uc-diagram{height:30vh;min-height:160px}
+  .uc-narrative{font-size:12px;line-height:1.6}
+  .uc-data{font-size:10px;padding:8px 10px}
+  .data-entity-name{font-size:11px}
+  .data-row .fn{min-width:80px;font-size:10px}
+  .step-controls{gap:6px;padding:4px 0}
+  .step-btn{padding:4px 10px;font-size:11px}
+  .step-dot{width:6px;height:6px}
+  .closing-slide h2{font-size:22px;margin-bottom:20px}
+  .closing-card{padding:16px 18px}
+  .closing-card h3{font-size:14px}
+  .closing-card p{font-size:12px}
+  .bottom-nav{gap:8px;padding:0 8px}
+  .nav-btn{padding:6px 12px;font-size:12px}
+  .slide-dot{width:8px;height:8px}
+  .slide-dots{gap:5px}
+  .restart-btn{padding:12px 28px;font-size:14px}
+}
+@media(max-width:480px){
+  .schema-group{flex:1 1 100%}
+  .closing-cards{gap:12px}
+  .uc-diagram{height:26vh;min-height:140px}
+  .tbl-box text{font-size:10px}
+  .intro-slide{overflow-y:auto}
+}
+</style>
+</head>
+<body>
+<svg style="position:absolute;width:0;height:0;overflow:hidden">
+<defs>
+<marker id="ah" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#9c9a92"/></marker>
+<marker id="ah-a" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6Z" fill="#e67e22"/></marker>
+</defs>
+</svg>
+
+<div class="slides"><div class="slides-track" id="track"></div></div>
+<nav class="bottom-nav">
+<button class="nav-btn faded" id="prevBtn" onclick="changeSlide(-1)">&#9664; Prev</button>
+<div class="slide-dots" id="slideDots"></div>
+<button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next &#9654;</button>
+</nav>
+
+<script>
+const ACCENT='#e67e22',DIM='#9c9a92',BORDER='#555';
+
+const SLIDES=[
+{type:'title'},
+{type:'schema'},
+{type:'intro',id:'domain'},
+{type:'intro',id:'parallel'},
+{type:'intro',id:'concepts'},
+{type:'uc',title:'UC1: Cash Deposit',
+ viewBox:'0 0 720 340',
+ tables:{
+  Category:{x:30,y:30,w:155,h:46,label:'Category'},
+  TransactionType:{x:30,y:140,w:188,h:46,label:'TransactionType'},
+  Account:{x:530,y:140,w:155,h:46,label:'Account'},
+  Transaction:{x:270,y:255,w:188,h:54,label:'Transaction'}
+ },
+ arrows:[
+  {id:'cat-tt',from:'Category',to:'TransactionType',fs:'b',ts:'t'},
+  {id:'tt-tx',from:'TransactionType',to:'Transaction',fs:'r',ts:'l'},
+  {id:'tx-acc',from:'Transaction',to:'Account',fs:'r',ts:'b'}
+ ],
+ steps:[
+  {title:'What is a Transaction?',
+   narrative:'The <b>Transaction</b> table is the central ledger of LottoGest. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets <b>CategoryId</b> (= TransactionType.CategoryId) and <b>Direction</b> (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
+   activeTables:['Category','TransactionType','Account'],
+   activeArrows:[],
+   data:[
+    {entity:'Category',fields:[{n:'Name',v:'"Receita"'},{n:'DefaultDirection',v:'"In"',hl:'hl'}]},
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Dinheiro"'},{n:'CategoryId',v:'→ Receita',hl:'hl'}]},
+    {entity:'Account',fields:[{n:'Name',v:'"Bete"'},{n:'Type',v:'"Terminal"'}]}
+   ]},
+  {title:'Creating a Cash Deposit',
+   narrative:'A customer brings <b>R$2,000</b> in cash for a deposit. The operator selects "Depósito Dinheiro" and enters the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=In</b> (money enters the drawer), and TransactionTime records 10:30.<br><br>For cash deposits, <b>DueDate = Date + 1 day</b>, because CEF settles cash deposits next business day.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record — may differ from the operator for manager corrections).',
+   activeTables:['Category','TransactionType','Transaction','Account'],
+   activeArrows:['cat-tt','tt-tx','tx-acc'],
+   data:[
+    {entity:'Transaction',fields:[
+     {n:'Date',v:'"2025-03-15"'},{n:'Value',v:'"R$ 2,000.00"',hl:'hl'},
+     {n:'Direction',v:'"In"',hl:'hl'},{n:'TransactionTime',v:'"10:30"'},
+     {n:'CategoryId',v:'→ Receita'},{n:'TransactionTypeId',v:'→ Depósito Dinheiro'},
+     {n:'AccountId',v:'→ Bete'},{n:'DueDate',v:'"2025-03-16"'},
+     {n:'PaidAt',v:'null'},{n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'},
+     {n:'Status',v:'"Active"'}
+    ]}
+   ]},
+  {title:'The Three-Date Model',
+   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected (March 16, next business day for cash)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when money actually arrived (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables tracking</b>: the owner can query "how much money is expected this week" by filtering DueDate range with PaidAt IS NULL.',
+   activeTables:['Transaction'],
+   activeArrows:[],
+   data:[
+    {entity:'Transaction',fields:[
+     {n:'Date',v:'"2025-03-15"',hl:'hl-green'},{n:'Value',v:'"R$ 2,000.00"'},
+     {n:'Direction',v:'"In"'},{n:'TransactionTime',v:'"10:30"'},
+     {n:'DueDate',v:'"2025-03-16"',hl:'hl-blue'},
+     {n:'PaidAt',v:'null',hl:'hl-red'},
+     {n:'Status',v:'"Active"'}
+    ]}
+   ]}
+ ]
+},
+{type:'uc',title:'UC2: PIX Payment Out',
+ viewBox:'0 0 720 340',
+ tables:{
+  Category:{x:30,y:30,w:155,h:46,label:'Category'},
+  TransactionType:{x:30,y:140,w:188,h:46,label:'TransactionType'},
+  Account:{x:530,y:140,w:155,h:46,label:'Account'},
+  Transaction:{x:270,y:255,w:188,h:54,label:'Transaction'}
+ },
+ arrows:[
+  {id:'cat-tt',from:'Category',to:'TransactionType',fs:'b',ts:'t'},
+  {id:'tt-tx',from:'TransactionType',to:'Transaction',fs:'r',ts:'l'},
+  {id:'tx-acc',from:'Transaction',to:'Account',fs:'r',ts:'b'}
+ ],
+ steps:[
+  {title:'Direction and Categories',
+   narrative:'The system tracks money flow with a <b>Direction</b> enum: <b>In</b> (money enters) and <b>Out</b> (money leaves). Each Category has a <b>DefaultDirection</b>. "Receita" defaults to In, "Saídas" defaults to Out.<br><br>Direction on a Transaction is <b>denormalized</b> — it is automatically derived from the Category\'s DefaultDirection when the operator selects a TransactionType. The operator never chooses Direction directly. PIX falls under "Saídas", so any PIX transaction is automatically Direction=Out.',
+   activeTables:['Category','TransactionType'],
+   activeArrows:['cat-tt'],
+   data:[
+    {entity:'Category',fields:[{n:'Name',v:'"Saídas"'},{n:'DefaultDirection',v:'"Out"',hl:'hl'}]},
+    {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'}]}
+   ]},
+  {title:'Creating a PIX Payment',
+   narrative:'Operator sends <b>R$800</b> via PIX to a supplier. Value is still positive (R$800) — <b>LottoGest always stores positive values</b>, using Direction to determine the sign. Direction=Out means this R$800 is subtracted from the drawer.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
+   activeTables:['Category','TransactionType','Transaction','Account'],
+   activeArrows:['cat-tt','tt-tx','tx-acc'],
+   data:[
+    {entity:'Transaction',fields:[
+     {n:'Date',v:'"2025-03-15"'},{n:'Value',v:'"R$ 800.00"',hl:'hl'},
+     {n:'Direction',v:'"Out"',hl:'hl'},{n:'CategoryId',v:'→ Saídas'},
+     {n:'TransactionTypeId',v:'→ PIX'},{n:'AccountId',v:'→ Bete'},
+     {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'"2025-03-15"'},
+     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'},
+     {n:'Status',v:'"Active"'}
+    ]}
+   ]},
+  {title:'Direction Contrast',
+   narrative:'Now we can see both directions on the same Account: the R$2,000 cash deposit (<b>In</b>) increased the balance, and the R$800 PIX (<b>Out</b>) decreased it.<br><br>The expected drawer balance is:<br><b style="color:var(--accent)">R$2,000 − R$800 = R$1,200</b><br><br>This is the core of the transaction ledger — every financial event is an <b>In</b> or <b>Out</b> on an Account.',
+   activeTables:['Account'],
+   activeArrows:[],
+   badge:{table:'Account',text:'R$ 1,200'},
+   data:[
+    {entity:'Transaction #1 (Deposit)',fields:[
+     {n:'Value',v:'"R$ 2,000.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
+     {n:'DueDate',v:'"2025-03-16"'}
+    ]},
+    {entity:'Transaction #2 (PIX)',fields:[
+     {n:'Value',v:'"R$ 800.00"'},{n:'Direction',v:'"Out"',hl:'hl-red'},
+     {n:'DueDate',v:'"2025-03-15"'}
+    ]}
+   ]}
+ ]
+},
+{type:'uc',title:'UC3: Operator Setup',
+ viewBox:'0 0 740 380',
+ tables:{
+  User:{x:30,y:20,w:120,h:44,label:'User'},
+  BranchUser:{x:210,y:20,w:148,h:44,label:'BranchUser'},
+  Branch:{x:420,y:20,w:130,h:44,label:'Branch'},
+  Operator:{x:270,y:120,w:140,h:44,label:'Operator'},
+  OperatorAccount:{x:245,y:225,w:180,h:44,label:'OperatorAccount'},
+  AccountTerminal:{x:50,y:315,w:175,h:44,label:'Account (Terminal)'},
+  AccountTab:{x:500,y:315,w:170,h:44,label:'Account (Tab)'}
+ },
+ arrows:[
+  {id:'user-bu',from:'User',to:'BranchUser',fs:'r',ts:'l'},
+  {id:'bu-branch',from:'BranchUser',to:'Branch',fs:'r',ts:'l'},
+  {id:'op-branch',from:'Operator',to:'Branch',fs:'r',ts:'b'},
+  {id:'op-user',from:'Operator',to:'User',fs:'l',ts:'b'},
+  {id:'oa-op',from:'OperatorAccount',to:'Operator',fs:'t',ts:'b'},
+  {id:'oa-acc',from:'OperatorAccount',to:'AccountTerminal',fs:'l',ts:'t'},
+  {id:'acc-tab',from:'AccountTerminal',to:'AccountTab',fs:'r',ts:'l'}
+ ],
+ steps:[
+  {title:'Multi-Tenancy: User + Branch',
+   narrative:'LottoGest is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).',
+   activeTables:['User','BranchUser','Branch'],
+   activeArrows:['user-bu','bu-branch'],
+   data:[
+    {entity:'User',fields:[{n:'Name',v:'"Maria"'},{n:'Email',v:'"maria@mail.com"'}]},
+    {entity:'Branch',fields:[{n:'Name',v:'"Lotérica Centro"'},{n:'Cnpj',v:'"12.345.678/0001-90"'}]},
+    {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Admin"',hl:'hl'}]}
+   ]},
+  {title:'Operator: Why Separate from User?',
+   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all associated transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee whose historical records are preserved, or a new hire not yet set up for login.<br><br><b style="color:var(--blue)">Design note:</b> Operator links directly to User (optional FK), <em>not</em> to BranchUser. This is intentional — the Operator→User link must survive BranchUser deactivation. The constraint that a linked User must belong to the same Branch is enforced at the <b>API/service layer</b>, not by the database schema. This trade-off preserves historical integrity over strict referential enforcement.',
+   activeTables:['Operator','Branch','User'],
+   activeArrows:['op-branch','op-user'],
+   data:[
+    {entity:'Operator',fields:[{n:'Name',v:'"Bete"'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'UserId',v:'→ Maria (optional)',hl:'hl'}]}
+   ]},
+  {title:'Accounts and the Terminal/Tab Pair',
+   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. Each terminal Account has a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br><b style="color:var(--blue)">TabAccountId invariants:</b> only <b>Terminal</b> accounts may set it, the target must be of type <b>Tab</b>, and each Tab is paired with <b>exactly one</b> Terminal.',
+   activeTables:['AccountTerminal','AccountTab','OperatorAccount','Operator'],
+   activeArrows:['oa-op','oa-acc','acc-tab'],
+   data:[
+    {entity:'Account (Terminal)',fields:[{n:'Name',v:'"Bete"'},{n:'Type',v:'"Terminal"'},{n:'TabAccountId',v:'→ Tab Bete',hl:'hl'}]},
+    {entity:'Account (Tab)',fields:[{n:'Name',v:'"Tab Bete"'},{n:'Type',v:'"Tab"'},{n:'TabAccountId',v:'null'}]},
+    {entity:'OperatorAccount',fields:[{n:'OperatorId',v:'→ Bete'},{n:'AccountId',v:'→ Bete'},{n:'IsPrimary',v:'"true"',hl:'hl'}]}
+   ]}
+ ]
+},
+{type:'uc',title:'UC4: Cheque Installments',
+ viewBox:'0 0 740 400',
+ tables:{
+  Category:{x:20,y:20,w:155,h:44,label:'Category'},
+  TransactionType:{x:20,y:110,w:188,h:44,label:'TransactionType'},
+  Client:{x:560,y:20,w:140,h:44,label:'Client'},
+  Account:{x:560,y:110,w:155,h:44,label:'Account'},
+  Tx1:{x:240,y:210,w:220,h:44,label:'Transaction (1/3)'},
+  Tx2:{x:240,y:270,w:220,h:44,label:'Transaction (2/3)'},
+  Tx3:{x:240,y:330,w:220,h:44,label:'Transaction (3/3)'}
+ },
+ arrows:[
+  {id:'cat-tt',from:'Category',to:'TransactionType',fs:'b',ts:'t'},
+  {id:'tt-tx1',from:'TransactionType',to:'Tx1',fs:'r',ts:'l'},
+  {id:'tx1-acc',from:'Tx1',to:'Account',fs:'r',ts:'b'},
+  {id:'tx2-acc',from:'Tx2',to:'Account',fs:'r',ts:'b'},
+  {id:'tx3-acc',from:'Tx3',to:'Account',fs:'r',ts:'b'},
+  {id:'tx2-tx1',from:'Tx2',to:'Tx1',fs:'l',ts:'l'},
+  {id:'tx3-tx1',from:'Tx3',to:'Tx1',fs:'l',ts:'l'},
+  {id:'client-tx1',from:'Client',to:'Tx1',fs:'b',ts:'r'}
+ ],
+ steps:[
+  {title:'Pre-dated Cheques in Brazil',
+   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. A customer writes a cheque with a future date — the business holds it and deposits it on that date.<br><br>When a cheque is split into installments, LottoGest creates <b>N separate Transaction rows</b>, one per installment. This is extracted from the original Access VBA logic (FrmLancamentoCheque). Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.',
+   activeTables:['Account','Client','TransactionType'],
+   activeArrows:['cat-tt'],
+   data:[
+    {entity:'Client',fields:[{n:'Name',v:'"Carlos"'}]},
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Cheque"'}]}
+   ]},
+  {title:'System Creates 3 Installments',
+   narrative:'<b>R$3,000 cheque in 3 installments:</b> the system creates 3 Transaction rows. Each has Value = R$1,000 (total ÷ 3). DueDates are offset by 1 month: May 15, June 15, July 15.<br><br>Descriptions: "CH PRE (1/3)", "(2/3)", "(3/3)". <b>All installments share the same OriginTransactionId, including the first</b> (which points to itself). This simplifies group lookups: <code>WHERE OriginTransactionId = @groupId</code> returns all members.',
+   activeTables:['Tx1','Tx2','Tx3','Account'],
+   activeArrows:['tx1-acc','tx2-acc','tx3-acc'],
+   data:[
+    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (1/3)"'},{n:'DueDate',v:'"2025-05-15"'},{n:'OriginTxId',v:'→ tx-001 (self)',hl:'hl'},{n:'RecordedByOpId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}]},
+    {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (2/3)"'},{n:'DueDate',v:'"2025-06-15"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOpId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}]},
+    {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOpId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}]}
+   ]},
+  {title:'Receivables Tracking',
+   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b>. The other two remain as receivables — money expected in the future.',
+   activeTables:['Tx1','Tx2','Tx3'],
+   activeArrows:[],
+   data:[
+    {entity:'Transaction #1 ✓',fields:[{n:'DueDate',v:'"2025-05-15"'},{n:'PaidAt',v:'"2025-05-15T18:00Z"',hl:'hl'}]},
+    {entity:'Transaction #2',fields:[{n:'DueDate',v:'"2025-06-15"'},{n:'PaidAt',v:'null',hl:'hl-red'}]},
+    {entity:'Transaction #3',fields:[{n:'DueDate',v:'"2025-07-15"'},{n:'PaidAt',v:'null',hl:'hl-red'}]}
+   ]},
+  {title:'Self-Referencing FK',
+   narrative:'The <b>OriginTransactionId</b> self-referencing FK enables the system to <b>group installments</b>. All installments share the same OriginTransactionId — including the first, which points to itself. This means <code>WHERE OriginTransactionId = @groupId</code> returns <em>all</em> members in one query.<br><br>This matches the original Access behavior where <code>lco_origem</code> on the first installment was set to its own <code>lco_id</code>, now implemented as a proper Guid-based self-referencing FK.',
+   activeTables:['Tx1','Tx2','Tx3'],
+   activeArrows:['tx2-tx1','tx3-tx1'],
+   data:[
+    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"',hl:'hl'},{n:'OriginTxId',v:'→ tx-001 (self)',hl:'hl'}]},
+    {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'}]},
+    {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'}]}
+   ]}
+ ]
+},
+{type:'uc',title:'UC5: Fiado Lifecycle',
+ viewBox:'0 0 740 400',
+ tables:{
+  Category:{x:20,y:20,w:155,h:44,label:'Category'},
+  TransactionType:{x:20,y:108,w:188,h:44,label:'TransactionType'},
+  Client:{x:20,y:200,w:140,h:44,label:'Client'},
+  Operator:{x:20,y:320,w:140,h:44,label:'Operator'},
+  AccountTerminal:{x:515,y:40,w:195,h:44,label:'Account (Terminal)'},
+  AccountTab:{x:515,y:140,w:175,h:44,label:'Account (Tab)'},
+  Transaction:{x:290,y:290,w:185,h:54,label:'Transaction'}
+ },
+ arrows:[
+  {id:'cat-tt',from:'Category',to:'TransactionType',fs:'b',ts:'t'},
+  {id:'tt-tx',from:'TransactionType',to:'Transaction',fs:'b',ts:'l'},
+  {id:'client-tx',from:'Client',to:'Transaction',fs:'r',ts:'l'},
+  {id:'tx-tab',from:'Transaction',to:'AccountTab',fs:'r',ts:'b'},
+  {id:'acc-tab',from:'AccountTerminal',to:'AccountTab',fs:'b',ts:'t'},
+  {id:'op-tx',from:'Operator',to:'Transaction',fs:'r',ts:'b'}
+ ],
+ steps:[
+  {title:'What is Fiado?',
+   narrative:'Regular customers at a lottery house can buy on credit — <b>"fiado"</b> in Portuguese. This is extremely common in small Brazilian businesses.<br><br>The key design challenge: credit sales should <b>NOT</b> affect the cash drawer count. If Bete sells R$150 on credit, her drawer is unchanged — she didn\'t receive cash. But the business needs to track that R$150 is owed.<br><br><b>Solution:</b> each Terminal account has a paired <b>Tab account</b> (AccountType=Tab). Credit transactions go to the Tab, not the Terminal. This is the <b>TabAccountId</b> self-referencing FK on Account.',
+   activeTables:['AccountTerminal','AccountTab','Client','Operator'],
+   activeArrows:['acc-tab'],
+   data:[
+    {entity:'Account (Terminal)',fields:[{n:'Name',v:'"Bete"'},{n:'Type',v:'"Terminal"'},{n:'TabAccountId',v:'→ Tab Bete',hl:'hl'}]},
+    {entity:'Account (Tab)',fields:[{n:'Name',v:'"Tab Bete"'},{n:'Type',v:'"Tab"'}]},
+    {entity:'Client',fields:[{n:'Name',v:'"João"'}]}
+   ]},
+  {title:'Credit Sale (Money Out on Tab)',
+   narrative:'Client João buys <b>R$150</b> of lottery tickets on credit. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Saídas"</b>.<br><br>The Fiado in/out distinction is handled by <b>two separate TransactionTypes</b>: "Cliente" under "Saídas" = Out (credit sale), "Cliente" under "Entradas" = In (payment). Direction is never overridden — it is always derived from the Category\'s DefaultDirection. The Transaction has <b>Direction=Out</b> on the <b>Tab account</b> (not the Terminal!), with ClientId set to João.',
+   activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
+   activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
+   data:[
+    {entity:'Transaction',fields:[
+     {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"Out"',hl:'hl'},
+     {n:'AccountId',v:'→ Tab Bete',hl:'hl'},{n:'ClientId',v:'→ João'},
+     {n:'CategoryId',v:'→ Saídas'},{n:'TransactionTypeId',v:'→ Cliente'},
+     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
+    ]}
+   ]},
+  {title:'Tab Balance = R$150',
+   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The owner can query this grouped by Client for an <b>aging report</b>: "show me all customers who owe money, sorted by oldest debt."<br><br><b style="color:var(--blue)">Important:</b> The Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product. The daily close form may display it for reference, but does not store it as a snapshot value.',
+   activeTables:['AccountTab'],
+   activeArrows:[],
+   badge:{table:'AccountTab',text:'R$ 150'},
+   data:[
+    {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Bete\'\n\n→ <span class="res">R$ 150.00</span>'}
+   ]},
+  {title:'Client Pays Back',
+   narrative:'João returns and pays his R$150 debt. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. The Transaction has <b>Direction=In</b> on the Tab account.',
+   activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
+   activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
+   data:[
+    {entity:'Transaction (Payment)',fields:[
+     {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
+     {n:'AccountId',v:'→ Tab Bete'},{n:'ClientId',v:'→ João'},
+     {n:'CategoryId',v:'→ Entradas',hl:'hl-green'},{n:'TransactionTypeId',v:'→ Cliente'},
+     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
+    ]}
+   ]},
+  {title:'Balance Zeroed — Drawer Untouched',
+   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>Throughout this entire flow, the Terminal account "Bete" was <b>never touched</b> — the cash drawer reconciliation stays clean. This is why the Terminal/Tab separation exists: it <b>isolates credit from cash</b>, ensuring the CashVariance calculation at end of day is accurate.',
+   activeTables:['AccountTab','AccountTerminal'],
+   activeArrows:[],
+   badge:{table:'AccountTab',text:'R$ 0'},
+   badgeB:{table:'AccountTerminal',text:'Untouched'},
+   data:[
+    {entity:'Tab Balance',fields:[
+     {n:'Out total',v:'R$ 150.00'},{n:'In total',v:'R$ 150.00'},
+     {n:'Balance',v:'R$ 0.00',hl:'hl'}
+    ]},
+    {entity:'Terminal "Bete"',fields:[
+     {n:'Status',v:'No transactions recorded',hl:'hl-green'}
+    ]}
+   ]}
+ ]
+},
+{type:'uc',title:'UC6: Full Operator Day',
+ viewBox:'0 0 860 420',
+ tables:{
+  User:{x:10,y:10,w:108,h:40,label:'User'},
+  BranchUser:{x:142,y:10,w:132,h:40,label:'BranchUser'},
+  Branch:{x:298,y:10,w:115,h:40,label:'Branch'},
+  Operator:{x:438,y:10,w:125,h:40,label:'Operator'},
+  OperatorAccount:{x:588,y:10,w:168,h:40,label:'OperatorAccount'},
+  Account:{x:620,y:72,w:130,h:40,label:'Account'},
+  Category:{x:10,y:100,w:145,h:40,label:'Category'},
+  TransactionType:{x:10,y:168,w:178,h:40,label:'TransactionType'},
+  Transaction:{x:10,y:248,w:172,h:48,label:'Transaction'},
+  Product:{x:380,y:168,w:128,h:40,label:'Product'},
+  DailyClose:{x:340,y:268,w:168,h:50,label:'DailyClose'},
+  DailyCloseItem:{x:340,y:358,w:178,h:42,label:'DailyCloseItem'}
+ },
+ arrows:[
+  {id:'u-bu',from:'User',to:'BranchUser',fs:'r',ts:'l'},
+  {id:'bu-br',from:'BranchUser',to:'Branch',fs:'r',ts:'l'},
+  {id:'br-op',from:'Branch',to:'Operator',fs:'r',ts:'l'},
+  {id:'op-oa',from:'Operator',to:'OperatorAccount',fs:'r',ts:'l'},
+  {id:'oa-acc',from:'OperatorAccount',to:'Account',fs:'b',ts:'t'},
+  {id:'cat-tt',from:'Category',to:'TransactionType',fs:'b',ts:'t'},
+  {id:'tt-tx',from:'TransactionType',to:'Transaction',fs:'b',ts:'t'},
+  {id:'tx-acc',from:'Transaction',to:'Account',fs:'r',ts:'b'},
+  {id:'prod-dci',from:'Product',to:'DailyCloseItem',fs:'b',ts:'t'},
+  {id:'dci-dc',from:'DailyCloseItem',to:'DailyClose',fs:'t',ts:'b'},
+  {id:'dc-acc',from:'DailyClose',to:'Account',fs:'r',ts:'b'}
+ ],
+ steps:[
+  {title:'Login: Identity Chain',
+   narrative:'When an operator logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br>This chain, covered in UC3, now comes alive in a real daily workflow. Note that the Operator→User link is validated at the API layer to ensure branch consistency — the schema intentionally keeps this FK loose to preserve historical records when users are deactivated.',
+   activeTables:['User','BranchUser','Branch','Operator','OperatorAccount','Account'],
+   activeArrows:['u-bu','bu-br','br-op','op-oa','oa-acc'],
+   staggerDelay:true,
+   data:[
+    {entity:'Identity Chain',fields:[
+     {n:'User',v:'"Maria"'},{n:'BranchUser',v:'Role: Admin'},
+     {n:'Branch',v:'"Lotérica Centro"'},{n:'Operator',v:'"Bete"'},
+     {n:'Account',v:'"Bete" (Terminal)'}
+    ]}
+   ]},
+  {title:'Open Day: The Dual System',
+   narrative:'LottoGest tracks the same financial reality from <b>two angles</b>:<br><br>• The <b>Transaction ledger</b> (every individual event — "R$2,000 deposit at 12:30")<br>• The <b>DailyClose snapshot</b> (physical count at end of day — "R$5,200 cash in drawer")<br><br>The <b>CashVariance</b> is the gap between expected (ledger) and actual (snapshot) — <em>the single most important number in the system</em>. The operator starts by creating a DailyClose with Status=Draft.',
+   activeTables:['DailyClose'],
+   activeArrows:[],
+   data:[
+    {entity:'DailyClose',fields:[
+     {n:'Date',v:'"2025-03-15"'},{n:'Status',v:'"Draft"',hl:'hl'},
+     {n:'AccountId',v:'→ Bete'}
+    ]}
+   ]},
+  {title:'Cash Deposit (In)',
+   narrative:'Throughout the day, the operator records transactions. <b>R$2,000</b> cash deposit at 10:30. Direction=In, DueDate=tomorrow.<br><br>Same mechanics as UC1, now in context of the full day.',
+   activeTables:['Category','TransactionType','Transaction'],
+   activeArrows:['cat-tt','tt-tx'],
+   data:[
+    {entity:'Transaction',fields:[
+     {n:'Value',v:'"R$ 2,000.00"',hl:'hl'},{n:'Direction',v:'"In"'},
+     {n:'TransactionTime',v:'"10:30"'},{n:'DueDate',v:'"2025-03-16"'},
+     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
+    ]}
+   ]},
+  {title:'Credit Card (Out, Business Day DueDate)',
+   narrative:'<b>R$560</b> credit card sale. Direction=Out. DueDate = Date + 2 business days (skip weekends).<br><br>If today is Friday March 15, DueDate = <b>Tuesday March 19</b>. This business-day-aware calculation enables the owner to know exactly when CEF will settle each card transaction.',
+   activeTables:['Transaction'],
+   activeArrows:[],
+   data:[
+    {entity:'Transaction',fields:[
+     {n:'Value',v:'"R$ 560.00"',hl:'hl'},{n:'Direction',v:'"Out"'},
+     {n:'DueDate',v:'"2025-03-19"',hl:'hl-blue'},
+     {n:'Description',v:'"Cartão de Crédito à vista"'},
+     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
+    ]}
+   ]},
+  {title:'Close Day: The Snapshot',
+   narrative:'At end of day, the operator counts what\'s physically in the drawer and enters closing values for each <b>Product</b>: Dinheiro (cash), Telesena tickets, Raspadinha scratch cards, Jogos (games), etc.<br><br>These become <b>DailyCloseItem</b> rows linked to this DailyClose. The operator does <b>not</b> enter Diferença Caixa — the system will compute and append it on submit.',
+   activeTables:['Product','DailyCloseItem','DailyClose'],
+   activeArrows:['prod-dci','dci-dc'],
+   data:[
+    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 5,200.00"'}]},
+    {entity:'DailyCloseItem #2',fields:[{n:'ProductId',v:'→ Telesena'},{n:'Value',v:'"R$ 340.00"'}]},
+    {entity:'DailyCloseItem #3',fields:[{n:'ProductId',v:'→ Raspadinha'},{n:'Value',v:'"R$ 180.00"'}]}
+   ]},
+  {title:'Submit for Review',
+   narrative:'Operator marks the DailyClose as <b>Submitted</b>. On submit, the system computes <b>CashVariance = TotalClosing − TotalOpening − TotalTransactions</b> and persists it as a <b>Diferença Caixa</b> DailyCloseItem — the operator never types this value. Status changes from Draft to Submitted, SubmittedAt is set, SubmittedByOperatorId records who submitted.<br><br>The manager now sees this in their <b>pending review queue</b>.',
+   activeTables:['DailyClose','DailyCloseItem'],
+   activeArrows:['dci-dc'],
+   data:[
+    {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'"R$ -20.00"',hl:'hl-red'}]},
+    {entity:'DailyClose (updated)',fields:[
+     {n:'Status',v:'"Submitted"',hl:'hl'},
+     {n:'SubmittedAt',v:'"2025-03-15T18:30:00Z"',hl:'hl'},
+     {n:'SubmittedByOpId',v:'→ Bete'}
+    ]}
+   ]},
+  {title:'Manager Approves',
+   narrative:'The manager reviews: compares DailyCloseItems against the transaction ledger, checks the CashVariance (<b>−R$20</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt and ApprovedByUserId are set. If issues were found, the manager would <b>Reject</b> with a reason, and the operator would edit and resubmit. This workflow — <b>Draft → Submitted → Approved/Rejected</b> — replaces the paper-based process that lottery houses currently use.',
+   activeTables:['DailyClose'],
+   activeArrows:[],
+   data:[
+    {entity:'DailyClose (final)',fields:[
+     {n:'Status',v:'"Approved"',hl:'hl-green'},
+     {n:'ApprovedAt',v:'"2025-03-16T09:15:00Z"',hl:'hl-green'},
+     {n:'ApprovedByUserId',v:'→ Maria'}
+    ]}
+   ]}
+ ]
+},
+{type:'closing'}
+];
+
+let currentSlide=0;
+let stepPerSlide={};
+let autoPlayTimer=null;
+let autoPlaying=false;
+
+function init(){
+  const track=document.getElementById('track');
+  track.innerHTML=SLIDES.map((s,i)=>renderSlide(s,i)).join('');
+  renderDots();
+  SLIDES.forEach((_,i)=>{stepPerSlide[i]=0});
+  initAllArrows();
+  SLIDES.forEach((s,i)=>{if(s.type==='uc')updateStep(i,0)});
+  document.addEventListener('keydown',onKey);
+  updateDots();
+}
+
+function renderSlide(s,i){
+  switch(s.type){
+    case 'title':return renderTitle(i);
+    case 'schema':return renderSchema(i);
+    case 'intro':return renderIntro(s,i);
+    case 'uc':return renderUC(s,i);
+    case 'closing':return renderClosing(i);
+  }
+}
+
+function renderTitle(i){
+  return `<div class="slide title-slide" data-idx="${i}">
+    <h1>LottoGest Backend Architecture</h1>
+    <p class="subtitle">A lottery house cash management SaaS — digitizing daily operations from paper + Microsoft Access</p>
+    <ul class="bullets">
+      <li>.NET + EF Core + PostgreSQL</li>
+      <li>18 entities, multi-tenant (Branch = tenant)</li>
+      <li>Transaction ledger + Daily closing snapshot</li>
+    </ul>
+  </div>`;
+}
+
+function renderSchema(i){
+  const groups=[
+    {name:'Auth',color:'var(--blue)',entities:['User','RefreshToken','BranchUser','Branch']},
+    {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account']},
+    {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client']},
+    {name:'Closing',color:'var(--purple)',entities:['DailyClose','DailyCloseItem','Product']},
+    {name:'HR',color:'var(--teal)',entities:['TimeEntry','Holiday','Setting']}
+  ];
+  const gs=groups.map(g=>{
+    const ents=g.entities.map(e=>`<div class="entity" style="border-left-color:${g.color}">${e}</div>`).join('');
+    return `<div class="schema-group"><h3 style="border-bottom-color:${g.color};color:${g.color}">${g.name}</h3>${ents}</div>`;
+  }).join('');
+  return `<div class="slide schema-slide" data-idx="${i}">
+    <h2>Schema Overview — 18 Entities</h2>
+    <div class="schema-groups">${gs}</div>
+  </div>`;
+}
+
+function renderIntro(s,i){
+  if(s.id==='domain') return `<div class="slide intro-slide" data-idx="${i}">
+    <h2>The Domain: Brazilian Lottery Houses</h2>
+    <p class="intro-sub">Understanding the business before the code</p>
+    <div class="intro-cols">
+      <div class="intro-col">
+        <p class="intro-text">A <b>casa lotérica</b> is a privately-owned branch that operates under contract with <b>Caixa Econômica Federal (CEF)</b>, Brazil's federal bank. It processes lottery sales, bill payments, cash deposits, transfers, and other financial services on behalf of CEF.</p>
+        <div class="intro-card">
+          <h3 class="accent-color">The Core Problem</h3>
+          <p>Every day, each operator (cashier) processes dozens of financial transactions at their terminal. At the end of the day, the operator must <b>close their register</b>: count what is physically in the drawer, compare it to what the system says should be there, and report the difference. The owner then reconciles this against CEF's own settlement report (<em>borderô</em>).</p>
+        </div>
+        <div class="intro-highlight">This is currently done on <b>paper + Microsoft Access</b>. LottoGest digitizes the entire flow — from transaction entry to daily closing to manager approval.</div>
+      </div>
+      <div class="intro-col">
+        <div class="intro-card">
+          <h3 class="blue-color">A Typical Day</h3>
+          <p>An operator sits at a terminal all day processing: cash deposits (customer brings money), PIX transfers, credit/debit card payments, lottery ticket sales, bill payments, and credit sales to regular customers (<em>fiado</em>). Each event must be recorded, classified, and tracked through settlement.</p>
+        </div>
+        <div class="intro-card">
+          <h3 class="teal-color">The Owner's View</h3>
+          <p>The owner needs to answer daily: <em>"Is the money in the drawer matching what the system says?"</em> The answer is the <b>CashVariance</b> (Diferença de Caixa) — the single most important number in the system. A negative variance means money is missing. A positive variance means extra money appeared. Both need investigation.</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  if(s.id==='parallel') return `<div class="slide intro-slide" data-idx="${i}">
+    <h2>Two Parallel Systems</h2>
+    <p class="intro-sub">The same financial reality tracked from two angles</p>
+    <div class="intro-cols">
+      <div class="intro-col">
+        <div class="intro-card" style="border-left:3px solid var(--amber)">
+          <h3 class="accent-color">The Transaction Ledger</h3>
+          <p>The <code>Transaction</code> table records <b>every individual financial event</b> — "R$2,000 cash deposit at 12:30", "R$560 credit card payment", "R$50 client tab". This is the analytical, auditable record.</p>
+          <p style="margin-top:8px">It answers: <em>what happened, when, how much, to whom, through which account?</em></p>
+        </div>
+      </div>
+      <div class="intro-col">
+        <div class="intro-card" style="border-left:3px solid var(--purple)">
+          <h3 style="color:var(--purple)">The Daily Closing Snapshot</h3>
+          <p>The <code>DailyClose</code> + <code>DailyCloseItem</code> tables record the <b>physical count</b> of what is in the drawer at end of day — how much cash, how many Telesena tickets worth how much, Raspadinha scratch cards, etc.</p>
+          <p style="margin-top:8px">It answers: <em>what do we actually have right now, and does it match the ledger?</em></p>
+        </div>
+      </div>
+    </div>
+    <div class="intro-cols stacked" style="margin-top:16px">
+      <div class="intro-card" style="max-width:700px;text-align:center;border:2px solid var(--accent)">
+        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − TotalTransactions</span></h3>
+        <p style="font-size:15px;margin-top:8px">This is <b>the single most important number</b> in the system. The owner reviews it daily for each operator. A mismatch triggers investigation — was a transaction missed? Did the operator miscount? Was there theft?</p>
+        <p style="font-size:13px;margin-top:10px;color:var(--dim)"><b>Note:</b> The Fiado (credit) balance is <em>not</em> part of the snapshot — it is always calculated at query time from Tab account transactions, never persisted as a DailyClose product.</p>
+      </div>
+    </div>
+  </div>`;
+
+  if(s.id==='concepts') return `<div class="slide intro-slide" data-idx="${i}">
+    <h2>Three Key Concepts</h2>
+    <p class="intro-sub">Design decisions that shape the entire schema</p>
+    <div class="intro-cols">
+      <div class="intro-col">
+        <div class="intro-card">
+          <h3 class="accent-color">The Three-Date Model</h3>
+          <p>Every transaction tracks its full lifecycle with three dates:</p>
+          <table class="mini-table">
+            <tr><th>Field</th><th>Meaning</th><th>Example</th></tr>
+            <tr><td><code>Date</code></td><td>When it happened</td><td>March 15</td></tr>
+            <tr><td><code>DueDate</code></td><td>When payment is expected</td><td>March 17 (credit card +2 business days)</td></tr>
+            <tr><td><code>PaidAt</code></td><td>When money actually arrived</td><td><em>null</em> = still pending</td></tr>
+          </table>
+          <p style="margin-top:10px">This enables receivables tracking ("money expected this week"), aging reports, and reconciliation with CEF settlement reports.</p>
+        </div>
+        <div class="intro-card">
+          <h3 class="blue-color">Multi-Tenancy</h3>
+          <p><code>Branch</code> is the tenant — one per lottery house. Every entity carries a <code>BranchId</code> FK. Data isolation is enforced at query level. A single User can belong to multiple Branches (e.g., owner manages 2 locations).</p>
+        </div>
+      </div>
+      <div class="intro-col">
+        <div class="intro-card">
+          <h3 style="color:#4caf50">The Fiado (Tab/Credit) Subsystem</h3>
+          <p>Regular customers buy on credit. The challenge: credit sales should <b>NOT</b> affect the cash drawer count (the operator didn't receive cash). Solution:</p>
+          <p style="margin-top:8px">Each terminal has a paired <b>Tab account</b>. Credit goes to the Tab, not the Terminal. The drawer stays accurate for daily reconciliation.</p>
+          <div class="intro-tree" style="margin-top:10px">
+<b>Account</b> "Bete" (Terminal) ──<span class="hl">TabAccountId</span>──▸ <b>Account</b> "Tab Bete" (Tab)
+│                                     │
+│ Cash transactions here               │ Credit (fiado) here
+│ ✓ Affects CashVariance               │ ✗ Does NOT affect CashVariance
+          </div>
+        </div>
+        <div class="intro-card">
+          <h3 style="color:var(--teal)">User vs Operator vs Account</h3>
+          <table class="mini-table">
+            <tr><th>Concern</th><th>Entity</th><th>Why separate?</th></tr>
+            <tr><td>Login/auth</td><td><code>User</code></td><td>Admin may have no terminal</td></tr>
+            <tr><td>Employee</td><td><code>Operator</code></td><td>Records survive user deactivation; links to User directly (not BranchUser) — branch consistency enforced at API layer</td></tr>
+            <tr><td>Financial</td><td><code>Account</code></td><td>Can be reassigned between operators</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  return `<div class="slide" data-idx="${i}"></div>`;
+}
+
+function renderClosing(i){
+  const cards=[
+    {t:'Multi-Tenancy',d:'Branch as tenant, BranchId on every entity, query-level isolation. A single User can span multiple Branches with different Roles.'},
+    {t:'Three-Date Model',d:'Date / DueDate / PaidAt enables receivables tracking and reconciliation. Know exactly when money is expected and when it actually arrives.'},
+    {t:'Dual Ledger + Snapshot',d:'Transaction ledger for audit trail, DailyClose for physical reconciliation. CashVariance bridges them — the most important daily metric.'},
+    {t:'Fiado Isolation',d:'Terminal / Tab account separation prevents credit sales from distorting cash drawer counts, keeping daily reconciliation accurate.'},
+    {t:'Branch Consistency',d:'Every FK on Transaction and DailyClose (Account, Operator, Client, TransactionType→Category) must resolve to the same BranchId — enforced at the service layer to prevent cross-tenant data leakage.'}
+  ];
+  const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
+  return `<div class="slide closing-slide" data-idx="${i}">
+    <h2>Key Architectural Decisions</h2>
+    <div class="closing-cards">${cs}</div>
+    <button class="restart-btn" onclick="goToSlide(0)">&#8634; Back to Start</button>
+  </div>`;
+}
+
+function renderUC(s,idx){
+  const svgTables=Object.entries(s.tables).map(([k,t])=>{
+    return `<g class="tbl-box dimmed" data-tbl="${k}">
+      <rect x="${t.x}" y="${t.y}" width="${t.w}" height="${t.h}" rx="8"/>
+      <text x="${t.x+t.w/2}" y="${t.y+t.h/2+4}" text-anchor="middle">${t.label}</text>
+      <rect class="badge-bg" x="${t.x+t.w-60}" y="${t.y+t.h-6}" width="56" height="18" style="display:none" data-badge-bg="${k}"/>
+      <text class="badge" x="${t.x+t.w-32}" y="${t.y+t.h+7}" text-anchor="middle" style="display:none" data-badge="${k}"></text>
+    </g>`;
+  }).join('\n');
+
+  const svgArrows=s.arrows.map(a=>{
+    const d=arrowD(s.tables,a.from,a.to,a.fs,a.ts);
+    return `<path class="arrow-path hidden" data-arrow="${a.id}" d="${d}"/>`;
+  }).join('\n');
+
+  const totalSteps=s.steps.length;
+  const stepDots=s.steps.map((_,j)=>`<div class="step-dot${j===0?' active':''}" data-sdot="${idx}-${j}"></div>`).join('');
+
+  return `<div class="slide uc-slide" data-idx="${idx}">
+    <div class="uc-header">
+      <h2>${s.title}</h2>
+      <div class="step-info">Step <span data-curStep="${idx}">1</span> of ${totalSteps}: <span class="step-title" data-stepTitle="${idx}">${s.steps[0].title}</span></div>
+    </div>
+    <div class="uc-content">
+      <div class="uc-diagram">
+        <svg viewBox="${s.viewBox}" preserveAspectRatio="xMidYMid meet">
+          ${svgTables}
+          ${svgArrows}
+        </svg>
+      </div>
+      <div class="uc-panel">
+        <div class="uc-narrative" data-narrative="${idx}"></div>
+        <div class="uc-data" data-data="${idx}"></div>
+      </div>
+    </div>
+    <div class="step-controls">
+      <button class="step-btn" onclick="changeStep(${idx},-1)">&#9664; Prev Step</button>
+      <div class="step-dots">${stepDots}</div>
+      <button class="step-btn" onclick="changeStep(${idx},1)">Next Step &#9654;</button>
+      <button class="step-btn play-btn" data-play="${idx}" onclick="toggleAutoPlay(${idx})">&#9654;&#124;</button>
+    </div>
+  </div>`;
+}
+
+function edgePt(tbl,side){
+  switch(side){
+    case 't':return[tbl.x+tbl.w/2,tbl.y];
+    case 'b':return[tbl.x+tbl.w/2,tbl.y+tbl.h];
+    case 'l':return[tbl.x,tbl.y+tbl.h/2];
+    case 'r':return[tbl.x+tbl.w,tbl.y+tbl.h/2];
+  }
+}
+
+function arrowD(tbls,fromK,toK,fs,ts){
+  const f=edgePt(tbls[fromK],fs);
+  const t=edgePt(tbls[toK],ts);
+  const d=40;
+  const off={t:[0,-d],b:[0,d],l:[-d,0],r:[d,0]};
+  const c1=[f[0]+off[fs][0],f[1]+off[fs][1]];
+  const c2=[t[0]+off[ts][0],t[1]+off[ts][1]];
+  return `M${f[0]},${f[1]} C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${t[0]},${t[1]}`;
+}
+
+function initAllArrows(){
+  document.querySelectorAll('.arrow-path').forEach(p=>{
+    const len=p.getTotalLength();
+    p.style.strokeDasharray=len;
+    p.style.strokeDashoffset=len;
+    p.dataset.len=len;
+  });
+}
+
+function updateStep(slideIdx,stepIdx){
+  const s=SLIDES[slideIdx];
+  if(s.type!=='uc')return;
+  const step=s.steps[stepIdx];
+  stepPerSlide[slideIdx]=stepIdx;
+
+  const slide=document.querySelector(`.slide[data-idx="${slideIdx}"]`);
+  if(!slide)return;
+
+  const curStepEl=slide.querySelector(`[data-curStep="${slideIdx}"]`);
+  const stepTitleEl=slide.querySelector(`[data-stepTitle="${slideIdx}"]`);
+  if(curStepEl)curStepEl.textContent=stepIdx+1;
+  if(stepTitleEl)stepTitleEl.textContent=step.title;
+
+  slide.querySelectorAll('.step-dot').forEach((d,j)=>{
+    d.classList.toggle('active',j===stepIdx);
+  });
+
+  Object.keys(s.tables).forEach(k=>{
+    const g=slide.querySelector(`[data-tbl="${k}"]`);
+    if(!g)return;
+    const isActive=step.activeTables.includes(k);
+    g.classList.toggle('active',isActive);
+    g.classList.toggle('dimmed',!isActive);
+
+    const badge=g.querySelector(`[data-badge="${k}"]`);
+    const badgeBg=g.querySelector(`[data-badge-bg="${k}"]`);
+    let badgeText=null;
+    if(step.badge&&step.badge.table===k)badgeText=step.badge.text;
+    if(step.badgeB&&step.badgeB.table===k)badgeText=step.badgeB.text;
+    if(badge&&badgeBg){
+      if(badgeText){
+        badge.textContent=badgeText;
+        badge.style.display='';
+        badgeBg.style.display='';
+      }else{
+        badge.style.display='none';
+        badgeBg.style.display='none';
+      }
+    }
+  });
+
+  s.arrows.forEach(a=>{
+    const path=slide.querySelector(`[data-arrow="${a.id}"]`);
+    if(!path)return;
+    const isActive=step.activeArrows.includes(a.id);
+    const wasHidden=path.classList.contains('hidden');
+
+    if(isActive){
+      path.classList.remove('hidden','dimmed');
+      path.classList.add('active');
+      if(wasHidden||path.style.strokeDashoffset!=='0'){
+        const len=path.dataset.len;
+        path.style.transition='none';
+        path.style.strokeDashoffset=len;
+        path.getBoundingClientRect();
+        const delay=step.staggerDelay?step.activeArrows.indexOf(a.id)*0.15:0;
+        path.style.transition=`stroke-dashoffset .8s ease ${delay}s, stroke .3s, opacity .3s`;
+        path.style.strokeDashoffset='0';
+      }
+    }else if(step.activeArrows.length>0){
+      path.classList.remove('active','hidden');
+      path.classList.add('dimmed');
+      path.style.transition='stroke-dashoffset .4s, stroke .3s, opacity .3s';
+      path.style.strokeDashoffset='0';
+    }else{
+      path.classList.remove('active','dimmed');
+      path.classList.add('hidden');
+      path.style.strokeDashoffset=path.dataset.len;
+    }
+  });
+
+  const narrativeEl=slide.querySelector(`[data-narrative="${slideIdx}"]`);
+  const dataEl=slide.querySelector(`[data-data="${slideIdx}"]`);
+
+  if(narrativeEl){
+    narrativeEl.style.opacity=0;
+    setTimeout(()=>{
+      narrativeEl.innerHTML=step.narrative;
+      narrativeEl.style.opacity=1;
+    },150);
+  }
+
+  if(dataEl){
+    dataEl.style.opacity=0;
+    setTimeout(()=>{
+      dataEl.innerHTML=renderDataPanel(step.data);
+      dataEl.style.opacity=1;
+    },150);
+  }
+}
+
+function renderDataPanel(data){
+  if(!data||!data.length)return'';
+  return data.map(d=>{
+    if(d.sql){
+      return `<div class="data-entry"><div class="data-entity-name">${d.entity}</div><div class="data-sql">${d.text}</div></div>`;
+    }
+    const fields=d.fields.map(f=>{
+      const cls=f.hl?` ${f.hl}`:'';
+      return `<div class="data-row"><span class="fn">${f.n}</span><span class="fv${cls}">${f.v}</span></div>`;
+    }).join('');
+    return `<div class="data-entry"><div class="data-entity-name">${d.entity}</div>${fields}</div>`;
+  }).join('');
+}
+
+function renderDots(){
+  const dotsEl=document.getElementById('slideDots');
+  dotsEl.innerHTML=SLIDES.map((_,i)=>`<div class="slide-dot${i===0?' active':''}" onclick="goToSlide(${i})"></div>`).join('');
+}
+
+function updateDots(){
+  document.querySelectorAll('#slideDots .slide-dot').forEach((d,i)=>{
+    d.classList.toggle('active',i===currentSlide);
+  });
+}
+
+function goToSlide(idx){
+  if(idx<0||idx>=SLIDES.length)return;
+  currentSlide=idx;
+  document.getElementById('track').style.transform=`translateX(-${idx*100}vw)`;
+  updateDots();
+  updateNavBtns();
+  stopAutoPlay();
+}
+
+function updateNavBtns(){
+  document.getElementById('prevBtn').classList.toggle('faded',currentSlide===0);
+  document.getElementById('nextBtn').classList.toggle('faded',currentSlide===SLIDES.length-1);
+}
+
+function changeSlide(dir){
+  goToSlide(currentSlide+dir);
+}
+
+function changeStep(slideIdx,dir){
+  const s=SLIDES[slideIdx];
+  if(s.type!=='uc')return;
+  const cur=stepPerSlide[slideIdx]||0;
+  const next=cur+dir;
+  if(next<0||next>=s.steps.length)return;
+  updateStep(slideIdx,next);
+  if(autoPlaying)restartAutoPlayTimer(slideIdx);
+}
+
+function toggleAutoPlay(slideIdx){
+  if(autoPlaying){
+    stopAutoPlay();
+  }else{
+    autoPlaying=true;
+    const btn=document.querySelector(`[data-play="${slideIdx}"]`);
+    if(btn)btn.classList.add('playing');
+    restartAutoPlayTimer(slideIdx);
+  }
+}
+
+function restartAutoPlayTimer(slideIdx){
+  clearInterval(autoPlayTimer);
+  autoPlayTimer=setInterval(()=>{
+    const s=SLIDES[slideIdx];
+    if(s.type!=='uc')return stopAutoPlay();
+    const cur=stepPerSlide[slideIdx]||0;
+    const next=cur+1;
+    if(next>=s.steps.length){
+      updateStep(slideIdx,0);
+    }else{
+      updateStep(slideIdx,next);
+    }
+  },4000);
+}
+
+function stopAutoPlay(){
+  autoPlaying=false;
+  clearInterval(autoPlayTimer);
+  document.querySelectorAll('.play-btn').forEach(b=>b.classList.remove('playing'));
+}
+
+function onKey(e){
+  if(e.key==='ArrowRight')changeSlide(1);
+  else if(e.key==='ArrowLeft')changeSlide(-1);
+  else if(e.key==='ArrowDown'){
+    e.preventDefault();
+    changeStep(currentSlide,1);
+  }else if(e.key==='ArrowUp'){
+    e.preventDefault();
+    changeStep(currentSlide,-1);
+  }
+}
+
+// Touch swipe navigation
+let touchStartX=0,touchStartY=0,touchStartTime=0;
+document.addEventListener('touchstart',function(e){
+  touchStartX=e.touches[0].clientX;
+  touchStartY=e.touches[0].clientY;
+  touchStartTime=Date.now();
+},{passive:true});
+document.addEventListener('touchend',function(e){
+  const dx=e.changedTouches[0].clientX-touchStartX;
+  const dy=e.changedTouches[0].clientY-touchStartY;
+  const dt=Date.now()-touchStartTime;
+  if(dt>500)return;
+  if(Math.abs(dx)<50)return;
+  if(Math.abs(dy)>Math.abs(dx)*0.7)return;
+  if(dx<0)changeSlide(1);
+  else changeSlide(-1);
+},{passive:true});
+
+init();
+</script>
+</body>
+</html>
