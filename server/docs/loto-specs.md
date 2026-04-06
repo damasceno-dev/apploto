@@ -1,5 +1,12 @@
 # LottoGest — Backend Schema Specification
 
+<!--
+Sync group: loto-backend-docs
+Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
+Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
+Spec revision: v2
+-->
+
 > **Status:** Revised spec (v2) — peer review corrections + invariant tightening  
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
