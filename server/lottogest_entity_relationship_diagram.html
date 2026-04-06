@@ -232,6 +232,7 @@
     '  User ||--o{ RefreshToken : has\n' +
     '  User o|--o{ Operator : "logs in as"\n' +
     '  User ||--o{ Transaction : "created by"\n' +
+    '  User o|--o{ Transaction : "cancelled by"\n' +
     '\n' +
     '  BranchUser {\n' +
     '    uuid id PK\n' +
@@ -250,6 +251,7 @@
     '  Account o|--o| Account : "tab account"\n' +
     '\n' +
     '  Category ||--o{ TransactionType : contains\n' +
+    '  Category ||--o{ Transaction : groups\n' +
     '  TransactionType ||--o{ Transaction : classifies\n' +
     '\n' +
     '  Client ||--o{ Transaction : involved\n' +
@@ -258,6 +260,8 @@
     '\n' +
     '  DailyClose ||--o{ DailyCloseItem : contains\n' +
     '  Product ||--o{ DailyCloseItem : measured\n' +
+    '  Operator o|--o{ DailyClose : "submitted by"\n' +
+    '  User o|--o{ DailyClose : "approved by"\n' +
     '\n' +
     '  Branch {\n' +
     '    uuid id PK\n' +
@@ -396,6 +400,8 @@
     '    uuid id PK\n' +
     '    date lockDate\n' +
     '    decimal dailyTargetHours\n' +
+    '    decimal lunchDeductionOver6h\n' +
+    '    decimal lunchDeductionOver4h\n' +
     '    uuid branchId FK\n' +
     '  }';
 

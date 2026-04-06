@@ -242,14 +242,14 @@ public class Operator : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | "Elisabete", "Lorenna", "Vanessa" |
-| BranchId | uuid | NOT NULL | FK → Branch |
+| Column | Type | Null | Notes                                                           |
+|---|---|---|-----------------------------------------------------------------|
+| Id | uuid | PK |                                                                 |
+| Name | varchar(255) | NOT NULL | "Lenna", "Jennifer", "Tracy"                                    |
+| BranchId | uuid | NOT NULL | FK → Branch                                                     |
 | UserId | uuid | NULL | FK → User. Null = no login (former employee, or not yet set up) |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| CreatedAt | timestamptz | NOT NULL |                                                                 |
+| Active | boolean | NOT NULL |                                                                 |
 
 ### 3.7 Account
 
@@ -277,28 +277,28 @@ public class Account : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Type | smallint | NOT NULL | Enum: Terminal=0, BankAccount=1, Tab=2 |
-| Name | varchar(255) | NOT NULL | "Bete", "CEF 1292", "Tab Bete" |
-| Institution | varchar(255) | NULL | "Lotérica" for terminals, "Caixa Econômica" for bank accounts |
-| Number | varchar(50) | NULL | Terminal number "1","2","3" or bank account number |
-| BranchId | uuid | NOT NULL | FK → Branch |
+| Column | Type | Null | Notes                                                                          |
+|---|---|---|--------------------------------------------------------------------------------|
+| Id | uuid | PK |                                                                                |
+| Type | smallint | NOT NULL | Enum: Terminal=0, BankAccount=1, Tab=2                                         |
+| Name | varchar(255) | NOT NULL | "Lenna", "CEF 1292", "Tab Lenna"                                               |
+| Institution | varchar(255) | NULL | "Lotérica" for terminals, "Caixa Econômica" for bank accounts                  |
+| Number | varchar(50) | NULL | Terminal number "1","2","3" or bank account number                             |
+| BranchId | uuid | NOT NULL | FK → Branch                                                                    |
 | TabAccountId | uuid | NULL | FK → Account (self). Only for Terminal type → points to its paired Tab account |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| CreatedAt | timestamptz | NOT NULL |                                                                                |
+| Active | boolean | NOT NULL |                                                                                |
 
 **Example data:**
 
 | Name | Type | TabAccountId | Institution | Number |
 |---|---|---|---|---|
-| Bete | Terminal | → "Tab Bete" | Lotérica | 1 |
-| Lorenna | Terminal | → "Tab Lorenna" | Lotérica | 2 |
-| Vanessa | Terminal | → "Tab Vanessa" | Lotérica | 3 |
-| Tab Bete | Tab | null | Lotérica | 4 |
-| Tab Lorenna | Tab | null | Lotérica | 5 |
-| Tab Vanessa | Tab | null | Lotérica | 6 |
+| Lenna | Terminal | → "Tab Lenna" | Lotérica | 1 |
+| Jennifer | Terminal | → "Tab Jennifer" | Lotérica | 2 |
+| Tracy | Terminal | → "Tab Tracy" | Lotérica | 3 |
+| Tab Lenna | Tab | null | Lotérica | 4 |
+| Tab Jennifer | Tab | null | Lotérica | 5 |
+| Tab Tracy | Tab | null | Lotérica | 6 |
 | CEF 1292 | BankAccount | null | Caixa Econômica | 5780706014 |
 | CEF 4995 | BankAccount | null | Caixa Econômica | 5780706014 |
 
@@ -471,8 +471,8 @@ public class Transaction : EntityBase
     public DateTime DueDate { get; set; }
     public DateTime? PaidAt { get; set; }
 
-    // Installment linking — all installments in a group share the same
-    // OriginTransactionId, including the first (which points to itself).
+    // Installment linking — all installments in a group share the same OriginTransactionId,
+    // including the first (which points to itself).
     public Guid? OriginTransactionId { get; set; }
     public Transaction? OriginTransaction { get; set; }
 

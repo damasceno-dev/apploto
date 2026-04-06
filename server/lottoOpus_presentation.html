@@ -255,32 +255,32 @@ const SLIDES=[
    activeTables:['Category','TransactionType','Account'],
    activeArrows:[],
    data:[
-    {entity:'Category',fields:[{n:'Name',v:'"Receita"'},{n:'DefaultDirection',v:'"In"',hl:'hl'}]},
-    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Dinheiro"'},{n:'CategoryId',v:'→ Receita',hl:'hl'}]},
-    {entity:'Account',fields:[{n:'Name',v:'"Bete"'},{n:'Type',v:'"Terminal"'}]}
+    {entity:'Category',fields:[{n:'Name',v:'"Saídas"'},{n:'DefaultDirection',v:'"Out"',hl:'hl'}]},
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Dinheiro"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'}]},
+    {entity:'Account',fields:[{n:'Name',v:'"Jennifer"'},{n:'Type',v:'"Terminal"'}]}
    ]},
   {title:'Creating a Cash Deposit',
-   narrative:'A customer brings <b>R$2,000</b> in cash for a deposit. The operator selects "Depósito Dinheiro" and enters the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=In</b> (money enters the drawer), and TransactionTime records 10:30.<br><br>For cash deposits, <b>DueDate = Date + 1 day</b>, because CEF settles cash deposits next business day.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record — may differ from the operator for manager corrections).',
+   narrative:'A customer brings <b>R$2,000</b> in cash to be deposited into their CEF bank account via the lotérica. The operator selects "Depósito Dinheiro" and enters the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> Although the cash physically enters the drawer, it is a <em>liability</em> — the lotérica owes that money to CEF at settlement. "Depósito Dinheiro" is seeded under <b>Saídas</b> to reflect this accounting reality. The cash drawer is reconciled via the <b>DailyClose</b> snapshot, not by overriding Direction on individual transactions.<br><br>For cash deposits, <b>DueDate = Date + 1 day</b>, because CEF settles cash deposits next business day.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
     {entity:'Transaction',fields:[
      {n:'Date',v:'"2025-03-15"'},{n:'Value',v:'"R$ 2,000.00"',hl:'hl'},
-     {n:'Direction',v:'"In"',hl:'hl'},{n:'TransactionTime',v:'"10:30"'},
-     {n:'CategoryId',v:'→ Receita'},{n:'TransactionTypeId',v:'→ Depósito Dinheiro'},
-     {n:'AccountId',v:'→ Bete'},{n:'DueDate',v:'"2025-03-16"'},
-     {n:'PaidAt',v:'null'},{n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'},
+     {n:'Direction',v:'"Out"',hl:'hl'},{n:'TransactionTime',v:'"10:30"'},
+     {n:'CategoryId',v:'→ Saídas'},{n:'TransactionTypeId',v:'→ Depósito Dinheiro'},
+     {n:'AccountId',v:'→ Jennifer'},{n:'DueDate',v:'"2025-03-16"'},
+     {n:'PaidAt',v:'null'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'},
      {n:'Status',v:'"Active"'}
     ]}
    ]},
   {title:'The Three-Date Model',
-   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected (March 16, next business day for cash)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when money actually arrived (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables tracking</b>: the owner can query "how much money is expected this week" by filtering DueDate range with PaidAt IS NULL.',
+   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next business day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
    activeTables:['Transaction'],
    activeArrows:[],
    data:[
     {entity:'Transaction',fields:[
      {n:'Date',v:'"2025-03-15"',hl:'hl-green'},{n:'Value',v:'"R$ 2,000.00"'},
-     {n:'Direction',v:'"In"'},{n:'TransactionTime',v:'"10:30"'},
+     {n:'Direction',v:'"Out"'},{n:'TransactionTime',v:'"10:30"'},
      {n:'DueDate',v:'"2025-03-16"',hl:'hl-blue'},
      {n:'PaidAt',v:'null',hl:'hl-red'},
      {n:'Status',v:'"Active"'}
@@ -303,7 +303,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Direction and Categories',
-   narrative:'The system tracks money flow with a <b>Direction</b> enum: <b>In</b> (money enters) and <b>Out</b> (money leaves). Each Category has a <b>DefaultDirection</b>. "Receita" defaults to In, "Saídas" defaults to Out.<br><br>Direction on a Transaction is <b>denormalized</b> — it is automatically derived from the Category\'s DefaultDirection when the operator selects a TransactionType. The operator never chooses Direction directly. PIX falls under "Saídas", so any PIX transaction is automatically Direction=Out.',
+   narrative:'The system tracks money flow with a <b>Direction</b> enum: <b>In</b> (money enters) and <b>Out</b> (money leaves). Each Category has a <b>DefaultDirection</b>. "Entradas" defaults to In, "Saídas" defaults to Out.<br><br>Direction on a Transaction is <b>denormalized</b> — it is automatically derived from the Category\'s DefaultDirection when the operator selects a TransactionType. The operator never chooses Direction directly. PIX falls under "Saídas", so any PIX transaction is automatically Direction=Out.',
    activeTables:['Category','TransactionType'],
    activeArrows:['cat-tt'],
    data:[
@@ -318,25 +318,24 @@ const SLIDES=[
     {entity:'Transaction',fields:[
      {n:'Date',v:'"2025-03-15"'},{n:'Value',v:'"R$ 800.00"',hl:'hl'},
      {n:'Direction',v:'"Out"',hl:'hl'},{n:'CategoryId',v:'→ Saídas'},
-     {n:'TransactionTypeId',v:'→ PIX'},{n:'AccountId',v:'→ Bete'},
+     {n:'TransactionTypeId',v:'→ PIX'},{n:'AccountId',v:'→ Jennifer'},
      {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'"2025-03-15"'},
-     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'},
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'},
      {n:'Status',v:'"Active"'}
     ]}
    ]},
   {title:'Direction Contrast',
-   narrative:'Now we can see both directions on the same Account: the R$2,000 cash deposit (<b>In</b>) increased the balance, and the R$800 PIX (<b>Out</b>) decreased it.<br><br>The expected drawer balance is:<br><b style="color:var(--accent)">R$2,000 − R$800 = R$1,200</b><br><br>This is the core of the transaction ledger — every financial event is an <b>In</b> or <b>Out</b> on an Account.',
+   narrative:'To see both directions, compare the R$800 PIX (<b>Out</b>) with a client paying back R$300 on their fiado tab (<b>In</b>, under TransactionType "Cliente" in Category "Entradas" — previewed here, covered in detail in UC5).<br><br>In and Out are mirror operations on the ledger:<br><b style="color:var(--accent)">+R$300 (In) − R$800 (Out) = −R$500 net</b><br><br>This is the core of the transaction ledger — every financial event is an <b>In</b> or <b>Out</b>, and Direction is always derived from the parent Category, never overridden.',
    activeTables:['Account'],
    activeArrows:[],
-   badge:{table:'Account',text:'R$ 1,200'},
    data:[
-    {entity:'Transaction #1 (Deposit)',fields:[
-     {n:'Value',v:'"R$ 2,000.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
-     {n:'DueDate',v:'"2025-03-16"'}
+    {entity:'Transaction (Fiado Payback)',fields:[
+     {n:'Value',v:'"R$ 300.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
+     {n:'Category',v:'→ Entradas'},{n:'TransactionType',v:'→ Cliente'}
     ]},
-    {entity:'Transaction #2 (PIX)',fields:[
+    {entity:'Transaction (PIX)',fields:[
      {n:'Value',v:'"R$ 800.00"'},{n:'Direction',v:'"Out"',hl:'hl-red'},
-     {n:'DueDate',v:'"2025-03-15"'}
+     {n:'Category',v:'→ Saídas'},{n:'TransactionType',v:'→ PIX'}
     ]}
    ]}
  ]
@@ -363,29 +362,32 @@ const SLIDES=[
  ],
  steps:[
   {title:'Multi-Tenancy: User + Branch',
-   narrative:'LottoGest is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).',
+   narrative:'LottoGest is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).<br><br>Here we have two Users: <b>Jennifer</b> (Member — the day-to-day operator) and <b>Maria</b> (Manager — approves closings and can cover shifts).',
    activeTables:['User','BranchUser','Branch'],
    activeArrows:['user-bu','bu-branch'],
    data:[
-    {entity:'User',fields:[{n:'Name',v:'"Maria"'},{n:'Email',v:'"maria@mail.com"'}]},
+    {entity:'User (operator)',fields:[{n:'Name',v:'"Jennifer"'},{n:'Email',v:'"jennifer@mail.com"'}]},
+    {entity:'User (manager)',fields:[{n:'Name',v:'"Maria"'},{n:'Email',v:'"maria@mail.com"'}]},
     {entity:'Branch',fields:[{n:'Name',v:'"Lotérica Centro"'},{n:'Cnpj',v:'"12.345.678/0001-90"'}]},
-    {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Admin"',hl:'hl'}]}
+    {entity:'BranchUser',fields:[{n:'UserId',v:'→ Jennifer'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Member"',hl:'hl'}]},
+    {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Manager"',hl:'hl'}]}
    ]},
   {title:'Operator: Why Separate from User?',
-   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all associated transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee whose historical records are preserved, or a new hire not yet set up for login.<br><br><b style="color:var(--blue)">Design note:</b> Operator links directly to User (optional FK), <em>not</em> to BranchUser. This is intentional — the Operator→User link must survive BranchUser deactivation. The constraint that a linked User must belong to the same Branch is enforced at the <b>API/service layer</b>, not by the database schema. This trade-off preserves historical integrity over strict referential enforcement.',
+   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Today\'s scenario:</b> Jennifer is <b>off today</b>. Maria (Manager) logs in and covers Jennifer\'s terminal. This is exactly why User, Operator, and Account are separate — on transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another.<br><br><b style="color:var(--blue)">Design note:</b> Operator links directly to User (optional FK), <em>not</em> to BranchUser. This is intentional — the link must survive BranchUser deactivation. Branch consistency is enforced at the <b>API/service layer</b>, not the database schema.',
    activeTables:['Operator','Branch','User'],
    activeArrows:['op-branch','op-user'],
    data:[
-    {entity:'Operator',fields:[{n:'Name',v:'"Bete"'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'UserId',v:'→ Maria (optional)',hl:'hl'}]}
+    {entity:'Operator',fields:[{n:'Name',v:'"Jennifer"'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'UserId',v:'→ Jennifer (User)',hl:'hl'}]},
+    {entity:'Covering scenario',fields:[{n:'RecordedByOperatorId',v:'→ Jennifer',hl:'hl'},{n:'CreatedByUserId',v:'→ Maria',hl:'hl-blue'}]}
    ]},
   {title:'Accounts and the Terminal/Tab Pair',
-   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. Each terminal Account has a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br><b style="color:var(--blue)">TabAccountId invariants:</b> only <b>Terminal</b> accounts may set it, the target must be of type <b>Tab</b>, and each Tab is paired with <b>exactly one</b> Terminal.',
+   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. Each terminal Account has a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><b style="color:var(--blue)">TabAccountId invariants:</b> only <b>Terminal</b> accounts may set it, the target must be of type <b>Tab</b>, and each Tab is paired with <b>exactly one</b> Terminal.',
    activeTables:['AccountTerminal','AccountTab','OperatorAccount','Operator'],
    activeArrows:['oa-op','oa-acc','acc-tab'],
    data:[
-    {entity:'Account (Terminal)',fields:[{n:'Name',v:'"Bete"'},{n:'Type',v:'"Terminal"'},{n:'TabAccountId',v:'→ Tab Bete',hl:'hl'}]},
-    {entity:'Account (Tab)',fields:[{n:'Name',v:'"Tab Bete"'},{n:'Type',v:'"Tab"'},{n:'TabAccountId',v:'null'}]},
-    {entity:'OperatorAccount',fields:[{n:'OperatorId',v:'→ Bete'},{n:'AccountId',v:'→ Bete'},{n:'IsPrimary',v:'"true"',hl:'hl'}]}
+    {entity:'Account (Terminal)',fields:[{n:'Name',v:'"Jennifer"'},{n:'Type',v:'"Terminal"'},{n:'TabAccountId',v:'→ Tab Jennifer',hl:'hl'}]},
+    {entity:'Account (Tab)',fields:[{n:'Name',v:'"Tab Jennifer"'},{n:'Type',v:'"Tab"'},{n:'TabAccountId',v:'null'}]},
+    {entity:'OperatorAccount',fields:[{n:'OperatorId',v:'→ Jennifer'},{n:'AccountId',v:'→ Jennifer'},{n:'IsPrimary',v:'"true"',hl:'hl'}]}
    ]}
  ]
 },
@@ -424,9 +426,9 @@ const SLIDES=[
    activeTables:['Tx1','Tx2','Tx3','Account'],
    activeArrows:['tx1-acc','tx2-acc','tx3-acc'],
    data:[
-    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (1/3)"'},{n:'DueDate',v:'"2025-05-15"'},{n:'OriginTxId',v:'→ tx-001 (self)',hl:'hl'},{n:'RecordedByOpId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}]},
-    {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (2/3)"'},{n:'DueDate',v:'"2025-06-15"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOpId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}]},
-    {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOpId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}]}
+    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (1/3)"'},{n:'DueDate',v:'"2025-05-15"'},{n:'OriginTransactionId',v:'→ tx-001 (self)',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]},
+    {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (2/3)"'},{n:'DueDate',v:'"2025-06-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]},
+    {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]}
    ]},
   {title:'Receivables Tracking',
    narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b>. The other two remain as receivables — money expected in the future.',
@@ -442,9 +444,9 @@ const SLIDES=[
    activeTables:['Tx1','Tx2','Tx3'],
    activeArrows:['tx2-tx1','tx3-tx1'],
    data:[
-    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"',hl:'hl'},{n:'OriginTxId',v:'→ tx-001 (self)',hl:'hl'}]},
-    {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'}]},
-    {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'OriginTxId',v:'→ tx-001',hl:'hl'}]}
+    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"',hl:'hl'},{n:'OriginTransactionId',v:'→ tx-001 (self)',hl:'hl'}]},
+    {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'}]},
+    {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'}]}
    ]}
  ]
 },
@@ -469,12 +471,12 @@ const SLIDES=[
  ],
  steps:[
   {title:'What is Fiado?',
-   narrative:'Regular customers at a lottery house can buy on credit — <b>"fiado"</b> in Portuguese. This is extremely common in small Brazilian businesses.<br><br>The key design challenge: credit sales should <b>NOT</b> affect the cash drawer count. If Bete sells R$150 on credit, her drawer is unchanged — she didn\'t receive cash. But the business needs to track that R$150 is owed.<br><br><b>Solution:</b> each Terminal account has a paired <b>Tab account</b> (AccountType=Tab). Credit transactions go to the Tab, not the Terminal. This is the <b>TabAccountId</b> self-referencing FK on Account.',
+   narrative:'Regular customers at a lottery house can buy on credit — <b>"fiado"</b> in Portuguese. This is extremely common in small Brazilian businesses.<br><br>The key design challenge: credit sales should <b>NOT</b> affect the cash drawer count. If Jennifer sells R$150 on credit, her drawer is unchanged — she didn\'t receive cash. But the business needs to track that R$150 is owed.<br><br><b>Solution:</b> each Terminal account has a paired <b>Tab account</b> (AccountType=Tab). Credit transactions go to the Tab, not the Terminal. This is the <b>TabAccountId</b> self-referencing FK on Account.',
    activeTables:['AccountTerminal','AccountTab','Client','Operator'],
    activeArrows:['acc-tab'],
    data:[
-    {entity:'Account (Terminal)',fields:[{n:'Name',v:'"Bete"'},{n:'Type',v:'"Terminal"'},{n:'TabAccountId',v:'→ Tab Bete',hl:'hl'}]},
-    {entity:'Account (Tab)',fields:[{n:'Name',v:'"Tab Bete"'},{n:'Type',v:'"Tab"'}]},
+    {entity:'Account (Terminal)',fields:[{n:'Name',v:'"Jennifer"'},{n:'Type',v:'"Terminal"'},{n:'TabAccountId',v:'→ Tab Jennifer',hl:'hl'}]},
+    {entity:'Account (Tab)',fields:[{n:'Name',v:'"Tab Jennifer"'},{n:'Type',v:'"Tab"'}]},
     {entity:'Client',fields:[{n:'Name',v:'"João"'}]}
    ]},
   {title:'Credit Sale (Money Out on Tab)',
@@ -484,9 +486,9 @@ const SLIDES=[
    data:[
     {entity:'Transaction',fields:[
      {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"Out"',hl:'hl'},
-     {n:'AccountId',v:'→ Tab Bete',hl:'hl'},{n:'ClientId',v:'→ João'},
+     {n:'AccountId',v:'→ Tab Jennifer',hl:'hl'},{n:'ClientId',v:'→ João'},
      {n:'CategoryId',v:'→ Saídas'},{n:'TransactionTypeId',v:'→ Cliente'},
-     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}
     ]}
    ]},
   {title:'Tab Balance = R$150',
@@ -495,7 +497,7 @@ const SLIDES=[
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 150'},
    data:[
-    {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Bete\'\n\n→ <span class="res">R$ 150.00</span>'}
+    {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Jennifer\'\n\n→ <span class="res">R$ 150.00</span>'}
    ]},
   {title:'Client Pays Back',
    narrative:'João returns and pays his R$150 debt. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. The Transaction has <b>Direction=In</b> on the Tab account.',
@@ -504,13 +506,13 @@ const SLIDES=[
    data:[
     {entity:'Transaction (Payment)',fields:[
      {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
-     {n:'AccountId',v:'→ Tab Bete'},{n:'ClientId',v:'→ João'},
+     {n:'AccountId',v:'→ Tab Jennifer'},{n:'ClientId',v:'→ João'},
      {n:'CategoryId',v:'→ Entradas',hl:'hl-green'},{n:'TransactionTypeId',v:'→ Cliente'},
-     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}
     ]}
    ]},
   {title:'Balance Zeroed — Drawer Untouched',
-   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>Throughout this entire flow, the Terminal account "Bete" was <b>never touched</b> — the cash drawer reconciliation stays clean. This is why the Terminal/Tab separation exists: it <b>isolates credit from cash</b>, ensuring the CashVariance calculation at end of day is accurate.',
+   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>Throughout this entire flow, the Terminal account "Jennifer" was <b>never touched</b> — the cash drawer reconciliation stays clean. This is why the Terminal/Tab separation exists: it <b>isolates credit from cash</b>, ensuring the CashVariance calculation at end of day is accurate.',
    activeTables:['AccountTab','AccountTerminal'],
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 0'},
@@ -520,7 +522,7 @@ const SLIDES=[
      {n:'Out total',v:'R$ 150.00'},{n:'In total',v:'R$ 150.00'},
      {n:'Balance',v:'R$ 0.00',hl:'hl'}
     ]},
-    {entity:'Terminal "Bete"',fields:[
+    {entity:'Terminal "Jennifer"',fields:[
      {n:'Status',v:'No transactions recorded',hl:'hl-green'}
     ]}
    ]}
@@ -557,73 +559,100 @@ const SLIDES=[
  ],
  steps:[
   {title:'Login: Identity Chain',
-   narrative:'When an operator logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br>This chain, covered in UC3, now comes alive in a real daily workflow. Note that the Operator→User link is validated at the API layer to ensure branch consistency — the schema intentionally keeps this FK loose to preserve historical records when users are deactivated.',
+   narrative:'When an operator logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br>Jennifer is at her own terminal today (the normal case, as in UC1). The Operator→User link is validated at the API layer to ensure branch consistency — the schema keeps this FK loose to preserve historical records when users are deactivated.',
    activeTables:['User','BranchUser','Branch','Operator','OperatorAccount','Account'],
    activeArrows:['u-bu','bu-br','br-op','op-oa','oa-acc'],
    staggerDelay:true,
    data:[
     {entity:'Identity Chain',fields:[
-     {n:'User',v:'"Maria"'},{n:'BranchUser',v:'Role: Admin'},
-     {n:'Branch',v:'"Lotérica Centro"'},{n:'Operator',v:'"Bete"'},
-     {n:'Account',v:'"Bete" (Terminal)'}
+     {n:'User',v:'"Jennifer"'},{n:'BranchUser',v:'Role: Member'},
+     {n:'Branch',v:'"Lotérica Centro"'},{n:'Operator',v:'"Jennifer"'},
+     {n:'Account',v:'"Jennifer" (Terminal)'}
     ]}
    ]},
-  {title:'Open Day: The Dual System',
-   narrative:'LottoGest tracks the same financial reality from <b>two angles</b>:<br><br>• The <b>Transaction ledger</b> (every individual event — "R$2,000 deposit at 12:30")<br>• The <b>DailyClose snapshot</b> (physical count at end of day — "R$5,200 cash in drawer")<br><br>The <b>CashVariance</b> is the gap between expected (ledger) and actual (snapshot) — <em>the single most important number in the system</em>. The operator starts by creating a DailyClose with Status=Draft.',
-   activeTables:['DailyClose'],
-   activeArrows:[],
-   data:[
-    {entity:'DailyClose',fields:[
-     {n:'Date',v:'"2025-03-15"'},{n:'Status',v:'"Draft"',hl:'hl'},
-     {n:'AccountId',v:'→ Bete'}
-    ]}
-   ]},
-  {title:'Cash Deposit (In)',
-   narrative:'Throughout the day, the operator records transactions. <b>R$2,000</b> cash deposit at 10:30. Direction=In, DueDate=tomorrow.<br><br>Same mechanics as UC1, now in context of the full day.',
-   activeTables:['Category','TransactionType','Transaction'],
-   activeArrows:['cat-tt','tt-tx'],
-   data:[
-    {entity:'Transaction',fields:[
-     {n:'Value',v:'"R$ 2,000.00"',hl:'hl'},{n:'Direction',v:'"In"'},
-     {n:'TransactionTime',v:'"10:30"'},{n:'DueDate',v:'"2025-03-16"'},
-     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
-    ]}
-   ]},
-  {title:'Credit Card (Out, Business Day DueDate)',
-   narrative:'<b>R$560</b> credit card sale. Direction=Out. DueDate = Date + 2 business days (skip weekends).<br><br>If today is Friday March 15, DueDate = <b>Tuesday March 19</b>. This business-day-aware calculation enables the owner to know exactly when CEF will settle each card transaction.',
-   activeTables:['Transaction'],
-   activeArrows:[],
-   data:[
-    {entity:'Transaction',fields:[
-     {n:'Value',v:'"R$ 560.00"',hl:'hl'},{n:'Direction',v:'"Out"'},
-     {n:'DueDate',v:'"2025-03-19"',hl:'hl-blue'},
-     {n:'Description',v:'"Cartão de Crédito à vista"'},
-     {n:'RecordedByOperatorId',v:'→ Bete'},{n:'CreatedByUserId',v:'→ Maria'}
-    ]}
-   ]},
-  {title:'Close Day: The Snapshot',
-   narrative:'At end of day, the operator counts what\'s physically in the drawer and enters closing values for each <b>Product</b>: Dinheiro (cash), Telesena tickets, Raspadinha scratch cards, Jogos (games), etc.<br><br>These become <b>DailyCloseItem</b> rows linked to this DailyClose. The operator does <b>not</b> enter Diferença Caixa — the system will compute and append it on submit.',
-   activeTables:['Product','DailyCloseItem','DailyClose'],
-   activeArrows:['prod-dci','dci-dc'],
-   data:[
-    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 5,200.00"'}]},
-    {entity:'DailyCloseItem #2',fields:[{n:'ProductId',v:'→ Telesena'},{n:'Value',v:'"R$ 340.00"'}]},
-    {entity:'DailyCloseItem #3',fields:[{n:'ProductId',v:'→ Raspadinha'},{n:'Value',v:'"R$ 180.00"'}]}
-   ]},
-  {title:'Submit for Review',
-   narrative:'Operator marks the DailyClose as <b>Submitted</b>. On submit, the system computes <b>CashVariance = TotalClosing − TotalOpening − TotalTransactions</b> and persists it as a <b>Diferença Caixa</b> DailyCloseItem — the operator never types this value. Status changes from Draft to Submitted, SubmittedAt is set, SubmittedByOperatorId records who submitted.<br><br>The manager now sees this in their <b>pending review queue</b>.',
+  {title:'Open Day: Opening Values',
+   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> — yesterday\'s DailyCloseItems for this account. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$2,800</b> (R$2,000 + R$500 + R$300).<br><br>LottoGest tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
+    {entity:'Yesterday\'s Closing = Today\'s Opening',fields:[
+     {n:'Dinheiro',v:'"R$ 2,000.00"'},{n:'Telesena',v:'"R$ 500.00"'},{n:'Raspadinha',v:'"R$ 300.00"'},
+     {n:'TotalOpening',v:'"R$ 2,800.00"',hl:'hl'}
+    ]},
+    {entity:'DailyClose (new)',fields:[
+     {n:'Date',v:'"2025-03-15"'},{n:'Status',v:'"Draft"',hl:'hl'},
+     {n:'AccountId',v:'→ Jennifer'}
+    ]}
+   ]},
+  {title:'Transaction 1: Depósito Dinheiro (Out, R$2,000)',
+   narrative:'A customer brings <b>R$2,000</b> in cash for a CEF deposit at 10:30. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because this is a <b>liability to CEF</b> — the lotérica owes this money at settlement. But the cash <em>physically enters</em> the drawer and will be counted in the DailyClose snapshot. <b>DueDate = Date + 1 day</b> (CEF settles cash deposits next business day).<br><br>Same mechanics as UC1, now in context of the full day.',
+   activeTables:['Category','TransactionType','Transaction'],
+   activeArrows:['cat-tt','tt-tx','tx-acc'],
+   data:[
+    {entity:'Transaction #1',fields:[
+     {n:'TransactionTypeId',v:'→ Depósito Dinheiro'},{n:'CategoryId',v:'→ Saídas'},
+     {n:'Value',v:'"R$ 2,000.00"',hl:'hl'},{n:'Direction',v:'"Out"'},
+     {n:'TransactionTime',v:'"10:30"'},{n:'DueDate',v:'"2025-03-16"'},
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'}
+    ]}
+   ]},
+  {title:'Transaction 2: PIX (Out, R$800)',
+   narrative:'Customer sends <b>R$800</b> via PIX at 14:15. TransactionType = "PIX" under <b>Saídas</b> (Out). The customer hands over cash, and the operator processes the PIX transfer electronically.<br><br><b>PIX is instant</b> — DueDate equals Date (same-day settlement). Compare with the cash deposit\'s next-day DueDate. This difference matters for receivables tracking: the owner can query "what settles today vs tomorrow."',
+   activeTables:['Category','TransactionType','Transaction'],
+   activeArrows:['cat-tt','tt-tx','tx-acc'],
+   data:[
+    {entity:'Transaction #2',fields:[
+     {n:'TransactionTypeId',v:'→ PIX'},{n:'CategoryId',v:'→ Saídas'},
+     {n:'Value',v:'"R$ 800.00"',hl:'hl'},{n:'Direction',v:'"Out"'},
+     {n:'TransactionTime',v:'"14:15"'},{n:'DueDate',v:'"2025-03-15"',hl:'hl-blue'},
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'}
+    ]}
+   ]},
+  {title:'Transaction 3: Sobra de Bolão (Out, R$200)',
+   narrative:'At 16:00, Jennifer records a <b>R$200</b> lottery pool leftover (<em>Sobra de Bolão</em>). This is under <b>Despesas Comerciais</b> (Out) — a different Category from the previous two (which were under Saídas).<br><br>All three transactions are Direction=Out, which is typical for Terminal accounts. On a Terminal, all services involve customers bringing cash that becomes a CEF liability. The Direction reflects the <b>accounting flow</b>, not the physical cash movement — the DailyClose snapshot captures the physical reality.<br><br><b>Running total: 3 transactions summing to R$3,000</b> (2,000 + 800 + 200).',
+   activeTables:['Category','TransactionType','Transaction'],
+   activeArrows:['cat-tt','tt-tx','tx-acc'],
+   data:[
+    {entity:'Transaction #3',fields:[
+     {n:'TransactionTypeId',v:'→ Sobra de Bolão'},{n:'CategoryId',v:'→ Despesas Comerciais'},
+     {n:'Value',v:'"R$ 200.00"',hl:'hl'},{n:'Direction',v:'"Out"'},
+     {n:'TransactionTime',v:'"16:00"'},{n:'DueDate',v:'"2025-03-15"'},
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'}
+    ]},
+    {entity:'Day Summary',fields:[
+     {n:'TotalTransactions',v:'"R$ 3,000.00"  (2,000 + 800 + 200)',hl:'hl'}
+    ]}
+   ]},
+  {title:'Close Day: Physical Count',
+   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. These become <b>DailyCloseItem</b> rows linked to this DailyClose.<br><br><b>TotalClosing = R$5,780</b> (R$4,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged on this simple day. The cash increased from R$2,000 to R$4,980 (customers brought cash throughout the day).<br><br>Jennifer does <b>not</b> enter Diferença Caixa — the system will compute it on submit.',
+   activeTables:['Product','DailyCloseItem','DailyClose'],
+   activeArrows:['prod-dci','dci-dc'],
+   data:[
+    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 4,980.00"'}]},
+    {entity:'DailyCloseItem #2',fields:[{n:'ProductId',v:'→ Telesena'},{n:'Value',v:'"R$ 500.00"'}]},
+    {entity:'DailyCloseItem #3',fields:[{n:'ProductId',v:'→ Raspadinha'},{n:'Value',v:'"R$ 300.00"'}]},
+    {entity:'Totals',fields:[
+     {n:'TotalClosing',v:'"R$ 5,780.00"  (4,980 + 500 + 300)',hl:'hl'}
+    ]}
+   ]},
+  {title:'Submit: CashVariance Calculation',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> using the formula:<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − TotalTransactions</b><br>= R$5,780 − R$2,800 − R$3,000 = <b style="color:#ef5350">−R$20</b><br><br>The <b>−R$20</b> means Jennifer counted <b>R$20 less</b> than expected in the drawer (R$4,980 cash vs R$5,000 expected). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. The manager now sees this in their <b>pending review queue</b>.',
+   activeTables:['DailyClose','DailyCloseItem'],
+   activeArrows:['dci-dc'],
+   data:[
+    {entity:'CashVariance Calculation',fields:[
+     {n:'TotalClosing',v:'"R$ 5,780.00"  (4,980 + 500 + 300)'},{n:'− TotalOpening',v:'"R$ 2,800.00"  (2,000 + 500 + 300)'},
+     {n:'− TotalTransactions',v:'"R$ 3,000.00"  (2,000 + 800 + 200)'},{n:'= CashVariance',v:'"−R$ 20.00"',hl:'hl-red'}
+    ]},
     {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'"R$ -20.00"',hl:'hl-red'}]},
     {entity:'DailyClose (updated)',fields:[
      {n:'Status',v:'"Submitted"',hl:'hl'},
      {n:'SubmittedAt',v:'"2025-03-15T18:30:00Z"',hl:'hl'},
-     {n:'SubmittedByOpId',v:'→ Bete'}
+     {n:'SubmittedByOperatorId',v:'→ Jennifer'}
     ]}
    ]},
   {title:'Manager Approves',
-   narrative:'The manager reviews: compares DailyCloseItems against the transaction ledger, checks the CashVariance (<b>−R$20</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt and ApprovedByUserId are set. If issues were found, the manager would <b>Reject</b> with a reason, and the operator would edit and resubmit. This workflow — <b>Draft → Submitted → Approved/Rejected</b> — replaces the paper-based process that lottery houses currently use.',
+   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the CashVariance (<b>−R$20</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt and ApprovedByUserId are set. If issues were found, Maria would <b>Reject</b> with a reason, and Jennifer would edit and resubmit. This workflow — <b>Draft → Submitted → Approved/Rejected</b> — replaces the paper-based process that lottery houses currently use.',
    activeTables:['DailyClose'],
    activeArrows:[],
    data:[
@@ -766,7 +795,7 @@ function renderIntro(s,i){
         </div>
         <div class="intro-card">
           <h3 class="blue-color">Multi-Tenancy</h3>
-          <p><code>Branch</code> is the tenant — one per lottery house. Every entity carries a <code>BranchId</code> FK. Data isolation is enforced at query level. A single User can belong to multiple Branches (e.g., owner manages 2 locations).</p>
+          <p><code>Branch</code> is the tenant — one per lottery house. Every <em>tenant-scoped</em> entity carries a <code>BranchId</code> FK (global entities like <code>User</code> and <code>RefreshToken</code> do not). <code>TransactionType</code> is a special case: it inherits its branch through its parent <code>Category</code>, so no direct <code>BranchId</code> column is needed. Data isolation is enforced at query level. A single User can belong to multiple Branches (e.g., owner manages 2 locations).</p>
         </div>
       </div>
       <div class="intro-col">
@@ -775,7 +804,7 @@ function renderIntro(s,i){
           <p>Regular customers buy on credit. The challenge: credit sales should <b>NOT</b> affect the cash drawer count (the operator didn't receive cash). Solution:</p>
           <p style="margin-top:8px">Each terminal has a paired <b>Tab account</b>. Credit goes to the Tab, not the Terminal. The drawer stays accurate for daily reconciliation.</p>
           <div class="intro-tree" style="margin-top:10px">
-<b>Account</b> "Bete" (Terminal) ──<span class="hl">TabAccountId</span>──▸ <b>Account</b> "Tab Bete" (Tab)
+<b>Account</b> "Jennifer" (Terminal) ──<span class="hl">TabAccountId</span>──▸ <b>Account</b> "Tab Jennifer" (Tab)
 │                                     │
 │ Cash transactions here               │ Credit (fiado) here
 │ ✓ Affects CashVariance               │ ✗ Does NOT affect CashVariance
