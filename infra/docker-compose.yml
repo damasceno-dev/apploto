@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: loto-postgres-local
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: loto_dev_local
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - loto-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  loto-postgres-data:

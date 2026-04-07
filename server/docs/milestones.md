@@ -55,15 +55,15 @@ Upgrade framework and packages to match AGENTS.md targets.
 
 Establish the Development/Staging/Production database and appsettings workflow before test scaffolding.
 
-- [ ] **3.1** Keep `appsettings.json` limited to shared non-secret defaults only
-- [ ] **3.2** Update `appsettings.Development.json` to use fixed local-only settings for `loto_dev_local`
-- [ ] **3.3** Reserve `Development` for local use, `Staging` for the published non-production environment, and `Production` for the live environment
-- [ ] **3.4** Treat `appsettings.Staging.json` and `appsettings.Production.json` as generated outside git and add ignore rules for them
-- [ ] **3.5** Add local PostgreSQL Docker Compose under `infra/` for `loto_dev_local`
-- [ ] **3.6** Add a checked-in `infra/.env.example` for the hosted `Staging` / `Production` secret contract
-- [ ] **3.7** Add a hosted config render script under `infra/scripts/` that reads a server-side `.env` and generates `appsettings.Staging.json` or `appsettings.Production.json` on the host
-- [ ] **3.8** Document the local workflow (`docker compose up`, `dotnet ef database update`, API startup) and the hosted rule (`.env` -> generated hosted appsettings on the host before restart)
-- [ ] **3.9** Validate startup fails fast when `ConnectionStrings:DefaultConnection`, `Token:SigningKey`, or `Token:ExpirationTimeInMinutes` is missing
+- [x] **3.1** Keep `appsettings.json` limited to shared non-secret defaults only
+- [x] **3.2** Update `appsettings.Development.json` to use fixed local-only settings for `loto_dev_local`
+- [x] **3.3** Reserve `Development` for local use, `Staging` for the published non-production environment, and `Production` for the live environment
+- [x] **3.4** Treat `appsettings.Staging.json` and `appsettings.Production.json` as generated outside git and add ignore rules for them
+- [x] **3.5** Add local PostgreSQL Docker Compose under `infra/` for `loto_dev_local`
+- [x] **3.6** Add a checked-in `infra/.env.example` for the hosted `Staging` / `Production` secret contract
+- [x] **3.7** Add a hosted config render script under `infra/scripts/` that reads a server-side `.env` and generates `appsettings.Staging.json` or `appsettings.Production.json` on the host
+- [x] **3.8** Document the local workflow (`docker compose up`, `dotnet ef database update`, API startup) and the hosted rule (`.env` -> generated hosted appsettings on the host before restart)
+- [x] **3.9** Validate startup fails fast when `ConnectionStrings:DefaultConnection`, `Token:SigningKey`, or `Token:ExpirationTimeInMinutes` is missing
 - [ ] **3.10** Verify local boot works with `Development` and `loto_dev_local`
 - [ ] **3.11** Verify the User auth endpoints (register, login, renew-token) respond correctly against the local Development database
 

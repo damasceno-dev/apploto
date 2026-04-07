@@ -19,12 +19,19 @@ public static class InfraDependencyInjection
     private static void AddToken(IServiceCollection services, IConfiguration configuration)
     {
         var signingKey = configuration.GetValue<string>("Token:SigningKey");
-        var expirationTimeInMinutes = configuration.GetValue<uint>("Token:ExpirationTimeInMinutes");
-        if (signingKey is null || expirationTimeInMinutes == 0)
+        var expirationTimeInMinutes = configuration.GetValue<uint?>("Token:ExpirationTimeInMinutes");
+
+        if (string.IsNullOrWhiteSpace(signingKey))
         {
-            throw new Exception("Token configuration is invalid");
+            throw new InvalidOperationException("Missing required configuration: Token:SigningKey");
         }
-        services.AddScoped<ITokenServices>(_ => new JwtTokenService(signingKey, expirationTimeInMinutes));
+
+        if (expirationTimeInMinutes is null or 0)
+        {
+            throw new InvalidOperationException("Missing required configuration: Token:ExpirationTimeInMinutes");
+        }
+
+        services.AddScoped<ITokenServices>(_ => new JwtTokenService(signingKey, expirationTimeInMinutes.Value));
     }
 
     private static void AddRepositories(IServiceCollection services)
@@ -38,6 +45,12 @@ public static class InfraDependencyInjection
     private static void AddDbContext(IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException("Missing required configuration: ConnectionStrings:DefaultConnection");
+        }
+
         services.AddDbContext<LotoDbContext>(options => options.UseNpgsql(connectionString));
     }
 }
