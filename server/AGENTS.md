@@ -302,24 +302,50 @@ Infrastructure DI rules:
   - token services
   - repositories
   - unit of work
-- Validate token configuration during startup.
+- Validate database and token configuration during startup.
 
 Configuration rules:
 
 - Keep the default database connection string under `ConnectionStrings:DefaultConnection`.
 - Keep token settings under `Token`.
+- Treat `Development` as the local developer environment, `Staging` as the published non-production environment, and `Production` as the live environment.
+- Use these database names consistently:
+  - `Development` -> `loto_dev_local`
+  - `Staging` -> `loto_staging`
+  - `Production` -> `loto_prod`
+- Track only `appsettings.json` and `appsettings.Development.json` in git.
+- Treat `appsettings.Staging.json` and `appsettings.Production.json` as generated outside git.
+- `appsettings.Development.json` may contain fixed local-only bootstrap credentials for `loto_dev_local`.
+- Never reuse local Development credentials in `Staging` or `Production`.
+- Hosted `Staging` and `Production` secrets come from a non-tracked server-side `.env`.
+- Hosted deploy flow generates `appsettings.Staging.json` or `appsettings.Production.json` on the host before app restart.
+- Never commit hosted secrets or bake hosted secrets into build artifacts or container images.
+- Keep local service containers such as PostgreSQL Docker Compose under `infra/`, not under `server/`.
+- No local workflow may point to the online `loto_prod`.
+- `ConnectionStrings:DefaultConnection`, `Token:SigningKey`, and `Token:ExpirationTimeInMinutes` are required startup settings.
 - Minimum token settings:
 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=lotoapp;Username=postgres;Password=..."
+    "DefaultConnection": "Host=localhost;Database=loto_dev_local;Username=postgres;Password=..."
   },
   "Token": {
     "SigningKey": "your-256-bit-signing-key-here",
-    "ExpirationTimeInMinutes": 15
+    "ExpirationTimeInMinutes": 60
   }
 }
+```
+
+Local development workflow:
+
+```bash
+cd infra
+docker compose up -d
+
+cd ../server
+dotnet ef database update --project server.Infrastructure --startup-project server.API
+dotnet run --project server.API
 ```
 
 Migration commands:
