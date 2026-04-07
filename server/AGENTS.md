@@ -6,25 +6,25 @@ Use it together with the repo root [AGENTS.md](../AGENTS.md).
 
 ## Stack
 
-| Item | Value |
-|------|-------|
-| Target framework | .NET 10 LTS |
-| Language | C# 13 |
-| Database | PostgreSQL |
-| ORM | Entity Framework Core 10 |
-| Architecture | Clean Architecture + DDD |
-| API description | Built-in OpenAPI in .NET 10 |
+| Item               | Value                                                         |
+|--------------------|---------------------------------------------------------------|
+| Target framework   | .NET 10 LTS                                                   |
+| Language           | C# 13                                                         |
+| Database           | PostgreSQL                                                    |
+| ORM                | Entity Framework Core 10                                      |
+| Architecture       | Clean Architecture + DDD                                      |
+| API description    | Built-in OpenAPI in .NET 10                                   |
 | Interactive API UI | Swagger UI by default, Scalar allowed if chosen intentionally |
 
 ## Naming map
 
-| Concern | Rule | Example |
-|--------|------|---------|
-| Solution and project names | Keep the DDD split as `server.API`, `server.Application`, `server.Communication`, `server.Domain`, `server.Exceptions`, `server.Infrastructure` | `server.Application` |
-| C# namespace root | Use `Server` as the code prefix in namespaces and type names | `Server.Domain.Entities` |
-| Base exception prefix | Use `Server` for exception and filter naming | `ServerException`, `ServerAuthenticateFilter` |
-| DbContext naming | Use the `Server` prefix | `ServerDbContext` |
-| Feature DTO naming | Keep request and response DTO names explicit | `RequestUserRegisterJson`, `ResponseUserRegisterJson` |
+| Concern                    | Rule                                                                                                                                            | Example                                               |
+|----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------|
+| Solution and project names | Keep the DDD split as `server.API`, `server.Application`, `server.Communication`, `server.Domain`, `server.Exceptions`, `server.Infrastructure` | `server.Application`                                  |
+| C# namespace root          | Use `server` as the code prefix in namespaces and type names                                                                                    | `server.Domain.Entities`                              |
+| Base exception prefix      | Use `Server` for exception                                                                                                                      | `ServerException`                                     |
+| DbContext naming           | Use the `server` prefix                                                                                                                         | `ServerDbContext`                                     |
+| Feature DTO naming         | Keep request and response DTO names explicit                                                                                                    | `RequestUserRegisterJson`, `ResponseUserRegisterJson` |
 
 ## Core decisions
 
@@ -58,23 +58,23 @@ If `server.API` needs direct compile-time access to `ServerException` or excepti
 
 ### Preferred project references
 
-| Project | SDK | Type | References |
-|---------|-----|------|------------|
-| `server.Domain` | `Microsoft.NET.Sdk` | Class Library | none |
-| `server.Exceptions` | `Microsoft.NET.Sdk` | Class Library | none |
-| `server.Communication` | `Microsoft.NET.Sdk` | Class Library | `server.Domain` only when shared enums are needed |
-| `server.Application` | `Microsoft.NET.Sdk` | Class Library | `server.Domain`, `server.Communication`, `server.Exceptions` |
-| `server.Infrastructure` | `Microsoft.NET.Sdk` | Class Library | `server.Domain`, `server.Exceptions` |
-| `server.API` | `Microsoft.NET.Sdk.Web` | Web API | `server.Application`, `server.Communication`, `server.Infrastructure`, and `server.Exceptions` when direct exception access is needed |
+| Project                 | SDK                     | Type          | References                                                                                                                            |
+|-------------------------|-------------------------|---------------|---------------------------------------------------------------------------------------------------------------------------------------|
+| `server.Domain`         | `Microsoft.NET.Sdk`     | Class Library | none                                                                                                                                  |
+| `server.Exceptions`     | `Microsoft.NET.Sdk`     | Class Library | none                                                                                                                                  |
+| `server.Communication`  | `Microsoft.NET.Sdk`     | Class Library | `server.Domain` only when shared enums are needed                                                                                     |
+| `server.Application`    | `Microsoft.NET.Sdk`     | Class Library | `server.Domain`, `server.Communication`, `server.Exceptions`                                                                          |
+| `server.Infrastructure` | `Microsoft.NET.Sdk`     | Class Library | `server.Domain`, `server.Exceptions`                                                                                                  |
+| `server.API`            | `Microsoft.NET.Sdk.Web` | Web API       | `server.Application`, `server.Communication`, `server.Infrastructure`, and `server.Exceptions` when direct exception access is needed |
 
 ### Test projects
 
-| Project | Type | References | Key packages |
-|---------|------|------------|--------------|
-| `CommonTestUtilities` | Class Library | Application, Communication, Infrastructure | Bogus, NSubstitute |
-| `Validators.Test` | xUnit | Application, CommonTestUtilities | Shouldly, xUnit |
-| `UseCases.Test` | xUnit | Application, CommonTestUtilities | Shouldly, xUnit |
-| `WebApi.Test` | xUnit | API, CommonTestUtilities | Shouldly, Testcontainers.PostgreSql, xUnit |
+| Project               | Type          | References                                 | Key packages                               |
+|-----------------------|---------------|--------------------------------------------|--------------------------------------------|
+| `CommonTestUtilities` | Class Library | Application, Communication, Infrastructure | Bogus, NSubstitute                         |
+| `Validators.Test`     | xUnit         | Application, CommonTestUtilities           | Shouldly, xUnit                            |
+| `UseCases.Test`       | xUnit         | Application, CommonTestUtilities           | Shouldly, xUnit                            |
+| `WebApi.Test`         | xUnit         | API, CommonTestUtilities                   | Shouldly, Testcontainers.PostgreSql, xUnit |
 
 ## Cross-cutting rules
 
@@ -106,7 +106,7 @@ Rules:
   - `DateTime CreatedAt = DateTime.UtcNow`
   - `bool Active = true`
 - Navigation properties should default to empty collections.
-- Enums live in `Entities/` or a dedicated `Enums/` folder.
+- Enums live in `Entities/Enums`.
 - Use `[Description]` on enums only when a human-readable label is required.
 - Domain models are allowed for intermediary structures that are not entities and not DTOs.
 - All domain contracts live in `Interfaces/`.
@@ -117,7 +117,7 @@ Rules:
 
 Conventions:
 
-- Namespace example: `namespace Server.Domain.Entities;`
+- Namespace example: `namespace server.Domain.Entities;`
 - Interface naming: `IUsersRepository`
 - Entity naming: singular PascalCase nouns such as `User`, `Recipe`
 - File naming should match the type name
@@ -145,13 +145,13 @@ Base exception contract:
 
 Standard exception set:
 
-| Exception | Status code | Use case |
-|----------|-------------|----------|
-| `OnValidationException` | 400 | FluentValidation failures |
-| `InvalidLoginException` | 401 | Wrong credentials |
-| `RefreshTokenException` | 401 | Invalid or expired refresh token |
-| `ConflictException` | 409 | Duplicate or conflicting resources |
-| `NotFoundException` | 404 | Missing entities |
+| Exception               | Status code | Use case                           |
+|-------------------------|-------------|------------------------------------|
+| `OnValidationException` | 400         | FluentValidation failures          |
+| `InvalidLoginException` | 401         | Wrong credentials                  |
+| `RefreshTokenException` | 401         | Invalid or expired refresh token   |
+| `ConflictException`     | 409         | Duplicate or conflicting resources |
+| `NotFoundException`     | 404         | Missing entities                   |
 
 Token exception hierarchy:
 
@@ -359,8 +359,8 @@ Error handling rules:
 
 Auth filter rules:
 
-- Use a TypeFilter-backed `ServerAuthenticateFilter` to require a valid token.
-- Use a TypeFilter-backed `ServerAuthorizeFilter` to require a valid token plus a role check.
+- Use a TypeFilter-backed `TokenAuthenticateFilter` to require a valid token.
+- Use a TypeFilter-backed `TokenAuthorizeFilter` to require a valid token plus a role check.
 - Controllers or endpoints must declare auth intent explicitly.
 
 Token provider rules:
@@ -529,41 +529,41 @@ dotnet test tests/WebApi.Test
 
 ## Naming conventions
 
-| Category | Pattern | Example |
-|----------|---------|---------|
-| Solution | `server.sln` or equivalent server solution name | `server.sln` |
-| Project namespace root | `Server.{Layer}` | `Server.Domain` |
-| Entity | PascalCase singular noun | `User` |
-| Use case class | `{Entity}{Operation}UseCase` | `UserRegisterUseCase` |
-| Validator class | `{Entity}{Operation}FluentValidation` | `UserRegisterFluentValidation` |
-| Mapper class | `{Entity}{Operation}Mapper` | `UserRegisterMapper` |
-| Repository class | `{Entity}Repository` | `UsersRepository` |
-| Repository interface | `I{Entity}Repository` | `IUsersRepository` |
-| Controller | `{Feature}Controller` | `UserController` |
-| Request DTO | `Request{Feature}Json` | `RequestUserRegisterJson` |
-| Response DTO | `Response{Feature}Json` | `ResponseUserRegisterJson` |
-| Auth filter attribute | `ServerAuthenticateFilter`, `ServerAuthorizeFilter` | `ServerAuthorizeFilter` |
-| DI extension | `{Layer}DependencyInjectionExtension` | `InfraDependencyInjectionExtension` |
-| Test class | `{Feature}{Operation}Test` or `{Feature}{Operation}UseCaseTest` | `UserRegisterUseCaseTest` |
-| Entity builder | `{Entity}Builder` | `UserBuilder` |
-| Request builder | `Request{Feature}JsonBuilder` | `RequestUserRegisterJsonBuilder` |
-| Repository builder | `{Entity}RepositoryBuilder` | `UserRepositoryBuilder` |
-| Namespace style | File-scoped namespaces | `namespace Server.Domain.Entities;` |
-| Constructor style | Primary constructors where helpful | `public class X(IDep dep)` |
+| Category               | Pattern                                                         | Example                             |
+|------------------------|-----------------------------------------------------------------|-------------------------------------|
+| Solution               | `server.sln` or equivalent server solution name                 | `server.sln`                        |
+| Project namespace root | `server.{Layer}`                                                | `server.Domain`                     |
+| Entity                 | PascalCase singular noun                                        | `User`                              |
+| Use case class         | `{Entity}{Operation}UseCase`                                    | `UserRegisterUseCase`               |
+| Validator class        | `{Entity}{Operation}FluentValidation`                           | `UserRegisterFluentValidation`      |
+| Mapper class           | `{Entity}{Operation}Mapper`                                     | `UserRegisterMapper`                |
+| Repository class       | `{Entity}Repository`                                            | `UsersRepository`                   |
+| Repository interface   | `I{Entity}Repository`                                           | `IUsersRepository`                  |
+| Controller             | `{Feature}Controller`                                           | `UserController`                    |
+| Request DTO            | `Request{Feature}Json`                                          | `RequestUserRegisterJson`           |
+| Response DTO           | `Response{Feature}Json`                                         | `ResponseUserRegisterJson`          |
+| Auth filter attribute  | `TokenAuthenticateFilter`, `TokenAuthorizeFilter`               | `TokenAuthorizeFilter`              |
+| DI extension           | `{Layer}DependencyInjectionExtension`                           | `InfraDependencyInjectionExtension` |
+| Test class             | `{Feature}{Operation}Test` or `{Feature}{Operation}UseCaseTest` | `UserRegisterUseCaseTest`           |
+| Entity builder         | `{Entity}Builder`                                               | `UserBuilder`                       |
+| Request builder        | `Request{Feature}JsonBuilder`                                   | `RequestUserRegisterJsonBuilder`    |
+| Repository builder     | `{Entity}RepositoryBuilder`                                     | `UserRepositoryBuilder`             |
+| Namespace style        | File-scoped namespaces                                          | `namespace server.Domain.Entities;` |
+| Constructor style      | Primary constructors where helpful                              | `public class X(IDep dep)`          |
 
 ## NuGet and package guidance
 
-| Project | Package guidance |
-|---------|------------------|
-| `server.Domain` | No packages |
-| `server.Exceptions` | No packages besides resource support already included by the SDK |
-| `server.Communication` | No runtime mapping or validation packages |
-| `server.Application` | FluentValidation, BCrypt.Net-Next |
+| Project                 | Package guidance                                                                                                                                          |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `server.Domain`         | No packages                                                                                                                                               |
+| `server.Exceptions`     | No packages besides resource support already included by the SDK                                                                                          |
+| `server.Communication`  | No runtime mapping or validation packages                                                                                                                 |
+| `server.Application`    | FluentValidation, BCrypt.Net-Next                                                                                                                         |
 | `server.Infrastructure` | Npgsql.EntityFrameworkCore.PostgreSQL 10.x, Microsoft.EntityFrameworkCore 10.x, Microsoft.EntityFrameworkCore.Tools 10.x, System.IdentityModel.Tokens.Jwt |
-| `server.API` | Microsoft.AspNetCore.OpenApi 10.x plus Swagger UI or Scalar package for the chosen explorer |
-| `CommonTestUtilities` | Bogus, NSubstitute |
-| All test projects | Shouldly, xUnit, Microsoft.NET.Test.Sdk |
-| `WebApi.Test` | Testcontainers.PostgreSql, Microsoft.AspNetCore.Mvc.Testing |
+| `server.API`            | Microsoft.AspNetCore.OpenApi 10.x plus Swagger UI or Scalar package for the chosen explorer                                                               |
+| `CommonTestUtilities`   | Bogus, NSubstitute                                                                                                                                        |
+| All test projects       | Shouldly, xUnit, Microsoft.NET.Test.Sdk                                                                                                                   |
+| `WebApi.Test`           | Testcontainers.PostgreSql, Microsoft.AspNetCore.Mvc.Testing                                                                                               |
 
 ## New feature checklist
 
