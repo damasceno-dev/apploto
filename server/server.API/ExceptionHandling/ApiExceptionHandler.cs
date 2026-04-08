@@ -13,8 +13,8 @@ public class ApiExceptionHandler : IApiExceptionHandler
         var errorMessage = environment?.EnvironmentName == "Development"
             ? GetErrorDetail(exception, httpContext)
             : ResourcesErrorMessages.UNKNOWN_ERROR;
-        return exception is LotoException lotoException ?
-            new ObjectResult(new ResponseErrorJson(lotoException.GetErrorMessages)) {StatusCode = lotoException.GetStatusCode} :
+        return exception is ServerException serverException ?
+            new ObjectResult(new ResponseErrorJson(serverException.GetErrorMessages)) {StatusCode = serverException.GetStatusCode} :
             new ObjectResult(new ResponseErrorJson(errorMessage)) { StatusCode = StatusCodes.Status500InternalServerError };
     }
     private static string GetErrorDetail(Exception exception, HttpContext httpContext)

@@ -1,4 +1,4 @@
-using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 
 namespace server.Communication.Requests;
 

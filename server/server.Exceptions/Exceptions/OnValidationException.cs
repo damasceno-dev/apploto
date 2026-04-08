@@ -2,15 +2,10 @@ using System.Net;
 
 namespace server.Exceptions.Exceptions;
 
-public class OnValidationException : LotoException
+public class OnValidationException(List<string> errorMessages)
+    : ServerException(string.Empty)
 {
-    
-    public List<string> ErrorMessages { get; }
-
-    public OnValidationException(List<string> errorMessages) : base(string.Empty)
-    {
-        ErrorMessages = errorMessages;
-    }
+    private List<string> ErrorMessages { get; } = errorMessages;
 
     public override int GetStatusCode => (int)HttpStatusCode.BadRequest;
 

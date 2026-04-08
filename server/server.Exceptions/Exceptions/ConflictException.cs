@@ -2,12 +2,9 @@ using System.Net;
 
 namespace server.Exceptions.Exceptions;
 
-public class ConflictException : LotoException
+public class ConflictException(string message)
+    : ServerException(message)
 {
-    public ConflictException(string message) : base(message)
-    {
-    }
-
     public override int GetStatusCode => (int)HttpStatusCode.Conflict;
 
     public override List<string> GetErrorMessages => [Message];

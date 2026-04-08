@@ -1,6 +1,6 @@
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
-using server.Domain.Models;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 

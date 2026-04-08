@@ -2,7 +2,6 @@ using server;
 using server.Application;
 using server.Filters;
 using server.Infrastructure;
-using server.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 

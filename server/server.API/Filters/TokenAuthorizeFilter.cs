@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.ExceptionHandling;
 
 namespace server.Filters;
 
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true)]
-public class MyTokenAuthorizeFilter : TypeFilterAttribute
+public class TokenAuthorizeAttribute : TypeFilterAttribute
 {
-    public MyTokenAuthorizeFilter(Role requiredRole, params Role[] additionalRoles) : base(typeof(TokenAuthorizeFilter))
+    public TokenAuthorizeAttribute(Role requiredRole, params Role[] additionalRoles) : base(typeof(TokenAuthorizeFilter))
     {
         Arguments = [requiredRole, additionalRoles];
     }

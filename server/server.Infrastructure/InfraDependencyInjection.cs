@@ -36,7 +36,6 @@ public static class InfraDependencyInjection
 
     private static void AddRepositories(IServiceCollection services)
     {
-        services.AddScoped<IFluxoContasRepository, FluxoContasRepository>();
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
@@ -51,6 +50,6 @@ public static class InfraDependencyInjection
             throw new InvalidOperationException("Missing required configuration: ConnectionStrings:DefaultConnection");
         }
 
-        services.AddDbContext<LotoDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddDbContext<ServerDbContext>(options => options.UseNpgsql(connectionString));
     }
 }

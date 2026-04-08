@@ -1,4 +1,5 @@
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 
 namespace server.Domain.Interfaces;
 

@@ -4,7 +4,7 @@ using server.Domain.Interfaces;
 
 namespace server.Infrastructure.Repositories;
 
-internal class RefreshTokenRepository(LotoDbContext dbContext) : IRefreshTokenRepository
+internal class RefreshTokenRepository(ServerDbContext dbContext) : IRefreshTokenRepository
 {
     public string Generate()
     {

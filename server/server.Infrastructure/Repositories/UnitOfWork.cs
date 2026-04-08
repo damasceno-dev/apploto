@@ -2,16 +2,11 @@ using server.Domain.Interfaces;
 
 namespace server.Infrastructure.Repositories;
 
-internal class UnitOfWork : IUnitOfWork
+internal class UnitOfWork(ServerDbContext dbContext)
+    : IUnitOfWork
 {
-    private readonly LotoDbContext _dbContext;
-
-    public UnitOfWork(LotoDbContext dbContext)
-    {
-        _dbContext = dbContext;
-    }
     public async Task Commit()
     {
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
     }
 }

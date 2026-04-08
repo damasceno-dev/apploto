@@ -4,7 +4,7 @@ using server.Domain.Interfaces;
 
 namespace server.Infrastructure.Repositories;
 
-internal class UsersRepository(LotoDbContext dbContext) : IUsersRepository
+internal class UsersRepository(ServerDbContext dbContext) : IUsersRepository
 {
     public async Task Register(User user)
     {
