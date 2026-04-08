@@ -46,8 +46,8 @@ Upgrade framework and packages to match AGENTS.md targets.
 - [ ] **2.7** Replace `Swashbuckle.AspNetCore` with built-in `AddOpenApi()` + `MapOpenApi()` in `server.API`; update `Program.cs` and `ApiDependencyInjection`; ensure bearer security scheme is included in generated document
 - [ ] **2.8** Remove `Microsoft.VisualStudio.Web.CodeGeneration.Design` from `server.API` (unused scaffolding package)
 - [ ] **2.9** Add `public partial class Program { }` at the end of `Program.cs` (required for `WebApi.Test` integration testing)
-- [ ] **2.10** Add `server.Exceptions` project reference to `server.Infrastructure.csproj` (per AGENTS.md dependency graph)
-- [ ] **2.11** Add `InternalsVisibleTo("WebApi.Test")` to `server.Infrastructure` so `ServerDbContext` is accessible to integration tests
+- [ ] **2.10** Add `InternalsVisibleTo("WebApi.Test")` to `server.Infrastructure` so `ServerDbContext` is accessible to integration tests
+- [ ] **2.11** Update `launchSettings.json` to replace `"launchUrl": "swagger"` with the correct route for the chosen interactive API explorer
 - [ ] **2.12** Create fresh initial migration: `dotnet ef migrations add InitialCreate`
 - [ ] **2.13** Verify the solution builds and the OpenAPI document is generated and accessible at `/openapi/v1.json`
 

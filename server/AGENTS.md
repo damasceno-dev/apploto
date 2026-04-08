@@ -51,7 +51,6 @@ server.API ----------> server.Application ----------> server.Domain
    |                          +--> server.Exceptions
    |
    +--> server.Infrastructure -----> server.Domain
-                                  +-> server.Exceptions
 ```
 
 If `server.API` needs direct compile-time access to `ServerException` or exception resources, add an explicit reference to `server.Exceptions` instead of depending on transitive access.
@@ -64,7 +63,7 @@ If `server.API` needs direct compile-time access to `ServerException` or excepti
 | `server.Exceptions`     | `Microsoft.NET.Sdk`     | Class Library | none                                                                                                                                  |
 | `server.Communication`  | `Microsoft.NET.Sdk`     | Class Library | `server.Domain` only when shared enums are needed                                                                                     |
 | `server.Application`    | `Microsoft.NET.Sdk`     | Class Library | `server.Domain`, `server.Communication`, `server.Exceptions`                                                                          |
-| `server.Infrastructure` | `Microsoft.NET.Sdk`     | Class Library | `server.Domain`, `server.Exceptions`                                                                                                  |
+| `server.Infrastructure` | `Microsoft.NET.Sdk`     | Class Library | `server.Domain`                                                                                                                       |
 | `server.API`            | `Microsoft.NET.Sdk.Web` | Web API       | `server.Application`, `server.Communication`, `server.Infrastructure`, and `server.Exceptions` when direct exception access is needed |
 
 ### Test projects
@@ -261,6 +260,12 @@ Dependency injection rules:
 
 Purpose:
 Infrastructure owns persistence, repository implementations, database access, and token implementations.
+
+Dependency rules:
+
+- Infrastructure depends on `server.Domain` only. It does not reference `server.Exceptions`.
+- Infrastructure should return result objects (e.g. `TokenResultValidation`) for recoverable failures instead of throwing custom exceptions.
+- The Application layer is the proper place to translate infrastructure results into backend exceptions.
 
 DbContext rules:
 
