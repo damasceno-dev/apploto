@@ -37,19 +37,19 @@ Remove all Fluxo-era code that doesn't map to the spec.
 
 Upgrade framework and packages to match AGENTS.md targets.
 
-- [ ] **2.1** Update `TargetFramework` from `net8.0` to `net10.0` in all 6 `.csproj` files
-- [ ] **2.2** Bump `Microsoft.EntityFrameworkCore` packages to 10.x in `server.Infrastructure`
-- [ ] **2.3** Bump `Npgsql.EntityFrameworkCore.PostgreSQL` to 10.x in `server.Infrastructure`
-- [ ] **2.4** Bump `System.IdentityModel.Tokens.Jwt` to latest stable in `server.Infrastructure`
-- [ ] **2.5** Bump `FluentValidation` to latest stable in `server.Application`
-- [ ] **2.6** Bump `BCrypt.Net-Next` to latest stable in `server.Application`
-- [ ] **2.7** Replace `Swashbuckle.AspNetCore` with built-in `AddOpenApi()` + `MapOpenApi()` in `server.API`; update `Program.cs` and `ApiDependencyInjection`; ensure bearer security scheme is included in generated document
-- [ ] **2.8** Remove `Microsoft.VisualStudio.Web.CodeGeneration.Design` from `server.API` (unused scaffolding package)
-- [ ] **2.9** Add `public partial class Program { }` at the end of `Program.cs` (required for `WebApi.Test` integration testing)
-- [ ] **2.10** Add `InternalsVisibleTo("WebApi.Test")` to `server.Infrastructure` so `ServerDbContext` is accessible to integration tests
-- [ ] **2.11** Update `launchSettings.json` to replace `"launchUrl": "swagger"` with the correct route for the chosen interactive API explorer
-- [ ] **2.12** Create fresh initial migration: `dotnet ef migrations add InitialCreate`
-- [ ] **2.13** Verify the solution builds and the OpenAPI document is generated and accessible at `/openapi/v1.json`
+- [x] **2.1** Update `TargetFramework` from `net8.0` to `net10.0` in all 6 `.csproj` files
+- [x] **2.2** Bump `Microsoft.EntityFrameworkCore` packages to 10.x in `server.Infrastructure`
+- [x] **2.3** Bump `Npgsql.EntityFrameworkCore.PostgreSQL` to 10.x in `server.Infrastructure`
+- [x] **2.4** Bump `System.IdentityModel.Tokens.Jwt` to latest stable in `server.Infrastructure`
+- [x] **2.5** Bump `FluentValidation` to latest stable in `server.Application`
+- [x] **2.6** Bump `BCrypt.Net-Next` to latest stable in `server.Application`
+- [x] **2.7** Replace `Swashbuckle.AspNetCore` with built-in `AddOpenApi()` + `MapOpenApi()` in `server.API`; update `Program.cs` and `ApiDependencyInjection`; ensure bearer security scheme is included in generated document
+- [x] **2.8** Remove `Microsoft.VisualStudio.Web.CodeGeneration.Design` from `server.API` (unused scaffolding package)
+- [x] **2.9** Add `public partial class Program { }` at the end of `Program.cs` (required for `WebApi.Test` integration testing)
+- [x] **2.10** Add `InternalsVisibleTo("WebApi.Test")` to `server.Infrastructure` so `ServerDbContext` is accessible to integration tests
+- [x] **2.11** Update `launchSettings.json` to replace `"launchUrl": "swagger"` with the correct route for the chosen interactive API explorer
+- [x] **2.12** Create fresh initial migration: `dotnet ef migrations add InitialCreate`
+- [x] **2.13** Verify the solution builds and the OpenAPI document is generated and accessible at `/openapi/v1.json`
 
 ### Phase 3 — Database Environments and Config Baseline
 
