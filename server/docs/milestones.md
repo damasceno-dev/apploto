@@ -64,20 +64,20 @@ Establish the Development/Staging/Production database and appsettings workflow b
 - [x] **3.7** Add a hosted config render script under `infra/scripts/` that reads a server-side `.env` and generates `appsettings.Staging.json` or `appsettings.Production.json` on the host
 - [x] **3.8** Document the local workflow (`docker compose up`, `dotnet ef database update`, API startup) and the hosted rule (`.env` -> generated hosted appsettings on the host before restart)
 - [x] **3.9** Validate startup fails fast when `ConnectionStrings:DefaultConnection`, `Token:SigningKey`, or `Token:ExpirationTimeInMinutes` is missing
-- [ ] **3.10** Verify local boot works with `Development` and `loto_dev_local`
-- [ ] **3.11** Verify the User auth endpoints (register, login, renew-token) respond correctly against the local Development database
+- [x] **3.10** Verify local boot works with `Development` and `loto_dev_local`
+- [x] **3.11** Verify the User auth endpoints (register, login, renew-token) respond correctly against the local Development database
 
 ### Phase 4 — Test Infrastructure
 
 Scaffold the test projects per AGENTS.md test strategy (empty but wired).
 
-- [ ] **4.1** Create `tests/CommonTestUtilities` class library; add references to Application, Communication, Infrastructure; add Bogus + NSubstitute packages
-- [ ] **4.2** Create `tests/Validators.Test` xUnit project; add references to Application, CommonTestUtilities; add Shouldly + xUnit packages
-- [ ] **4.3** Create `tests/UseCases.Test` xUnit project; add references to Application, CommonTestUtilities; add Shouldly + xUnit packages
-- [ ] **4.4** Create `tests/WebApi.Test` xUnit project; add references to API, CommonTestUtilities; add Shouldly + Testcontainers.PostgreSql + Microsoft.AspNetCore.Mvc.Testing + xUnit packages
-- [ ] **4.5** Add all 4 test projects to `server.sln`
-- [ ] **4.6** Verify `dotnet build` succeeds for the full solution including test projects
-- [ ] **4.7** Verify `dotnet test` runs (even if zero tests exist yet)
+- [x] **4.1** Create `tests/CommonTestUtilities` class library; add references to Application, Communication, Infrastructure; add Bogus + NSubstitute packages
+- [x] **4.2** Create `tests/Validators.Test` xUnit project; add references to Application, CommonTestUtilities; add Shouldly + xUnit packages
+- [x] **4.3** Create `tests/UseCases.Test` xUnit project; add references to Application, CommonTestUtilities; add Shouldly + xUnit packages
+- [x] **4.4** Create `tests/WebApi.Test` xUnit project; add references to API, CommonTestUtilities; add Shouldly + Testcontainers.PostgreSql + Microsoft.AspNetCore.Mvc.Testing + xUnit packages
+- [x] **4.5** Add all 4 test projects to `server.sln`
+- [x] **4.6** Verify `dotnet build` succeeds for the full solution including test projects
+- [x] **4.7** Verify `dotnet test` runs (even if zero tests exist yet)
 
 ### Done criteria
 

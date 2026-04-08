@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\server.Application\server.Application.csproj" />
+      <ProjectReference Include="..\..\server.Communication\server.Communication.csproj" />
+      <ProjectReference Include="..\..\server.Infrastructure\server.Infrastructure.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Bogus" Version="35.6.5" />
+      <PackageReference Include="NSubstitute" Version="5.3.0" />
+    </ItemGroup>
+
+</Project>
