@@ -4,7 +4,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v2
+Spec revision: v3
 -->
 
 > **Status:** Revised spec (v2) — peer review corrections + invariant tightening  
@@ -13,6 +13,7 @@ Spec revision: v2
 > **Revision notes:**  
 > v1→v2: Fixed classification invariant (TransactionType is single source of truth, CategoryId/Direction denormalized), added transaction authorship (RecordedByOperatorId + CreatedByUserId), corrected Fiado product seed (calculated, not persisted), fixed lco_status mapping (unused in Access), fixed OriginTransactionId self-reference for installments.  
 > v2: Added Account.TabAccountId invariants, OperatorAccount.IsPrimary uniqueness, branch consistency rules (6.9), CashVariance calculation semantics (6.10), seed data scope clarification.
+> v3: rename 6h and 4h to 6H and 4H to attend for entities naming rules.
 
 ---
 
@@ -716,8 +717,8 @@ public class Setting : EntityBase
 {
     public DateTime LockDate { get; set; }
     public decimal DailyTargetHours { get; set; } = 7.33m;
-    public decimal LunchDeductionOver6h { get; set; } = 1.0m;
-    public decimal LunchDeductionOver4h { get; set; } = 0.25m;
+    public decimal LunchDeductionOver6H { get; set; } = 1.0m;
+    public decimal LunchDeductionOver4H { get; set; } = 0.25m;
 
     public Guid BranchId { get; set; }
     public Branch Branch { get; set; } = null!;
@@ -729,8 +730,8 @@ public class Setting : EntityBase
 | Id | uuid | PK | |
 | LockDate | date | NOT NULL | Transactions on or before this date cannot be edited. Access: `conf_dtfechamento` |
 | DailyTargetHours | numeric(6,2) | NOT NULL | Default 7.33 (7h20m). Used in TimeEntry balance calculation |
-| LunchDeductionOver6h | numeric(4,2) | NOT NULL | Default 1.00. Hours deducted for lunch when worked >6h |
-| LunchDeductionOver4h | numeric(4,2) | NOT NULL | Default 0.25. Hours deducted for break when worked >4h but ≤6h |
+| LunchDeductionOver6H | numeric(4,2) | NOT NULL | Default 1.00. Hours deducted for lunch when worked >6h |
+| LunchDeductionOver4H | numeric(4,2) | NOT NULL | Default 0.25. Hours deducted for break when worked >4h but ≤6h |
 | BranchId | uuid | NOT NULL | FK → Branch. UNIQUE — one setting row per branch |
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | |
@@ -951,8 +952,8 @@ Constants: DailyTarget (from Setting), LunchDeduction rules (from Setting)
 If Status = Present:
     grossMinutes = ClockOut - ClockIn (handle midnight crossing)
     grossHours = grossMinutes / 60
-    lunchDeduction = grossHours > 6 ? Setting.LunchDeductionOver6h
-                   : grossHours > 4 ? Setting.LunchDeductionOver4h
+    lunchDeduction = grossHours > 6 ? Setting.LunchDeductionOver6H
+                   : grossHours > 4 ? Setting.LunchDeductionOver4H
                    : 0
     TotalHours = grossHours - lunchDeduction
     BalanceHours = TotalHours - DailyTarget

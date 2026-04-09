@@ -126,7 +126,7 @@ Replace the remaining global-role assumptions with the branch-scoped tenancy mod
 - [ ] **1.7** Add `Category` entity to `server.Domain` with `Name`, `DefaultDirection`, `BranchId`, and navigation to `TransactionTypes`
 - [ ] **1.8** Add `TransactionType` entity to `server.Domain` with `Name`, `CategoryId`, and navigation to `Category`
 - [ ] **1.9** Add `Product` entity to `server.Domain` with `Name`, `DisplayOrder`, and `BranchId`
-- [ ] **1.10** Add `Setting` entity to `server.Domain` with `LockDate`, `DailyTargetHours`, `LunchDeductionOver6h`, `LunchDeductionOver4h`, and `BranchId`
+- [ ] **1.10** Add `Setting` entity to `server.Domain` with `LockDate`, `DailyTargetHours`, `LunchDeductionOver6H`, `LunchDeductionOver4H`, and `BranchId`
 - [ ] **1.11** Add the required repository interfaces for `Branch`, `BranchUser`, `Category`, `TransactionType`, `Product`, and `Setting` to `server.Domain/Interfaces/`, including the batch persistence support needed for bootstrap seeding
 - [ ] **1.12** Add the required EF Core mappings, `DbSet`s, foreign keys, and uniqueness constraints for `Branch`, `BranchUser`, `Category`, `TransactionType`, `Product`, and `Setting` in `server.Infrastructure`
 - [ ] **1.13** Enforce hard uniqueness on `(UserId, BranchId)` for `BranchUser` to match the spec
@@ -147,7 +147,7 @@ Implement the tenant-creation and branch-session flows that unlock later milesto
 - [ ] **2.4** Seed the new branch with exactly 9 default `Category` rows defined in `loto-specs.md` section 5
 - [ ] **2.5** Seed the new branch with exactly 19 default `TransactionType` rows defined in `loto-specs.md` section 5
 - [ ] **2.6** Seed the new branch with exactly 8 default `Product` rows defined in `loto-specs.md` section 5
-- [ ] **2.7** Seed the new branch with exactly 1 `Setting` row using the spec-defined defaults `DailyTargetHours = 7.33`, `LunchDeductionOver6h = 1.00`, and `LunchDeductionOver4h = 0.25`
+- [ ] **2.7** Seed the new branch with exactly 1 `Setting` row using the spec-defined defaults `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, and `LunchDeductionOver4H = 0.25`
 - [ ] **2.8** Add `ListMyBranches` request/response contract and use case to return the authenticated user's active branch memberships with branch summary + caller role
 - [ ] **2.9** Add `CreateBranchSession` request/response contract and use case so a user can select one of their branches and receive the separate branch-scoped token while preserving the current global token model
 - [ ] **2.10** Reject branch-session creation when the authenticated user is not an active member of the requested branch
@@ -181,7 +181,7 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - [ ] **4.1** Ensure the Milestone 0 test-project scaffold exists before adding Milestone 1 tests
 - [ ] **4.2** Add `Validators.Test` coverage for `CreateBranch`, `CreateBranchSession`, `AddBranchUser`, and `UpdateBranchUserRole`
 - [ ] **4.3** Add `UseCases.Test` coverage for `CreateBranchUseCase`
-- [ ] **4.4** In `CreateBranchUseCase` tests, assert branch creation, creator membership as `Admin`, exact default seeds from spec section 5 (`9` categories, `19` transaction types, `8` products, `1` setting row with `DailyTargetHours = 7.33`, `LunchDeductionOver6h = 1.00`, `LunchDeductionOver4h = 0.25`), and atomic rollback on any bootstrap failure
+- [ ] **4.4** In `CreateBranchUseCase` tests, assert branch creation, creator membership as `Admin`, exact default seeds from spec section 5 (`9` categories, `19` transaction types, `8` products, `1` setting row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, `LunchDeductionOver4H = 0.25`), and atomic rollback on any bootstrap failure
 - [ ] **4.5** Add `UseCases.Test` coverage for `ListMyBranchesUseCase`, `CreateBranchSessionUseCase`, and `GetCurrentBranchSummaryUseCase`, including successful branch-token issuance
 - [ ] **4.6** Add `UseCases.Test` coverage for `ListBranchUsersUseCase`, `AddBranchUserUseCase`, `UpdateBranchUserRoleUseCase`, and `RemoveBranchUserUseCase`
 - [ ] **4.7** Add use-case tests for permission rules: `Manager` may manage only `Manager`/`Member`; `Admin` may manage all memberships
@@ -201,7 +201,7 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - Removing a branch membership sets `Active = false` on the existing row, and re-adding a previously removed member reactivates that same row and updates its role
 - Branch auth uses the two-token model: `register`, `login`, and `renew-token` keep the existing global auth flow, and branch selection/session issues a separate branch-scoped token
 - Branch-scoped tokens carry enough data to resolve `UserId`, `BranchId`, `BranchUserId`, and `Role`
-- `CreateBranch` creates the branch, the creator membership as `Admin`, and exactly `9` default `Category` rows, `19` default `TransactionType` rows, `8` default `Product` rows, and `1` `Setting` row with `DailyTargetHours = 7.33`, `LunchDeductionOver6h = 1.00`, and `LunchDeductionOver4h = 0.25`
+- `CreateBranch` creates the branch, the creator membership as `Admin`, and exactly `9` default `Category` rows, `19` default `TransactionType` rows, `8` default `Product` rows, and `1` `Setting` row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, and `LunchDeductionOver4H = 0.25`
 - Membership management is limited to already-registered users; no invitation or email flow exists yet
 - The branch always retains at least one active `Admin`
 - Milestone-defined permission rules are enforced: `Manager` can manage only `Manager` and `Member` memberships; `Admin` can manage all memberships
