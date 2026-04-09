@@ -206,6 +206,7 @@ UseCases/
       {Feature}{Operation}UseCase.cs
       {Feature}{Operation}FluentValidation.cs
       {Feature}{Operation}Mapper.cs
+      {Feature}{Operation}SeedFactory.cs   # optional, only when bootstrap/seed data is needed
 ```
 
 Use case rules:
@@ -231,9 +232,12 @@ Validation rules:
 
 Mapping rules:
 
-- Use explicit mapper extension methods.
+- Use C# 13 `extension(Type instance)` blocks for instance-based mapper methods. Do not mix with the older `public static ReturnType Method(this Type param)` style in the same codebase.
+- The `this`-parameter style (`public static Branch ToDomain(this RequestDto request)`) is still used for the initial DTO-to-domain conversion where the source is a request DTO, not a domain entity.
 - Do not use AutoMapper.
 - Mappings must stay obvious and debuggable.
+- Keep mappers focused on shape transformation (DTO ↔ Entity). Do not embed seed data, default catalogs, or business-rule knowledge in mappers.
+- When a use case needs to generate default seed data or bootstrap entities beyond simple DTO mapping, use a dedicated seed factory class (e.g., `CreateBranchSeedFactory`) in the same operation folder.
 
 Authentication rules:
 
@@ -593,6 +597,7 @@ dotnet test tests/WebApi.Test
 | Use case class         | `{Entity}{Operation}UseCase`                                    | `UserRegisterUseCase`               |
 | Validator class        | `{Entity}{Operation}FluentValidation`                           | `UserRegisterFluentValidation`      |
 | Mapper class           | `{Entity}{Operation}Mapper`                                     | `UserRegisterMapper`                |
+| Seed factory class     | `{Entity}{Operation}SeedFactory`                                | `CreateBranchSeedFactory`           |
 | Repository class       | `{Entity}Repository`                                            | `UsersRepository`                   |
 | Repository interface   | `I{Entity}Repository`                                           | `IUsersRepository`                  |
 | Controller             | `{Feature}Controller`                                           | `UserController`                    |
@@ -606,6 +611,7 @@ dotnet test tests/WebApi.Test
 | Repository builder     | `{Entity}RepositoryBuilder`                                     | `UserRepositoryBuilder`             |
 | Namespace style        | File-scoped namespaces                                          | `namespace server.Domain.Entities;` |
 | Constructor style      | Primary constructors where helpful                              | `public class X(IDep dep)`          |
+| Mapper extension style | C# 13 `extension(Type instance)` blocks for instance methods   | `extension(Branch branch) { ... }`  |
 
 ## NuGet and package guidance
 
