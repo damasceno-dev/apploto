@@ -22,7 +22,7 @@ public class TokenAuthorizeFilter(IApiExceptionHandler exceptionHandler, IAuthen
     {
         try
         {
-            await authenticationService.GetAuthorizedUser(requiredRole, additionalRoles);
+            await authenticationService.GetAuthorizedBranchUser(requiredRole, additionalRoles);
         }
         catch (Exception exception)
         {

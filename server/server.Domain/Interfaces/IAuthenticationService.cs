@@ -6,5 +6,6 @@ namespace server.Domain.Interfaces;
 public interface IAuthenticationService
 {
     Task<User> GetAuthenticatedUser();
-    Task<User> GetAuthorizedUser(Role requiredRole, params Role[] additionalRoles);
+    Task<BranchUser> GetAuthenticatedBranchUser();
+    Task<BranchUser> GetAuthorizedBranchUser(Role requiredRole, params Role[] additionalRoles);
 }

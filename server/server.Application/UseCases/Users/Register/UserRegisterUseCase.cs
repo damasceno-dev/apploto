@@ -13,20 +13,20 @@ public class UserRegisterUseCase(IUsersRepository usersRepository, ITokenService
     public async Task<ResponseUserRegisterJson> Execute(RequestUserRegisterJson request)
     {
         await Validate(request);
+
         var newUser = request.ToDomain();
         newUser.Password = passwordEncryption.HashPassword(request.Password);
 
-        var token = tokenServices.Generate(newUser);
+        var token = tokenServices.GenerateGlobalToken(newUser);
         var refreshToken = refreshTokenRepository.Generate();
 
+        await usersRepository.Register(newUser);
         await refreshTokenRepository.SaveRefreshToken(new RefreshToken
         {
             Value = refreshToken,
             UserId = newUser.Id
         });
-        await unitOfWork.Commit();
-        
-        await usersRepository.Register(newUser);
+
         await unitOfWork.Commit();
         return newUser.ToResponse(token, refreshToken);
     }

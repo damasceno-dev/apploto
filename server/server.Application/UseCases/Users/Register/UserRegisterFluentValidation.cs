@@ -15,7 +15,6 @@ public class UserRegisterFluentValidation : AbstractValidator<RequestUserRegiste
             .EmailAddress()
             .When(r => string.IsNullOrEmpty(r.Email) is false)
             .WithMessage(ResourcesErrorMessages.EMAIL_INVALID);
-        RuleFor(r => r.Role).IsInEnum().WithMessage(ResourcesErrorMessages.ROLE_INVALID);
         RuleFor(r => r.Password).ValidatePassword();
     }
 }

@@ -38,6 +38,12 @@ public static class InfraDependencyInjection
     {
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IBranchesRepository, BranchesRepository>();
+        services.AddScoped<IBranchUsersRepository, BranchUsersRepository>();
+        services.AddScoped<ICategoriesRepository, CategoriesRepository>();
+        services.AddScoped<ITransactionTypesRepository, TransactionTypesRepository>();
+        services.AddScoped<IProductsRepository, ProductsRepository>();
+        services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
 

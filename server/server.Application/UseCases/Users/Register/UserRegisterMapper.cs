@@ -12,8 +12,7 @@ public static class UserRegisterMapper
         {
             Name = request.Name,
             Email = request.Email,
-            Password = request.Password,
-            Role = request.Role
+            Password = request.Password
         };
     }
 

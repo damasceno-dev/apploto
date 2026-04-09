@@ -24,7 +24,7 @@ public class UserRenewTokenUseCase(IRefreshTokenRepository refreshTokenRepositor
                    throw new RefreshTokenException(ResourcesErrorMessages.REFRESHTOKEN_WITHOUT_USER);
 
         
-        var token = tokenServices.Generate(user);
+        var token = tokenServices.GenerateGlobalToken(user);
         var refreshToken = refreshTokenRepository.Generate();
         await refreshTokenRepository.SaveRefreshToken(new RefreshToken
         {

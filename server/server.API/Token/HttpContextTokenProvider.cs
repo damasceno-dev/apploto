@@ -6,6 +6,8 @@ namespace server.Token;
 public class HttpContextTokenProvider(IHttpContextAccessor contextAccessor) : ITokenProvider
 {
     private const string CachedUserKey = "AuthenticatedUser";
+    private const string CachedBranchUserKey = "AuthenticatedBranchUser";
+
     public string? GetTokenValue()
     {
         var context = contextAccessor.HttpContext ?? throw new ArgumentException("contextAccessor.HttpContext cannot be null");
@@ -28,5 +30,17 @@ public class HttpContextTokenProvider(IHttpContextAccessor contextAccessor) : IT
     {
         var context = contextAccessor.HttpContext ?? throw new ArgumentException("contextAccessor.HttpContext cannot be null");
         context.Items[CachedUserKey] = user;
+    }
+
+    public BranchUser? GetCachedBranchUser()
+    {
+        var context = contextAccessor.HttpContext ?? throw new ArgumentException("contextAccessor.HttpContext cannot be null");
+        return context.Items[CachedBranchUserKey] as BranchUser;
+    }
+
+    public void CacheBranchUser(BranchUser branchUser)
+    {
+        var context = contextAccessor.HttpContext ?? throw new ArgumentException("contextAccessor.HttpContext cannot be null");
+        context.Items[CachedBranchUserKey] = branchUser;
     }
 }

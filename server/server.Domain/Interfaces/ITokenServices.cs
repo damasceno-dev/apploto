@@ -5,6 +5,7 @@ namespace server.Domain.Interfaces;
 
 public interface ITokenServices
 {
-    string Generate(User user);
+    string GenerateGlobalToken(User user);
+    string GenerateBranchToken(BranchUser branchUser);
     TokenResultValidation ValidateToken(string token);
 }

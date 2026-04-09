@@ -16,7 +16,7 @@ public class UserLoginUseCase(IUsersRepository usersRepository, ITokenServices t
         var userToVerify = await usersRepository.GetByEmail(request.Email);
         var user = VerifyUserAndPassword(userToVerify, request.Password);
 
-        var token = tokenServices.Generate(user);
+        var token = tokenServices.GenerateGlobalToken(user);
         var refreshToken = refreshTokenRepository.Generate();
         await refreshTokenRepository.SaveRefreshToken(new RefreshToken
         {

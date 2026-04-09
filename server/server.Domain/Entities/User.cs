@@ -1,11 +1,11 @@
-using server.Domain.Entities.Enums;
-
 namespace server.Domain.Entities;
 
 public class User : EntityBase
 {
-    public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
     public string Password { get; set; } = string.Empty;
-    public Role Role { get; set; } = Role.Member;
+
+    public ICollection<BranchUser> BranchUsers { get; init; } = [];
+    public ICollection<RefreshToken> RefreshTokens { get; init; } = [];
 }
