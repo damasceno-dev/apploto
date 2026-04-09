@@ -141,13 +141,13 @@ Replace the remaining global-role assumptions with the branch-scoped tenancy mod
 
 Implement the tenant-creation and branch-session flows that unlock later milestones. For this milestone, the bootstrap seed expectations are fixed: exactly 9 `Category` rows, 19 `TransactionType` rows, 8 `Product` rows, and 1 `Setting` row.
 
-- [ ] **2.1** Add `CreateBranch` request/response DTOs to `server.Communication`
-- [ ] **2.2** Add `CreateBranch` validator covering required `Name` and optional-field length limits
-- [ ] **2.3** Implement `CreateBranchUseCase` to create the `Branch`, create the creator's `BranchUser` as `Admin`, insert all default seeds, and commit only if the entire bootstrap succeeds atomically
-- [ ] **2.4** Seed the new branch with exactly 9 default `Category` rows defined in `loto-specs.md` section 5
-- [ ] **2.5** Seed the new branch with exactly 19 default `TransactionType` rows defined in `loto-specs.md` section 5
-- [ ] **2.6** Seed the new branch with exactly 8 default `Product` rows defined in `loto-specs.md` section 5
-- [ ] **2.7** Seed the new branch with exactly 1 `Setting` row using the spec-defined defaults `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, and `LunchDeductionOver4H = 0.25`
+- [x] **2.1** Add `CreateBranch` request/response DTOs to `server.Communication`
+- [x] **2.2** Add `CreateBranch` validator covering required `Name` and optional-field length limits
+- [x] **2.3** Implement `CreateBranchUseCase` to create the `Branch`, create the creator's `BranchUser` as `Admin`, insert all default seeds, and commit only if the entire bootstrap succeeds atomically
+- [x] **2.4** Seed the new branch with exactly 9 default `Category` rows defined in `loto-specs.md` section 5
+- [x] **2.5** Seed the new branch with exactly 19 default `TransactionType` rows defined in `loto-specs.md` section 5
+- [x] **2.6** Seed the new branch with exactly 8 default `Product` rows defined in `loto-specs.md` section 5
+- [x] **2.7** Seed the new branch with exactly 1 `Setting` row using the spec-defined defaults `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, and `LunchDeductionOver4H = 0.25`
 - [ ] **2.8** Add `ListMyBranches` request/response contract and use case to return the authenticated user's active branch memberships with branch summary + caller role
 - [ ] **2.9** Add `CreateBranchSession` request/response contract and use case so a user can select one of their branches and receive the separate branch-scoped token while preserving the current global token model
 - [ ] **2.10** Reject branch-session creation when the authenticated user is not an active member of the requested branch

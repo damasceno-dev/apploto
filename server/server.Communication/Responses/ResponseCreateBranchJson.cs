@@ -1,0 +1,10 @@
+namespace server.Communication.Responses;
+
+public class ResponseCreateBranchJson
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Cnpj { get; set; }
+    public string? Address { get; set; }
+    public string? Phone { get; set; }
+}

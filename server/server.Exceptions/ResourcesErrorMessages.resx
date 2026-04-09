@@ -21,6 +21,15 @@
     <data name="EMAIL_ALREADY_REGISTERED" xml:space="preserve">
         <value>Esse e-mail já está cadastrado</value>
     </data>
+    <data name="BRANCH_CNPJ_MAX_LENGTH" xml:space="preserve">
+        <value>O CNPJ da filial deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="BRANCH_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome da filial deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="BRANCH_PHONE_MAX_LENGTH" xml:space="preserve">
+        <value>O telefone da filial deve conter no máximo {0} caracteres</value>
+    </data>
     <data name="EMAIL_EMPTY" xml:space="preserve">
         <value>O e-mail não pode ser nulo ou vazio</value>
     </data>

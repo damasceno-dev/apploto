@@ -50,6 +50,24 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("EMAIL_ALREADY_REGISTERED", resourceCulture);
             }
         }
+
+        public static string BRANCH_CNPJ_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("BRANCH_CNPJ_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("BRANCH_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_PHONE_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("BRANCH_PHONE_MAX_LENGTH", resourceCulture);
+            }
+        }
         
         public static string EMAIL_EMPTY {
             get {

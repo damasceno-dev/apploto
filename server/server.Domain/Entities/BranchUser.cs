@@ -10,5 +10,5 @@ public class BranchUser : EntityBase
     public Guid BranchId { get; init; }
     public Branch Branch { get; init; } = null!;
 
-    public Role Role { get; init; } = Role.Member;
+    public Role Role { get; set; } = Role.Member;
 }

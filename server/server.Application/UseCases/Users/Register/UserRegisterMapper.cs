@@ -16,17 +16,20 @@ public static class UserRegisterMapper
         };
     }
 
-    public static ResponseUserRegisterJson ToResponse(this User user, string token, string refreshToken)
+    extension(User user)
     {
-        return new ResponseUserRegisterJson
+        public ResponseUserRegisterJson ToResponse(string token, string refreshToken)
         {
-            Name = user.Name,
-            Email = user.Email,
-            ResponseToken = new ResponseTokenJson
+            return new ResponseUserRegisterJson
             {
-                Token = token,
-                RefreshToken = refreshToken
-            }
-        };
+                Name = user.Name,
+                Email = user.Email,
+                ResponseToken = new ResponseTokenJson
+                {
+                    Token = token,
+                    RefreshToken = refreshToken
+                }
+            };
+        }
     }
 }
