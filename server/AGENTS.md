@@ -105,6 +105,9 @@ Rules:
   - `DateTime CreatedAt = DateTime.UtcNow`
   - `bool Active = true`
 - Navigation properties should default to empty collections.
+- Prefer `init` setters for entity properties that should never change after construction, especially foreign keys and required navigations on join entities.
+- Do not use `init` on properties that later use cases must mutate, such as `Role`, `Active`, status fields, or values that participate in reactivation/update flows.
+- Example for `BranchUser`: `UserId`, `User`, `BranchId`, and `Branch` may be `init`; keep `Role` settable because branch memberships are updated later.
 - Enums live in `Entities/Enums`.
 - Use `[Description]` on enums only when a human-readable label is required.
 - Domain models are allowed for intermediary structures that are not entities and not DTOs.
@@ -455,22 +458,42 @@ tests/
 │   ├── Repositories/
 │   └── Services/
 ├── Validators.Test/
+│   └── {Feature}/
+│       └── {Operation}/
+│           └── {Feature}{Operation}FluentValidationTest.cs
 ├── UseCases.Test/
+│   ├── UseCases/
+│   │   └── {Feature}/
+│   │       └── {Operation}/
+│   │           └── {Feature}{Operation}UseCaseTest.cs
+│   └── Services/
+│       └── {Service}/
+│           └── {Service}Test.cs
 └── WebApi.Test/
+    └── {Feature}/
+        └── {Operation}/
+            └── {Feature}{Operation}ControllerTest.cs
 ```
 
 ### Common test utilities
 
 - Keep builders, fakers, and mock factories in `CommonTestUtilities`.
+- Add or extend shared builders and mock helpers in `CommonTestUtilities` before adding repeated inline setup to a test class.
 - Use Bogus for realistic fake data generation.
 - Use NSubstitute for mocks.
 - Use the real `PasswordEncryption` inside builders when a hashed password is needed.
 - Prefer fluent builders that configure one behavior at a time and end with `.Build()`.
+- Keep request builders under `Requests/`, entity builders under `Entities/`, repository substitutes under `Repositories/`, and service or token substitutes under `Services/`.
+- Name shared test helpers after the concrete type they build, such as `UserBuilder`, `RequestUserRegisterJsonBuilder`, `UsersRepositoryBuilder`, or `TokenServicesBuilder`.
+- Default builder output should already be valid for the happy path so tests only override the fields relevant to the scenario.
+- Mock builders should return the actual NSubstitute substitute from `.Build()` so the test can still assert `Received()` and `DidNotReceive()`.
+- Do not leave reusable builders or helper mocks embedded inside individual test classes once a second test needs the same setup.
 
 ### Validator tests
 
 - Instantiate validators directly.
 - Do not involve DI or repository mocks.
+- Place validator tests under `Validators.Test/{Feature}/{Operation}/`.
 - Every validator test class should include:
   - one success test
   - targeted failure tests that break exactly one field or rule per test
@@ -479,6 +502,8 @@ tests/
 ### Use case tests
 
 - Mock all external I/O.
+- Place use case tests under `UseCases.Test/UseCases/{Feature}/{Operation}/`.
+- Place service-level unit tests under `UseCases.Test/Services/{ServiceName}/`.
 - Each test class should use a local `CreateUseCase()` helper to keep setup readable.
 - Assert on returned DTOs for success cases.
 - Assert on thrown exceptions for error cases.
