@@ -1,6 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
 using server.Application.UseCases.Branches.Create;
+using server.Application.UseCases.Branches.CreateSession;
+using server.Application.UseCases.Branches.GetCurrentBranchSummary;
+using server.Application.UseCases.Branches.ListMyBranches;
 using server.Application.UseCases.Users.Login;
 using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
@@ -13,6 +16,9 @@ public static class AppDependencyInjection
     public static void AddApplication(this IServiceCollection services)
     {
         services.AddScoped<CreateBranchUseCase>();
+        services.AddScoped<ListMyBranchesUseCase>();
+        services.AddScoped<CreateBranchSessionUseCase>();
+        services.AddScoped<GetCurrentBranchSummaryUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

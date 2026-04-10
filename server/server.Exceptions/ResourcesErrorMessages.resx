@@ -24,8 +24,14 @@
     <data name="BRANCH_CNPJ_MAX_LENGTH" xml:space="preserve">
         <value>O CNPJ da filial deve conter no máximo {0} caracteres</value>
     </data>
+    <data name="BRANCH_ID_EMPTY" xml:space="preserve">
+        <value>A filial deve ser informada</value>
+    </data>
     <data name="BRANCH_NAME_MAX_LENGTH" xml:space="preserve">
         <value>O nome da filial deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="BRANCH_NOT_FOUND" xml:space="preserve">
+        <value>Filial não encontrada</value>
     </data>
     <data name="BRANCH_PHONE_MAX_LENGTH" xml:space="preserve">
         <value>O telefone da filial deve conter no máximo {0} caracteres</value>

@@ -57,9 +57,21 @@ namespace server.Exceptions {
             }
         }
 
+        public static string BRANCH_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("BRANCH_ID_EMPTY", resourceCulture);
+            }
+        }
+
         public static string BRANCH_NAME_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("BRANCH_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("BRANCH_NOT_FOUND", resourceCulture);
             }
         }
 

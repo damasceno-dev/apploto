@@ -8,4 +8,5 @@ public interface IBranchUsersRepository
     Task<BranchUser?> GetActiveById(Guid branchUserId);
     Task<BranchUser?> GetActiveByUserIdAndBranchId(Guid userId, Guid branchId);
     Task<BranchUser?> GetByUserIdAndBranchId(Guid userId, Guid branchId);
+    Task<IReadOnlyList<BranchUser>> ListActiveByUserId(Guid userId);
 }
