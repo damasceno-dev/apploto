@@ -158,13 +158,13 @@ Implement the tenant-creation and branch-session flows that unlock later milesto
 
 Implement branch-member administration without introducing invitations yet. The Manager/Admin permission matrix below is milestone-defined behavior for this phase; it is not being promoted into the spec sync group by this milestone update.
 
-- [ ] **3.1** Limit onboarding in this milestone to users that already exist in `User`
-- [ ] **3.2** Add `ListBranchUsers` response contract and use case to return active members from the current branch only
-- [ ] **3.3** Add `AddBranchUser` request/response DTOs using an existing registered user identifier or email plus the target branch role
-- [ ] **3.4** Add `AddBranchUser` validator covering required user identifier/email, required role, valid role enum, and email format when email is used
-- [ ] **3.5** Implement `AddBranchUserUseCase` so `Admin` can add `Admin`/`Manager`/`Member`, while `Manager` can add only `Manager`/`Member`
-- [ ] **3.6** When no membership exists for `(UserId, BranchId)`, `AddBranchUser` inserts a new `BranchUser`; when a deactivated membership already exists for that pair, it reactivates the existing row and updates its role instead of inserting a duplicate
-- [ ] **3.7** Reject `AddBranchUser` when the target user does not exist or already has an active membership in the branch
+- [x] **3.1** Limit onboarding in this milestone to users that already exist in `User`
+- [x] **3.2** Add `ListBranchUsers` response contract and use case to return active members from the current branch only
+- [x] **3.3** Add `AddBranchUser` request/response DTOs using an existing registered user identifier or email plus the target branch role
+- [x] **3.4** Add `AddBranchUser` validator covering required user identifier/email, required role, valid role enum, and email format when email is used
+- [x] **3.5** Implement `AddBranchUserUseCase` so `Admin` can add `Admin`/`Manager`/`Member`, while `Manager` can add only `Manager`/`Member`
+- [x] **3.6** When no membership exists for `(UserId, BranchId)`, `AddBranchUser` inserts a new `BranchUser`; when a deactivated membership already exists for that pair, it reactivates the existing row and updates its role instead of inserting a duplicate
+- [x] **3.7** Reject `AddBranchUser` when the target user does not exist or already has an active membership in the branch
 - [ ] **3.8** Add `UpdateBranchUserRole` request/response DTOs and validator
 - [ ] **3.9** Implement `UpdateBranchUserRoleUseCase` so `Admin` can manage any membership role, while `Manager` can manage only `Manager`/`Member`
 - [ ] **3.10** Reject any role update that would leave the branch without at least one active `Admin`

@@ -63,6 +63,24 @@ namespace server.Exceptions {
             }
         }
 
+        public static string BRANCH_USER_ALREADY_ACTIVE {
+            get {
+                return ResourceManager.GetString("BRANCH_USER_ALREADY_ACTIVE", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_USER_IDENTIFIER_EXCLUSIVE {
+            get {
+                return ResourceManager.GetString("BRANCH_USER_IDENTIFIER_EXCLUSIVE", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_USER_IDENTIFIER_REQUIRED {
+            get {
+                return ResourceManager.GetString("BRANCH_USER_IDENTIFIER_REQUIRED", resourceCulture);
+            }
+        }
+
         public static string BRANCH_NAME_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("BRANCH_NAME_MAX_LENGTH", resourceCulture);
@@ -116,13 +134,31 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("ROLE_INVALID", resourceCulture);
             }
         }
-        
+
+        public static string ROLE_REQUIRED {
+            get {
+                return ResourceManager.GetString("ROLE_REQUIRED", resourceCulture);
+            }
+        }
+
         public static string UNKNOWN_ERROR {
             get {
                 return ResourceManager.GetString("UNKNOWN_ERROR", resourceCulture);
             }
         }
-        
+
+        public static string USER_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("USER_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string USER_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("USER_NOT_FOUND", resourceCulture);
+            }
+        }
+
         public static string EMAIL_NOT_REGISTERED {
             get {
                 return ResourceManager.GetString("EMAIL_NOT_REGISTERED", resourceCulture);

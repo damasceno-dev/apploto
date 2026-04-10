@@ -35,8 +35,22 @@ internal class BranchUsersRepository(ServerDbContext dbContext) : IBranchUsersRe
     public async Task<BranchUser?> GetByUserIdAndBranchId(Guid userId, Guid branchId)
     {
         return await dbContext.BranchUsers
-            .AsNoTracking()
             .FirstOrDefaultAsync(branchUser => branchUser.UserId == userId && branchUser.BranchId == branchId);
+    }
+
+    public async Task<IReadOnlyList<BranchUser>> ListActiveByBranchId(Guid branchId)
+    {
+        return await dbContext.BranchUsers
+            .AsNoTracking()
+            .Include(branchUser => branchUser.User)
+            .Where(branchUser =>
+                branchUser.BranchId == branchId &&
+                branchUser.Active &&
+                branchUser.User.Active &&
+                branchUser.Branch.Active)
+            .OrderBy(branchUser => branchUser.User.Name)
+            .ThenBy(branchUser => branchUser.User.Email)
+            .ToListAsync();
     }
 
     public async Task<IReadOnlyList<BranchUser>> ListActiveByUserId(Guid userId)
