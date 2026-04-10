@@ -180,6 +180,7 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 
 - [ ] **4.1** Ensure the Milestone 0 test-project scaffold exists before adding Milestone 1 tests
 - [ ] **4.2** Add `Validators.Test` coverage for `CreateBranch`, `CreateBranchSession`, `AddBranchUser`, and `UpdateBranchUserRole`
+  Note: `4.2` covers all current Milestone 1 `FluentValidation` classes.
 - [ ] **4.3** Add `UseCases.Test` coverage for `CreateBranchUseCase`
 - [ ] **4.4** In `CreateBranchUseCase` tests, assert branch creation, creator membership as `Admin`, exact default seeds from spec section 5 (`9` categories, `19` transaction types, `8` products, `1` setting row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, `LunchDeductionOver4H = 0.25`), and atomic rollback on any bootstrap failure
 - [ ] **4.5** Add `UseCases.Test` coverage for `ListMyBranchesUseCase`, `CreateBranchSessionUseCase`, and `GetCurrentBranchSummaryUseCase`, including successful branch-token issuance
@@ -189,7 +190,9 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - [ ] **4.9** Add use-case tests for the "must retain one active Admin" invariant
 - [ ] **4.10** Add use-case tests proving branch isolation: no membership read/write may target another branch through a valid token
 - [ ] **4.11** Add global-auth regression tests proving `register`, `login`, and `renew-token` still work after `User.Role` removal
+  Note: `4.3` through `4.11` collectively cover all current Milestone 1 use cases; `4.7` through `4.11` are behavior-focused assertions that cut across those use cases rather than separate use-case classes.
 - [ ] **4.12** Add `WebApi.Test` happy-path coverage for all Milestone 1 endpoints
+  Note: `4.12` covers all Milestone 1 HTTP endpoints and is intentionally not a 1:1 duplicate of `UseCases.Test`.
 - [ ] **4.13** Add `WebApi.Test` coverage for `401` unauthenticated, `403` unauthorized by branch role, `404` missing entity in branch scope, and `409` membership conflicts / last-admin violations
 - [ ] **4.14** Add `WebApi.Test` coverage proving a global token is rejected and a valid branch-scoped token is accepted by branch-only endpoints
 
