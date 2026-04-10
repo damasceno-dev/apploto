@@ -6,9 +6,9 @@ namespace server.Application.UseCases.Branches.Create;
 
 public class CreateBranchFluentValidation : AbstractValidator<RequestCreateBranchJson>
 {
-    private const int BranchNameMaxLength = 255;
-    private const int BranchCnpjMaxLength = 18;
-    private const int BranchPhoneMaxLength = 20;
+    internal const int BranchNameMaxLength = 255;
+    internal const int BranchCnpjMaxLength = 18;
+    internal const int BranchPhoneMaxLength = 20;
 
     public CreateBranchFluentValidation()
     {

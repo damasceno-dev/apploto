@@ -7,6 +7,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <InternalsVisibleTo Include="Validators.Test" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\server.Communication\server.Communication.csproj" />
       <ProjectReference Include="..\server.Domain\server.Domain.csproj" />
       <ProjectReference Include="..\server.Exceptions\server.Exceptions.csproj" />
