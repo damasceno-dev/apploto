@@ -181,9 +181,9 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - [x] **4.1** Ensure the Milestone 0 test-project scaffold exists before adding Milestone 1 tests
 - [x] **4.2** Add `Validators.Test` coverage for `CreateBranch`, `CreateBranchSession`, `AddBranchUser`, and `UpdateBranchUserRole`
   Note: `4.2` covers all current Milestone 1 `FluentValidation` classes.
-- [ ] **4.3** Add `UseCases.Test` coverage for `CreateBranchUseCase`
-- [ ] **4.4** In `CreateBranchUseCase` tests, assert branch creation, creator membership as `Admin`, exact default seeds from spec section 5 (`9` categories, `19` transaction types, `8` products, `1` setting row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, `LunchDeductionOver4H = 0.25`), and atomic rollback on any bootstrap failure
-- [ ] **4.5** Add `UseCases.Test` coverage for `ListMyBranchesUseCase`, `CreateBranchSessionUseCase`, and `GetCurrentBranchSummaryUseCase`, including successful branch-token issuance
+- [x] **4.3** Add `UseCases.Test` coverage for `CreateBranchUseCase`
+- [x] **4.4** In `CreateBranchUseCase` tests, assert branch creation, creator membership as `Admin`, exact default seeds from spec section 5 (`9` categories, `19` transaction types, `8` products, `1` setting row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, `LunchDeductionOver4H = 0.25`), and atomic rollback on any bootstrap failure
+- [x] **4.5** Add `UseCases.Test` coverage for `ListMyBranchesUseCase`, `CreateBranchSessionUseCase`, and `GetCurrentBranchSummaryUseCase`, including successful branch-token issuance
 - [ ] **4.6** Add `UseCases.Test` coverage for `ListBranchUsersUseCase`, `AddBranchUserUseCase`, `UpdateBranchUserRoleUseCase`, and `RemoveBranchUserUseCase`
 - [ ] **4.7** Add use-case tests for permission rules: `Manager` may manage only `Manager`/`Member`; `Admin` may manage all memberships
 - [ ] **4.8** Add use-case tests for hard `BranchUser` uniqueness on `(UserId, BranchId)` and for reactivating a deactivated membership instead of inserting a duplicate

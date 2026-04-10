@@ -44,6 +44,12 @@ public class BranchUsersRepositoryBuilder
         return this;
     }
 
+    public BranchUsersRepositoryBuilder ListActiveByUserId(IReadOnlyList<BranchUser> branchUsers)
+    {
+        _repository.ListActiveByUserId(Arg.Any<Guid>()).Returns(branchUsers);
+        return this;
+    }
+
     public IBranchUsersRepository Build()
     {
         return _repository;
