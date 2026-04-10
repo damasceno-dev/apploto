@@ -27,14 +27,23 @@
     <data name="BRANCH_ID_EMPTY" xml:space="preserve">
         <value>A filial deve ser informada</value>
     </data>
+    <data name="BRANCH_USER_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do membro da filial deve ser informado</value>
+    </data>
     <data name="BRANCH_USER_ALREADY_ACTIVE" xml:space="preserve">
         <value>O usuário já possui uma associação ativa nesta filial</value>
+    </data>
+    <data name="BRANCH_USER_LAST_ADMIN_CONFLICT" xml:space="preserve">
+        <value>A filial deve manter ao menos um Admin ativo</value>
     </data>
     <data name="BRANCH_USER_IDENTIFIER_EXCLUSIVE" xml:space="preserve">
         <value>Informe apenas o identificador do usuário ou o e-mail</value>
     </data>
     <data name="BRANCH_USER_IDENTIFIER_REQUIRED" xml:space="preserve">
         <value>O identificador do usuário ou o e-mail deve ser informado</value>
+    </data>
+    <data name="BRANCH_USER_NOT_FOUND" xml:space="preserve">
+        <value>Membro da filial não encontrado</value>
     </data>
     <data name="BRANCH_NAME_MAX_LENGTH" xml:space="preserve">
         <value>O nome da filial deve conter no máximo {0} caracteres</value>

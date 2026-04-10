@@ -165,14 +165,14 @@ Implement branch-member administration without introducing invitations yet. The 
 - [x] **3.5** Implement `AddBranchUserUseCase` so `Admin` can add `Admin`/`Manager`/`Member`, while `Manager` can add only `Manager`/`Member`
 - [x] **3.6** When no membership exists for `(UserId, BranchId)`, `AddBranchUser` inserts a new `BranchUser`; when a deactivated membership already exists for that pair, it reactivates the existing row and updates its role instead of inserting a duplicate
 - [x] **3.7** Reject `AddBranchUser` when the target user does not exist or already has an active membership in the branch
-- [ ] **3.8** Add `UpdateBranchUserRole` request/response DTOs and validator
-- [ ] **3.9** Implement `UpdateBranchUserRoleUseCase` so `Admin` can manage any membership role, while `Manager` can manage only `Manager`/`Member`
-- [ ] **3.10** Reject any role update that would leave the branch without at least one active `Admin`
-- [ ] **3.11** Add `RemoveBranchUser` request/response contract
-- [ ] **3.12** Implement `RemoveBranchUserUseCase` as soft deactivation (`Active = false`) on the existing membership row, not hard delete
-- [ ] **3.13** Allow `Manager` to remove only `Manager`/`Member`; allow `Admin` to remove any non-last-admin membership
-- [ ] **3.14** Reject any removal that would leave the branch without at least one active `Admin`
-- [ ] **3.15** Add the corresponding branch-membership endpoints to `BranchController` or a dedicated `BranchUserController`
+- [x] **3.8** Add `UpdateBranchUserRole` request/response DTOs and validator
+- [x] **3.9** Implement `UpdateBranchUserRoleUseCase` so `Admin` can manage any membership role, while `Manager` can manage only `Manager`/`Member`
+- [x] **3.10** Reject any role update that would leave the branch without at least one active `Admin`
+- [x] **3.11** Add `RemoveBranchUser` request/response contract
+- [x] **3.12** Implement `RemoveBranchUserUseCase` as soft deactivation (`Active = false`) on the existing membership row, not hard delete
+- [x] **3.13** Allow `Manager` to remove only `Manager`/`Member`; allow `Admin` to remove any non-last-admin membership
+- [x] **3.14** Reject any removal that would leave the branch without at least one active `Admin`
+- [x] **3.15** Add the corresponding branch-membership endpoints to `BranchController` or a dedicated `BranchUserController`
 
 ### Phase 4 — Tests for the Tenancy Slice
 

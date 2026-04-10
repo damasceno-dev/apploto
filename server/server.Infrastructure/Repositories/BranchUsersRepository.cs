@@ -11,6 +11,13 @@ internal class BranchUsersRepository(ServerDbContext dbContext) : IBranchUsersRe
         await dbContext.BranchUsers.AddAsync(branchUser);
     }
 
+    public async Task<BranchUser?> GetById(Guid branchUserId)
+    {
+        return await dbContext.BranchUsers
+            .Include(branchUser => branchUser.User)
+            .FirstOrDefaultAsync(branchUser => branchUser.Id == branchUserId && branchUser.Branch.Active);
+    }
+
     public async Task<BranchUser?> GetActiveById(Guid branchUserId)
     {
         return await dbContext.BranchUsers
@@ -36,6 +43,17 @@ internal class BranchUsersRepository(ServerDbContext dbContext) : IBranchUsersRe
     {
         return await dbContext.BranchUsers
             .FirstOrDefaultAsync(branchUser => branchUser.UserId == userId && branchUser.BranchId == branchId);
+    }
+
+    public async Task<int> CountActiveAdminsByBranchId(Guid branchId)
+    {
+        return await dbContext.BranchUsers
+            .AsNoTracking()
+            .CountAsync(branchUser =>
+                branchUser.BranchId == branchId &&
+                branchUser.Active &&
+                branchUser.Branch.Active &&
+                branchUser.Role == server.Domain.Entities.Enums.Role.Admin);
     }
 
     public async Task<IReadOnlyList<BranchUser>> ListActiveByBranchId(Guid branchId)

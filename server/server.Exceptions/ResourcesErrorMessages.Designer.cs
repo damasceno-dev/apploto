@@ -63,9 +63,21 @@ namespace server.Exceptions {
             }
         }
 
+        public static string BRANCH_USER_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("BRANCH_USER_ID_EMPTY", resourceCulture);
+            }
+        }
+
         public static string BRANCH_USER_ALREADY_ACTIVE {
             get {
                 return ResourceManager.GetString("BRANCH_USER_ALREADY_ACTIVE", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_USER_LAST_ADMIN_CONFLICT {
+            get {
+                return ResourceManager.GetString("BRANCH_USER_LAST_ADMIN_CONFLICT", resourceCulture);
             }
         }
 
@@ -78,6 +90,12 @@ namespace server.Exceptions {
         public static string BRANCH_USER_IDENTIFIER_REQUIRED {
             get {
                 return ResourceManager.GetString("BRANCH_USER_IDENTIFIER_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string BRANCH_USER_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("BRANCH_USER_NOT_FOUND", resourceCulture);
             }
         }
 

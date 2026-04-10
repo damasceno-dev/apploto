@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using server.Application.UseCases.BranchUsers.Add;
+using server.Application.UseCases.BranchUsers.List;
+using server.Application.UseCases.BranchUsers.Remove;
+using server.Application.UseCases.BranchUsers.UpdateRole;
 using server.Application.UseCases.Branches.Create;
 using server.Application.UseCases.Branches.CreateSession;
 using server.Application.UseCases.Branches.GetCurrentBranchSummary;
@@ -70,6 +74,71 @@ public class BranchController : ControllerBase
         [FromServices] GetCurrentBranchSummaryUseCase getCurrentBranchSummaryUseCase)
     {
         var response = await getCurrentBranchSummaryUseCase.Execute();
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("users")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseListBranchUsersJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ListUsers(
+        [FromServices] ListBranchUsersUseCase listBranchUsersUseCase)
+    {
+        var response = await listBranchUsersUseCase.Execute();
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("users")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseAddBranchUserJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddUser(
+        [FromServices] AddBranchUserUseCase addBranchUserUseCase,
+        [FromBody] RequestAddBranchUserJson request)
+    {
+        var response = await addBranchUserUseCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpPut]
+    [Route("users/{branchUserId:guid}/role")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseUpdateBranchUserRoleJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateUserRole(
+        [FromServices] UpdateBranchUserRoleUseCase updateBranchUserRoleUseCase,
+        [FromRoute] Guid branchUserId,
+        [FromBody] RequestUpdateBranchUserRoleJson request)
+    {
+        var response = await updateBranchUserRoleUseCase.Execute(branchUserId, request);
+        return Ok(response);
+    }
+
+    [HttpDelete]
+    [Route("users/{branchUserId:guid}")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseRemoveBranchUserJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> RemoveUser(
+        [FromServices] RemoveBranchUserUseCase removeBranchUserUseCase,
+        [FromRoute] Guid branchUserId)
+    {
+        var response = await removeBranchUserUseCase.Execute(branchUserId);
         return Ok(response);
     }
 }

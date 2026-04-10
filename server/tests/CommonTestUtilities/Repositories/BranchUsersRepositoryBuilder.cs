@@ -8,6 +8,12 @@ public class BranchUsersRepositoryBuilder
 {
     private readonly IBranchUsersRepository _repository = Substitute.For<IBranchUsersRepository>();
 
+    public BranchUsersRepositoryBuilder GetById(BranchUser? branchUser)
+    {
+        _repository.GetById(Arg.Any<Guid>()).Returns(branchUser);
+        return this;
+    }
+
     public BranchUsersRepositoryBuilder GetActiveById(BranchUser? branchUser)
     {
         _repository.GetActiveById(Arg.Any<Guid>()).Returns(branchUser);
@@ -23,6 +29,12 @@ public class BranchUsersRepositoryBuilder
     public BranchUsersRepositoryBuilder GetByUserIdAndBranchId(BranchUser? branchUser)
     {
         _repository.GetByUserIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(branchUser);
+        return this;
+    }
+
+    public BranchUsersRepositoryBuilder CountActiveAdminsByBranchId(int count)
+    {
+        _repository.CountActiveAdminsByBranchId(Arg.Any<Guid>()).Returns(count);
         return this;
     }
 
