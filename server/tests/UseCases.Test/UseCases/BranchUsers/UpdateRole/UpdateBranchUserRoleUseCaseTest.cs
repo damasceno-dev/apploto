@@ -52,6 +52,41 @@ public class UpdateBranchUserRoleUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldAllowAdminToPromoteMemberToAdmin()
+    {
+        var branchId = Guid.NewGuid();
+        var caller = new BranchUserBuilder()
+            .WithBranchId(branchId)
+            .WithRole(Role.Admin)
+            .Build();
+        var target = new BranchUserBuilder()
+            .WithId(Guid.NewGuid())
+            .WithBranchId(branchId)
+            .WithRole(Role.Member)
+            .Build();
+        var request = new RequestUpdateBranchUserRoleJsonBuilder()
+            .WithRole(Role.Admin)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(caller)
+            .Build();
+        var branchUsersRepository = new BranchUsersRepositoryBuilder()
+            .GetById(target)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, branchUsersRepository, unitOfWork);
+
+        var response = await useCase.Execute(target.Id, request);
+
+        target.Role.ShouldBe(Role.Admin);
+        response.BranchUser.Role.ShouldBe(Role.Admin);
+        await branchUsersRepository.DidNotReceive().CountActiveAdminsByBranchId(Arg.Any<Guid>());
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldAllowManagerToManageMember()
     {
         var branchId = Guid.NewGuid();

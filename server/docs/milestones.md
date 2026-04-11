@@ -184,12 +184,12 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - [x] **4.3** Add `UseCases.Test` coverage for `CreateBranchUseCase`
 - [x] **4.4** In `CreateBranchUseCase` tests, assert branch creation, creator membership as `Admin`, exact default seeds from spec section 5 (`9` categories, `19` transaction types, `8` products, `1` setting row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, `LunchDeductionOver4H = 0.25`), and atomic rollback on any bootstrap failure
 - [x] **4.5** Add `UseCases.Test` coverage for `ListMyBranchesUseCase`, `CreateBranchSessionUseCase`, and `GetCurrentBranchSummaryUseCase`, including successful branch-token issuance
-- [ ] **4.6** Add `UseCases.Test` coverage for `ListBranchUsersUseCase`, `AddBranchUserUseCase`, `UpdateBranchUserRoleUseCase`, and `RemoveBranchUserUseCase`
-- [ ] **4.7** Add use-case tests for permission rules: `Manager` may manage only `Manager`/`Member`; `Admin` may manage all memberships
-- [ ] **4.8** Add use-case tests for hard `BranchUser` uniqueness on `(UserId, BranchId)` and for reactivating a deactivated membership instead of inserting a duplicate
-- [ ] **4.9** Add use-case tests for the "must retain one active Admin" invariant
-- [ ] **4.10** Add use-case tests proving branch isolation: no membership read/write may target another branch through a valid token
-- [ ] **4.11** Add global-auth regression tests proving `register`, `login`, and `renew-token` still work after `User.Role` removal
+- [x] **4.6** Add `UseCases.Test` coverage for `ListBranchUsersUseCase`, `AddBranchUserUseCase`, `UpdateBranchUserRoleUseCase`, and `RemoveBranchUserUseCase`
+- [x] **4.7** Add use-case tests for permission rules: `Manager` may manage only `Manager`/`Member` memberships; `Admin` may manage any membership subject to the last-admin invariant from 4.9
+- [x] **4.8** Add use-case tests for the business-layer reactivation behavior when re-adding a previously deactivated membership, and for rejecting any `AddBranchUser` that would create a duplicate active membership for the same `(UserId, BranchId)` pair; the hard database uniqueness constraint itself is verified by 4.13 against real PostgreSQL
+- [x] **4.9** Add use-case tests for the "must retain one active Admin" invariant
+- [x] **4.10** Add use-case tests proving branch isolation: no membership read/write may target another branch through a valid token
+- [x] **4.11** Add global-auth regression tests proving `register`, `login`, and `renew-token` still work after `User.Role` removal
   Note: `4.3` through `4.11` collectively cover all current Milestone 1 use cases; `4.7` through `4.11` are behavior-focused assertions that cut across those use cases rather than separate use-case classes.
 - [ ] **4.12** Add `WebApi.Test` happy-path coverage for all Milestone 1 endpoints
   Note: `4.12` covers all Milestone 1 HTTP endpoints and is intentionally not a 1:1 duplicate of `UseCases.Test`.
@@ -207,6 +207,6 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - `CreateBranch` creates the branch, the creator membership as `Admin`, and exactly `9` default `Category` rows, `19` default `TransactionType` rows, `8` default `Product` rows, and `1` `Setting` row with `DailyTargetHours = 7.33`, `LunchDeductionOver6H = 1.00`, and `LunchDeductionOver4H = 0.25`
 - Membership management is limited to already-registered users; no invitation or email flow exists yet
 - The branch always retains at least one active `Admin`
-- Milestone-defined permission rules are enforced: `Manager` can manage only `Manager` and `Member` memberships; `Admin` can manage all memberships
+- Milestone-defined permission rules are enforced: `Manager` can manage only `Manager` and `Member` memberships; `Admin` can manage any membership subject to the last-admin invariant
 - Validator, use-case, and Web API tests exist for the Milestone 1 flows and permissions
 - Global tokens are rejected by branch-only endpoints, and valid branch-scoped tokens are accepted by them

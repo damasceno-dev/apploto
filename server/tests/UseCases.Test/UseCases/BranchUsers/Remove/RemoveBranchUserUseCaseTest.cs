@@ -76,6 +76,38 @@ public class RemoveBranchUserUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldAllowManagerToRemoveMember()
+    {
+        var branchId = Guid.NewGuid();
+        var caller = new BranchUserBuilder()
+            .WithBranchId(branchId)
+            .WithRole(Role.Manager)
+            .Build();
+        var target = new BranchUserBuilder()
+            .WithId(Guid.NewGuid())
+            .WithBranchId(branchId)
+            .WithRole(Role.Member)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(caller)
+            .Build();
+        var branchUsersRepository = new BranchUsersRepositoryBuilder()
+            .GetById(target)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, branchUsersRepository, unitOfWork);
+
+        var response = await useCase.Execute(target.Id);
+
+        target.Active.ShouldBeFalse();
+        response.BranchUser.Active.ShouldBeFalse();
+        await branchUsersRepository.DidNotReceive().CountActiveAdminsByBranchId(Arg.Any<Guid>());
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldAllowAdminToRemoveAdmin_WhenAnotherAdminExists()
     {
         var branchId = Guid.NewGuid();

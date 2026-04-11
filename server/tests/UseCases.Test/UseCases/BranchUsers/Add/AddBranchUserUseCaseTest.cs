@@ -219,6 +219,48 @@ public class AddBranchUserUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldAllowAdminToAddAdmin()
+    {
+        var caller = new BranchUserBuilder()
+            .WithBranchId(Guid.NewGuid())
+            .WithRole(Role.Admin)
+            .Build();
+        var targetUser = new UserBuilder()
+            .WithId(Guid.NewGuid())
+            .WithName("Second Admin")
+            .WithEmail("second.admin@example.com")
+            .Build();
+        var request = new RequestAddBranchUserJsonBuilder()
+            .WithUserId(targetUser.Id)
+            .WithEmail(null)
+            .WithRole(Role.Admin)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(caller)
+            .Build();
+        var usersRepository = new UsersRepositoryBuilder()
+            .GetById(targetUser)
+            .Build();
+        var branchUsersRepository = new BranchUsersRepositoryBuilder()
+            .GetByUserIdAndBranchId(null)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.BranchUser.Role.ShouldBe(Role.Admin);
+        await branchUsersRepository.Received(1).Add(Arg.Is<BranchUser>(branchUser =>
+            branchUser.UserId == targetUser.Id &&
+            branchUser.BranchId == caller.BranchId &&
+            branchUser.Role == Role.Admin &&
+            branchUser.Active));
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldReject_WhenManagerTriesToAddAdmin()
     {
         var caller = new BranchUserBuilder()
