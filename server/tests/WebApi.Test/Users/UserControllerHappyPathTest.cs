@@ -23,8 +23,7 @@ public class UserControllerHappyPathTest(ServerWebApplicationFactory factory)
         var httpResponse = await _client.PostAsJsonAsync("/user/register", request);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var payload = await httpResponse.Content.ReadFromJsonAsync<ResponseUserRegisterJson>();
-        payload.ShouldNotBeNull();
+        var payload = await httpResponse.ReadContentAsync<ResponseUserRegisterJson>();
         payload.Name.ShouldBe(request.Name);
         payload.Email.ShouldBe(request.Email);
         payload.ResponseToken.ShouldNotBeNull();
@@ -44,8 +43,7 @@ public class UserControllerHappyPathTest(ServerWebApplicationFactory factory)
         var httpResponse = await _client.PostAsJsonAsync("/user/login", request);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.Content.ReadFromJsonAsync<ResponseUserLoginJson>();
-        payload.ShouldNotBeNull();
+        var payload = await httpResponse.ReadContentAsync<ResponseUserLoginJson>();
         payload.Email.ShouldBe(user.Email);
         payload.Name.ShouldBe(user.Name);
         payload.ResponseToken.Token.ShouldNotBeNullOrWhiteSpace();
@@ -64,8 +62,7 @@ public class UserControllerHappyPathTest(ServerWebApplicationFactory factory)
         var httpResponse = await _client.PostAsJsonAsync("/user/renew-token", request);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.Content.ReadFromJsonAsync<ResponseTokenJson>();
-        payload.ShouldNotBeNull();
+        var payload = await httpResponse.ReadContentAsync<ResponseTokenJson>();
         payload.Token.ShouldNotBeNullOrWhiteSpace();
         payload.RefreshToken.ShouldNotBeNullOrWhiteSpace();
         payload.RefreshToken.ShouldNotBe(refreshToken.Value);

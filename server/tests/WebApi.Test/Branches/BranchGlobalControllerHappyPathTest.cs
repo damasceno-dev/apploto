@@ -1,6 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using CommonTestUtilities.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -32,18 +30,11 @@ public class BranchGlobalControllerHappyPathTest(ServerWebApplicationFactory fac
             .WithPhone("11999990000")
             .Build();
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/branch/create")
-        {
-            Content = JsonContent.Create(request)
-        };
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var httpResponse = await _client.SendAsync(httpRequest);
+        var httpResponse = await _client.PostAuthAsync("/branch/create", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var payload = await httpResponse.Content.ReadFromJsonAsync<ResponseCreateBranchJson>();
-        payload.ShouldNotBeNull();
-        payload!.Id.ShouldNotBe(Guid.Empty);
+        var payload = await httpResponse.ReadContentAsync<ResponseCreateBranchJson>();
+        payload.Id.ShouldNotBe(Guid.Empty);
         payload.Name.ShouldBe(request.Name);
         payload.Cnpj.ShouldBe(request.Cnpj);
         payload.Address.ShouldBe(request.Address);
@@ -53,44 +44,29 @@ public class BranchGlobalControllerHappyPathTest(ServerWebApplicationFactory fac
     [Fact]
     public async Task ListMyBranches_ShouldReturnOkWithSeededMemberships()
     {
-        var user = await factory.SeedUserAsync();
-        var branch = await factory.SeedBranchAsync($"MyBranches {Guid.NewGuid():N}");
-        await factory.SeedBranchUserAsync(user.Id, branch.Id, Role.Admin);
+        var (user, branch, _, _) = await factory.SeedFullBranchContextAsync("MyBranches");
         var token = factory.IssueGlobalToken(user);
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Get, "/branch/my-branches");
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var httpResponse = await _client.SendAsync(httpRequest);
+        var httpResponse = await _client.GetAuthAsync("/branch/my-branches", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.Content.ReadFromJsonAsync<ResponseListMyBranchesJson>();
-        payload.ShouldNotBeNull();
-        payload!.Branches.ShouldContain(summary => summary.Id == branch.Id && summary.Role == Role.Admin);
+        var payload = await httpResponse.ReadContentAsync<ResponseListMyBranchesJson>();
+        payload.Branches.ShouldContain(summary => summary.Id == branch.Id && summary.Role == Role.Admin);
     }
 
     [Fact]
     public async Task CreateSession_ShouldReturnOkWithBranchScopedToken()
     {
-        var user = await factory.SeedUserAsync();
-        var branch = await factory.SeedBranchAsync($"Session {Guid.NewGuid():N}");
-        await factory.SeedBranchUserAsync(user.Id, branch.Id, Role.Manager);
+        var (user, branch, _, _) = await factory.SeedFullBranchContextAsync("Session", Role.Manager);
         var token = factory.IssueGlobalToken(user);
 
         var request = new RequestCreateBranchSessionJsonBuilder()
             .WithBranchId(branch.Id)
             .Build();
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/branch/session")
-        {
-            Content = JsonContent.Create(request)
-        };
-        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-        var httpResponse = await _client.SendAsync(httpRequest);
+        var httpResponse = await _client.PostAuthAsync("/branch/session", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.Content.ReadFromJsonAsync<ResponseCreateBranchSessionJson>();
-        payload.ShouldNotBeNull();
+        var payload = await httpResponse.ReadContentAsync<ResponseCreateBranchSessionJson>();
         payload.Token.ShouldNotBeNullOrWhiteSpace();
         payload.Token.ShouldNotBe(token);
         payload.Branch.ShouldNotBeNull();

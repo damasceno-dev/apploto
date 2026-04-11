@@ -20,6 +20,18 @@ internal static class TestSeeder
 
     extension(ServerWebApplicationFactory factory)
     {
+        public async Task<(User User, Branch Branch, BranchUser Membership, string Token)> SeedFullBranchContextAsync(
+            string label,
+            Role role = Role.Admin)
+        {
+            var user = await factory.SeedUserAsync();
+            var branch = await factory.SeedBranchAsync($"{label} {Guid.NewGuid():N}");
+            var membership = await factory.SeedBranchUserAsync(user.Id, branch.Id, role);
+            var token = factory.IssueBranchToken(membership);
+
+            return (user, branch, membership, token);
+        }
+
         public async Task<User> SeedUserAsync(string? email = null,
             string? name = null)
         {
@@ -40,7 +52,7 @@ internal static class TestSeeder
             return user;
         }
 
-        public async Task<Branch> SeedBranchAsync(string? name = null)
+        private async Task<Branch> SeedBranchAsync(string? name = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -89,7 +101,7 @@ internal static class TestSeeder
         /// Issues a real branch-scoped JWT for the given membership using the production
         /// <see cref="ITokenServices"/> wired into the factory.
         /// </summary>
-        public string IssueBranchToken(BranchUser branchUser)
+        private string IssueBranchToken(BranchUser branchUser)
         {
             using var scope = factory.Services.CreateScope();
             var tokenServices = scope.ServiceProvider.GetRequiredService<ITokenServices>();
@@ -117,13 +129,15 @@ internal static class TestSeeder
         /// Reloads an entity from the database so tests can assert persisted state without
         /// relying on cached tracking from the seed calls.
         /// </summary>
-        public async Task<BranchUser?> ReloadBranchUserAsync(Guid branchUserId)
+        public async Task<TEntity?> ReloadAsync<TEntity>(Guid entityId)
+            where TEntity : EntityBase
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
-            return await dbContext.BranchUsers
+
+            return await dbContext.Set<TEntity>()
                 .AsNoTracking()
-                .FirstOrDefaultAsync(branchUser => branchUser.Id == branchUserId);
+                .FirstOrDefaultAsync(entity => entity.Id == entityId);
         }
     }
 }
