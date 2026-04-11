@@ -492,6 +492,8 @@ tests/
 - Default builder output should already be valid for the happy path so tests only override the fields relevant to the scenario.
 - Mock builders should return the actual NSubstitute substitute from `.Build()` so the test can still assert `Received()` and `DidNotReceive()`.
 - Do not leave reusable builders or helper mocks embedded inside individual test classes once a second test needs the same setup.
+- Reuse request builders in `WebApi.Test` too when the request payload is generic setup data and the builder does not get in the way of the scenario being exercised.
+- In `WebApi.Test`, when the scenario requires persistence verification, assert through database reloads or test-factory queries instead of trusting request-builder input alone.
 
 ### Validator tests
 
@@ -535,6 +537,8 @@ tests/
   - migration correctness
 - Seed known users or entities in the test factory when needed.
 - Share factory state carefully. Prefer unique test data or deterministic seed data.
+- Standardize the shared integration-test host fixture as `tests/WebApi.Test/Infrastructure/ServerWebApplicationFactory.cs`.
+- Standardize the shared xUnit collection for API integration tests as `tests/WebApi.Test/Infrastructure/ServerApiCollection.cs`.
 
 Prerequisites for `WebApi.Test`:
 
