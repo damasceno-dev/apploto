@@ -232,7 +232,8 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 
 Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD use cases, controller, and tests. This slice is self-contained and does not depend on `Account`, `OperatorAccount`, or `Client`.
 
-- [x] **1.1** Add `Operator` entity to `server.Domain` with `Name`, `BranchId`, nullable `UserId`, and navigations to `Branch`, `User?`, and `OperatorAccounts`
+- [x] **1.1** Add `Operator` entity to `server.Domain` with `Name`, `BranchId`, nullable `UserId`, and navigations to `Branch` and `User?`
+  Note: the final `OperatorAccounts` navigation is introduced in Phase 2 together with `OperatorAccount`.
 - [x] **1.2** Add `IOperatorsRepository` to `server.Domain/Interfaces/`
 - [x] **1.3** Add EF configuration, `DbSet`, foreign keys, and `OperatorsRepository` implementation in `server.Infrastructure`
 - [x] **1.4** Register the repository in Infrastructure DI
@@ -240,7 +241,7 @@ Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD us
 - [x] **1.6** Add `CreateOperator` request/response DTOs, validator, use case, and mapper
 - [x] **1.7** Add `ListOperators` response DTO and use case (branch-scoped, active only)
 - [x] **1.8** Add `GetOperator` response DTO and use case (branch-scoped, by id)
-- [x] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapper
+- [x] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapping logic
 - [x] **1.10** Add `DeactivateOperator` response DTO and use case as soft-delete (`Active = false`)
 - [x] **1.11** Support nullable `UserId` link/unlink on create and update; when a `UserId` is provided, validate that the user exists and has an active `BranchUser` membership in the same branch
 - [x] **1.12** Restrict all operator management endpoints to `Admin` and `Manager` via `TokenAuthorize`

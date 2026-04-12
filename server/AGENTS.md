@@ -212,7 +212,7 @@ UseCases/
 Use case rules:
 
 - Organize use cases by feature and operation.
-- One operation folder contains the use case, its validator, and its mapper.
+- One operation folder contains the use case, its validator, and any mapper or seed factory the operation needs.
 - Use cases follow this flow:
   1. Validate request and business preconditions
   2. Map request DTOs to domain models or entities
@@ -237,6 +237,7 @@ Mapping rules:
 - Do not use AutoMapper.
 - Mappings must stay obvious and debuggable.
 - Keep mappers focused on shape transformation (DTO ↔ Entity). Do not embed seed data, default catalogs, or business-rule knowledge in mappers.
+- For simple in-place updates on an already-loaded entity, direct assignment inside the use case is acceptable when a separate mapper would add no clarity.
 - When a use case needs to generate default seed data or bootstrap entities beyond simple DTO mapping, use a dedicated seed factory class (e.g., `CreateBranchSeedFactory`) in the same operation folder.
 
 Authentication rules:
