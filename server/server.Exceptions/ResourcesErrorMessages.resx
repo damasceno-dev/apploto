@@ -123,4 +123,7 @@
     <data name="OPERATOR_NOT_FOUND" xml:space="preserve">
         <value>Operador não encontrado</value>
     </data>
+    <data name="OPERATOR_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do operador deve ser informado</value>
+    </data>
 </root>

@@ -254,5 +254,11 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("OPERATOR_NOT_FOUND", resourceCulture);
             }
         }
+
+        public static string OPERATOR_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("OPERATOR_ID_EMPTY", resourceCulture);
+            }
+        }
     }
 }

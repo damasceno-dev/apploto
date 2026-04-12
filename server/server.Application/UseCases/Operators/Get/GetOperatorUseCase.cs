@@ -13,7 +13,7 @@ public class GetOperatorUseCase(
     {
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
 
-        var op = await operatorsRepository.GetActiveByIdAndBranchId(operatorId, authenticatedBranchUser.BranchId)
+        var op = await operatorsRepository.GetActiveByIdAndBranchIdAsNoTracking(operatorId, authenticatedBranchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
 
         return op.ToOperatorResponse();

@@ -240,19 +240,16 @@ Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD us
 - [x] **1.6** Add `CreateOperator` request/response DTOs, validator, use case, and mapper
 - [x] **1.7** Add `ListOperators` response DTO and use case (branch-scoped, active only)
 - [x] **1.8** Add `GetOperator` response DTO and use case (branch-scoped, by id)
-- [ ] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapper
-- [ ] **1.10** Add `DeactivateOperator` response DTO and use case as soft-delete (`Active = false`)
-- [ ] **1.11** Support nullable `UserId` link/unlink on create and update; when a `UserId` is provided, validate that the user exists and has an active `BranchUser` membership in the same branch
-  Note: create-side validation complete; update-side deferred to 1.9
+- [x] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapper
+- [x] **1.10** Add `DeactivateOperator` response DTO and use case as soft-delete (`Active = false`)
+- [x] **1.11** Support nullable `UserId` link/unlink on create and update; when a `UserId` is provided, validate that the user exists and has an active `BranchUser` membership in the same branch
 - [ ] **1.12** Restrict all operator management endpoints to `Admin` and `Manager` via `TokenAuthorize`
 - [ ] **1.13** Add operator endpoints to a new `OperatorController`
-- [ ] **1.14** Register all new use cases in Application DI
-  Note: `CreateOperatorUseCase`, `ListOperatorsUseCase`, `GetOperatorUseCase` registered; remaining use cases registered as they are added
+- [x] **1.14** Register all new use cases in Application DI
 - [x] **1.15** Add `CommonTestUtilities` builders for `Operator` entity and request DTOs
-  Note: `OperatorBuilder`, `RequestCreateOperatorJsonBuilder`, and `OperatorsRepositoryBuilder` added
-- [ ] **1.16** Add `Validators.Test` coverage for `CreateOperator` and `UpdateOperator`
-  Note: `CreateOperator` validator tests complete; `UpdateOperator` deferred to 1.9
-- [ ] **1.17** Add `UseCases.Test` coverage for the full operator slice: create, list, get, update, deactivate, and `UserId` link validation (including rejection when the user is not an active branch member)
+  Note: `OperatorBuilder`, `RequestCreateOperatorJsonBuilder`, `RequestUpdateOperatorJsonBuilder`, and `OperatorsRepositoryBuilder` added
+- [x] **1.16** Add `Validators.Test` coverage for `CreateOperator` and `UpdateOperator`
+- [x] **1.17** Add `UseCases.Test` coverage for the full operator slice: create, list, get, update, deactivate, and `UserId` link validation (including rejection when the user is not an active branch member)
 - [ ] **1.18** Add `WebApi.Test` happy-path and unhappy-path coverage for all operator endpoints, including permission checks and branch isolation
 
 ### Phase 2 — Account + OperatorAccount Slice

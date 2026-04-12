@@ -14,6 +14,12 @@ public class OperatorsRepositoryBuilder
         return this;
     }
 
+    public OperatorsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Operator? op)
+    {
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(op);
+        return this;
+    }
+
     public OperatorsRepositoryBuilder ListActiveByBranchId(IReadOnlyList<Operator> operators)
     {
         _repository.ListActiveByBranchId(Arg.Any<Guid>()).Returns(operators);

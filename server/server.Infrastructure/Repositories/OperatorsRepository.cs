@@ -14,6 +14,16 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
     public async Task<Operator?> GetActiveByIdAndBranchId(Guid id, Guid branchId)
     {
         return await dbContext.Operators
+            .FirstOrDefaultAsync(op =>
+                op.Id == id &&
+                op.BranchId == branchId &&
+                op.Active &&
+                op.Branch.Active);
+    }
+
+    public async Task<Operator?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId)
+    {
+        return await dbContext.Operators
             .AsNoTracking()
             .FirstOrDefaultAsync(op =>
                 op.Id == id &&

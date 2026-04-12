@@ -288,6 +288,7 @@ Repository rules:
 - Read queries should use `AsNoTracking()` by default.
 - Apply the `Active` filter on reads when soft deletion is part of the entity contract.
 - Repository methods stage changes in the DbContext but do not call `SaveChangesAsync()` directly.
+- When a repository needs two overloads of the same query that differ only in EF Core tracking — one tracked for use-case mutations, one read-only for queries — suffix the read-only variant with `AsNoTracking`. Example: `GetActiveByIdAndBranchId` (tracked, used by Update/Deactivate) and `GetActiveByIdAndBranchIdAsNoTracking` (no tracking, used by Get). This makes the contract explicit and prevents accidental use of a non-tracked query in a write path.
 
 Unit of work rule:
 
