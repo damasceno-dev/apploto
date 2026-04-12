@@ -232,11 +232,11 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 
 Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD use cases, controller, and tests. This slice is self-contained and does not depend on `Account`, `OperatorAccount`, or `Client`.
 
-- [ ] **1.1** Add `Operator` entity to `server.Domain` with `Name`, `BranchId`, nullable `UserId`, and navigations to `Branch`, `User?`, and `OperatorAccounts`
-- [ ] **1.2** Add `IOperatorsRepository` to `server.Domain/Interfaces/`
-- [ ] **1.3** Add EF configuration, `DbSet`, foreign keys, and `OperatorsRepository` implementation in `server.Infrastructure`
-- [ ] **1.4** Register the repository in Infrastructure DI
-- [ ] **1.5** Add the Phase 1 migration covering the `Operator` table
+- [x] **1.1** Add `Operator` entity to `server.Domain` with `Name`, `BranchId`, nullable `UserId`, and navigations to `Branch`, `User?`, and `OperatorAccounts`
+- [x] **1.2** Add `IOperatorsRepository` to `server.Domain/Interfaces/`
+- [x] **1.3** Add EF configuration, `DbSet`, foreign keys, and `OperatorsRepository` implementation in `server.Infrastructure`
+- [x] **1.4** Register the repository in Infrastructure DI
+- [x] **1.5** Add the Phase 1 migration covering the `Operator` table
 - [ ] **1.6** Add `CreateOperator` request/response DTOs, validator, use case, and mapper
 - [ ] **1.7** Add `ListOperators` response DTO and use case (branch-scoped, active only)
 - [ ] **1.8** Add `GetOperator` response DTO and use case (branch-scoped, by id)
