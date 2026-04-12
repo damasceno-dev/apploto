@@ -320,5 +320,17 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("ACCOUNT_TAB_ALREADY_LINKED", resourceCulture);
             }
         }
+
+        public static string OPERATOR_ACCOUNT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("OPERATOR_ACCOUNT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string OPERATOR_ACCOUNT_ALREADY_ACTIVE {
+            get {
+                return ResourceManager.GetString("OPERATOR_ACCOUNT_ALREADY_ACTIVE", resourceCulture);
+            }
+        }
     }
 }

@@ -156,4 +156,10 @@
     <data name="ACCOUNT_TAB_ALREADY_LINKED" xml:space="preserve">
         <value>Esta conta Tab já está associada a um Terminal ativo</value>
     </data>
+    <data name="OPERATOR_ACCOUNT_NOT_FOUND" xml:space="preserve">
+        <value>Vínculo entre operador e conta não encontrado ou já inativo</value>
+    </data>
+    <data name="OPERATOR_ACCOUNT_ALREADY_ACTIVE" xml:space="preserve">
+        <value>Este operador já possui este vínculo ativo com a conta informada</value>
+    </data>
 </root>
