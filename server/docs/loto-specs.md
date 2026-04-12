@@ -4,16 +4,17 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v3
+Spec revision: v4
 -->
 
-> **Status:** Revised spec (v2) — peer review corrections + invariant tightening  
+> **Status:** Revised spec (v4) — Client.Cpf uniqueness per branch  
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
 > v1→v2: Fixed classification invariant (TransactionType is single source of truth, CategoryId/Direction denormalized), added transaction authorship (RecordedByOperatorId + CreatedByUserId), corrected Fiado product seed (calculated, not persisted), fixed lco_status mapping (unused in Access), fixed OriginTransactionId self-reference for installments.  
-> v2: Added Account.TabAccountId invariants, OperatorAccount.IsPrimary uniqueness, branch consistency rules (6.9), CashVariance calculation semantics (6.10), seed data scope clarification.
-> v3: rename 6h and 4h to 6H and 4H to attend for entities naming rules.
+> v2: Added Account.TabAccountId invariants, OperatorAccount.IsPrimary uniqueness, branch consistency rules (6.9), CashVariance calculation semantics (6.10), seed data scope clarification.  
+> v3: Rename 6h and 4h to 6H and 4H to attend for entities naming rules.  
+> v4: Added Client.Cpf uniqueness per branch as a filtered unique constraint on active rows.
 
 ---
 
@@ -441,6 +442,8 @@ public class Client : EntityBase
 | BranchId | uuid | NOT NULL | FK → Branch |
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | |
+
+**Unique constraint:** `(BranchId, Cpf) WHERE Cpf IS NOT NULL AND Active = true` — at most one active client per CPF per branch. Prevents duplicate customer records while allowing the CPF field to remain optional.
 
 ### 3.12 Transaction
 

@@ -4,6 +4,10 @@
 > **Started:** 2026-04-06
 > **Approach:** Use-case-driven development with test pyramid
 
+### Standing rules
+
+**Vertical-slice test discipline:** Every phase that introduces use cases or controller endpoints must land with `CommonTestUtilities`, `Validators.Test`, `UseCases.Test`, and `WebApi.Test` updates in the same phase. No slice is considered done until its tests are green. The project-wide architecture tests (DI registration + auth-intent) remain a standing gate — new use cases and controllers must pass them automatically.
+
 ---
 
 ## Milestone 0 — Ground Zero
@@ -211,3 +215,270 @@ Write tests for validators, use cases, and API behavior as part of the milestone
 - Milestone-defined permission rules are enforced: `Manager` can manage only `Manager` and `Member` memberships; `Admin` can manage any membership subject to the last-admin invariant
 - Validator, use-case, Web API, and architecture tests exist for the Milestone 1 flows, permissions, and auth wiring
 - Global tokens are rejected by branch-only endpoints, and valid branch-scoped tokens are accepted by them
+
+---
+
+## Milestone 2 — Operator, Account & Client Foundation
+
+**Goal:** Add the operational entities that the ledger depends on — `Operator`, `Account`, `OperatorAccount`, and `Client` — plus the authenticated operator runtime context needed by the next milestone.
+
+**Scope boundary:** Full branch-scoped CRUD for `Operator`, `Account`, `OperatorAccount`, and `Client`, with explicit permissions and feature-complete tests delivered slice-by-slice. No `Transaction`, `DailyClose`, `TimeEntry`, `Holiday`, or admin CRUD for seeded lookup/config entities yet.
+
+**Precondition:** Milestone 1 is fully closed, including Phase 4 tests and architecture guardrails.
+
+---
+
+### Phase 1 — Operator Slice
+
+Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD use cases, controller, and tests. This slice is self-contained and does not depend on `Account`, `OperatorAccount`, or `Client`.
+
+- [ ] **1.1** Add `Operator` entity to `server.Domain` with `Name`, `BranchId`, nullable `UserId`, and navigations to `Branch`, `User?`, and `OperatorAccounts`
+- [ ] **1.2** Add `IOperatorsRepository` to `server.Domain/Interfaces/`
+- [ ] **1.3** Add EF configuration, `DbSet`, foreign keys, and `OperatorsRepository` implementation in `server.Infrastructure`
+- [ ] **1.4** Register the repository in Infrastructure DI
+- [ ] **1.5** Add the Phase 1 migration covering the `Operator` table
+- [ ] **1.6** Add `CreateOperator` request/response DTOs, validator, use case, and mapper
+- [ ] **1.7** Add `ListOperators` response DTO and use case (branch-scoped, active only)
+- [ ] **1.8** Add `GetOperator` response DTO and use case (branch-scoped, by id)
+- [ ] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapper
+- [ ] **1.10** Add `DeactivateOperator` response DTO and use case as soft-delete (`Active = false`)
+- [ ] **1.11** Support nullable `UserId` link/unlink on create and update; when a `UserId` is provided, validate that the user exists and has an active `BranchUser` membership in the same branch
+- [ ] **1.12** Restrict all operator management endpoints to `Admin` and `Manager` via `TokenAuthorize`
+- [ ] **1.13** Add operator endpoints to a new `OperatorController`
+- [ ] **1.14** Register all new use cases in Application DI
+- [ ] **1.15** Add `CommonTestUtilities` builders for `Operator` entity and request DTOs
+- [ ] **1.16** Add `Validators.Test` coverage for `CreateOperator` and `UpdateOperator`
+- [ ] **1.17** Add `UseCases.Test` coverage for the full operator slice: create, list, get, update, deactivate, and `UserId` link validation (including rejection when the user is not an active branch member)
+- [ ] **1.18** Add `WebApi.Test` happy-path and unhappy-path coverage for all operator endpoints, including permission checks and branch isolation
+
+### Phase 2 — Account + OperatorAccount Slice
+
+Add `AccountType` enum, `Account` and `OperatorAccount` entities end-to-end, their CRUD and assignment flows, the runtime self-context endpoint, and update `DeactivateOperator` to cascade. Tests land with the slice.
+
+- [ ] **2.1** Add `AccountType` enum (`Terminal`, `BankAccount`, `Tab`) to `server.Domain/Entities/Enums/`
+- [ ] **2.2** Add `Account` entity to `server.Domain` with `Type` (`AccountType`), `Name`, nullable `Institution`, nullable `Number`, `BranchId`, nullable `TabAccountId` (self-reference), and navigations to `Branch`, `TabAccount?`, and `OperatorAccounts`
+- [ ] **2.3** Add `OperatorAccount` entity to `server.Domain` with `OperatorId`, `AccountId`, `IsPrimary` (default `false`), and navigations to `Operator` and `Account`
+- [ ] **2.4** Add `IAccountsRepository` and `IOperatorAccountsRepository` to `server.Domain/Interfaces/`
+- [ ] **2.5** Add EF configurations, `DbSet`s, foreign keys, and repository implementations for `Account` and `OperatorAccount` in `server.Infrastructure`
+- [ ] **2.6** Enforce hard uniqueness on `(OperatorId, AccountId)` for `OperatorAccount`
+- [ ] **2.7** Enforce at most one active primary account per operator via unique filtered index: `UNIQUE (OperatorId) WHERE IsPrimary = true AND Active = true`
+- [ ] **2.8** Enforce that only `Terminal`-type accounts may have non-null `TabAccountId`, and that a `Tab` account can belong to at most one `Terminal` via unique filtered index on `TabAccountId WHERE TabAccountId IS NOT NULL`
+- [ ] **2.9** Register all new repositories in Infrastructure DI
+- [ ] **2.10** Add the Phase 2 migration covering `Account`, `OperatorAccount`, and their constraints
+- [ ] **2.11** Add `CreateAccount` request/response DTOs, validator, use case, and mapper
+- [ ] **2.12** Add `ListAccounts` response DTO and use case (branch-scoped, active only)
+- [ ] **2.13** Add `GetAccount` response DTO and use case (branch-scoped, by id)
+- [ ] **2.14** Add `UpdateAccount` request/response DTOs, validator, use case, and mapper; reject any attempt to change `Account.Type` after creation
+- [ ] **2.15** Add `DeactivateAccount` response DTO and use case; deactivation cascades to all active `OperatorAccount` links for that account; cascade is one-way — reactivating an account later does NOT auto-restore previously deactivated links
+- [ ] **2.16** Enforce account invariants in validators and use cases: only `Terminal` may set `TabAccountId`; referenced account must be a same-branch active `Tab`; a `Tab` can belong to at most one active `Terminal`
+- [ ] **2.17** Add `AssignAccount` use case and endpoint to create an `OperatorAccount` link; when a deactivated `(OperatorId, AccountId)` row already exists, reactivate it instead of inserting a duplicate
+- [ ] **2.18** Add `UnassignAccount` use case and endpoint to soft-deactivate an `OperatorAccount` link; if the unassigned account was the operator's primary, clear the `IsPrimary` flag
+- [ ] **2.19** Add `SetPrimaryAccount` use case and endpoint; enforce at most one active primary per operator by clearing the previous primary before setting the new one
+- [ ] **2.20** Add `ListOperatorAccounts` response DTO and use case
+- [ ] **2.21** Update `DeactivateOperator` from Phase 1 to cascade soft-deactivation to all active `OperatorAccount` links for that operator; cascade is one-way — reactivating an operator later does NOT auto-restore previously deactivated links; reassignment is always explicit
+- [ ] **2.22** Restrict all account and operator-account management endpoints to `Admin` and `Manager`
+- [ ] **2.23** Add a read-only self-context use case and endpoint that resolves the authenticated branch member to their linked `Operator` plus primary and available `Account` context; this endpoint is accessible to any branch role including `Member`
+- [ ] **2.24** Add account and operator-account endpoints to a new `AccountController` or extend existing controllers
+- [ ] **2.25** Register all new use cases in Application DI
+- [ ] **2.26** Add `CommonTestUtilities` builders for `Account`, `OperatorAccount`, and related request DTOs
+- [ ] **2.27** Add `Validators.Test` coverage for `CreateAccount`, `UpdateAccount`, and `AssignAccount`
+- [ ] **2.28** Add `UseCases.Test` coverage for the full account slice: create, list, get, update, deactivate with cascade, `Type` immutability, Tab-pairing invariants, assign/unassign/reactivation, set-primary, self-context resolution, and updated `DeactivateOperator` cascade to `OperatorAccount`
+- [ ] **2.29** Add `WebApi.Test` happy-path and unhappy-path coverage for all account and operator-account endpoints, including Tab constraint enforcement, deactivation cascade (both Account and Operator sides), and branch isolation
+
+### Phase 3 — Client Slice
+
+Full CRUD for `Client` with its own entity, infrastructure, migration, and tests. The Client permission model below is milestone-defined behavior for this phase; it is not being promoted into the spec sync group by this milestone update.
+
+- [ ] **3.1** Add `Client` entity to `server.Domain` with `Name`, required `Phone`, nullable `Cpf`, nullable `Cep`, nullable `Address`, nullable `PhoneSecondary`, nullable `Notes`, nullable `Email`, `BranchId`, and navigation to `Branch`
+- [ ] **3.2** Add `IClientsRepository` to `server.Domain/Interfaces/`
+- [ ] **3.3** Add EF configuration, `DbSet`, foreign keys, and `ClientsRepository` implementation in `server.Infrastructure`
+- [ ] **3.4** Enforce `Client` CPF uniqueness per branch via unique filtered index: `UNIQUE (BranchId, Cpf) WHERE Cpf IS NOT NULL AND Active = true`
+- [ ] **3.5** Register the repository in Infrastructure DI
+- [ ] **3.6** Add the Phase 3 migration covering the `Client` table and its constraints
+- [ ] **3.7** Add `CreateClient` request/response DTOs, validator, use case, and mapper; require `Name` and `Phone`; validate CPF format and email format when present
+- [ ] **3.8** Add `ListClients` response DTO and use case (branch-scoped, active only)
+- [ ] **3.9** Add `GetClient` response DTO and use case (branch-scoped, by id)
+- [ ] **3.10** Add `UpdateClient` request/response DTOs, validator, use case, and mapper
+- [ ] **3.11** Add `DeactivateClient` response DTO and use case
+- [ ] **3.12** Allow `Member`, `Manager`, and `Admin` to create, read, and update clients; restrict client deactivation to `Admin` and `Manager`
+- [ ] **3.13** Enforce CPF uniqueness per branch at the use-case level: reject create or update when another active `Client` in the same branch already has the same CPF
+- [ ] **3.14** Add client endpoints to a new `ClientController`
+- [ ] **3.15** Register all new use cases in Application DI
+- [ ] **3.16** Add `CommonTestUtilities` builders for `Client` entity and request DTOs
+- [ ] **3.17** Add `Validators.Test` coverage for `CreateClient` and `UpdateClient`
+- [ ] **3.18** Add `UseCases.Test` coverage for the full client slice: create, list, get, update, deactivate, CPF uniqueness, CPF/email format validation, and permission rules
+- [ ] **3.19** Add `WebApi.Test` happy-path and unhappy-path coverage for all client endpoints, including CPF uniqueness enforcement at the database level, permission differences between `Member` and `Admin`/`Manager`, and branch isolation
+
+### Done criteria
+
+- `Operator`, `Account`, `OperatorAccount`, and `Client` exist in Domain, Infrastructure, and their respective Milestone 2 migrations
+- `OperatorAccount` enforces unique `(OperatorId, AccountId)` and at most one active primary account per operator
+- `Account.Type` is immutable after creation; only `Terminal` may set `TabAccountId`; referenced account must be a same-branch active `Tab`; a `Tab` can belong to at most one active `Terminal`
+- `Client.Phone` is required; `Client.Cpf` is unique per branch when present per `loto-specs.md` v4 (filtered index on active rows)
+- `Operator` can exist without a linked `User`, but linking validates that the `User` has an active `BranchUser` in the same branch
+- Deactivating an `Operator` or `Account` cascades soft-deactivation to all active `OperatorAccount` links; cascade is one-way — reactivating the parent does NOT auto-restore child links; reassignment is always explicit
+- `Admin` and `Manager` manage Operators, Accounts, and OperatorAccount assignments; Client permissions are milestone-defined: `Member` can create/read/update, only `Admin`/`Manager` can deactivate
+- Authenticated branch members can resolve their own operator/account runtime context via the self-context endpoint
+- The project-wide architecture tests (DI registration + auth-intent) pass with all Milestone 2 additions
+
+---
+
+## Milestone 3 — Transaction Ledger Core
+
+**Goal:** Implement the `Transaction` entity and its full lifecycle: create, edit, cancel, draft/active status, installment groups, fiado in/out, due-date rules, lock-date enforcement, and branch-consistency validation.
+
+**Scope boundary:** Full transaction lifecycle. No daily close, time entry, or reporting yet.
+
+**Precondition:** Milestone 2 is fully closed. `Operator`, `Account`, `OperatorAccount`, and `Client` are available and tested.
+
+**Key behaviors:**
+
+- `Transaction` entity carries the full field set from `loto-specs.md` section 3.12: `Date`, `Value`, `Description`, `TransactionTime`, `TransactionTypeId`, `CategoryId` (denormalized), `Direction` (denormalized), `AccountId`, `ClientId`, `DueDate`, `PaidAt`, `OriginTransactionId` (self-reference for installments), `RecordedByOperatorId`, `CreatedByUserId`, `Status` (`TransactionStatus`), `CancelledAt`, `CancelledByUserId`, `CancellationReason`, and `BranchId`
+- `TransactionTypeId` is the sole classification input; `CategoryId` and `Direction` are denormalized at creation from `TransactionType.CategoryId` and `Category.DefaultDirection`, never independently editable
+- `Value` is always positive; `Direction` determines sign semantics
+- `RecordedByOperatorId` identifies which operator's context (terminal) owns the transaction; `CreatedByUserId` identifies who actually created the record (may differ from operator for manager corrections)
+- Draft transactions (`Status = Draft`) are excluded from all financial calculations; only Active transactions count
+- Cancellation sets `Status = Cancelled`, `CancelledAt = now`, `CancelledByUserId = caller`, and requires a non-empty `CancellationReason`; cancelled transactions remain in the database for audit but are excluded from financial calculations
+- Cancellation permissions: same-day by own operator (checked via `RecordedByOperatorId`), older than today requires `Manager`/`Admin`, on/before `Setting.LockDate` blocked for everyone
+- Installments: N separate `Transaction` rows sharing the same `OriginTransactionId` (first row self-references), each with `Value = total / N` and staggered `DueDate`
+- Fiado: two `TransactionType`s named "Cliente" under different categories drive In/Out on the paired Tab account
+- Due-date defaults vary by `TransactionType` (cash +1d, PIX same day, debit +1 business day, credit +2 business days, cheque operator-entered ≥ Date)
+- Branch consistency enforced at service layer: `Transaction.BranchId` must match `Account.BranchId`, `RecordedByOperator.BranchId`, `Client.BranchId` (when present), and `TransactionType.Category.BranchId`
+- Lock-date enforcement: transactions on or before `Setting.LockDate` cannot be created, edited, or cancelled
+- Key indexes: `(BranchId, Date, AccountId)`, `(BranchId, AccountId, Direction, Date)`, `(BranchId, DueDate) WHERE PaidAt IS NULL`, `(OriginTransactionId) WHERE NOT NULL`, `(BranchId, Status)`, `(BranchId, RecordedByOperatorId, Date)`
+
+---
+
+## Milestone 4 — Daily Close Workflow
+
+**Goal:** Implement the daily register closing flow: open/submit/approve/reject, daily close items per product, opening-value carryover from previous day, and persisted cash-variance calculation.
+
+**Scope boundary:** `DailyClose` and `DailyCloseItem` entities plus the full workflow. No time entry, holiday, or reporting yet.
+
+**Precondition:** Milestone 3 is fully closed. Active transactions are available for cash-variance calculation.
+
+**Key behaviors:**
+
+- `DailyClose` entity carries: `Date`, `Status` (`DailyCloseStatus`: Draft, Submitted, Approved, Rejected), `AccountId`, `SubmittedByOperatorId`, `SubmittedAt`, `ApprovedAt`, `ApprovedByUserId`, `RejectionReason`, `Notes`, and `BranchId`
+- `DailyCloseItem` entity carries: `Value`, `DailyCloseId`, `ProductId`
+- One `DailyClose` per `(BranchId, AccountId, Date)` — enforced by unique constraint
+- One `DailyCloseItem` per `(DailyCloseId, ProductId)` — enforced by unique constraint
+- Workflow: Draft → Submitted → Approved or Rejected → resubmit cycle
+- Opening values = previous day's closing items for the same account
+- `CashVariance = TotalClosing - TotalOpening - TotalTransactions` — system-calculated when operator submits, updated on resubmission; operator cannot directly enter a variance value; persisted as a `DailyCloseItem` with the "Diferença Caixa" product
+- Fiado balance is NOT stored as a `DailyCloseItem`; it is calculated at query time from Tab account transactions
+- Lock-date enforcement applies: closes on or before `Setting.LockDate` cannot be modified
+- Branch consistency: `DailyClose.BranchId` must match `Account.BranchId` and `SubmittedByOperator.BranchId`
+
+---
+
+## Milestone 5 — Time Entry & Holiday
+
+**Goal:** Implement operator attendance tracking with hours/balance calculation from `Setting`, holiday management, and manager review flows.
+
+**Scope boundary:** `TimeEntry` and `Holiday` entities. No reporting dashboards yet.
+
+**Precondition:** Milestone 2 `Operator` and `Setting` are available.
+
+**Key behaviors:**
+
+- `TimeEntry` entity carries: `Date`, `ClockIn` (nullable `TimeOnly`), `ClockOut` (nullable `TimeOnly`), `Status` (`TimeEntryStatus`), `TotalHours`, `BalanceHours`, `OperatorId`, and `BranchId`
+- `Holiday` entity carries: `Date`, nullable `Description`, and `BranchId`
+- One `TimeEntry` per `(BranchId, OperatorId, Date)` — enforced by unique constraint
+- Calculation logic driven by `TimeEntryStatus`:
+  - Present: `TotalHours = (ClockOut - ClockIn) / 60 - lunchDeduction`; `BalanceHours = TotalHours - DailyTargetHours`
+  - Abonado statuses (Sunday, Holiday, Vacation, JustifiedAbsence): `TotalHours = DailyTargetHours`; `BalanceHours = 0`
+  - Owing statuses (DayOff, UnjustifiedAbsence): `TotalHours = 0`; `BalanceHours = -DailyTargetHours`
+- Lunch deduction from `Setting`: `LunchDeductionOver6H` when worked >6h, `LunchDeductionOver4H` when worked >4h but ≤6h, zero otherwise
+- `Holiday` is branch-scoped and feeds into the time-entry status resolution and future due-date calculation
+
+---
+
+## Milestone 6 — Configuration & Lookup Admin CRUD
+
+**Goal:** Add admin maintenance for the seeded lookup and config entities: `Category`, `TransactionType`, `Product`, and `Setting`. These were bootstrapped by `CreateBranch` in Milestone 1 but have had no admin UI or update flows until now.
+
+**Scope boundary:** Branch-scoped CRUD restricted to `Admin` and `Manager`. No reporting yet.
+
+**Precondition:** Core operational milestones (2–5) are stable.
+
+**Key behaviors:**
+
+- `Category`: create, update, deactivate; name unique per branch; `DefaultDirection` is set at creation
+- `TransactionType`: create, update, deactivate; linked to a `Category`
+- `Product`: create, update, deactivate; name unique per branch; `DisplayOrder` management
+- `Setting`: update only (one row per branch, created by `CreateBranch`); covers `LockDate`, `DailyTargetHours`, `LunchDeductionOver6H`, `LunchDeductionOver4H`
+
+---
+
+## Milestone 7 — Reporting & Reconciliation
+
+**Goal:** Add manager dashboards, fiado aging, transaction queries, cash-variance reporting, monthly summaries, and reconciliation views.
+
+**Scope boundary:** Read-only query endpoints and computed views. No new write flows.
+
+**Precondition:** Milestones 3–6 are stable and producing data.
+
+**Key behaviors:**
+
+- Daily ledger by account and date range
+- Fiado balance per client and aging (outstanding receivables filtered by `DueDate WHERE PaidAt IS NULL`)
+- Cash-variance summaries across accounts and date ranges
+- Operator transaction summaries by date
+- Monthly reconciliation views for manager review before lock-date advancement
+- Time-entry balance summaries per operator and period
+
+---
+
+## Milestone 8 — Invitation & Email Onboarding
+
+**Goal:** Replace the current "add already-registered user" membership flow with an invitation system that allows branch admins/managers to invite users by email, including users who have not yet registered.
+
+**Scope boundary:** Invitation entity, email delivery integration, accept/decline flow, and the registration-via-invitation path.
+
+**Precondition:** Milestone 1 membership management is stable. This milestone was explicitly deferred from Milestone 1.
+
+**Key behaviors:**
+
+- Invitation entity with token, target email, target role, expiration, and status
+- Email delivery integration (provider TBD)
+- Accept flow: existing user joins branch; new user registers and joins in one step
+- Decline/expiration handling
+- Permission matrix: `Admin` and `Manager` can invite; invited role follows the existing permission rules from Milestone 1
+
+---
+
+## Milestone 9 — Deployment, CI & Observability
+
+**Goal:** Establish the production deployment pipeline, continuous integration, health checks, structured logging, and monitoring for the hosted `Staging` and `Production` environments.
+
+**Scope boundary:** Infrastructure automation and operational readiness. No new business features.
+
+**Precondition:** Core business milestones are stable enough for a production deploy.
+
+**Key behaviors:**
+
+- CI pipeline: build, test (all three suites), and architecture-test gate on every push
+- CD pipeline: deploy to `Staging` on merge to main, promote to `Production` on tag/release
+- Health check endpoints for database connectivity and service readiness
+- Structured logging and error tracking integration
+- Automated EF migration application during deploy
+- Environment-specific secret management aligned with the `infra/` contract from Milestone 0
+
+---
+
+## Milestone 10 — Access Data Import
+
+**Goal:** Provide a one-time migration path from the legacy Microsoft Access database to the new system, preserving historical operators, accounts, clients, transactions, daily closes, and time entries.
+
+**Scope boundary:** Import tooling and data mapping. Not a recurring sync — a one-time cutover per branch.
+
+**Precondition:** All entity milestones (2–6) are complete so the target schema exists.
+
+**Key behaviors:**
+
+- Map legacy Access IDs to new Guid-based entities
+- Preserve historical transaction records, daily closes, and time entries
+- Handle legacy data quality issues (missing fields, orphaned references)
+- Validate imported data against current business rules where possible, flag violations for manual review
+- Import is branch-scoped: each legacy database maps to one `Branch`
