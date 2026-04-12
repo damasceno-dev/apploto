@@ -114,4 +114,10 @@
     <data name="TOKEN_WITHOUT_PERMISSION" xml:space="preserve">
         <value>Token sem permissão</value>
     </data>
+    <data name="OPERATOR_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome do operador deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="OPERATOR_USER_NOT_BRANCH_MEMBER" xml:space="preserve">
+        <value>O usuário não possui uma associação ativa nesta filial</value>
+    </data>
 </root>

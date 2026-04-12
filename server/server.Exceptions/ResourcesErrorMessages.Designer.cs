@@ -236,5 +236,17 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TOKEN_WITHOUT_PERMISSION", resourceCulture);
             }
         }
+
+        public static string OPERATOR_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("OPERATOR_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string OPERATOR_USER_NOT_BRANCH_MEMBER {
+            get {
+                return ResourceManager.GetString("OPERATOR_USER_NOT_BRANCH_MEMBER", resourceCulture);
+            }
+        }
     }
 }
