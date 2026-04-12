@@ -238,8 +238,8 @@ Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD us
 - [x] **1.4** Register the repository in Infrastructure DI
 - [x] **1.5** Add the Phase 1 migration covering the `Operator` table
 - [x] **1.6** Add `CreateOperator` request/response DTOs, validator, use case, and mapper
-- [ ] **1.7** Add `ListOperators` response DTO and use case (branch-scoped, active only)
-- [ ] **1.8** Add `GetOperator` response DTO and use case (branch-scoped, by id)
+- [x] **1.7** Add `ListOperators` response DTO and use case (branch-scoped, active only)
+- [x] **1.8** Add `GetOperator` response DTO and use case (branch-scoped, by id)
 - [ ] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapper
 - [ ] **1.10** Add `DeactivateOperator` response DTO and use case as soft-delete (`Active = false`)
 - [ ] **1.11** Support nullable `UserId` link/unlink on create and update; when a `UserId` is provided, validate that the user exists and has an active `BranchUser` membership in the same branch
@@ -247,7 +247,7 @@ Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD us
 - [ ] **1.12** Restrict all operator management endpoints to `Admin` and `Manager` via `TokenAuthorize`
 - [ ] **1.13** Add operator endpoints to a new `OperatorController`
 - [ ] **1.14** Register all new use cases in Application DI
-  Note: `CreateOperatorUseCase` registered; remaining use cases registered as they are added
+  Note: `CreateOperatorUseCase`, `ListOperatorsUseCase`, `GetOperatorUseCase` registered; remaining use cases registered as they are added
 - [x] **1.15** Add `CommonTestUtilities` builders for `Operator` entity and request DTOs
   Note: `OperatorBuilder`, `RequestCreateOperatorJsonBuilder`, and `OperatorsRepositoryBuilder` added
 - [ ] **1.16** Add `Validators.Test` coverage for `CreateOperator` and `UpdateOperator`

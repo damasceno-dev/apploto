@@ -120,4 +120,7 @@
     <data name="OPERATOR_USER_NOT_BRANCH_MEMBER" xml:space="preserve">
         <value>O usuário não possui uma associação ativa nesta filial</value>
     </data>
+    <data name="OPERATOR_NOT_FOUND" xml:space="preserve">
+        <value>Operador não encontrado</value>
+    </data>
 </root>

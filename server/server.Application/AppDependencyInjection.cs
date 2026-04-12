@@ -9,6 +9,8 @@ using server.Application.UseCases.Branches.CreateSession;
 using server.Application.UseCases.Branches.GetCurrentBranchSummary;
 using server.Application.UseCases.Branches.ListMyBranches;
 using server.Application.UseCases.Operators.Create;
+using server.Application.UseCases.Operators.Get;
+using server.Application.UseCases.Operators.List;
 using server.Application.UseCases.Users.Login;
 using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
@@ -29,6 +31,8 @@ public static class AppDependencyInjection
         services.AddScoped<CreateBranchSessionUseCase>();
         services.AddScoped<GetCurrentBranchSummaryUseCase>();
         services.AddScoped<CreateOperatorUseCase>();
+        services.AddScoped<ListOperatorsUseCase>();
+        services.AddScoped<GetOperatorUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

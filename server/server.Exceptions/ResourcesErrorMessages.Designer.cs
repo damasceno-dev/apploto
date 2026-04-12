@@ -248,5 +248,11 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("OPERATOR_USER_NOT_BRANCH_MEMBER", resourceCulture);
             }
         }
+
+        public static string OPERATOR_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("OPERATOR_NOT_FOUND", resourceCulture);
+            }
+        }
     }
 }
