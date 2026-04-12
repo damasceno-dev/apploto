@@ -45,6 +45,8 @@ public static class InfraDependencyInjection
         services.AddScoped<IProductsRepository, ProductsRepository>();
         services.AddScoped<ISettingsRepository, SettingsRepository>();
         services.AddScoped<IOperatorsRepository, OperatorsRepository>();
+        services.AddScoped<IAccountsRepository, AccountsRepository>();
+        services.AddScoped<IOperatorAccountsRepository, OperatorAccountsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
 

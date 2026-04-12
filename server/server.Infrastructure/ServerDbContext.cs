@@ -15,6 +15,8 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Operator> Operators => Set<Operator>();
+    public DbSet<Account> Accounts => Set<Account>();
+    public DbSet<OperatorAccount> OperatorAccounts => Set<OperatorAccount>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
