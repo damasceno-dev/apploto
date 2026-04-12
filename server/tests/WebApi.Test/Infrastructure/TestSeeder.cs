@@ -5,6 +5,7 @@ using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Infrastructure;
+using Operator = server.Domain.Entities.Operator;
 
 namespace WebApi.Test.Infrastructure;
 
@@ -123,6 +124,22 @@ internal static class TestSeeder
             dbContext.RefreshTokens.Add(refreshToken);
             await dbContext.SaveChangesAsync();
             return refreshToken;
+        }
+
+        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var op = new Operator
+            {
+                Id = Guid.NewGuid(),
+                Name = name ?? $"Operator {Guid.NewGuid():N}",
+                BranchId = branchId
+            };
+            dbContext.Operators.Add(op);
+            await dbContext.SaveChangesAsync();
+            return op;
         }
 
         /// <summary>

@@ -243,14 +243,14 @@ Add the `Operator` entity end-to-end: Domain, Infrastructure, migration, CRUD us
 - [x] **1.9** Add `UpdateOperator` request/response DTOs, validator, use case, and mapper
 - [x] **1.10** Add `DeactivateOperator` response DTO and use case as soft-delete (`Active = false`)
 - [x] **1.11** Support nullable `UserId` link/unlink on create and update; when a `UserId` is provided, validate that the user exists and has an active `BranchUser` membership in the same branch
-- [ ] **1.12** Restrict all operator management endpoints to `Admin` and `Manager` via `TokenAuthorize`
-- [ ] **1.13** Add operator endpoints to a new `OperatorController`
+- [x] **1.12** Restrict all operator management endpoints to `Admin` and `Manager` via `TokenAuthorize`
+- [x] **1.13** Add operator endpoints to a new `OperatorController`
 - [x] **1.14** Register all new use cases in Application DI
 - [x] **1.15** Add `CommonTestUtilities` builders for `Operator` entity and request DTOs
   Note: `OperatorBuilder`, `RequestCreateOperatorJsonBuilder`, `RequestUpdateOperatorJsonBuilder`, and `OperatorsRepositoryBuilder` added
 - [x] **1.16** Add `Validators.Test` coverage for `CreateOperator` and `UpdateOperator`
 - [x] **1.17** Add `UseCases.Test` coverage for the full operator slice: create, list, get, update, deactivate, and `UserId` link validation (including rejection when the user is not an active branch member)
-- [ ] **1.18** Add `WebApi.Test` happy-path and unhappy-path coverage for all operator endpoints, including permission checks and branch isolation
+- [x] **1.18** Add `WebApi.Test` happy-path and unhappy-path coverage for all operator endpoints, including permission checks and branch isolation
 
 ### Phase 2 — Account + OperatorAccount Slice
 
