@@ -126,4 +126,34 @@
     <data name="OPERATOR_ID_EMPTY" xml:space="preserve">
         <value>O identificador do operador deve ser informado</value>
     </data>
+    <data name="ACCOUNT_NOT_FOUND" xml:space="preserve">
+        <value>Conta não encontrada</value>
+    </data>
+    <data name="ACCOUNT_ID_EMPTY" xml:space="preserve">
+        <value>O identificador da conta deve ser informado</value>
+    </data>
+    <data name="ACCOUNT_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome da conta deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="ACCOUNT_INSTITUTION_MAX_LENGTH" xml:space="preserve">
+        <value>A instituição da conta deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="ACCOUNT_NUMBER_MAX_LENGTH" xml:space="preserve">
+        <value>O número da conta deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="ACCOUNT_TYPE_INVALID" xml:space="preserve">
+        <value>Tipo de conta inválido</value>
+    </data>
+    <data name="ACCOUNT_TYPE_IMMUTABLE" xml:space="preserve">
+        <value>O tipo da conta não pode ser alterado após a criação</value>
+    </data>
+    <data name="ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL" xml:space="preserve">
+        <value>O TabAccountId só pode ser definido para contas do tipo Terminal</value>
+    </data>
+    <data name="ACCOUNT_TAB_NOT_FOUND" xml:space="preserve">
+        <value>Conta Tab de referência não encontrada ou inativa nesta filial</value>
+    </data>
+    <data name="ACCOUNT_TAB_ALREADY_LINKED" xml:space="preserve">
+        <value>Esta conta Tab já está associada a um Terminal ativo</value>
+    </data>
 </root>

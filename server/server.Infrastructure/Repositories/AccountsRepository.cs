@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 
 namespace server.Infrastructure.Repositories;
@@ -42,5 +43,16 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                 a.Branch.Active)
             .OrderBy(a => a.Name)
             .ToListAsync();
+    }
+
+    public async Task<bool> ExistsActiveTerminalForTabAccount(Guid tabAccountId, Guid? excludeAccountId)
+    {
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .AnyAsync(a =>
+                a.TabAccountId == tabAccountId &&
+                a.Type == AccountType.Terminal &&
+                a.Active &&
+                (excludeAccountId == null || a.Id != excludeAccountId));
     }
 }

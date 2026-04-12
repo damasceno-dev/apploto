@@ -260,5 +260,65 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("OPERATOR_ID_EMPTY", resourceCulture);
             }
         }
+
+        public static string ACCOUNT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("ACCOUNT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("ACCOUNT_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("ACCOUNT_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_INSTITUTION_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("ACCOUNT_INSTITUTION_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_NUMBER_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("ACCOUNT_NUMBER_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TYPE_INVALID {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TYPE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TYPE_IMMUTABLE {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TYPE_IMMUTABLE", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TAB_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TAB_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TAB_ALREADY_LINKED {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TAB_ALREADY_LINKED", resourceCulture);
+            }
+        }
     }
 }

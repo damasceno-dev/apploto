@@ -267,12 +267,12 @@ Add `AccountType` enum, `Account` and `OperatorAccount` entities end-to-end, the
 - [x] **2.8** Enforce that only `Terminal`-type accounts may have non-null `TabAccountId`, and that a `Tab` account can belong to at most one `Terminal` via unique filtered index on `TabAccountId WHERE TabAccountId IS NOT NULL`
 - [x] **2.9** Register all new repositories in Infrastructure DI
 - [x] **2.10** Add the Phase 2 migration covering `Account`, `OperatorAccount`, and their constraints
-- [ ] **2.11** Add `CreateAccount` request/response DTOs, validator, use case, and mapper
-- [ ] **2.12** Add `ListAccounts` response DTO and use case (branch-scoped, active only)
-- [ ] **2.13** Add `GetAccount` response DTO and use case (branch-scoped, by id)
-- [ ] **2.14** Add `UpdateAccount` request/response DTOs, validator, use case, and mapper; reject any attempt to change `Account.Type` after creation
+- [x] **2.11** Add `CreateAccount` request/response DTOs, validator, use case, and mapper
+- [x] **2.12** Add `ListAccounts` response DTO and use case (branch-scoped, active only)
+- [x] **2.13** Add `GetAccount` response DTO and use case (branch-scoped, by id)
+- [x] **2.14** Add `UpdateAccount` request/response DTOs, validator, use case, and mapper; reject any attempt to change `Account.Type` after creation
 - [ ] **2.15** Add `DeactivateAccount` response DTO and use case; deactivation cascades to all active `OperatorAccount` links for that account; cascade is one-way — reactivating an account later does NOT auto-restore previously deactivated links
-- [ ] **2.16** Enforce account invariants in validators and use cases: only `Terminal` may set `TabAccountId`; referenced account must be a same-branch active `Tab`; a `Tab` can belong to at most one active `Terminal`
+- [x] **2.16** Enforce account invariants in validators and use cases: only `Terminal` may set `TabAccountId`; referenced account must be a same-branch active `Tab`; a `Tab` can belong to at most one active `Terminal`
 - [ ] **2.17** Add `AssignAccount` use case and endpoint to create an `OperatorAccount` link; when a deactivated `(OperatorId, AccountId)` row already exists, reactivate it instead of inserting a duplicate
 - [ ] **2.18** Add `UnassignAccount` use case and endpoint to soft-deactivate an `OperatorAccount` link; if the unassigned account was the operator's primary, clear the `IsPrimary` flag
 - [ ] **2.19** Add `SetPrimaryAccount` use case and endpoint; enforce at most one active primary per operator by clearing the previous primary before setting the new one
@@ -282,9 +282,12 @@ Add `AccountType` enum, `Account` and `OperatorAccount` entities end-to-end, the
 - [ ] **2.23** Add a read-only self-context use case and endpoint that resolves the authenticated branch member to their linked `Operator` plus primary and available `Account` context; this endpoint is accessible to any branch role including `Member`
 - [ ] **2.24** Add account and operator-account endpoints to a new `AccountController` or extend existing controllers
 - [ ] **2.25** Register all new use cases in Application DI
-- [ ] **2.26** Add `CommonTestUtilities` builders for `Account`, `OperatorAccount`, and related request DTOs
-- [ ] **2.27** Add `Validators.Test` coverage for `CreateAccount`, `UpdateAccount`, and `AssignAccount`
-- [ ] **2.28** Add `UseCases.Test` coverage for the full account slice: create, list, get, update, deactivate with cascade, `Type` immutability, Tab-pairing invariants, assign/unassign/reactivation, set-primary, self-context resolution, and updated `DeactivateOperator` cascade to `OperatorAccount`
+- [x] **2.26** Add `CommonTestUtilities` builders for `Account`, `OperatorAccount`, and related request DTOs
+  Note: `AccountBuilder`, `RequestCreateAccountJsonBuilder`, `RequestUpdateAccountJsonBuilder`, and `AccountsRepositoryBuilder` added; `OperatorAccountsRepositoryBuilder` and `OperatorAccount`-specific request builders are deferred to the assignment/cascade batch.
+- [x] **2.27** Add `Validators.Test` coverage for `CreateAccount`, `UpdateAccount`, and `AssignAccount`
+  Note: `CreateAccount` and `UpdateAccount` validators fully covered; `AssignAccount` deferred to the assignment batch.
+- [x] **2.28** Add `UseCases.Test` coverage for the full account slice: create, list, get, update, deactivate with cascade, `Type` immutability, Tab-pairing invariants, assign/unassign/reactivation, set-primary, self-context resolution, and updated `DeactivateOperator` cascade to `OperatorAccount`
+  Note: create, list, get, update, Type immutability, and all Tab-pairing invariants covered in this batch; deactivate with cascade, assign/unassign/reactivation, set-primary, self-context, and DeactivateOperator cascade are deferred to subsequent batches.
 - [ ] **2.29** Add `WebApi.Test` happy-path and unhappy-path coverage for all account and operator-account endpoints, including Tab constraint enforcement, deactivation cascade (both Account and Operator sides), and branch isolation
 
 ### Phase 3 — Client Slice

@@ -8,4 +8,5 @@ public interface IAccountsRepository
     Task<Account?> GetActiveByIdAndBranchId(Guid id, Guid branchId);
     Task<Account?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId);
     Task<IReadOnlyList<Account>> ListActiveByBranchId(Guid branchId);
+    Task<bool> ExistsActiveTerminalForTabAccount(Guid tabAccountId, Guid? excludeAccountId);
 }

@@ -15,8 +15,8 @@ public class Account : EntityBase
     public Guid BranchId { get; init; }
     public Branch Branch { get; init; } = null!;
 
-    public Guid? TabAccountId { get; init; }
-    public Account? TabAccount { get; init; }
+    public Guid? TabAccountId { get; set; }
+    public Account? TabAccount { get; set; }
 
     public ICollection<OperatorAccount> OperatorAccounts { get; init; } = [];
 }
