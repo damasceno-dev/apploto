@@ -31,9 +31,23 @@ internal class OperatorAccountsRepository(ServerDbContext dbContext) : IOperator
     public async Task<IReadOnlyList<OperatorAccount>> ListActiveByOperatorId(Guid operatorId)
     {
         return await dbContext.OperatorAccounts
+            .Where(oa => oa.OperatorId == operatorId && oa.Active)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<OperatorAccount>> ListActiveByOperatorIdAsNoTracking(Guid operatorId)
+    {
+        return await dbContext.OperatorAccounts
             .AsNoTracking()
             .Where(oa => oa.OperatorId == operatorId && oa.Active)
             .OrderBy(oa => oa.IsPrimary ? 0 : 1)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<OperatorAccount>> ListActiveByAccountId(Guid accountId)
+    {
+        return await dbContext.OperatorAccounts
+            .Where(oa => oa.AccountId == accountId && oa.Active)
             .ToListAsync();
     }
 

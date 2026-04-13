@@ -20,6 +20,18 @@ public class OperatorAccountsRepositoryBuilder
         return this;
     }
 
+    public OperatorAccountsRepositoryBuilder ListActiveByOperatorId(IReadOnlyList<OperatorAccount> links)
+    {
+        _repository.ListActiveByOperatorId(Arg.Any<Guid>()).Returns(links);
+        return this;
+    }
+
+    public OperatorAccountsRepositoryBuilder ListActiveByAccountId(IReadOnlyList<OperatorAccount> links)
+    {
+        _repository.ListActiveByAccountId(Arg.Any<Guid>()).Returns(links);
+        return this;
+    }
+
     public OperatorAccountsRepositoryBuilder ListActiveByOperatorIdWithAccount(IReadOnlyList<OperatorAccount> links)
     {
         _repository.ListActiveByOperatorIdWithAccount(Arg.Any<Guid>()).Returns(links);

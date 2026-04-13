@@ -43,4 +43,15 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
             .OrderBy(op => op.Name)
             .ToListAsync();
     }
+
+    public async Task<Operator?> GetActiveByUserIdAndBranchId(Guid userId, Guid branchId)
+    {
+        return await dbContext.Operators
+            .AsNoTracking()
+            .FirstOrDefaultAsync(op =>
+                op.UserId == userId &&
+                op.BranchId == branchId &&
+                op.Active &&
+                op.Branch.Active);
+    }
 }

@@ -8,5 +8,7 @@ public interface IOperatorAccountsRepository
     Task<OperatorAccount?> GetByOperatorIdAndAccountId(Guid operatorId, Guid accountId);
     Task<OperatorAccount?> GetActivePrimaryByOperatorId(Guid operatorId);
     Task<IReadOnlyList<OperatorAccount>> ListActiveByOperatorId(Guid operatorId);
+    Task<IReadOnlyList<OperatorAccount>> ListActiveByOperatorIdAsNoTracking(Guid operatorId);
+    Task<IReadOnlyList<OperatorAccount>> ListActiveByAccountId(Guid accountId);
     Task<IReadOnlyList<OperatorAccount>> ListActiveByOperatorIdWithAccount(Guid operatorId);
 }

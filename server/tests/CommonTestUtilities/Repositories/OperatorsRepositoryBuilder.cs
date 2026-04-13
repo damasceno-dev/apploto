@@ -26,6 +26,12 @@ public class OperatorsRepositoryBuilder
         return this;
     }
 
+    public OperatorsRepositoryBuilder GetActiveByUserIdAndBranchId(Operator? op)
+    {
+        _repository.GetActiveByUserIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(op);
+        return this;
+    }
+
     public IOperatorsRepository Build()
     {
         return _repository;
