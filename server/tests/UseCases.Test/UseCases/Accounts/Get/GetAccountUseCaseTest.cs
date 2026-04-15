@@ -2,6 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using server.Application.UseCases.Accounts.Get;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -17,12 +18,15 @@ public class GetAccountUseCaseTest
     {
         var branchUser = new BranchUserBuilder().Build();
         var account = new AccountBuilder()
+            .WithType(AccountType.Tab)
             .WithBranchId(branchUser.BranchId)
             .Build();
+        var terminalAccountId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
             .GetActiveByIdAndBranchIdAsNoTracking(account)
+            .GetActiveTerminalIdByTabAccountId(terminalAccountId)
             .Build();
 
         var useCase = CreateUseCase(authService, accountsRepo);
@@ -32,6 +36,7 @@ public class GetAccountUseCaseTest
         response.Id.ShouldBe(account.Id);
         response.Name.ShouldBe(account.Name);
         response.BranchId.ShouldBe(branchUser.BranchId);
+        response.TerminalAccountId.ShouldBe(terminalAccountId);
     }
 
     [Fact]

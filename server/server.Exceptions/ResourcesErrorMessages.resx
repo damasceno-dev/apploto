@@ -147,8 +147,20 @@
     <data name="ACCOUNT_TYPE_IMMUTABLE" xml:space="preserve">
         <value>O tipo da conta não pode ser alterado após a criação</value>
     </data>
-    <data name="ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL" xml:space="preserve">
-        <value>O TabAccountId só pode ser definido para contas do tipo Terminal</value>
+    <data name="ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB" xml:space="preserve">
+        <value>Ao criar um Terminal, informe uma conta Tab existente ou uma nova conta Tab, mas não ambas</value>
+    </data>
+    <data name="ACCOUNT_TERMINAL_NOT_FOUND" xml:space="preserve">
+        <value>Conta Terminal de referência não encontrada ou inativa nesta filial</value>
+    </data>
+    <data name="ACCOUNT_TERMINAL_ALREADY_LINKED" xml:space="preserve">
+        <value>Esta conta Terminal já possui uma conta Tab ativa associada</value>
+    </data>
+    <data name="ACCOUNT_TERMINAL_ID_EMPTY" xml:space="preserve">
+        <value>O identificador da conta Terminal deve ser informado</value>
+    </data>
+    <data name="ACCOUNT_TAB_ID_EMPTY" xml:space="preserve">
+        <value>O identificador da conta Tab deve ser informado</value>
     </data>
     <data name="ACCOUNT_TAB_NOT_FOUND" xml:space="preserve">
         <value>Conta Tab de referência não encontrada ou inativa nesta filial</value>

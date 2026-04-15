@@ -7,12 +7,15 @@ public static class ListAccountsMapper
 {
     extension(IEnumerable<Account> accounts)
     {
-        public ResponseListAccountsJson ToResponse()
+        public ResponseListAccountsJson ToResponse(IReadOnlyDictionary<Guid, Guid> terminalIdsByTabAccountId)
         {
             return new ResponseListAccountsJson
             {
                 Accounts = accounts
-                    .Select(a => a.ToAccountResponse())
+                    .Select(a => a.ToAccountResponse(
+                        terminalIdsByTabAccountId.TryGetValue(a.Id, out var terminalAccountId)
+                            ? terminalAccountId
+                            : null))
                     .ToList()
             };
         }

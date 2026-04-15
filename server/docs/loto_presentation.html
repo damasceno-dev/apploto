@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v4
+Spec revision: v5
 -->
 <html lang="en">
 <head>
@@ -387,7 +387,7 @@ const SLIDES=[
     {entity:'Covering scenario',fields:[{n:'RecordedByOperatorId',v:'→ Jennifer',hl:'hl'},{n:'CreatedByUserId',v:'→ Maria',hl:'hl-blue'}]}
    ]},
   {title:'Accounts and the Terminal/Tab Pair',
-   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. Each terminal Account has a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><b style="color:var(--blue)">TabAccountId invariants:</b> only <b>Terminal</b> accounts may set it, the target must be of type <b>Tab</b>, and each Tab is paired with <b>exactly one</b> Terminal.',
+   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><b style="color:var(--blue)">TabAccountId invariants:</b> only <b>Terminal</b> accounts may set it, the target must be of type <b>Tab</b>, a Terminal may exist without a Tab, and each Tab is paired with <b>at most one</b> Terminal.',
    activeTables:['AccountTerminal','AccountTab','OperatorAccount','Operator'],
    activeArrows:['oa-op','oa-acc','acc-tab'],
    data:[
@@ -477,7 +477,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'What is Fiado?',
-   narrative:'Regular customers at a lottery house can buy on credit — <b>"fiado"</b> in Portuguese. This is extremely common in small Brazilian businesses.<br><br>The key design challenge: credit sales should <b>NOT</b> affect the cash drawer count. If Jennifer sells R$150 on credit, her drawer is unchanged — she didn\'t receive cash. But the business needs to track that R$150 is owed.<br><br><b>Solution:</b> each Terminal account has a paired <b>Tab account</b> (AccountType=Tab). Credit transactions go to the Tab, not the Terminal. This is the <b>TabAccountId</b> self-referencing FK on Account.',
+   narrative:'Regular customers at a lottery house can buy on credit — <b>"fiado"</b> in Portuguese. This is extremely common in small Brazilian businesses.<br><br>The key design challenge: credit sales should <b>NOT</b> affect the cash drawer count. If Jennifer sells R$150 on credit, her drawer is unchanged — she didn\'t receive cash. But the business needs to track that R$150 is owed.<br><br><b>Solution:</b> branches that use fiado pair a Terminal account with a <b>Tab account</b> (AccountType=Tab). Credit transactions go to the Tab, not the Terminal. This is the <b>TabAccountId</b> self-referencing FK on Account.',
    activeTables:['AccountTerminal','AccountTab','Client','Operator'],
    activeArrows:['acc-tab'],
    data:[
@@ -808,7 +808,7 @@ function renderIntro(s,i){
         <div class="intro-card">
           <h3 style="color:#4caf50">The Fiado (Tab/Credit) Subsystem</h3>
           <p>Regular customers buy on credit. The challenge: credit sales should <b>NOT</b> affect the cash drawer count (the operator didn't receive cash). Solution:</p>
-          <p style="margin-top:8px">Each terminal has a paired <b>Tab account</b>. Credit goes to the Tab, not the Terminal. The drawer stays accurate for daily reconciliation.</p>
+          <p style="margin-top:8px">Branches that use fiado pair a Terminal with a <b>Tab account</b>. Credit goes to the Tab, not the Terminal. The drawer stays accurate for daily reconciliation.</p>
           <div class="intro-tree" style="margin-top:10px">
 <b>Account</b> "Jennifer" (Terminal) ──<span class="hl">TabAccountId</span>──▸ <b>Account</b> "Tab Jennifer" (Tab)
 │                                     │

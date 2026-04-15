@@ -303,9 +303,33 @@ namespace server.Exceptions {
             }
         }
 
-        public static string ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL {
+        public static string ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB {
             get {
-                return ResourceManager.GetString("ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL", resourceCulture);
+                return ResourceManager.GetString("ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TERMINAL_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TERMINAL_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TERMINAL_ALREADY_LINKED {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TERMINAL_ALREADY_LINKED", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TERMINAL_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TERMINAL_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_TAB_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("ACCOUNT_TAB_ID_EMPTY", resourceCulture);
             }
         }
 

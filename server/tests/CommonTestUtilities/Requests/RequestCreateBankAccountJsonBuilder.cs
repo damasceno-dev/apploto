@@ -3,39 +3,39 @@ using server.Communication.Requests;
 
 namespace CommonTestUtilities.Requests;
 
-public class RequestUpdateAccountJsonBuilder
+public class RequestCreateBankAccountJsonBuilder
 {
     private readonly Faker _faker = new();
     private string _name;
     private string? _institution;
     private string? _number;
 
-    public RequestUpdateAccountJsonBuilder()
+    public RequestCreateBankAccountJsonBuilder()
     {
         _name = _faker.Commerce.ProductName();
     }
 
-    public RequestUpdateAccountJsonBuilder WithName(string name)
+    public RequestCreateBankAccountJsonBuilder WithName(string name)
     {
         _name = name;
         return this;
     }
 
-    public RequestUpdateAccountJsonBuilder WithInstitution(string? institution)
+    public RequestCreateBankAccountJsonBuilder WithInstitution(string? institution)
     {
         _institution = institution;
         return this;
     }
 
-    public RequestUpdateAccountJsonBuilder WithNumber(string? number)
+    public RequestCreateBankAccountJsonBuilder WithNumber(string? number)
     {
         _number = number;
         return this;
     }
 
-    public RequestUpdateAccountJson Build()
+    public RequestCreateBankAccountJson Build()
     {
-        return new RequestUpdateAccountJson
+        return new RequestCreateBankAccountJson
         {
             Name = _name,
             Institution = _institution,

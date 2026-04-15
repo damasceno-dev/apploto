@@ -1,33 +1,20 @@
 using CommonTestUtilities.Requests;
 using server.Application.UseCases.Accounts;
-using server.Application.UseCases.Accounts.Update;
+using server.Application.UseCases.Accounts.CreateBank;
 using server.Exceptions;
 using Shouldly;
 using Xunit;
 
-namespace Validators.Test.Accounts.Update;
+namespace Validators.Test.Accounts.CreateBank;
 
-public class UpdateAccountFluentValidationTest
+public class CreateBankAccountFluentValidationTest
 {
-    private readonly UpdateAccountFluentValidation _validator = new();
+    private readonly CreateBankAccountFluentValidation _validator = new();
 
     [Fact]
     public void Validate_ShouldSucceed_WhenRequestIsValid()
     {
-        var request = new RequestUpdateAccountJsonBuilder().Build();
-
-        var result = _validator.Validate(request);
-
-        result.IsValid.ShouldBeTrue();
-    }
-
-    [Fact]
-    public void Validate_ShouldSucceed_WhenOptionalFieldsAreProvided()
-    {
-        var request = new RequestUpdateAccountJsonBuilder()
-            .WithInstitution("Caixa Econômica")
-            .WithNumber("9876-5")
-            .Build();
+        var request = new RequestCreateBankAccountJsonBuilder().Build();
 
         var result = _validator.Validate(request);
 
@@ -37,7 +24,7 @@ public class UpdateAccountFluentValidationTest
     [Fact]
     public void Validate_ShouldFail_WhenNameIsEmpty()
     {
-        var request = new RequestUpdateAccountJsonBuilder()
+        var request = new RequestCreateBankAccountJsonBuilder()
             .WithName(string.Empty)
             .Build();
 
@@ -51,7 +38,7 @@ public class UpdateAccountFluentValidationTest
     [Fact]
     public void Validate_ShouldFail_WhenNameExceedsMaxLength()
     {
-        var request = new RequestUpdateAccountJsonBuilder()
+        var request = new RequestCreateBankAccountJsonBuilder()
             .WithName(new string('a', AccountValidationExtensions.NameMaxLength + 1))
             .Build();
 
@@ -65,7 +52,7 @@ public class UpdateAccountFluentValidationTest
     [Fact]
     public void Validate_ShouldFail_WhenInstitutionExceedsMaxLength()
     {
-        var request = new RequestUpdateAccountJsonBuilder()
+        var request = new RequestCreateBankAccountJsonBuilder()
             .WithInstitution(new string('a', AccountValidationExtensions.InstitutionMaxLength + 1))
             .Build();
 
@@ -79,7 +66,7 @@ public class UpdateAccountFluentValidationTest
     [Fact]
     public void Validate_ShouldFail_WhenNumberExceedsMaxLength()
     {
-        var request = new RequestUpdateAccountJsonBuilder()
+        var request = new RequestCreateBankAccountJsonBuilder()
             .WithNumber(new string('a', AccountValidationExtensions.NumberMaxLength + 1))
             .Build();
 

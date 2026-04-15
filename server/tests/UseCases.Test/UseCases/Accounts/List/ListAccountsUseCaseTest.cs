@@ -15,15 +15,24 @@ public class ListAccountsUseCaseTest
     public async Task Execute_ShouldReturnAccounts_WhenBranchHasActiveAccounts()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var terminalAccount = new AccountBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithType(AccountType.Terminal)
+            .Build();
+        var tabAccount = new AccountBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithType(AccountType.Tab)
+            .Build();
         var accounts = new List<server.Domain.Entities.Account>
         {
-            new AccountBuilder().WithBranchId(branchUser.BranchId).WithType(AccountType.Terminal).Build(),
-            new AccountBuilder().WithBranchId(branchUser.BranchId).WithType(AccountType.BankAccount).Build()
+            terminalAccount,
+            tabAccount
         };
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
             .ListActiveByBranchId(accounts)
+            .ListActiveTerminalIdsByTabAccountIds(new Dictionary<Guid, Guid> { [tabAccount.Id] = terminalAccount.Id })
             .Build();
 
         var useCase = CreateUseCase(authService, accountsRepo);
@@ -33,6 +42,8 @@ public class ListAccountsUseCaseTest
         response.Accounts.ShouldNotBeEmpty();
         response.Accounts.Count.ShouldBe(2);
         response.Accounts.ShouldAllBe(a => a.BranchId == branchUser.BranchId);
+        response.Accounts.Single(a => a.Id == terminalAccount.Id).TerminalAccountId.ShouldBeNull();
+        response.Accounts.Single(a => a.Id == tabAccount.Id).TerminalAccountId.ShouldBe(terminalAccount.Id);
     }
 
     [Fact]

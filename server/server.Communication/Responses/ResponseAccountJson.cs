@@ -11,4 +11,5 @@ public class ResponseAccountJson
     public string? Number { get; set; }
     public Guid BranchId { get; set; }
     public Guid? TabAccountId { get; set; }
+    public Guid? TerminalAccountId { get; set; }
 }

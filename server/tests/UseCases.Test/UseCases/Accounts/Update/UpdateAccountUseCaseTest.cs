@@ -26,7 +26,6 @@ public class UpdateAccountUseCaseTest
             .Build();
         var request = new RequestUpdateAccountJsonBuilder()
             .WithName("New Name")
-            .WithTabAccountId(null)
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
@@ -55,7 +54,6 @@ public class UpdateAccountUseCaseTest
         var request = new RequestUpdateAccountJsonBuilder()
             .WithInstitution("Banco Novo")
             .WithNumber("999-0")
-            .WithTabAccountId(null)
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
@@ -71,18 +69,19 @@ public class UpdateAccountUseCaseTest
         account.Institution.ShouldBe("Banco Novo");
         account.Number.ShouldBe("999-0");
         response.Institution.ShouldBe("Banco Novo");
+        response.Number.ShouldBe("999-0");
         await unitOfWork.Received(1).Commit();
     }
 
     [Fact]
-    public async Task Execute_ShouldPreserveAccountType_AfterUpdate()
+    public async Task Execute_ShouldPreserveAccountTypeAndTabLink_AfterUpdate()
     {
-        // Type is immutable — the update request has no Type field,
-        // so the account's type must remain unchanged.
         var branchUser = new BranchUserBuilder().Build();
+        var tabAccountId = Guid.NewGuid();
         var account = new AccountBuilder()
             .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.BankAccount)
+            .WithType(AccountType.Terminal)
+            .WithTabAccountId(tabAccountId)
             .Build();
         var request = new RequestUpdateAccountJsonBuilder().Build();
 
@@ -96,158 +95,11 @@ public class UpdateAccountUseCaseTest
 
         var response = await useCase.Execute(account.Id, request);
 
-        account.Type.ShouldBe(AccountType.BankAccount);
-        response.Type.ShouldBe(AccountType.BankAccount);
+        account.Type.ShouldBe(AccountType.Terminal);
+        account.TabAccountId.ShouldBe(tabAccountId);
+        response.Type.ShouldBe(AccountType.Terminal);
+        response.TabAccountId.ShouldBe(tabAccountId);
         await unitOfWork.Received(1).Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldUpdateTabAccountId_WhenTerminalAndTabIsValidAndUnlinked()
-    {
-        var branchUser = new BranchUserBuilder().Build();
-        var terminal = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Terminal)
-            .Build();
-        var tabAccount = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Tab)
-            .Build();
-        var request = new RequestUpdateAccountJsonBuilder()
-            .WithTabAccountId(tabAccount.Id)
-            .Build();
-
-        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminal)
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
-            .ExistsActiveTerminalForTabAccount(false)
-            .Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
-
-        var response = await useCase.Execute(terminal.Id, request);
-
-        terminal.TabAccountId.ShouldBe(tabAccount.Id);
-        response.TabAccountId.ShouldBe(tabAccount.Id);
-        await unitOfWork.Received(1).Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowOnValidationException_WhenTabAccountIdSetOnNonTerminal()
-    {
-        var branchUser = new BranchUserBuilder().Build();
-        var bankAccount = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.BankAccount)
-            .Build();
-        var request = new RequestUpdateAccountJsonBuilder()
-            .WithTabAccountId(Guid.NewGuid())
-            .Build();
-
-        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(bankAccount)
-            .Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
-
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(bankAccount.Id, request));
-
-        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.ACCOUNT_TAB_ID_ONLY_FOR_TERMINAL);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowNotFoundException_WhenTabAccountNotFound()
-    {
-        var branchUser = new BranchUserBuilder().Build();
-        var terminal = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Terminal)
-            .Build();
-        var request = new RequestUpdateAccountJsonBuilder()
-            .WithTabAccountId(Guid.NewGuid())
-            .Build();
-
-        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminal)
-            .GetActiveByIdAndBranchIdAsNoTracking(null)
-            .Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
-
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(terminal.Id, request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_TAB_NOT_FOUND);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowNotFoundException_WhenTabAccountIsNotTypeTab()
-    {
-        var branchUser = new BranchUserBuilder().Build();
-        var terminal = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Terminal)
-            .Build();
-        var anotherTerminal = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Terminal)
-            .Build();
-        var request = new RequestUpdateAccountJsonBuilder()
-            .WithTabAccountId(anotherTerminal.Id)
-            .Build();
-
-        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminal)
-            .GetActiveByIdAndBranchIdAsNoTracking(anotherTerminal)
-            .Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
-
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(terminal.Id, request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_TAB_NOT_FOUND);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowConflictException_WhenTabAlreadyLinkedToAnotherTerminal()
-    {
-        var branchUser = new BranchUserBuilder().Build();
-        var terminal = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Terminal)
-            .Build();
-        var tabAccount = new AccountBuilder()
-            .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Tab)
-            .Build();
-        var request = new RequestUpdateAccountJsonBuilder()
-            .WithTabAccountId(tabAccount.Id)
-            .Build();
-
-        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminal)
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
-            .ExistsActiveTerminalForTabAccount(true)
-            .Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
-
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(terminal.Id, request));
-
-        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.ACCOUNT_TAB_ALREADY_LINKED);
-        await unitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]

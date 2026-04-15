@@ -33,6 +33,20 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                 a.Branch.Active);
     }
 
+    public async Task<Guid?> GetActiveTerminalIdByTabAccountId(Guid tabAccountId, Guid branchId)
+    {
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .Where(a =>
+                a.BranchId == branchId &&
+                a.Type == AccountType.Terminal &&
+                a.TabAccountId == tabAccountId &&
+                a.Active &&
+                a.Branch.Active)
+            .Select(a => (Guid?)a.Id)
+            .FirstOrDefaultAsync();
+    }
+
     public async Task<IReadOnlyList<Account>> ListActiveByBranchId(Guid branchId)
     {
         return await dbContext.Accounts
@@ -45,14 +59,25 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
             .ToListAsync();
     }
 
-    public async Task<bool> ExistsActiveTerminalForTabAccount(Guid tabAccountId, Guid? excludeAccountId)
+    public async Task<IReadOnlyDictionary<Guid, Guid>> ListActiveTerminalIdsByTabAccountIds(
+        Guid branchId,
+        IReadOnlyCollection<Guid> tabAccountIds)
     {
+        if (tabAccountIds.Count == 0)
+        {
+            return new Dictionary<Guid, Guid>();
+        }
+
         return await dbContext.Accounts
             .AsNoTracking()
-            .AnyAsync(a =>
-                a.TabAccountId == tabAccountId &&
+            .Where(a =>
+                a.BranchId == branchId &&
                 a.Type == AccountType.Terminal &&
+                a.TabAccountId.HasValue &&
+                tabAccountIds.Contains(a.TabAccountId.Value) &&
                 a.Active &&
-                (excludeAccountId == null || a.Id != excludeAccountId));
+                a.Branch.Active)
+            .ToDictionaryAsync(a => a.TabAccountId!.Value, a => a.Id);
     }
+
 }

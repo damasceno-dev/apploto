@@ -8,6 +8,12 @@ public class AccountsRepositoryBuilder
 {
     private readonly IAccountsRepository _repository = Substitute.For<IAccountsRepository>();
 
+    public AccountsRepositoryBuilder()
+    {
+        _repository.ListActiveTerminalIdsByTabAccountIds(Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>())
+            .Returns(new Dictionary<Guid, Guid>());
+    }
+
     public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Account? account)
     {
         _repository.GetActiveByIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(account);
@@ -20,15 +26,22 @@ public class AccountsRepositoryBuilder
         return this;
     }
 
+    public AccountsRepositoryBuilder GetActiveTerminalIdByTabAccountId(Guid? terminalAccountId)
+    {
+        _repository.GetActiveTerminalIdByTabAccountId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(terminalAccountId);
+        return this;
+    }
+
     public AccountsRepositoryBuilder ListActiveByBranchId(IReadOnlyList<Account> accounts)
     {
         _repository.ListActiveByBranchId(Arg.Any<Guid>()).Returns(accounts);
         return this;
     }
 
-    public AccountsRepositoryBuilder ExistsActiveTerminalForTabAccount(bool exists)
+    public AccountsRepositoryBuilder ListActiveTerminalIdsByTabAccountIds(IReadOnlyDictionary<Guid, Guid> terminalIdsByTabAccountId)
     {
-        _repository.ExistsActiveTerminalForTabAccount(Arg.Any<Guid>(), Arg.Any<Guid?>()).Returns(exists);
+        _repository.ListActiveTerminalIdsByTabAccountIds(Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>())
+            .Returns(terminalIdsByTabAccountId);
         return this;
     }
 

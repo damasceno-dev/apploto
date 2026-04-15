@@ -4,17 +4,18 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v4
+Spec revision: v5
 -->
 
-> **Status:** Revised spec (v4) — Client.Cpf uniqueness per branch  
+> **Status:** Revised spec (v5) — corrected account-create operations and terminal-bound Tab accounts  
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
 > v1→v2: Fixed classification invariant (TransactionType is single source of truth, CategoryId/Direction denormalized), added transaction authorship (RecordedByOperatorId + CreatedByUserId), corrected Fiado product seed (calculated, not persisted), fixed lco_status mapping (unused in Access), fixed OriginTransactionId self-reference for installments.  
 > v2: Added Account.TabAccountId invariants, OperatorAccount.IsPrimary uniqueness, branch consistency rules (6.9), CashVariance calculation semantics (6.10), seed data scope clarification.  
 > v3: Rename 6h and 4h to 6H and 4H to attend for entities naming rules.  
-> v4: Added Client.Cpf uniqueness per branch as a filtered unique constraint on active rows.
+> v4: Added Client.Cpf uniqueness per branch as a filtered unique constraint on active rows.  
+> v5: Corrected the Account creation/pairing flow: Tab accounts are optional per terminal, pairing/unpairing is explicit for existing accounts, account creation is split into explicit Bank/Terminal/Tab operations, new Tabs are always created for an existing or newly-created Terminal, and a new paired Tab inherits the Terminal descriptive fields at creation time.
 
 ---
 
@@ -53,7 +54,7 @@ The **CashVariance** (Diferença de Caixa) is the gap between expected (ledger) 
 
 ### The Fiado (tab/credit) subsystem
 
-Regular customers can buy on credit ("fiado"). Each terminal operator has a paired **Tab account** that tracks credit separately from the cash drawer. Selling on credit records an Out transaction on the Tab account. When the customer pays, that is an In transaction on the same Tab account. The balance is the outstanding credit. This separation prevents credit from distorting the daily cash reconciliation.
+Regular customers can buy on credit ("fiado"). In branches that use fiado, a terminal may have a paired **Tab account** that tracks credit separately from the cash drawer. Some branches may not use Tab accounts at all, and a terminal may exist without one until fiado is configured. Selling on credit records an Out transaction on the Tab account. When the customer pays, that is an In transaction on the same Tab account. The balance is the outstanding credit. This separation prevents credit from distorting the daily cash reconciliation.
 
 ### The three-date model
 
@@ -294,11 +295,11 @@ public class Account : EntityBase
 | Institution | varchar(255) | NULL | "Lotérica" for terminals, "Caixa Econômica" for bank accounts                  |
 | Number | varchar(50) | NULL | Terminal number "1","2","3" or bank account number                             |
 | BranchId | uuid | NOT NULL | FK → Branch                                                                    |
-| TabAccountId | uuid | NULL | FK → Account (self). Only for Terminal type → points to its paired Tab account |
+| TabAccountId | uuid | NULL | FK → Account (self). Only for Terminal type → points to its optional paired Tab account |
 | CreatedAt | timestamptz | NOT NULL |                                                                                |
 | Active | boolean | NOT NULL |                                                                                |
 
-**Example data:**
+**Example data (for a branch where fiado is enabled on all three terminals):**
 
 | Name | Type | TabAccountId | Institution | Number |
 |---|---|---|---|---|
@@ -313,8 +314,17 @@ public class Account : EntityBase
 
 **TabAccountId invariants** (enforced at service layer and/or DB check constraints):
 - Only `Terminal` accounts may have a non-null `TabAccountId`
+- A Terminal may exist with `TabAccountId = null`
 - The referenced account must be of type `Tab`
 - A Tab account can belong to at most one Terminal (unique constraint on `TabAccountId` where not null)
+
+**Account create/pair flow** (application layer):
+- `CreateBankAccount` creates standalone Bank accounts
+- `CreateTerminalAccount` creates standalone Terminals, Terminals linked to an existing Tab, or Terminals with a new Tab created in the same request
+- When `CreateTerminalAccount` creates a new Tab in the same request, the new Tab starts with the same `Name`, `Institution`, and `Number` as the Terminal
+- `CreateTabAccount` creates a new Tab for an existing Terminal that does not yet have one
+- Pairing existing Terminal/Tab accounts is explicit
+- Unpairing an existing Terminal/Tab association is explicit
 
 ### 3.8 OperatorAccount
 
@@ -763,7 +773,7 @@ public enum AccountType
 {
     Terminal = 0,     // Operator's cash drawer
     BankAccount = 1,  // CEF or other bank account
-    Tab = 2           // Fiado (credit) account, paired with a Terminal
+    Tab = 2           // Fiado (credit) account, optionally paired with a Terminal
 }
 
 public enum TransactionStatus

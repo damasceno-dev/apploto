@@ -267,13 +267,13 @@ Add `AccountType` enum, `Account` and `OperatorAccount` entities end-to-end, the
 - [x] **2.8** Enforce that only `Terminal`-type accounts may have non-null `TabAccountId`, and that a `Tab` account can belong to at most one `Terminal` via unique filtered index on `TabAccountId WHERE TabAccountId IS NOT NULL`
 - [x] **2.9** Register all new repositories in Infrastructure DI
 - [x] **2.10** Add the Phase 2 migration covering `Account`, `OperatorAccount`, and their constraints
-- [x] **2.11** Add `CreateAccount` request/response DTOs, validator, use case, and mapper
-- [x] **2.12** Add `ListAccounts` response DTO and use case (branch-scoped, active only)
-- [x] **2.13** Add `GetAccount` response DTO and use case (branch-scoped, by id)
-- [x] **2.14** Add `UpdateAccount` request/response DTOs, validator, use case, and mapper; reject any attempt to change `Account.Type` after creation
+- [x] **2.11** Add explicit create operations for accounts: `CreateBankAccount`, `CreateTerminalAccount`, and `CreateTabAccount`, with request DTOs, validators, and mappers appropriate to each account type
+- [x] **2.12** Add `ListAccounts` response DTO and use case (branch-scoped, active only), including derived reverse-pairing data for Tab accounts
+- [x] **2.13** Add `GetAccount` response DTO and use case (branch-scoped, by id), including derived reverse-pairing data for Tab accounts
+- [x] **2.14** Add `UpdateAccount` request/response DTOs, validator, and use case for descriptive fields only; keep `Account.Type` immutable after creation and manage Terminal↔Tab pairing through explicit pair/unpair operations
 - [x] **2.15** Add `DeactivateAccount` response DTO and use case; deactivation cascades to all active `OperatorAccount` links for that account; cascade is one-way — reactivating an account later does NOT auto-restore previously deactivated links
   Note: use case, cascade logic, and DI registration added; controller endpoint deferred to next batch.
-- [x] **2.16** Enforce account invariants in validators and use cases: only `Terminal` may set `TabAccountId`; referenced account must be a same-branch active `Tab`; a `Tab` can belong to at most one active `Terminal`
+- [x] **2.16** Enforce account invariants in validators and use cases: only `Terminal` may set `TabAccountId`; a Terminal may exist without a Tab; referenced Tab/Terminal accounts must be active and same-branch; a `Tab` can belong to at most one active `Terminal`; pairing and unpairing of existing accounts are explicit operations
 - [x] **2.17** Add `AssignAccount` use case and endpoint to create an `OperatorAccount` link; when a deactivated `(OperatorId, AccountId)` row already exists, reactivate it instead of inserting a duplicate
   Note: use case, validator, mapper, and DI registration added; controller endpoint deferred to next batch.
 - [x] **2.18** Add `UnassignAccount` use case and endpoint to soft-deactivate an `OperatorAccount` link; if the unassigned account was the operator's primary, clear the `IsPrimary` flag
@@ -290,9 +290,9 @@ Add `AccountType` enum, `Account` and `OperatorAccount` entities end-to-end, the
 - [ ] **2.24** Add account and operator-account endpoints to a new `AccountController` or extend existing controllers
 - [ ] **2.25** Register all new use cases in Application DI
 - [x] **2.26** Add `CommonTestUtilities` builders for `Account`, `OperatorAccount`, and related request DTOs
-  Note: `AccountBuilder`, `RequestCreateAccountJsonBuilder`, `RequestUpdateAccountJsonBuilder`, and `AccountsRepositoryBuilder` added; `OperatorAccountBuilder`, `OperatorAccountsRepositoryBuilder`, and `RequestAssignAccountJsonBuilder` added in this batch.
-- [x] **2.27** Add `Validators.Test` coverage for `CreateAccount`, `UpdateAccount`, and `AssignAccount`
-  Note: `CreateAccount` and `UpdateAccount` validators fully covered; `AssignAccount` validator (`AssignAccountFluentValidationTest`) fully covered in this batch.
+  Note: `AccountBuilder`, `RequestCreateBankAccountJsonBuilder`, `RequestCreateTerminalAccountJsonBuilder`, `RequestCreateTabAccountJsonBuilder`, `RequestUpdateAccountJsonBuilder`, and `AccountsRepositoryBuilder` added; `OperatorAccountBuilder`, `OperatorAccountsRepositoryBuilder`, and `RequestAssignAccountJsonBuilder` added in this batch.
+- [x] **2.27** Add `Validators.Test` coverage for account create, update, and assign flows
+  Note: create validators are covered per account-type use case (`CreateBankAccount`, `CreateTerminalAccount`, `CreateTabAccount`); `UpdateAccount` and `OperatorAccounts/AssignAccount` validators are also covered.
 - [x] **2.28** Add `UseCases.Test` coverage for the full account slice: create, list, get, update, deactivate with cascade, `Type` immutability, Tab-pairing invariants, assign/unassign/reactivation, set-primary, self-context resolution, and updated `DeactivateOperator` cascade to `OperatorAccount`
   Note: `DeactivateAccount` cascade (5 tests), updated `DeactivateOperator` cascade (5 tests, 2 updated + 3 new), and `GetOperatorSelfContext` (4 tests) all added in this batch.
   Note: create, list, get, update, Type immutability, and all Tab-pairing invariants covered earlier; assign/reactivate, unassign (including primary-clear), set-primary (clear-previous + idempotent), and list-operator-accounts use-case tests added in this batch. Deactivate-with-cascade, self-context, and DeactivateOperator cascade deferred to next batch.
@@ -326,7 +326,7 @@ Full CRUD for `Client` with its own entity, infrastructure, migration, and tests
 
 - `Operator`, `Account`, `OperatorAccount`, and `Client` exist in Domain, Infrastructure, and their respective Milestone 2 migrations
 - `OperatorAccount` enforces unique `(OperatorId, AccountId)` and at most one active primary account per operator
-- `Account.Type` is immutable after creation; only `Terminal` may set `TabAccountId`; referenced account must be a same-branch active `Tab`; a `Tab` can belong to at most one active `Terminal`
+- `Account.Type` is immutable after creation; only `Terminal` may set `TabAccountId`; a Terminal may exist without a Tab; referenced Tab/Terminal accounts must be active and same-branch; a `Tab` can belong to at most one active `Terminal`; pairing and unpairing existing accounts are explicit operations
 - `Client.Phone` is required; `Client.Cpf` is unique per branch when present per `loto-specs.md` v4 (filtered index on active rows)
 - `Operator` can exist without a linked `User`, but linking validates that the `User` has an active `BranchUser` in the same branch
 - Deactivating an `Operator` or `Account` cascades soft-deactivation to all active `OperatorAccount` links; cascade is one-way — reactivating the parent does NOT auto-restore child links; reassignment is always explicit
