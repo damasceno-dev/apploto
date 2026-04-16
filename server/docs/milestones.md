@@ -306,12 +306,12 @@ Add `AccountType` enum, `Account` and `OperatorAccount` entities end-to-end, the
 
 Full CRUD for `Client` with its own entity, infrastructure, migration, and tests. The Client permission model below is milestone-defined behavior for this phase; it is not being promoted into the spec sync group by this milestone update.
 
-- [ ] **3.1** Add `Client` entity to `server.Domain` with `Name`, required `Phone`, nullable `Cpf`, nullable `Cep`, nullable `Address`, nullable `PhoneSecondary`, nullable `Notes`, nullable `Email`, `BranchId`, and navigation to `Branch`
-- [ ] **3.2** Add `IClientsRepository` to `server.Domain/Interfaces/`
-- [ ] **3.3** Add EF configuration, `DbSet`, foreign keys, and `ClientsRepository` implementation in `server.Infrastructure`
-- [ ] **3.4** Enforce `Client` CPF uniqueness per branch via unique filtered index: `UNIQUE (BranchId, Cpf) WHERE Cpf IS NOT NULL AND Active = true`
-- [ ] **3.5** Register the repository in Infrastructure DI
-- [ ] **3.6** Add the Phase 3 migration covering the `Client` table and its constraints
+- [x] **3.1** Add `Client` entity to `server.Domain` with `Name`, required `Phone`, nullable `Cpf`, nullable `Cep`, nullable `Address`, nullable `PhoneSecondary`, nullable `Notes`, nullable `Email`, `BranchId`, and navigation to `Branch`
+- [x] **3.2** Add `IClientsRepository` to `server.Domain/Interfaces/`
+- [x] **3.3** Add EF configuration, `DbSet`, foreign keys, and `ClientsRepository` implementation in `server.Infrastructure`
+- [x] **3.4** Enforce `Client` CPF uniqueness per branch via unique filtered index: `UNIQUE (BranchId, Cpf) WHERE Cpf IS NOT NULL AND Active = true`
+- [x] **3.5** Register the repository in Infrastructure DI
+- [x] **3.6** Add the Phase 3 migration covering the `Client` table and its constraints
 - [ ] **3.7** Add `CreateClient` request/response DTOs, validator, use case, and mapper; require `Name` and `Phone`; validate CPF format and email format when present
 - [ ] **3.8** Add `ListClients` response DTO and use case (branch-scoped, active only)
 - [ ] **3.9** Add `GetClient` response DTO and use case (branch-scoped, by id)
