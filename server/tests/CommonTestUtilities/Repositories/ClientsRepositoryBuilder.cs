@@ -14,15 +14,21 @@ public class ClientsRepositoryBuilder
         return this;
     }
 
-    public ClientsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Client? client)
+    public ClientsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Client? client)
     {
-        _repository.GetActiveByIdAndBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(client);
+        _repository.GetActiveByIdAndBranchId(id, branchId).Returns(client);
         return this;
     }
 
-    public ClientsRepositoryBuilder ListActiveByBranchId(IReadOnlyList<Client> clients)
+    public ClientsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Client? client)
     {
-        _repository.ListActiveByBranchId(Arg.Any<Guid>()).Returns(clients);
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId).Returns(client);
+        return this;
+    }
+
+    public ClientsRepositoryBuilder ListActiveByBranchId(Guid branchId, IReadOnlyList<Client> clients)
+    {
+        _repository.ListActiveByBranchId(branchId).Returns(clients);
         return this;
     }
 

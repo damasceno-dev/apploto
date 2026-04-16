@@ -313,20 +313,20 @@ Full CRUD for `Client` with its own entity, infrastructure, migration, and tests
 - [x] **3.5** Register the repository in Infrastructure DI
 - [x] **3.6** Add the Phase 3 migration covering the `Client` table and its constraints
 - [x] **3.7** Add `CreateClient` request/response DTOs, validator, use case, and mapper; require `Name` and `Phone`; validate CPF format and email format when present
-- [ ] **3.8** Add `ListClients` response DTO and use case (branch-scoped, active only)
-- [ ] **3.9** Add `GetClient` response DTO and use case (branch-scoped, by id)
+- [x] **3.8** Add `ListClients` response DTO and use case (branch-scoped, active only)
+- [x] **3.9** Add `GetClient` response DTO and use case (branch-scoped, by id)
 - [x] **3.10** Add `UpdateClient` request/response DTOs, validator, use case, and mapper
-- [ ] **3.11** Add `DeactivateClient` response DTO and use case
+- [x] **3.11** Add `DeactivateClient` response DTO and use case
 - [ ] **3.12** Allow `Member`, `Manager`, and `Admin` to create, read, and update clients; restrict client deactivation to `Admin` and `Manager`
 - [x] **3.13** Enforce CPF uniqueness per branch at the use-case level: reject create or update when another active `Client` in the same branch already has the same CPF
 - [ ] **3.14** Add client endpoints to a new `ClientController`
-- [ ] **3.15** Register all new use cases in Application DI
-  Note: `CreateClientUseCase` and `UpdateClientUseCase` registered; remaining use cases deferred to next batch.
+- [x] **3.15** Register all new use cases in Application DI
+  Note: `CreateClientUseCase`, `ListClientsUseCase`, `GetClientUseCase`, `UpdateClientUseCase`, and `DeactivateClientUseCase` all registered.
 - [x] **3.16** Add `CommonTestUtilities` builders for `Client` entity and request DTOs
   Note: `ClientBuilder`, `RequestCreateClientJsonBuilder`, `RequestUpdateClientJsonBuilder`, and `ClientsRepositoryBuilder` added.
 - [x] **3.17** Add `Validators.Test` coverage for `CreateClient` and `UpdateClient`
-- [ ] **3.18** Add `UseCases.Test` coverage for the full client slice: create, list, get, update, deactivate, CPF uniqueness, CPF/email format validation, and permission rules
-  Note: create and update covered (CPF uniqueness, format validation, and validation failures included); list/get/deactivate/permission-rule tests deferred to next batch.
+- [x] **3.18** Add `UseCases.Test` coverage for the full client slice: create, list, get, update, deactivate, CPF uniqueness, CPF/email format validation, and permission rules
+  Note: create and update covered (CPF uniqueness, format validation, and validation failures included); list (4 tests: happy path, empty, branch isolation, active-only), get (3 tests: found, not-found, branch isolation), deactivate (5 tests: success, response data, empty-id, not-found, branch isolation) added in this batch. Permission-rule enforcement deferred to 3.12/3.14 (controller wiring).
 - [ ] **3.19** Add `WebApi.Test` happy-path and unhappy-path coverage for all client endpoints, including CPF uniqueness enforcement at the database level, permission differences between `Member` and `Admin`/`Manager`, and branch isolation
 
 ### Done criteria
@@ -345,7 +345,7 @@ Full CRUD for `Client` with its own entity, infrastructure, migration, and tests
 
 ## Milestone 3 — Transaction Ledger Core
 
-**Fix detected from the preivous milestones:** Follow-up hardening note: strengthen older Account/Operator read-get-deactivate use-case tests to assert exact scoped repository arguments instead of relying only on `Arg.Any(...)`-based mock setups. 
+**Fix detected from the previous milestones:** Follow-up hardening note: strengthen older Account/Operator read-get-deactivate use-case tests to assert exact scoped repository arguments instead of relying only on `Arg.Any(...)`-based mock setups. 
 This can be bundled with any broader feature-local validation-extension cleanup so test-helper changes land together.
 
 
