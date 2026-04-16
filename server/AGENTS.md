@@ -227,7 +227,9 @@ Validation rules:
 
 - Use FluentValidation.
 - Create one validator per input-bearing use case.
-- Shared validation helpers live in a shared validator extension class.
+- When FluentValidation rules repeat within a feature slice (e.g. both Create and Update share the same field rules), extract a `{Feature}ValidationExtensions.cs` in that slice's folder and expose the rules as C# 13 `extension<T>(IRuleBuilder<T, TValue> rule)` block methods. Reserve a cross-feature `SharedValidators` only for rules that genuinely span multiple unrelated features.
+- Validation checks raw input shape only. Normalization and canonicalization (e.g. stripping non-digit characters, trimming) happen in the slice-shared mapper or normalizer helpers before persistence — never inside the validator.
+- If optional input is treated as absent when `string.IsNullOrWhiteSpace` is true, the normalization helper must return `null` for whitespace-only values, not `""`. Returning `""` would bypass nullable column semantics and filtered unique indexes.
 - Business rule checks that require repository access should happen before or around validator execution inside the use case flow, not inside DTO classes.
 
 Mapping rules:

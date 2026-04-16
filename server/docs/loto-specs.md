@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v5
+Spec revision: v6
 -->
 
-> **Status:** Revised spec (v5) — corrected account-create operations and terminal-bound Tab accounts  
+> **Status:** Revised spec (v6) — Client.Cpf stored as 11 normalized digits  
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -15,7 +15,8 @@ Spec revision: v5
 > v2: Added Account.TabAccountId invariants, OperatorAccount.IsPrimary uniqueness, branch consistency rules (6.9), CashVariance calculation semantics (6.10), seed data scope clarification.  
 > v3: Rename 6h and 4h to 6H and 4H to attend for entities naming rules.  
 > v4: Added Client.Cpf uniqueness per branch as a filtered unique constraint on active rows.  
-> v5: Corrected the Account creation/pairing flow: Tab accounts are optional per terminal, pairing/unpairing is explicit for existing accounts, account creation is split into explicit Bank/Terminal/Tab operations, new Tabs are always created for an existing or newly-created Terminal, and a new paired Tab inherits the Terminal descriptive fields at creation time.
+> v5: Corrected the Account creation/pairing flow: Tab accounts are optional per terminal, pairing/unpairing is explicit for existing accounts, account creation is split into explicit Bank/Terminal/Tab operations, new Tabs are always created for an existing or newly-created Terminal, and a new paired Tab inherits the Terminal descriptive fields at creation time.  
+> v6: Changed Client.Cpf storage from formatted varchar(14) to normalized digits varchar(11); application layer strips non-digit chars before persistence.
 
 ---
 
@@ -442,7 +443,7 @@ public class Client : EntityBase
 |---|---|---|---|
 | Id | uuid | PK | |
 | Name | varchar(255) | NOT NULL | |
-| Cpf | varchar(14) | NULL | Brazilian personal ID (###.###.###-##) |
+| Cpf | varchar(11) | NULL | Brazilian personal ID (normalized digits, 11 chars) |
 | Cep | varchar(9) | NULL | Postal code |
 | Address | text | NULL | |
 | Phone | varchar(20) | NOT NULL | Primary phone |
