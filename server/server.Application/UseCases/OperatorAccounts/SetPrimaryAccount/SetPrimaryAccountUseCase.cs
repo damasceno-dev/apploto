@@ -32,7 +32,12 @@ public class SetPrimaryAccountUseCase(
         var currentPrimary = await operatorAccountsRepository.GetActivePrimaryByOperatorId(operatorId);
 
         if (currentPrimary is not null && currentPrimary.Id != link.Id)
+        {
+            // The filtered unique index allows only one active primary link per operator.
+            // Persist the clear step before promoting the new primary to avoid update-order races.
             currentPrimary.IsPrimary = false;
+            await unitOfWork.Commit();
+        }
 
         link.IsPrimary = true;
 

@@ -126,7 +126,7 @@ internal static class TestSeeder
             return refreshToken;
         }
 
-        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null)
+        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null, Guid? userId = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -135,11 +135,88 @@ internal static class TestSeeder
             {
                 Id = Guid.NewGuid(),
                 Name = name ?? $"Operator {Guid.NewGuid():N}",
-                BranchId = branchId
+                BranchId = branchId,
+                UserId = userId
             };
             dbContext.Operators.Add(op);
             await dbContext.SaveChangesAsync();
             return op;
+        }
+
+        public async Task<Account> SeedAccountAsync(
+            Guid branchId,
+            AccountType type = AccountType.Terminal,
+            string? name = null,
+            string? institution = null,
+            string? number = null,
+            Guid? tabAccountId = null,
+            bool active = true)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var account = new Account
+            {
+                Id = Guid.NewGuid(),
+                Type = type,
+                Name = name ?? $"Account {Guid.NewGuid():N}",
+                Institution = institution,
+                Number = number,
+                BranchId = branchId,
+                TabAccountId = tabAccountId,
+                Active = active
+            };
+
+            dbContext.Accounts.Add(account);
+            await dbContext.SaveChangesAsync();
+            return account;
+        }
+
+        public async Task<OperatorAccount> SeedOperatorAccountAsync(
+            Guid operatorId,
+            Guid accountId,
+            bool isPrimary = false,
+            bool active = true)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var operatorAccount = new OperatorAccount
+            {
+                Id = Guid.NewGuid(),
+                OperatorId = operatorId,
+                AccountId = accountId,
+                IsPrimary = isPrimary,
+                Active = active
+            };
+
+            dbContext.OperatorAccounts.Add(operatorAccount);
+            await dbContext.SaveChangesAsync();
+            return operatorAccount;
+        }
+
+        public async Task<List<OperatorAccount>> ListOperatorAccountsByOperatorIdAsync(Guid operatorId)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            return await dbContext.OperatorAccounts
+                .AsNoTracking()
+                .Where(operatorAccount => operatorAccount.OperatorId == operatorId)
+                .OrderBy(operatorAccount => operatorAccount.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<List<OperatorAccount>> ListOperatorAccountsByAccountIdAsync(Guid accountId)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            return await dbContext.OperatorAccounts
+                .AsNoTracking()
+                .Where(operatorAccount => operatorAccount.AccountId == accountId)
+                .OrderBy(operatorAccount => operatorAccount.CreatedAt)
+                .ToListAsync();
         }
 
         /// <summary>

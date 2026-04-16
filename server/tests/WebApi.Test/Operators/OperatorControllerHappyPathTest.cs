@@ -163,6 +163,29 @@ public class OperatorControllerHappyPathTest(ServerWebApplicationFactory factory
     }
 
     [Fact]
+    public async Task Deactivate_ShouldCascadeDeactivateAssignedAccounts_WhenOperatorHasLinks()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("OpDeactivateCascade");
+        var op = await factory.SeedOperatorAsync(branch.Id, "Cascade Operator");
+        var primaryAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Primary Cascade");
+        var secondaryAccount = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount, "Secondary Cascade");
+        await factory.SeedOperatorAccountAsync(op.Id, primaryAccount.Id, isPrimary: true);
+        await factory.SeedOperatorAccountAsync(op.Id, secondaryAccount.Id);
+
+        var httpResponse = await _client.DeleteAuthAsync($"/operator/{op.Id}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var persistedOperator = await factory.ReloadAsync<Operator>(op.Id);
+        var links = await factory.ListOperatorAccountsByOperatorIdAsync(op.Id);
+        persistedOperator.ShouldNotBeNull();
+        persistedOperator.Active.ShouldBeFalse();
+        links.Count.ShouldBe(2);
+        links.All(link => link.Active is false).ShouldBeTrue();
+        links.All(link => link.IsPrimary is false).ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task List_ShouldReturn200WithEmptyList_WhenNoOperatorsExistInBranch()
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("OpListEmpty");

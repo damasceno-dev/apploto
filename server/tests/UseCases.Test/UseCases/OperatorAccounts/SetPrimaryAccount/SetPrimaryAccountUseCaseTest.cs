@@ -82,7 +82,7 @@ public class SetPrimaryAccountUseCaseTest
         previousPrimary.IsPrimary.ShouldBeFalse();
         newLink.IsPrimary.ShouldBeTrue();
         response.IsPrimary.ShouldBeTrue();
-        await unitOfWork.Received(1).Commit();
+        await unitOfWork.Received(2).Commit();
     }
 
     [Fact]

@@ -419,6 +419,7 @@ Controller rules:
 
 - Use `[ApiController]`.
 - Keep route names clear and consistent.
+- Declare an explicit `[Route("...")]` on every action instead of relying on the controller-level route plus verb attribute alone. Use `[Route("")]` for collection-root actions when the final URL should stay at the controller root.
 - Use `[FromServices]` per action for use case injection rather than heavy constructor injection.
 - Keep action methods thin.
 - Declare response types with `[ProducesResponseType]`.

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Operators.Create;
 using server.Application.UseCases.Operators.Deactivate;
@@ -17,6 +16,7 @@ namespace server.Controllers;
 public class OperatorController : ControllerBase
 {
     [HttpPost]
+    [Route("")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponseCreateOperatorJson), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
@@ -32,6 +32,7 @@ public class OperatorController : ControllerBase
     }
 
     [HttpGet]
+    [Route("")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponseListOperatorsJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
