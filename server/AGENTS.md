@@ -516,6 +516,9 @@ tests/
 - Each test class should use a local `CreateUseCase()` helper to keep setup readable.
 - Assert on returned DTOs for success cases.
 - Assert on thrown exceptions for error cases.
+- When a use case depends on branch-scoped, tenant-scoped, or id-scoped repository queries, assert the exact repository arguments with `Received()` / `DidNotReceive()` for the critical calls. This proves the use case passed the authenticated scope correctly instead of only relying on the repository contract.
+- Do not treat an `Arg.Any(...)` repository setup by itself as proof of branch isolation. A mock configured with broad argument matching can still return the expected value even when the use case passes the wrong branch or entity id.
+- Prefer mock-builder helpers that can configure exact-argument returns for scoped repository queries such as `ListActiveByBranchId`, `GetActiveByIdAndBranchId`, and `GetActiveByIdAndBranchIdAsNoTracking`.
 - Do not assert HTTP status codes in use case tests.
 
 ### Authentication service tests
