@@ -27,6 +27,8 @@ using server.Application.UseCases.Operators.Deactivate;
 using server.Application.UseCases.Operators.Get;
 using server.Application.UseCases.Operators.List;
 using server.Application.UseCases.Operators.Update;
+using server.Application.UseCases.Clients.Create;
+using server.Application.UseCases.Clients.Update;
 using server.Application.UseCases.Users.Login;
 using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
@@ -65,6 +67,8 @@ public static class AppDependencyInjection
         services.AddScoped<GetOperatorUseCase>();
         services.AddScoped<UpdateOperatorUseCase>();
         services.AddScoped<DeactivateOperatorUseCase>();
+        services.AddScoped<CreateClientUseCase>();
+        services.AddScoped<UpdateClientUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

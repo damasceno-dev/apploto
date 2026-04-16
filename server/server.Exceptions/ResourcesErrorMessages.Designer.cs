@@ -356,5 +356,47 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("OPERATOR_ACCOUNT_ALREADY_ACTIVE", resourceCulture);
             }
         }
+
+        public static string CLIENT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("CLIENT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("CLIENT_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("CLIENT_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_PHONE_EMPTY {
+            get {
+                return ResourceManager.GetString("CLIENT_PHONE_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_PHONE_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("CLIENT_PHONE_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_CPF_INVALID {
+            get {
+                return ResourceManager.GetString("CLIENT_CPF_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_CPF_CONFLICT {
+            get {
+                return ResourceManager.GetString("CLIENT_CPF_CONFLICT", resourceCulture);
+            }
+        }
     }
 }

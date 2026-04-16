@@ -13,7 +13,7 @@ internal class ClientConfiguration : IEntityTypeConfiguration<Client>
 
         builder.Property(c => c.Name).HasMaxLength(255).IsRequired();
         builder.Property(c => c.Phone).HasMaxLength(20).IsRequired();
-        builder.Property(c => c.Cpf).HasMaxLength(14).IsRequired(false);
+        builder.Property(c => c.Cpf).HasMaxLength(11).IsRequired(false);
         builder.Property(c => c.Cep).HasMaxLength(9).IsRequired(false);
         builder.Property(c => c.Address).HasMaxLength(500).IsRequired(false);
         builder.Property(c => c.PhoneSecondary).HasMaxLength(20).IsRequired(false);

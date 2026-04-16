@@ -186,8 +186,8 @@ namespace server.Infrastructure.Migrations
                         .HasColumnType("character varying(9)");
 
                     b.Property<string>("Cpf")
-                        .HasMaxLength(14)
-                        .HasColumnType("character varying(14)");
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

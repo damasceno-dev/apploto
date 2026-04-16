@@ -18,7 +18,7 @@ namespace server.Infrastructure.Migrations
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(255)", maxLength: 255, nullable: false),
                     Phone = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
-                    Cpf = table.Column<string>(type: "character varying(14)", maxLength: 14, nullable: true),
+                    Cpf = table.Column<string>(type: "character varying(11)", maxLength: 11, nullable: true),
                     Cep = table.Column<string>(type: "character varying(9)", maxLength: 9, nullable: true),
                     Address = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
                     PhoneSecondary = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),

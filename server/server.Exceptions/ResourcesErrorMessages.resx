@@ -174,4 +174,25 @@
     <data name="OPERATOR_ACCOUNT_ALREADY_ACTIVE" xml:space="preserve">
         <value>Este operador já possui este vínculo ativo com a conta informada</value>
     </data>
+    <data name="CLIENT_NOT_FOUND" xml:space="preserve">
+        <value>Cliente não encontrado</value>
+    </data>
+    <data name="CLIENT_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do cliente deve ser informado</value>
+    </data>
+    <data name="CLIENT_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome do cliente deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="CLIENT_PHONE_EMPTY" xml:space="preserve">
+        <value>O telefone não pode ser nulo ou vazio</value>
+    </data>
+    <data name="CLIENT_PHONE_MAX_LENGTH" xml:space="preserve">
+        <value>O telefone deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="CLIENT_CPF_INVALID" xml:space="preserve">
+        <value>CPF inválido</value>
+    </data>
+    <data name="CLIENT_CPF_CONFLICT" xml:space="preserve">
+        <value>Já existe um cliente ativo com este CPF nesta filial</value>
+    </data>
 </root>
