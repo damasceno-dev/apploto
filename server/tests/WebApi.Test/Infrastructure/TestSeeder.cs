@@ -126,6 +126,28 @@ internal static class TestSeeder
             return refreshToken;
         }
 
+        public async Task<Client> SeedClientAsync(
+            Guid branchId,
+            string? name = null,
+            string? phone = null,
+            string? cpf = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var client = new Client
+            {
+                Id = Guid.NewGuid(),
+                Name = name ?? $"Client {Guid.NewGuid():N}",
+                Phone = phone ?? "11999999999",
+                Cpf = cpf,
+                BranchId = branchId
+            };
+            dbContext.Clients.Add(client);
+            await dbContext.SaveChangesAsync();
+            return client;
+        }
+
         public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null, Guid? userId = null)
         {
             using var scope = factory.Services.CreateScope();
