@@ -20,9 +20,9 @@ public class DeactivateAccountUseCaseTest
         var account = new AccountBuilder().WithBranchId(branchUser.BranchId).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(account).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(account.Id, branchUser.BranchId, account).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByAccountId([])
+            .ListActiveByAccountId(account.Id, [])
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -32,6 +32,8 @@ public class DeactivateAccountUseCaseTest
 
         account.Active.ShouldBeFalse();
         response.Id.ShouldBe(account.Id);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(account.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByAccountId(account.Id);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -47,9 +49,9 @@ public class DeactivateAccountUseCaseTest
             .WithAccountId(account.Id).WithIsPrimary(false).WithActive(true).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(account).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(account.Id, branchUser.BranchId, account).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByAccountId([link1, link2])
+            .ListActiveByAccountId(account.Id, [link1, link2])
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -62,6 +64,8 @@ public class DeactivateAccountUseCaseTest
         link1.IsPrimary.ShouldBeFalse();
         link2.Active.ShouldBeFalse();
         link2.IsPrimary.ShouldBeFalse();
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(account.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByAccountId(account.Id);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -75,9 +79,9 @@ public class DeactivateAccountUseCaseTest
             .WithAccountId(account.Id).WithIsPrimary(true).WithActive(true).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(account).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(account.Id, branchUser.BranchId, account).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByAccountId([link])
+            .ListActiveByAccountId(account.Id, [link])
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -98,17 +102,19 @@ public class DeactivateAccountUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenAccountNotFoundInBranch()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var accountId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(null).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(accountId, branchUser.BranchId, null).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid()));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(accountId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(accountId, branchUser.BranchId);
         await operatorAccountsRepo.DidNotReceive().ListActiveByAccountId(Arg.Any<Guid>());
         await unitOfWork.DidNotReceive().Commit();
     }

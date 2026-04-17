@@ -30,7 +30,7 @@ public class UpdateAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(account)
+            .GetActiveByIdAndBranchId(account.Id, branchUser.BranchId, account)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -40,6 +40,7 @@ public class UpdateAccountUseCaseTest
 
         account.Name.ShouldBe("New Name");
         response.Name.ShouldBe("New Name");
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(account.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -58,7 +59,7 @@ public class UpdateAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(account)
+            .GetActiveByIdAndBranchId(account.Id, branchUser.BranchId, account)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -70,6 +71,7 @@ public class UpdateAccountUseCaseTest
         account.Number.ShouldBe("999-0");
         response.Institution.ShouldBe("Banco Novo");
         response.Number.ShouldBe("999-0");
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(account.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -87,7 +89,7 @@ public class UpdateAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(account)
+            .GetActiveByIdAndBranchId(account.Id, branchUser.BranchId, account)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -99,6 +101,7 @@ public class UpdateAccountUseCaseTest
         account.TabAccountId.ShouldBe(tabAccountId);
         response.Type.ShouldBe(AccountType.Terminal);
         response.TabAccountId.ShouldBe(tabAccountId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(account.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -124,19 +127,21 @@ public class UpdateAccountUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenAccountNotInBranch()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var accountId = Guid.NewGuid();
         var request = new RequestUpdateAccountJsonBuilder().Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(null)
+            .GetActiveByIdAndBranchId(accountId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid(), request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(accountId, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(accountId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

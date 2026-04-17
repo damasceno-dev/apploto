@@ -66,10 +66,10 @@ public class CreateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(activeMembership)
+            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, activeMembership)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
@@ -79,6 +79,8 @@ public class CreateOperatorUseCaseTest
         var response = await useCase.Execute(request);
 
         response.UserId.ShouldBe(targetUser.Id);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -86,15 +88,16 @@ public class CreateOperatorUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenLinkedUserDoesNotExist()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var targetUserId = Guid.NewGuid();
         var request = new RequestCreateOperatorJsonBuilder()
-            .WithUserId(Guid.NewGuid())
+            .WithUserId(targetUserId)
             .Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(null)
+            .GetById(targetUserId, null)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder().Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
@@ -105,6 +108,7 @@ public class CreateOperatorUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.USER_NOT_FOUND);
+        await usersRepository.Received(1).GetById(targetUserId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -121,7 +125,7 @@ public class CreateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(inactiveUser)
+            .GetById(inactiveUser.Id, inactiveUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder().Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
@@ -132,6 +136,7 @@ public class CreateOperatorUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.USER_NOT_FOUND);
+        await usersRepository.Received(1).GetById(inactiveUser.Id);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -148,10 +153,10 @@ public class CreateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(null)
+            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, null)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
@@ -161,6 +166,8 @@ public class CreateOperatorUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

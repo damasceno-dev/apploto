@@ -1,4 +1,5 @@
 using CommonTestUtilities.Requests;
+using server.Application.UseCases.Operators;
 using server.Application.UseCases.Operators.Create;
 using server.Exceptions;
 using Shouldly;
@@ -61,7 +62,7 @@ public class CreateOperatorFluentValidationTest
     [Fact]
     public void Validate_ShouldFail_WhenNameExceedsMaxLength()
     {
-        var name = new string('a', CreateOperatorFluentValidation.OperatorNameMaxLength + 1);
+        var name = new string('a', OperatorValidationExtensions.OperatorNameMaxLength + 1);
 
         var request = new RequestCreateOperatorJsonBuilder()
             .WithName(name)
@@ -71,7 +72,7 @@ public class CreateOperatorFluentValidationTest
 
         result.IsValid.ShouldBeFalse();
         result.Errors.Select(e => e.ErrorMessage)
-            .ShouldContain(string.Format(ResourcesErrorMessages.OPERATOR_NAME_MAX_LENGTH, CreateOperatorFluentValidation.OperatorNameMaxLength));
+            .ShouldContain(string.Format(ResourcesErrorMessages.OPERATOR_NAME_MAX_LENGTH, OperatorValidationExtensions.OperatorNameMaxLength));
     }
 
     [Fact]

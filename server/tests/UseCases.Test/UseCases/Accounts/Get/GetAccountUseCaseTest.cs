@@ -1,6 +1,7 @@
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
+using NSubstitute;
 using server.Application.UseCases.Accounts.Get;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
@@ -25,8 +26,8 @@ public class GetAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(account)
-            .GetActiveTerminalIdByTabAccountId(terminalAccountId)
+            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .GetActiveTerminalIdByTabAccountId(account.Id, branchUser.BranchId, terminalAccountId)
             .Build();
 
         var useCase = CreateUseCase(authService, accountsRepo);
@@ -37,23 +38,26 @@ public class GetAccountUseCaseTest
         response.Name.ShouldBe(account.Name);
         response.BranchId.ShouldBe(branchUser.BranchId);
         response.TerminalAccountId.ShouldBe(terminalAccountId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId);
     }
 
     [Fact]
     public async Task Execute_ShouldThrowNotFoundException_WhenAccountNotInBranch()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var accountId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(null)
+            .GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId, null)
             .Build();
 
         var useCase = CreateUseCase(authService, accountsRepo);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid()));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(accountId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId);
     }
 
     private static GetAccountUseCase CreateUseCase(

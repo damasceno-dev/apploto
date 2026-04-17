@@ -34,7 +34,7 @@ public class UpdateClientUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(client)
+            .GetActiveByIdAndBranchId(client.Id, branchUser.BranchId, client)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -46,6 +46,7 @@ public class UpdateClientUseCaseTest
         client.Phone.ShouldBe("22222222222");
         response.Name.ShouldBe("New Name");
         response.Phone.ShouldBe("22222222222");
+        await clientsRepository.Received(1).GetActiveByIdAndBranchId(client.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -65,7 +66,7 @@ public class UpdateClientUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(client)
+            .GetActiveByIdAndBranchId(client.Id, branchUser.BranchId, client)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -75,6 +76,7 @@ public class UpdateClientUseCaseTest
 
         client.Cpf.ShouldBeNull();
         response.Cpf.ShouldBeNull();
+        await clientsRepository.Received(1).GetActiveByIdAndBranchId(client.Id, branchUser.BranchId);
         await clientsRepository.DidNotReceive().GetActiveByCpfAndBranchId(Arg.Any<string>(), Arg.Any<Guid>());
         await unitOfWork.Received(1).Commit();
     }
@@ -92,8 +94,8 @@ public class UpdateClientUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(client)
-            .GetActiveByCpfAndBranchId(null)
+            .GetActiveByIdAndBranchId(client.Id, branchUser.BranchId, client)
+            .GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -103,6 +105,7 @@ public class UpdateClientUseCaseTest
 
         client.Cpf.ShouldBe("12345678901");
         response.Cpf.ShouldBe("12345678901");
+        await clientsRepository.Received(1).GetActiveByIdAndBranchId(client.Id, branchUser.BranchId);
         await clientsRepository.Received(1).GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
@@ -123,8 +126,8 @@ public class UpdateClientUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(client)
-            .GetActiveByCpfAndBranchId(client)  // same client owns this normalized CPF
+            .GetActiveByIdAndBranchId(client.Id, branchUser.BranchId, client)
+            .GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId, client)  // same client owns this normalized CPF
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -132,6 +135,8 @@ public class UpdateClientUseCaseTest
 
         await Should.NotThrowAsync(() => useCase.Execute(client.Id, request));
 
+        await clientsRepository.Received(1).GetActiveByIdAndBranchId(client.Id, branchUser.BranchId);
+        await clientsRepository.Received(1).GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -152,8 +157,8 @@ public class UpdateClientUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(client)
-            .GetActiveByCpfAndBranchId(anotherClient)
+            .GetActiveByIdAndBranchId(client.Id, branchUser.BranchId, client)
+            .GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId, anotherClient)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -162,6 +167,8 @@ public class UpdateClientUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(client.Id, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.CLIENT_CPF_CONFLICT);
+        await clientsRepository.Received(1).GetActiveByIdAndBranchId(client.Id, branchUser.BranchId);
+        await clientsRepository.Received(1).GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -169,21 +176,23 @@ public class UpdateClientUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenClientNotFound()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var clientId = Guid.NewGuid();
         var request = new RequestUpdateClientJsonBuilder().Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(null)
+            .GetActiveByIdAndBranchId(clientId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authenticationService, clientsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid(), request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(clientId, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.CLIENT_NOT_FOUND);
+        await clientsRepository.Received(1).GetActiveByIdAndBranchId(clientId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

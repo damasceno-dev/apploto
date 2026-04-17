@@ -1,6 +1,7 @@
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
+using NSubstitute;
 using server.Application.UseCases.OperatorAccounts.ListOperatorAccounts;
 using server.Domain.Interfaces;
 using server.Exceptions;
@@ -31,9 +32,11 @@ public class ListOperatorAccountsUseCaseTest
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId, op)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdWithAccount([link1, link2])
+            .ListActiveByOperatorIdWithAccount(op.Id, [link1, link2])
             .Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
@@ -45,6 +48,8 @@ public class ListOperatorAccountsUseCaseTest
         response.OperatorAccounts.ShouldContain(a => a.AccountId == account1.Id && a.IsPrimary);
         response.OperatorAccounts.ShouldContain(a => a.AccountId == account2.Id && !a.IsPrimary);
         response.OperatorAccounts.All(_ => true).ShouldBeTrue();
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
     [Fact]
@@ -54,9 +59,11 @@ public class ListOperatorAccountsUseCaseTest
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId, op)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdWithAccount([])
+            .ListActiveByOperatorIdWithAccount(op.Id, [])
             .Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
@@ -64,22 +71,29 @@ public class ListOperatorAccountsUseCaseTest
         var response = await useCase.Execute(op.Id);
 
         response.OperatorAccounts.ShouldBeEmpty();
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
     [Fact]
     public async Task Execute_ShouldThrowNotFoundException_WhenOperatorNotInBranch()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var operatorId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(null).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(operatorId, branchUser.BranchId, null)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid()));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(operatorId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(operatorId, branchUser.BranchId);
+        await operatorAccountsRepo.DidNotReceive().ListActiveByOperatorIdWithAccount(Arg.Any<Guid>());
     }
 
     [Fact]

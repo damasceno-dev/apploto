@@ -26,7 +26,7 @@ public class UnpairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -36,6 +36,7 @@ public class UnpairTabAccountUseCaseTest
 
         terminalAccount.TabAccountId.ShouldBeNull();
         response.TabAccountId.ShouldBeNull();
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -51,7 +52,7 @@ public class UnpairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -60,6 +61,7 @@ public class UnpairTabAccountUseCaseTest
         var response = await useCase.Execute(terminalAccount.Id);
 
         response.TabAccountId.ShouldBeNull();
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -84,18 +86,20 @@ public class UnpairTabAccountUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenTerminalAccountIsMissing()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var terminalAccountId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(null)
+            .GetActiveByIdAndBranchId(terminalAccountId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid()));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(terminalAccountId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_TERMINAL_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccountId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

@@ -8,9 +8,9 @@ public class BranchesRepositoryBuilder
 {
     private readonly IBranchesRepository _repository = Substitute.For<IBranchesRepository>();
 
-    public BranchesRepositoryBuilder GetById(Branch? branch)
+    public BranchesRepositoryBuilder GetById(Guid branchId, Branch? branch)
     {
-        _repository.GetById(Arg.Any<Guid>()).Returns(branch);
+        _repository.GetById(branchId).Returns(branch);
         return this;
     }
 

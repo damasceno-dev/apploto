@@ -350,8 +350,7 @@ Full CRUD for `Client` with its own entity, infrastructure, migration, and tests
 
 ## Milestone 3 — Transaction Ledger Core
 
-**Fix detected from the previous milestones:** Follow-up hardening note: strengthen older Account/Operator read-get-deactivate use-case tests to assert exact scoped repository arguments instead of relying only on `Arg.Any(...)`-based mock setups. 
-This can be bundled with any broader feature-local validation-extension cleanup so test-helper changes land together.
+- [x] **Follow-up hardening from previous milestones:** Strengthen older Account/Operator read-get-deactivate use-case tests to assert exact scoped repository arguments instead of relying on `Arg.Any(...)`-based mock setups, and bundle that work with broader feature-local FluentValidation extension cleanup so the test-helper and validation refactors land together.
 
 
 **Goal:** Implement the `Transaction` entity and its full lifecycle: create, edit, cancel, draft/active status, installment groups, fiado in/out, due-date rules, lock-date enforcement, and branch-consistency validation.

@@ -38,10 +38,10 @@ public class AddBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetByUserIdAndBranchId(null)
+            .GetByUserIdAndBranchId(targetUser.Id, caller.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -52,6 +52,8 @@ public class AddBranchUserUseCaseTest
         response.BranchUser.UserId.ShouldBe(targetUser.Id);
         response.BranchUser.Name.ShouldBe(targetUser.Name);
         response.BranchUser.Role.ShouldBe(Role.Manager);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetByUserIdAndBranchId(targetUser.Id, caller.BranchId);
         await branchUsersRepository.Received(1).Add(Arg.Is<BranchUser>(branchUser =>
             branchUser.UserId == targetUser.Id &&
             branchUser.BranchId == caller.BranchId &&
@@ -82,10 +84,10 @@ public class AddBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetByEmail(targetUser)
+            .GetByEmail(targetUser.Email, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetByUserIdAndBranchId(null)
+            .GetByUserIdAndBranchId(targetUser.Id, caller.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -95,6 +97,8 @@ public class AddBranchUserUseCaseTest
 
         response.BranchUser.Email.ShouldBe(targetUser.Email);
         response.BranchUser.Role.ShouldBe(Role.Member);
+        await usersRepository.Received(1).GetByEmail(targetUser.Email);
+        await branchUsersRepository.Received(1).GetByUserIdAndBranchId(targetUser.Id, caller.BranchId);
         await branchUsersRepository.Received(1).Add(Arg.Any<BranchUser>());
         await unitOfWork.Received(1).Commit();
     }
@@ -128,10 +132,10 @@ public class AddBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetByUserIdAndBranchId(existingBranchUser)
+            .GetByUserIdAndBranchId(targetUser.Id, caller.BranchId, existingBranchUser)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -142,6 +146,8 @@ public class AddBranchUserUseCaseTest
         response.BranchUser.Id.ShouldBe(existingBranchUser.Id);
         existingBranchUser.Active.ShouldBeTrue();
         existingBranchUser.Role.ShouldBe(Role.Manager);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetByUserIdAndBranchId(targetUser.Id, caller.BranchId);
         await branchUsersRepository.DidNotReceive().Add(Arg.Any<BranchUser>());
         await unitOfWork.Received(1).Commit();
     }
@@ -162,7 +168,7 @@ public class AddBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(null)
+            .GetById(request.UserId!.Value, null)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
@@ -172,6 +178,8 @@ public class AddBranchUserUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.USER_NOT_FOUND);
+        await usersRepository.Received(1).GetById(request.UserId!.Value);
+        await branchUsersRepository.DidNotReceive().GetByUserIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>());
         await branchUsersRepository.DidNotReceive().Add(Arg.Any<BranchUser>());
         await unitOfWork.DidNotReceive().Commit();
     }
@@ -202,10 +210,10 @@ public class AddBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetByUserIdAndBranchId(activeBranchUser)
+            .GetByUserIdAndBranchId(targetUser.Id, caller.BranchId, activeBranchUser)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -214,6 +222,8 @@ public class AddBranchUserUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.BRANCH_USER_ALREADY_ACTIVE);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetByUserIdAndBranchId(targetUser.Id, caller.BranchId);
         await branchUsersRepository.DidNotReceive().Add(Arg.Any<BranchUser>());
         await unitOfWork.DidNotReceive().Commit();
     }
@@ -240,10 +250,10 @@ public class AddBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetByUserIdAndBranchId(null)
+            .GetByUserIdAndBranchId(targetUser.Id, caller.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -252,6 +262,8 @@ public class AddBranchUserUseCaseTest
         var response = await useCase.Execute(request);
 
         response.BranchUser.Role.ShouldBe(Role.Admin);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetByUserIdAndBranchId(targetUser.Id, caller.BranchId);
         await branchUsersRepository.Received(1).Add(Arg.Is<BranchUser>(branchUser =>
             branchUser.UserId == targetUser.Id &&
             branchUser.BranchId == caller.BranchId &&

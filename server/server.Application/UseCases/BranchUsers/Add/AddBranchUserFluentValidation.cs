@@ -24,14 +24,7 @@ public class AddBranchUserFluentValidation : AbstractValidator<RequestAddBranchU
             .When(request => string.IsNullOrWhiteSpace(request.Email) is false)
             .WithMessage(ResourcesErrorMessages.EMAIL_INVALID);
 
-        RuleFor(request => request.Role)
-            .NotNull()
-            .WithMessage(ResourcesErrorMessages.ROLE_REQUIRED);
-
-        RuleFor(request => request.Role)
-            .IsInEnum()
-            .When(request => request.Role.HasValue)
-            .WithMessage(ResourcesErrorMessages.ROLE_INVALID);
+        RuleFor(request => request.Role).ValidateBranchUserRole();
     }
 
     private static bool HasSingleUserReference(RequestAddBranchUserJson request)

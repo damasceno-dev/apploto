@@ -36,10 +36,10 @@ public class CreateBranchSessionUseCaseTest
             .GetAuthenticatedUser(authenticatedUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser)
+            .GetActiveByUserIdAndBranchId(authenticatedUser.Id, branch.Id, branchUser)
             .Build();
         var branchesRepository = new BranchesRepositoryBuilder()
-            .GetById(branch)
+            .GetById(branch.Id, branch)
             .Build();
         var tokenServices = new TokenServicesBuilder()
             .GenerateBranchToken(branchUser, expectedToken)
@@ -54,6 +54,7 @@ public class CreateBranchSessionUseCaseTest
         response.Branch.Name.ShouldBe(branch.Name);
         response.Branch.Role.ShouldBe(Role.Manager);
         await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(authenticatedUser.Id, branch.Id);
+        await branchesRepository.Received(1).GetById(branch.Id);
         tokenServices.Received(1).GenerateBranchToken(branchUser);
     }
 
@@ -93,7 +94,7 @@ public class CreateBranchSessionUseCaseTest
             .GetAuthenticatedUser(authenticatedUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(null)
+            .GetActiveByUserIdAndBranchId(authenticatedUser.Id, request.BranchId, null)
             .Build();
         var branchesRepository = new BranchesRepositoryBuilder().Build();
         var tokenServices = new TokenServicesBuilder().Build();
@@ -103,6 +104,8 @@ public class CreateBranchSessionUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.BRANCH_NOT_FOUND);
+        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(authenticatedUser.Id, request.BranchId);
+        await branchesRepository.DidNotReceive().GetById(Arg.Any<Guid>());
         tokenServices.DidNotReceive().GenerateBranchToken(Arg.Any<BranchUser>());
     }
 
@@ -124,10 +127,10 @@ public class CreateBranchSessionUseCaseTest
             .GetAuthenticatedUser(authenticatedUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser)
+            .GetActiveByUserIdAndBranchId(authenticatedUser.Id, branch.Id, branchUser)
             .Build();
         var branchesRepository = new BranchesRepositoryBuilder()
-            .GetById(null)
+            .GetById(branch.Id, null)
             .Build();
         var tokenServices = new TokenServicesBuilder().Build();
 
@@ -136,6 +139,8 @@ public class CreateBranchSessionUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.BRANCH_NOT_FOUND);
+        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(authenticatedUser.Id, branch.Id);
+        await branchesRepository.Received(1).GetById(branch.Id);
         tokenServices.DidNotReceive().GenerateBranchToken(Arg.Any<BranchUser>());
     }
 

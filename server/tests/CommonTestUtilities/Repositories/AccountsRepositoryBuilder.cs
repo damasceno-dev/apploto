@@ -14,9 +14,9 @@ public class AccountsRepositoryBuilder
             .Returns(new Dictionary<Guid, Guid>());
     }
 
-    public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Account? account)
+    public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Account? account)
     {
-        _repository.GetActiveByIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(account);
+        _repository.GetActiveByIdAndBranchId(id, branchId).Returns(account);
         return this;
     }
 
@@ -26,21 +26,39 @@ public class AccountsRepositoryBuilder
         return this;
     }
 
-    public AccountsRepositoryBuilder GetActiveTerminalIdByTabAccountId(Guid? terminalAccountId)
+    public AccountsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Account? account)
     {
-        _repository.GetActiveTerminalIdByTabAccountId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(terminalAccountId);
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId).Returns(account);
         return this;
     }
 
-    public AccountsRepositoryBuilder ListActiveByBranchId(IReadOnlyList<Account> accounts)
+    public AccountsRepositoryBuilder GetActiveTerminalIdByTabAccountId(Guid tabAccountId, Guid branchId, Guid? terminalAccountId)
     {
-        _repository.ListActiveByBranchId(Arg.Any<Guid>()).Returns(accounts);
+        _repository.GetActiveTerminalIdByTabAccountId(tabAccountId, branchId).Returns(terminalAccountId);
+        return this;
+    }
+
+    public AccountsRepositoryBuilder ListActiveByBranchId(Guid branchId, IReadOnlyList<Account> accounts)
+    {
+        _repository.ListActiveByBranchId(branchId).Returns(accounts);
         return this;
     }
 
     public AccountsRepositoryBuilder ListActiveTerminalIdsByTabAccountIds(IReadOnlyDictionary<Guid, Guid> terminalIdsByTabAccountId)
     {
         _repository.ListActiveTerminalIdsByTabAccountIds(Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>())
+            .Returns(terminalIdsByTabAccountId);
+        return this;
+    }
+
+    public AccountsRepositoryBuilder ListActiveTerminalIdsByTabAccountIds(
+        Guid branchId,
+        IReadOnlyCollection<Guid> tabAccountIds,
+        IReadOnlyDictionary<Guid, Guid> terminalIdsByTabAccountId)
+    {
+        _repository.ListActiveTerminalIdsByTabAccountIds(
+                branchId,
+                Arg.Is<IReadOnlyCollection<Guid>>(ids => ids.OrderBy(i => i).SequenceEqual(tabAccountIds.OrderBy(i => i))))
             .Returns(terminalIdsByTabAccountId);
         return this;
     }

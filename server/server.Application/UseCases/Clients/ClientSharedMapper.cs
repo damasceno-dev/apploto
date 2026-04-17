@@ -4,7 +4,7 @@ using server.Domain.Entities;
 
 namespace server.Application.UseCases.Clients;
 
-public static partial class ClientSharedMapper
+internal static partial class ClientSharedMapper
 {
     extension(Client client)
     {

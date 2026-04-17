@@ -28,7 +28,7 @@ public class UpdateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(op)
+            .GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -39,6 +39,7 @@ public class UpdateOperatorUseCaseTest
         op.Name.ShouldBe("New Name");
         response.Name.ShouldBe("New Name");
         response.UserId.ShouldBeNull();
+        await operatorsRepository.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -60,13 +61,13 @@ public class UpdateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(activeMembership)
+            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, activeMembership)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(op)
+            .GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -76,6 +77,9 @@ public class UpdateOperatorUseCaseTest
 
         op.UserId.ShouldBe(targetUser.Id);
         response.UserId.ShouldBe(targetUser.Id);
+        await operatorsRepository.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -95,7 +99,7 @@ public class UpdateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(op)
+            .GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -105,6 +109,7 @@ public class UpdateOperatorUseCaseTest
 
         op.UserId.ShouldBeNull();
         response.UserId.ShouldBeNull();
+        await operatorsRepository.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -131,21 +136,23 @@ public class UpdateOperatorUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenOperatorNotInBranch()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var operatorId = Guid.NewGuid();
         var request = new RequestUpdateOperatorJsonBuilder().Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(null)
+            .GetActiveByIdAndBranchId(operatorId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authenticationService, new UsersRepositoryBuilder().Build(), new BranchUsersRepositoryBuilder().Build(), operatorsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid(), request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(operatorId, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
+        await operatorsRepository.Received(1).GetActiveByIdAndBranchId(operatorId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -154,18 +161,19 @@ public class UpdateOperatorUseCaseTest
     {
         var branchUser = new BranchUserBuilder().Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var targetUserId = Guid.NewGuid();
         var request = new RequestUpdateOperatorJsonBuilder()
-            .WithUserId(Guid.NewGuid())
+            .WithUserId(targetUserId)
             .Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(null)
+            .GetById(targetUserId, null)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(op)
+            .GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -174,6 +182,8 @@ public class UpdateOperatorUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(op.Id, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.USER_NOT_FOUND);
+        await operatorsRepository.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
+        await usersRepository.Received(1).GetById(targetUserId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -191,13 +201,13 @@ public class UpdateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser)
+            .GetById(targetUser.Id, targetUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(null)
+            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, null)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(op)
+            .GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -206,6 +216,9 @@ public class UpdateOperatorUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(op.Id, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
+        await operatorsRepository.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
+        await usersRepository.Received(1).GetById(targetUser.Id);
+        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

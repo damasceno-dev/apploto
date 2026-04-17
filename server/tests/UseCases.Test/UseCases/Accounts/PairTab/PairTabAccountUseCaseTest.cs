@@ -34,8 +34,9 @@ public class PairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
+            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId, tabAccount)
+            .GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -45,6 +46,9 @@ public class PairTabAccountUseCaseTest
 
         terminalAccount.TabAccountId.ShouldBe(tabAccount.Id);
         response.TabAccountId.ShouldBe(tabAccount.Id);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -68,9 +72,9 @@ public class PairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
-            .GetActiveTerminalIdByTabAccountId(terminalAccount.Id)
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
+            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId, tabAccount)
+            .GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId, terminalAccount.Id)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -79,6 +83,9 @@ public class PairTabAccountUseCaseTest
         var response = await useCase.Execute(request);
 
         response.TabAccountId.ShouldBe(tabAccount.Id);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -90,7 +97,7 @@ public class PairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(null)
+            .GetActiveByIdAndBranchId(request.TerminalAccountId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -99,6 +106,7 @@ public class PairTabAccountUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_TERMINAL_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(request.TerminalAccountId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -116,8 +124,8 @@ public class PairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
-            .GetActiveByIdAndBranchIdAsNoTracking(null)
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
+            .GetActiveByIdAndBranchIdAsNoTracking(request.TabAccountId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -126,6 +134,8 @@ public class PairTabAccountUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_TAB_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(request.TabAccountId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -149,8 +159,9 @@ public class PairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
-            .GetActiveByIdAndBranchIdAsNoTracking(requestedTabAccount)
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
+            .GetActiveByIdAndBranchIdAsNoTracking(requestedTabAccount.Id, branchUser.BranchId, requestedTabAccount)
+            .GetActiveTerminalIdByTabAccountId(requestedTabAccount.Id, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -159,6 +170,9 @@ public class PairTabAccountUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.ACCOUNT_TERMINAL_ALREADY_LINKED);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(requestedTabAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveTerminalIdByTabAccountId(requestedTabAccount.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -181,9 +195,9 @@ public class PairTabAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchId(terminalAccount)
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
-            .GetActiveTerminalIdByTabAccountId(Guid.NewGuid())
+            .GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId, terminalAccount)
+            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId, tabAccount)
+            .GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId, Guid.NewGuid())
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -192,6 +206,9 @@ public class PairTabAccountUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.ACCOUNT_TAB_ALREADY_LINKED);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchId(terminalAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

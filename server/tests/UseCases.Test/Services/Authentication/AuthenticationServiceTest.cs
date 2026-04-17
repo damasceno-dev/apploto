@@ -177,7 +177,7 @@ public class AuthenticationServiceTest
             .GetById(user)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveById(branchUser)
+            .GetActiveById(branchUser.Id, branchUser)
             .Build();
 
         var service = CreateService(tokenProvider, tokenServices, usersRepository, branchUsersRepository);
@@ -224,7 +224,7 @@ public class AuthenticationServiceTest
             .GetById(user)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveById(branchUser)
+            .GetActiveById(branchUser.Id, branchUser)
             .Build();
 
         var service = CreateService(tokenProvider, tokenServices, usersRepository, branchUsersRepository);

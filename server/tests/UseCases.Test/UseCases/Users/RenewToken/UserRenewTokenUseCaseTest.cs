@@ -40,7 +40,7 @@ public class UserRenewTokenUseCaseTest
             .GenerateGlobalToken(user, expectedToken)
             .Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(user)
+            .GetById(user.Id, user)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -50,6 +50,7 @@ public class UserRenewTokenUseCaseTest
 
         response.Token.ShouldBe(expectedToken);
         response.RefreshToken.ShouldBe(expectedRefreshToken);
+        await usersRepository.Received(1).GetById(user.Id);
         await refreshTokenRepository.Received(1).SaveRefreshToken(Arg.Is<RefreshToken>(token =>
             token.Value == expectedRefreshToken && token.UserId == user.Id));
         await unitOfWork.Received(1).Commit();
@@ -121,7 +122,7 @@ public class UserRenewTokenUseCaseTest
             .Build();
         var tokenServices = new TokenServicesBuilder().Build();
         var usersRepository = new UsersRepositoryBuilder()
-            .GetById(null)
+            .GetById(existingRefreshToken.UserId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -130,6 +131,7 @@ public class UserRenewTokenUseCaseTest
         var exception = await Should.ThrowAsync<RefreshTokenException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.REFRESHTOKEN_WITHOUT_USER);
+        await usersRepository.Received(1).GetById(existingRefreshToken.UserId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

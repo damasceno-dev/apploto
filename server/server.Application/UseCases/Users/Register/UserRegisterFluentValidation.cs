@@ -10,11 +10,7 @@ public class UserRegisterFluentValidation : AbstractValidator<RequestUserRegiste
     public UserRegisterFluentValidation()
     {
         RuleFor(r => r.Name).NotEmpty().WithMessage(ResourcesErrorMessages.NAME_EMPTY);
-        RuleFor(r=> r.Email).NotEmpty().WithMessage(ResourcesErrorMessages.EMAIL_EMPTY);
-        RuleFor(r => r.Email)
-            .EmailAddress()
-            .When(r => string.IsNullOrEmpty(r.Email) is false)
-            .WithMessage(ResourcesErrorMessages.EMAIL_INVALID);
+        RuleFor(r => r.Email).ValidateUserEmail();
         RuleFor(r => r.Password).ValidatePassword();
     }
 }

@@ -3,6 +3,7 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.UseCases.Clients;
 using server.Application.UseCases.Clients.Create;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
@@ -18,15 +19,17 @@ public class CreateClientUseCaseTest
     [Fact]
     public async Task Execute_ShouldCreateClient_WhenValidRequest()
     {
-        // Default builder populates all optional fields including a formatted CPF.
-        // NSubstitute returns null for unconfigured calls, so the CPF uniqueness check sees no conflict.
         var branchUser = new BranchUserBuilder().Build();
         var request = new RequestCreateClientJsonBuilder().Build();
-
+        var normalizedCpf = ClientSharedMapper.NormalizeCpf(request.Cpf);
+        normalizedCpf.ShouldNotBeNull();
+        
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
-        var clientsRepository = new ClientsRepositoryBuilder().Build();
+        var clientsRepository = new ClientsRepositoryBuilder()
+            .GetActiveByCpfAndBranchId(normalizedCpf, branchUser.BranchId, null)
+            .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authenticationService, clientsRepository, unitOfWork);
@@ -36,6 +39,7 @@ public class CreateClientUseCaseTest
         response.Name.ShouldBe(request.Name.Trim());
         response.Phone.ShouldBe(request.Phone.Trim());
         response.BranchId.ShouldBe(branchUser.BranchId);
+        await clientsRepository.Received(1).GetActiveByCpfAndBranchId(normalizedCpf, branchUser.BranchId);
         await clientsRepository.Received(1).Add(Arg.Is<Client>(c =>
             c.Name == request.Name.Trim() &&
             c.Phone == request.Phone.Trim() &&
@@ -75,12 +79,14 @@ public class CreateClientUseCaseTest
         var request = new RequestCreateClientJsonBuilder()
             .WithCpf("123.456.789-01")
             .Build();
+        var normalizedCpf = ClientSharedMapper.NormalizeCpf(request.Cpf);
+        normalizedCpf.ShouldNotBeNull();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByCpfAndBranchId(null)
+            .GetActiveByCpfAndBranchId(normalizedCpf, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -88,8 +94,8 @@ public class CreateClientUseCaseTest
 
         var response = await useCase.Execute(request);
 
-        response.Cpf.ShouldBe("12345678901");
-        await clientsRepository.Received(1).GetActiveByCpfAndBranchId("12345678901", branchUser.BranchId);
+        response.Cpf.ShouldBe(normalizedCpf);
+        await clientsRepository.Received(1).GetActiveByCpfAndBranchId(normalizedCpf, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -104,12 +110,14 @@ public class CreateClientUseCaseTest
         var request = new RequestCreateClientJsonBuilder()
             .WithCpf("123.456.789-01")  // same CPF, formatted; normalizes to "12345678901"
             .Build();
+        var normalizedCpf = ClientSharedMapper.NormalizeCpf(request.Cpf);
+        normalizedCpf.ShouldNotBeNull();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
-            .GetActiveByCpfAndBranchId(existingClient)
+            .GetActiveByCpfAndBranchId(normalizedCpf, branchUser.BranchId, existingClient)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -118,6 +126,7 @@ public class CreateClientUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.CLIENT_CPF_CONFLICT);
+        await clientsRepository.Received(1).GetActiveByCpfAndBranchId(normalizedCpf, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

@@ -24,9 +24,9 @@ public class DeactivateOperatorUseCaseTest
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorId([])
+            .ListActiveByOperatorId(op.Id, [])
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -36,6 +36,8 @@ public class DeactivateOperatorUseCaseTest
 
         op.Active.ShouldBeFalse();
         response.Id.ShouldBe(op.Id);
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorId(op.Id);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -51,9 +53,9 @@ public class DeactivateOperatorUseCaseTest
             .WithOperatorId(op.Id).WithIsPrimary(false).WithActive(true).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorId([link1, link2])
+            .ListActiveByOperatorId(op.Id, [link1, link2])
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -66,6 +68,8 @@ public class DeactivateOperatorUseCaseTest
         link1.IsPrimary.ShouldBeFalse();
         link2.Active.ShouldBeFalse();
         link2.IsPrimary.ShouldBeFalse();
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchId(op.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorId(op.Id);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -79,9 +83,9 @@ public class DeactivateOperatorUseCaseTest
             .WithOperatorId(op.Id).WithActive(true).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op).Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorId([link])
+            .ListActiveByOperatorId(op.Id, [link])
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -118,17 +122,21 @@ public class DeactivateOperatorUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenOperatorNotFoundInBranch()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var operatorId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchId(null).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchId(operatorId, branchUser.BranchId, null)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid()));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(operatorId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchId(operatorId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

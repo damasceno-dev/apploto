@@ -32,7 +32,7 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
+            .GetById(target.Id, target)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -42,6 +42,7 @@ public class RemoveBranchUserUseCaseTest
 
         target.Active.ShouldBeFalse();
         response.BranchUser.Active.ShouldBeFalse();
+        await branchUsersRepository.Received(1).GetById(target.Id);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -63,7 +64,7 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
+            .GetById(target.Id, target)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -72,6 +73,7 @@ public class RemoveBranchUserUseCaseTest
         var response = await useCase.Execute(target.Id);
 
         response.BranchUser.Active.ShouldBeFalse();
+        await branchUsersRepository.Received(1).GetById(target.Id);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -93,7 +95,7 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
+            .GetById(target.Id, target)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -103,6 +105,7 @@ public class RemoveBranchUserUseCaseTest
 
         target.Active.ShouldBeFalse();
         response.BranchUser.Active.ShouldBeFalse();
+        await branchUsersRepository.Received(1).GetById(target.Id);
         await branchUsersRepository.DidNotReceive().CountActiveAdminsByBranchId(Arg.Any<Guid>());
         await unitOfWork.Received(1).Commit();
     }
@@ -125,8 +128,8 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
-            .CountActiveAdminsByBranchId(2)
+            .GetById(target.Id, target)
+            .CountActiveAdminsByBranchId(branchId, 2)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -135,6 +138,8 @@ public class RemoveBranchUserUseCaseTest
         var response = await useCase.Execute(target.Id);
 
         response.BranchUser.Active.ShouldBeFalse();
+        await branchUsersRepository.Received(1).GetById(target.Id);
+        await branchUsersRepository.Received(1).CountActiveAdminsByBranchId(branchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -156,13 +161,14 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
+            .GetById(target.Id, target)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authenticationService, branchUsersRepository, unitOfWork);
 
         await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(target.Id));
+        await branchUsersRepository.Received(1).GetById(target.Id);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -184,8 +190,8 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
-            .CountActiveAdminsByBranchId(1)
+            .GetById(target.Id, target)
+            .CountActiveAdminsByBranchId(branchId, 1)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -194,6 +200,8 @@ public class RemoveBranchUserUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(target.Id));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.BRANCH_USER_LAST_ADMIN_CONFLICT);
+        await branchUsersRepository.Received(1).GetById(target.Id);
+        await branchUsersRepository.Received(1).CountActiveAdminsByBranchId(branchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -214,7 +222,7 @@ public class RemoveBranchUserUseCaseTest
             .GetAuthenticatedBranchUser(caller)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetById(target)
+            .GetById(target.Id, target)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -223,6 +231,7 @@ public class RemoveBranchUserUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(target.Id));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.BRANCH_USER_NOT_FOUND);
+        await branchUsersRepository.Received(1).GetById(target.Id);
         await unitOfWork.DidNotReceive().Commit();
     }
 

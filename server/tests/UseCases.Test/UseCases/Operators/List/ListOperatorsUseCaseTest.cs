@@ -1,6 +1,7 @@
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
+using NSubstitute;
 using server.Application.UseCases.Operators.List;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
@@ -25,7 +26,7 @@ public class ListOperatorsUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .ListActiveByBranchId(operators)
+            .ListActiveByBranchId(branchUser.BranchId, operators)
             .Build();
 
         var useCase = CreateUseCase(authenticationService, operatorsRepository);
@@ -35,6 +36,7 @@ public class ListOperatorsUseCaseTest
         response.Operators.ShouldNotBeEmpty();
         response.Operators.Count.ShouldBe(2);
         response.Operators.ShouldAllBe(op => op.BranchId == branchUser.BranchId);
+        await operatorsRepository.Received(1).ListActiveByBranchId(branchUser.BranchId);
     }
 
     [Fact]
@@ -46,7 +48,7 @@ public class ListOperatorsUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .ListActiveByBranchId(new List<global::server.Domain.Entities.Operator>().AsReadOnly())
+            .ListActiveByBranchId(branchUser.BranchId, new List<global::server.Domain.Entities.Operator>().AsReadOnly())
             .Build();
 
         var useCase = CreateUseCase(authenticationService, operatorsRepository);
@@ -54,6 +56,7 @@ public class ListOperatorsUseCaseTest
         var response = await useCase.Execute();
 
         response.Operators.ShouldBeEmpty();
+        await operatorsRepository.Received(1).ListActiveByBranchId(branchUser.BranchId);
     }
 
     private static ListOperatorsUseCase CreateUseCase(

@@ -8,12 +8,6 @@ public class ClientsRepositoryBuilder
 {
     private readonly IClientsRepository _repository = Substitute.For<IClientsRepository>();
 
-    public ClientsRepositoryBuilder GetActiveByIdAndBranchId(Client? client)
-    {
-        _repository.GetActiveByIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(client);
-        return this;
-    }
-
     public ClientsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Client? client)
     {
         _repository.GetActiveByIdAndBranchId(id, branchId).Returns(client);
@@ -32,9 +26,9 @@ public class ClientsRepositoryBuilder
         return this;
     }
 
-    public ClientsRepositoryBuilder GetActiveByCpfAndBranchId(Client? client)
+    public ClientsRepositoryBuilder GetActiveByCpfAndBranchId(string cpf, Guid branchId, Client? client)
     {
-        _repository.GetActiveByCpfAndBranchId(Arg.Any<string>(), Arg.Any<Guid>()).Returns(client);
+        _repository.GetActiveByCpfAndBranchId(cpf, branchId).Returns(client);
         return this;
     }
 

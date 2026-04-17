@@ -1,6 +1,7 @@
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
+using NSubstitute;
 using server.Application.UseCases.Accounts.List;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
@@ -31,8 +32,11 @@ public class ListAccountsUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .ListActiveByBranchId(accounts)
-            .ListActiveTerminalIdsByTabAccountIds(new Dictionary<Guid, Guid> { [tabAccount.Id] = terminalAccount.Id })
+            .ListActiveByBranchId(branchUser.BranchId, accounts)
+            .ListActiveTerminalIdsByTabAccountIds(
+                branchUser.BranchId,
+                [tabAccount.Id],
+                new Dictionary<Guid, Guid> { [tabAccount.Id] = terminalAccount.Id })
             .Build();
 
         var useCase = CreateUseCase(authService, accountsRepo);
@@ -44,6 +48,7 @@ public class ListAccountsUseCaseTest
         response.Accounts.ShouldAllBe(a => a.BranchId == branchUser.BranchId);
         response.Accounts.Single(a => a.Id == terminalAccount.Id).TerminalAccountId.ShouldBeNull();
         response.Accounts.Single(a => a.Id == tabAccount.Id).TerminalAccountId.ShouldBe(terminalAccount.Id);
+        await accountsRepo.Received(1).ListActiveByBranchId(branchUser.BranchId);
     }
 
     [Fact]
@@ -53,7 +58,7 @@ public class ListAccountsUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .ListActiveByBranchId([])
+            .ListActiveByBranchId(branchUser.BranchId, [])
             .Build();
 
         var useCase = CreateUseCase(authService, accountsRepo);
@@ -61,6 +66,7 @@ public class ListAccountsUseCaseTest
         var response = await useCase.Execute();
 
         response.Accounts.ShouldBeEmpty();
+        await accountsRepo.Received(1).ListActiveByBranchId(branchUser.BranchId);
     }
 
     private static ListAccountsUseCase CreateUseCase(

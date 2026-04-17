@@ -32,7 +32,7 @@ public class ListMyBranchesUseCaseTest
             .GetAuthenticatedUser(authenticatedUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .ListActiveByUserId([adminMembership, managerMembership])
+            .ListActiveByUserId(authenticatedUser.Id, [adminMembership, managerMembership])
             .Build();
 
         var useCase = new ListMyBranchesUseCase(authenticationService, branchUsersRepository);
@@ -58,7 +58,7 @@ public class ListMyBranchesUseCaseTest
             .GetAuthenticatedUser(authenticatedUser)
             .Build();
         var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .ListActiveByUserId([])
+            .ListActiveByUserId(authenticatedUser.Id, [])
             .Build();
 
         var useCase = new ListMyBranchesUseCase(authenticationService, branchUsersRepository);

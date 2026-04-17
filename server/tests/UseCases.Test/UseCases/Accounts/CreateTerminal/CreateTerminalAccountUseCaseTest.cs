@@ -52,7 +52,8 @@ public class CreateTerminalAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
+            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId, tabAccount)
+            .GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -61,6 +62,8 @@ public class CreateTerminalAccountUseCaseTest
         var response = await useCase.Execute(request);
 
         response.TabAccountId.ShouldBe(tabAccount.Id);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId);
         await unitOfWork.Received(1).Commit();
     }
 
@@ -97,13 +100,14 @@ public class CreateTerminalAccountUseCaseTest
     public async Task Execute_ShouldThrowNotFoundException_WhenExistingTabIsMissing()
     {
         var branchUser = new BranchUserBuilder().Build();
+        var existingTabAccountId = Guid.NewGuid();
         var request = new RequestCreateTerminalAccountJsonBuilder()
-            .WithExistingTabAccountId(Guid.NewGuid())
+            .WithExistingTabAccountId(existingTabAccountId)
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(null)
+            .GetActiveByIdAndBranchIdAsNoTracking(existingTabAccountId, branchUser.BranchId, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -112,6 +116,7 @@ public class CreateTerminalAccountUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_TAB_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(existingTabAccountId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -129,8 +134,8 @@ public class CreateTerminalAccountUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount)
-            .GetActiveTerminalIdByTabAccountId(Guid.NewGuid())
+            .GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId, tabAccount)
+            .GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId, Guid.NewGuid())
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -139,6 +144,8 @@ public class CreateTerminalAccountUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.ACCOUNT_TAB_ALREADY_LINKED);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(tabAccount.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveTerminalIdByTabAccountId(tabAccount.Id, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

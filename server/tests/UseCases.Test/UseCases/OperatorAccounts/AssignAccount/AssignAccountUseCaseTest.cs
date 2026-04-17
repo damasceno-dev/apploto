@@ -24,10 +24,14 @@ public class AssignAccountUseCaseTest
         var request = new RequestAssignAccountJsonBuilder().WithAccountId(account.Id).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(op).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(account).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId, op)
+            .Build();
+        var accountsRepo = new AccountsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .GetByOperatorIdAndAccountId(null)
+            .GetByOperatorIdAndAccountId(op.Id, account.Id, null)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -40,6 +44,9 @@ public class AssignAccountUseCaseTest
         response.IsPrimary.ShouldBeFalse();
         response.AccountName.ShouldBe(account.Name);
         response.AccountType.ShouldBe(account.Type);
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).GetByOperatorIdAndAccountId(op.Id, account.Id);
         await operatorAccountsRepo.Received(1).Add(Arg.Is<OperatorAccount>(link =>
             link.OperatorId == op.Id &&
             link.AccountId == account.Id &&
@@ -62,10 +69,14 @@ public class AssignAccountUseCaseTest
         var request = new RequestAssignAccountJsonBuilder().WithAccountId(account.Id).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(op).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(account).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId, op)
+            .Build();
+        var accountsRepo = new AccountsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .GetByOperatorIdAndAccountId(inactiveLink)
+            .GetByOperatorIdAndAccountId(op.Id, account.Id, inactiveLink)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -75,6 +86,7 @@ public class AssignAccountUseCaseTest
 
         response.AccountId.ShouldBe(account.Id);
         inactiveLink.Active.ShouldBeTrue();
+        await operatorAccountsRepo.Received(1).GetByOperatorIdAndAccountId(op.Id, account.Id);
         await operatorAccountsRepo.DidNotReceive().Add(Arg.Any<OperatorAccount>());
         await unitOfWork.Received(1).Commit();
     }
@@ -93,10 +105,14 @@ public class AssignAccountUseCaseTest
         var request = new RequestAssignAccountJsonBuilder().WithAccountId(account.Id).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(op).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(account).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId, op)
+            .Build();
+        var accountsRepo = new AccountsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .GetByOperatorIdAndAccountId(activeLink)
+            .GetByOperatorIdAndAccountId(op.Id, account.Id, activeLink)
             .Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -105,6 +121,7 @@ public class AssignAccountUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(op.Id, request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.OPERATOR_ACCOUNT_ALREADY_ACTIVE);
+        await operatorAccountsRepo.Received(1).GetByOperatorIdAndAccountId(op.Id, account.Id);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -113,19 +130,24 @@ public class AssignAccountUseCaseTest
     {
         var branchUser = new BranchUserBuilder().Build();
         var account = new AccountBuilder().WithBranchId(branchUser.BranchId).Build();
+        var operatorId = Guid.NewGuid();
         var request = new RequestAssignAccountJsonBuilder().WithAccountId(account.Id).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(null).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(account).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(operatorId, branchUser.BranchId, null)
+            .Build();
+        var accountsRepo = new AccountsRepositoryBuilder().Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, accountsRepo, operatorAccountsRepo, unitOfWork);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(Guid.NewGuid(), request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(operatorId, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
+        await operatorsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(operatorId, branchUser.BranchId);
+        await accountsRepo.DidNotReceive().GetActiveByIdAndBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<Guid>());
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -134,11 +156,16 @@ public class AssignAccountUseCaseTest
     {
         var branchUser = new BranchUserBuilder().Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
-        var request = new RequestAssignAccountJsonBuilder().WithAccountId(Guid.NewGuid()).Build();
+        var accountId = Guid.NewGuid();
+        var request = new RequestAssignAccountJsonBuilder().WithAccountId(accountId).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(op).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(null).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(op.Id, branchUser.BranchId, op)
+            .Build();
+        var accountsRepo = new AccountsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId, null)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
@@ -147,6 +174,7 @@ public class AssignAccountUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(op.Id, request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId);
         await unitOfWork.DidNotReceive().Commit();
     }
 

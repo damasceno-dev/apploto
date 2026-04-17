@@ -26,7 +26,7 @@ public class GetCurrentBranchSummaryUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var branchesRepository = new BranchesRepositoryBuilder()
-            .GetById(branch)
+            .GetById(branch.Id, branch)
             .Build();
 
         var useCase = new GetCurrentBranchSummaryUseCase(authenticationService, branchesRepository);
@@ -53,7 +53,7 @@ public class GetCurrentBranchSummaryUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var branchesRepository = new BranchesRepositoryBuilder()
-            .GetById(null)
+            .GetById(branchUser.BranchId, null)
             .Build();
 
         var useCase = new GetCurrentBranchSummaryUseCase(authenticationService, branchesRepository);
@@ -61,5 +61,6 @@ public class GetCurrentBranchSummaryUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(useCase.Execute);
 
         exception.Message.ShouldBe(ResourcesErrorMessages.BRANCH_NOT_FOUND);
+        await branchesRepository.Received(1).GetById(branchUser.BranchId);
     }
 }

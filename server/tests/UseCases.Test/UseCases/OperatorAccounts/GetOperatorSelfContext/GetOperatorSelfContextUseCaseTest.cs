@@ -1,6 +1,7 @@
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
+using NSubstitute;
 using server.Application.UseCases.OperatorAccounts.GetOperatorSelfContext;
 using server.Domain.Interfaces;
 using Shouldly;
@@ -16,7 +17,9 @@ public class GetOperatorSelfContextUseCaseTest
         var branchUser = new BranchUserBuilder().Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByUserIdAndBranchId(null).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, null)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
@@ -28,6 +31,8 @@ public class GetOperatorSelfContextUseCaseTest
         response.OperatorName.ShouldBeNull();
         response.PrimaryAccount.ShouldBeNull();
         response.AvailableAccounts.ShouldBeEmpty();
+        await operatorsRepo.Received(1).GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+        await operatorAccountsRepo.DidNotReceive().ListActiveByOperatorIdWithAccount(Arg.Any<Guid>());
     }
 
     [Fact]
@@ -40,9 +45,11 @@ public class GetOperatorSelfContextUseCaseTest
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByUserIdAndBranchId(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, op)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdWithAccount([])
+            .ListActiveByOperatorIdWithAccount(op.Id, [])
             .Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
@@ -53,6 +60,8 @@ public class GetOperatorSelfContextUseCaseTest
         response.OperatorName.ShouldBe(op.Name);
         response.PrimaryAccount.ShouldBeNull();
         response.AvailableAccounts.ShouldBeEmpty();
+        await operatorsRepo.Received(1).GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
     [Fact]
@@ -79,9 +88,11 @@ public class GetOperatorSelfContextUseCaseTest
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByUserIdAndBranchId(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, op)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdWithAccount([primaryLink, secondaryLink])
+            .ListActiveByOperatorIdWithAccount(op.Id, [primaryLink, secondaryLink])
             .Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
@@ -96,6 +107,8 @@ public class GetOperatorSelfContextUseCaseTest
         response.AvailableAccounts.Count.ShouldBe(2);
         response.AvailableAccounts.ShouldContain(a => a.AccountId == primaryAccount.Id);
         response.AvailableAccounts.ShouldContain(a => a.AccountId == secondaryAccount.Id);
+        await operatorsRepo.Received(1).GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
     [Fact]
@@ -115,9 +128,11 @@ public class GetOperatorSelfContextUseCaseTest
             .Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var operatorsRepo = new OperatorsRepositoryBuilder().GetActiveByUserIdAndBranchId(op).Build();
+        var operatorsRepo = new OperatorsRepositoryBuilder()
+            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, op)
+            .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdWithAccount([link])
+            .ListActiveByOperatorIdWithAccount(op.Id, [link])
             .Build();
 
         var useCase = CreateUseCase(authService, operatorsRepo, operatorAccountsRepo);
@@ -127,6 +142,7 @@ public class GetOperatorSelfContextUseCaseTest
         response.OperatorId.ShouldBe(op.Id);
         response.PrimaryAccount.ShouldBeNull();
         response.AvailableAccounts.Count.ShouldBe(1);
+        await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
     private static GetOperatorSelfContextUseCase CreateUseCase(

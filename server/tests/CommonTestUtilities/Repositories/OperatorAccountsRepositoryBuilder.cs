@@ -8,33 +8,33 @@ public class OperatorAccountsRepositoryBuilder
 {
     private readonly IOperatorAccountsRepository _repository = Substitute.For<IOperatorAccountsRepository>();
 
-    public OperatorAccountsRepositoryBuilder GetByOperatorIdAndAccountId(OperatorAccount? link)
+    public OperatorAccountsRepositoryBuilder GetByOperatorIdAndAccountId(Guid operatorId, Guid accountId, OperatorAccount? link)
     {
-        _repository.GetByOperatorIdAndAccountId(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(link);
+        _repository.GetByOperatorIdAndAccountId(operatorId, accountId).Returns(link);
         return this;
     }
 
-    public OperatorAccountsRepositoryBuilder GetActivePrimaryByOperatorId(OperatorAccount? link)
+    public OperatorAccountsRepositoryBuilder GetActivePrimaryByOperatorId(Guid operatorId, OperatorAccount? link)
     {
-        _repository.GetActivePrimaryByOperatorId(Arg.Any<Guid>()).Returns(link);
+        _repository.GetActivePrimaryByOperatorId(operatorId).Returns(link);
         return this;
     }
 
-    public OperatorAccountsRepositoryBuilder ListActiveByOperatorId(IReadOnlyList<OperatorAccount> links)
+    public OperatorAccountsRepositoryBuilder ListActiveByOperatorId(Guid operatorId, IReadOnlyList<OperatorAccount> links)
     {
-        _repository.ListActiveByOperatorId(Arg.Any<Guid>()).Returns(links);
+        _repository.ListActiveByOperatorId(operatorId).Returns(links);
         return this;
     }
 
-    public OperatorAccountsRepositoryBuilder ListActiveByAccountId(IReadOnlyList<OperatorAccount> links)
+    public OperatorAccountsRepositoryBuilder ListActiveByAccountId(Guid accountId, IReadOnlyList<OperatorAccount> links)
     {
-        _repository.ListActiveByAccountId(Arg.Any<Guid>()).Returns(links);
+        _repository.ListActiveByAccountId(accountId).Returns(links);
         return this;
     }
 
-    public OperatorAccountsRepositoryBuilder ListActiveByOperatorIdWithAccount(IReadOnlyList<OperatorAccount> links)
+    public OperatorAccountsRepositoryBuilder ListActiveByOperatorIdWithAccount(Guid operatorId, IReadOnlyList<OperatorAccount> links)
     {
-        _repository.ListActiveByOperatorIdWithAccount(Arg.Any<Guid>()).Returns(links);
+        _repository.ListActiveByOperatorIdWithAccount(operatorId).Returns(links);
         return this;
     }
 

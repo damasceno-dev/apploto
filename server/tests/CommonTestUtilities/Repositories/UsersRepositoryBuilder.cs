@@ -14,9 +14,21 @@ public class UsersRepositoryBuilder
         return this;
     }
 
+    public UsersRepositoryBuilder GetById(Guid userId, User? user)
+    {
+        _repository.GetById(userId).Returns(user);
+        return this;
+    }
+
     public UsersRepositoryBuilder GetByEmail(User? user)
     {
         _repository.GetByEmail(Arg.Any<string>()).Returns(user);
+        return this;
+    }
+
+    public UsersRepositoryBuilder GetByEmail(string email, User? user)
+    {
+        _repository.GetByEmail(email).Returns(user);
         return this;
     }
 
