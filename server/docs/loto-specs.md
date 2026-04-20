@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v6
+Spec revision: v7
 -->
 
-> **Status:** Revised spec (v6) — Client.Cpf stored as 11 normalized digits  
+> **Status:** Revised spec (v7) — TransactionType settlement metadata documented
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -17,6 +17,7 @@ Spec revision: v6
 > v4: Added Client.Cpf uniqueness per branch as a filtered unique constraint on active rows.  
 > v5: Corrected the Account creation/pairing flow: Tab accounts are optional per terminal, pairing/unpairing is explicit for existing accounts, account creation is split into explicit Bank/Terminal/Tab operations, new Tabs are always created for an existing or newly-created Terminal, and a new paired Tab inherits the Terminal descriptive fields at creation time.  
 > v6: Changed Client.Cpf storage from formatted varchar(14) to normalized digits varchar(11); application layer strips non-digit chars before persistence.
+> v7: Added TransactionType settlement metadata (`SettlementRule`, `RequiresTabAccountAndClient`) and documented due-date and fiado enforcement semantics.
 
 ---
 
@@ -394,6 +395,8 @@ Subtype within a category. This is what the operator selects when creating a tra
 public class TransactionType : EntityBase
 {
     public string Name { get; set; } = string.Empty;
+    public SettlementRule SettlementRule { get; set; }
+    public bool RequiresTabAccountAndClient { get; set; }
 
     public Guid CategoryId { get; set; }
     public Category Category { get; set; } = null!;
@@ -407,11 +410,15 @@ public class TransactionType : EntityBase
 |---|---|---|---|
 | Id | uuid | PK | |
 | Name | varchar(255) | NOT NULL | "Depósito Dinheiro", "PIX", "Cartão de Crédito", etc. |
+| SettlementRule | smallint | NOT NULL | Enum: SameDay=0, NextCalendarDay=1, NextBusinessDay=2, TwoBusinessDays=3, OperatorEnteredCheque=4 |
+| RequiresTabAccountAndClient | boolean | NOT NULL | When true, transaction creation requires `Account.Type == Tab` and `ClientId != null` |
 | CategoryId | uuid | NOT NULL | FK → Category |
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | Soft-disable without deleting |
 
 **Note:** TransactionType inherits BranchId through its Category. No direct BranchId column needed.
+
+**Unique constraint:** `(CategoryId, Name)`
 
 **Important:** The same name can exist under different categories. "Cliente" exists under both "Entradas" (In) and "Saídas" (Out) — this is how the Fiado system distinguishes credit sales from client payments.
 
@@ -545,12 +552,14 @@ public class Transaction : EntityBase
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | EntityBase default. Redundant with Status for transactions but kept for consistency |
 
-**Nullable columns analysis** (only 6 of 20 content columns):
+**Nullable columns analysis** (8 nullable content columns):
 - `Description` — not all transaction types use it
 - `TransactionTime` — only cash deposits and similar need time tracking
 - `ClientId` — only client-related transactions
 - `PaidAt` — null = unpaid (meaningful null)
 - `OriginTransactionId` — only installments (non-null for all members of a group, including the first)
+- `CancelledAt` — only cancelled transactions
+- `CancelledByUserId` — only cancelled transactions
 - `CancellationReason` — only cancelled transactions
 
 **Key indexes:**
@@ -784,6 +793,15 @@ public enum TransactionStatus
     Cancelled = 2    // Soft-deleted with audit trail
 }
 
+public enum SettlementRule
+{
+    SameDay = 0,                 // DueDate = Date
+    NextCalendarDay = 1,         // DueDate = Date + 1 calendar day
+    NextBusinessDay = 2,         // DueDate = next Monday-Friday after Date
+    TwoBusinessDays = 3,         // DueDate = second Monday-Friday after Date
+    OperatorEnteredCheque = 4    // DueDate is supplied by the operator for pre-dated cheques
+}
+
 public enum DailyCloseStatus
 {
     Draft = 0,       // Operator is entering values
@@ -803,6 +821,16 @@ public enum TimeEntryStatus
     UnjustifiedAbsence = 7     // Hours owed
 }
 ```
+
+**SettlementRule due-date semantics:**
+
+| Value | DueDate behavior |
+|---|---|
+| SameDay | DueDate equals `Date` |
+| NextCalendarDay | DueDate equals `Date.AddDays(1)` |
+| NextBusinessDay | DueDate is the next Monday-Friday after `Date`; weekends are skipped, holidays are out of scope |
+| TwoBusinessDays | DueDate is the second Monday-Friday after `Date`; weekends are skipped, holidays are out of scope |
+| OperatorEnteredCheque | DueDate must be explicitly entered by the operator and must be on or after `Date` |
 
 ### What is NOT an enum
 
@@ -836,27 +864,27 @@ These are the minimum default seeds for the new operational flow, not a complete
 
 ### TransactionTypes
 
-| Name | Parent Category | Access tipo_id |
-|---|---|---|
-| Cliente | Saídas | 2 |
-| Depósito Dinheiro | Saídas | 3 |
-| Cartão de Crédito | Saídas | 4 |
-| MarketPlace | Saídas | 5 |
-| Sobra de Bolão | Despesas Comerciais | 6 |
-| Sobra de Federal | Despesas Comerciais | 9 |
-| Depósito Cheque | Saídas | 15 |
-| PIX | Saídas | 16 |
-| Cartão de Débito | Saídas | 17 |
-| Telesena | Saídas | 18 |
-| Troca de Telesena | Saídas | 19 |
-| Raspadinha | Saídas | 20 |
-| Encalhe Federal | Saídas | 22 |
-| Cliente | Entradas | 23 |
-| Pgto Prêmio | Saídas | 24 |
-| Desconto | Despesas Comerciais | 25 |
-| Volante rejeitado | Despesas Comerciais | 26 |
-| Tarifa cartão | Despesas Comerciais | 27 |
-| Outras Despesas | Despesas Comerciais | 28 |
+| Name | Parent Category | SettlementRule | RequiresTabAccountAndClient | Access tipo_id |
+|---|---|---|---|---|
+| Cliente | Saídas | SameDay | true | 2 |
+| Depósito Dinheiro | Saídas | NextCalendarDay | false | 3 |
+| Cartão de Crédito | Saídas | TwoBusinessDays | false | 4 |
+| MarketPlace | Saídas | SameDay | false | 5 |
+| Sobra de Bolão | Despesas Comerciais | SameDay | false | 6 |
+| Sobra de Federal | Despesas Comerciais | SameDay | false | 9 |
+| Depósito Cheque | Saídas | OperatorEnteredCheque | false | 15 |
+| PIX | Saídas | SameDay | false | 16 |
+| Cartão de Débito | Saídas | NextBusinessDay | false | 17 |
+| Telesena | Saídas | SameDay | false | 18 |
+| Troca de Telesena | Saídas | SameDay | false | 19 |
+| Raspadinha | Saídas | SameDay | false | 20 |
+| Encalhe Federal | Saídas | SameDay | false | 22 |
+| Cliente | Entradas | SameDay | true | 23 |
+| Pgto Prêmio | Saídas | SameDay | false | 24 |
+| Desconto | Despesas Comerciais | SameDay | false | 25 |
+| Volante rejeitado | Despesas Comerciais | SameDay | false | 26 |
+| Tarifa cartão | Despesas Comerciais | SameDay | false | 27 |
+| Outras Despesas | Despesas Comerciais | SameDay | false | 28 |
 
 Note: "Cliente" appears twice — under Saídas (credit sale, money leaves) and Entradas (client payment, money enters). This is the Fiado in/out mechanism.
 
@@ -887,13 +915,13 @@ Note: **Fiado is NOT a DailyClose product** — it is calculated at query time f
   - `Direction` = `Category.DefaultDirection`
   - These denormalized fields are NEVER independently editable after creation
 - The Fiado in/out distinction is handled by two separate TransactionTypes ("Cliente" under "Entradas" = In, "Cliente" under "Saídas" = Out), not by overriding Direction
-- `DueDate` defaults vary by transaction type:
-  - Cash deposit (Depósito Dinheiro): `Date + 1 day`
-  - PIX: same as `Date`
-  - Debit card: `Date + 1 business day`
-  - Credit card: `Date + 2 business days` (skip weekends; future: skip holidays)
-  - Cheque (pre-dated): operator enters custom date; must be ≥ `Date`
-  - All others: same as `Date`
+- `RequiresTabAccountAndClient = true` on a TransactionType is enforced by the branch-consistency layer: the transaction must use an `Account` with `Type == Tab` and must include `ClientId`. Both seeded "Cliente" rows set this flag; all other seeded TransactionTypes set it to false.
+- `DueDate` defaults are driven by `TransactionType.SettlementRule`:
+  - `SameDay`: same as `Date`
+  - `NextCalendarDay`: `Date + 1 day`
+  - `NextBusinessDay`: next Monday-Friday after `Date`
+  - `TwoBusinessDays`: second Monday-Friday after `Date` (future: skip holidays)
+  - `OperatorEnteredCheque`: operator enters custom date; must be ≥ `Date`
 - `RecordedByOperatorId` is set from the authenticated operator's context
 - `CreatedByUserId` is set from the authenticated user's session
 - `Draft` status transactions are excluded from all financial calculations (sums, balances, reports)

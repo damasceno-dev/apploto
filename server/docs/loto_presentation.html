@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v6
+Spec revision: v7
 -->
 <html lang="en">
 <head>
@@ -257,16 +257,16 @@ const SLIDES=[
  ],
  steps:[
   {title:'What is a Transaction?',
-   narrative:'The <b>Transaction</b> table is the central ledger of LottoGest. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets <b>CategoryId</b> (= TransactionType.CategoryId) and <b>Direction</b> (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
+   narrative:'The <b>Transaction</b> table is the central ledger of LottoGest. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets <b>CategoryId</b> (= TransactionType.CategoryId) and <b>Direction</b> (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br><b>TransactionType</b> also stores <b>SettlementRule</b> (how DueDate is calculated) and <b>RequiresTabAccountAndClient</b> (whether the transaction must use a Tab account and ClientId, used by the fiado Cliente types).<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
    activeTables:['Category','TransactionType','Account'],
    activeArrows:[],
    data:[
     {entity:'Category',fields:[{n:'Name',v:'"Saídas"'},{n:'DefaultDirection',v:'"Out"',hl:'hl'}]},
-    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Dinheiro"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'}]},
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Dinheiro"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'NextCalendarDay'},{n:'RequiresTabAccountAndClient',v:'false'}]},
     {entity:'Account',fields:[{n:'Name',v:'"Jennifer"'},{n:'Type',v:'"Terminal"'}]}
    ]},
   {title:'Creating a Cash Deposit',
-   narrative:'A customer brings <b>R$2,000</b> in cash to be deposited into their CEF bank account via the lotérica. The operator selects "Depósito Dinheiro" and enters the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> Although the cash physically enters the drawer, it is a <em>liability</em> — the lotérica owes that money to CEF at settlement. "Depósito Dinheiro" is seeded under <b>Saídas</b> to reflect this accounting reality. The cash drawer is reconciled via the <b>DailyClose</b> snapshot, not by overriding Direction on individual transactions.<br><br>For cash deposits, <b>DueDate = Date + 1 day</b>, because CEF settles cash deposits next business day.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
+   narrative:'A customer brings <b>R$2,000</b> in cash to be deposited into their CEF bank account via the lotérica. The operator selects "Depósito Dinheiro" and enters the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> Although the cash physically enters the drawer, it is a <em>liability</em> — the lotérica owes that money to CEF at settlement. "Depósito Dinheiro" is seeded under <b>Saídas</b> to reflect this accounting reality. The cash drawer is reconciled via the <b>DailyClose</b> snapshot, not by overriding Direction on individual transactions.<br><br>For cash deposits, <b>DueDate = Date + 1 day</b>, because the seeded SettlementRule is NextCalendarDay.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -280,7 +280,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'The Three-Date Model',
-   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next business day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
+   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next calendar day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
    activeTables:['Transaction'],
    activeArrows:[],
    data:[
@@ -314,7 +314,7 @@ const SLIDES=[
    activeArrows:['cat-tt'],
    data:[
     {entity:'Category',fields:[{n:'Name',v:'"Saídas"'},{n:'DefaultDirection',v:'"Out"',hl:'hl'}]},
-    {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'}]}
+    {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
    narrative:'Operator sends <b>R$800</b> via PIX to a supplier. Value is still positive (R$800) — <b>LottoGest always stores positive values</b>, using Direction to determine the sign. Direction=Out means this R$800 is subtracted from the drawer.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
@@ -425,7 +425,7 @@ const SLIDES=[
    activeArrows:['cat-tt'],
    data:[
     {entity:'Client',fields:[{n:'Name',v:'"Carlos"'}]},
-    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Cheque"'}]}
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Cheque"'},{n:'SettlementRule',v:'OperatorEnteredCheque'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'System Creates 3 Installments',
    narrative:'<b>R$3,000 cheque in 3 installments:</b> the system creates 3 Transaction rows. Each has Value = R$1,000 (total ÷ 3). DueDates are offset by 1 month: May 15, June 15, July 15.<br><br>Descriptions: "CH PRE (1/3)", "(2/3)", "(3/3)". <b>All installments share the same OriginTransactionId, including the first</b> (which points to itself). This simplifies group lookups: <code>WHERE OriginTransactionId = @groupId</code> returns all members.',
@@ -486,10 +486,11 @@ const SLIDES=[
     {entity:'Client',fields:[{n:'Name',v:'"João"'}]}
    ]},
   {title:'Credit Sale (Money Out on Tab)',
-   narrative:'Client João buys <b>R$150</b> of lottery tickets on credit. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Saídas"</b>.<br><br>The Fiado in/out distinction is handled by <b>two separate TransactionTypes</b>: "Cliente" under "Saídas" = Out (credit sale), "Cliente" under "Entradas" = In (payment). Direction is never overridden — it is always derived from the Category\'s DefaultDirection. The Transaction has <b>Direction=Out</b> on the <b>Tab account</b> (not the Terminal!), with ClientId set to João.',
+   narrative:'Client João buys <b>R$150</b> of lottery tickets on credit. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Saídas"</b>.<br><br>The Fiado in/out distinction is handled by <b>two separate TransactionTypes</b>: "Cliente" under "Saídas" = Out (credit sale), "Cliente" under "Entradas" = In (payment). Both set <b>RequiresTabAccountAndClient = true</b>, so the branch-consistency layer requires a Tab account and ClientId. Direction is never overridden — it is always derived from the Category\'s DefaultDirection. The Transaction has <b>Direction=Out</b> on the <b>Tab account</b> (not the Terminal!), with ClientId set to João.',
    activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
    activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
    data:[
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Cliente"'},{n:'CategoryId',v:'→ Saídas'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'true',hl:'hl'}]},
     {entity:'Transaction',fields:[
      {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"Out"',hl:'hl'},
      {n:'AccountId',v:'→ Tab Jennifer',hl:'hl'},{n:'ClientId',v:'→ João'},
@@ -506,10 +507,11 @@ const SLIDES=[
     {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Jennifer\'\n\n→ <span class="res">R$ 150.00</span>'}
    ]},
   {title:'Client Pays Back',
-   narrative:'João returns and pays his R$150 debt. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. The Transaction has <b>Direction=In</b> on the Tab account.',
+   narrative:'João returns and pays his R$150 debt. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. This row also requires a Tab account and ClientId, and the Transaction has <b>Direction=In</b> on the Tab account.',
    activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
    activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
    data:[
+    {entity:'TransactionType',fields:[{n:'Name',v:'"Cliente"'},{n:'CategoryId',v:'→ Entradas',hl:'hl-green'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'true',hl:'hl'}]},
     {entity:'Transaction (Payment)',fields:[
      {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
      {n:'AccountId',v:'→ Tab Jennifer'},{n:'ClientId',v:'→ João'},
@@ -591,7 +593,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 1: Depósito Dinheiro (Out, R$2,000)',
-   narrative:'A customer brings <b>R$2,000</b> in cash for a CEF deposit at 10:30. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because this is a <b>liability to CEF</b> — the lotérica owes this money at settlement. But the cash <em>physically enters</em> the drawer and will be counted in the DailyClose snapshot. <b>DueDate = Date + 1 day</b> (CEF settles cash deposits next business day).<br><br>Same mechanics as UC1, now in context of the full day.',
+   narrative:'A customer brings <b>R$2,000</b> in cash for a CEF deposit at 10:30. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because this is a <b>liability to CEF</b> — the lotérica owes this money at settlement. But the cash <em>physically enters</em> the drawer and will be counted in the DailyClose snapshot. <b>DueDate = Date + 1 day</b> because the TransactionType uses SettlementRule=NextCalendarDay.<br><br>Same mechanics as UC1, now in context of the full day.',
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -808,7 +810,7 @@ function renderIntro(s,i){
         <div class="intro-card">
           <h3 style="color:#4caf50">The Fiado (Tab/Credit) Subsystem</h3>
           <p>Regular customers buy on credit. The challenge: credit sales should <b>NOT</b> affect the cash drawer count (the operator didn't receive cash). Solution:</p>
-          <p style="margin-top:8px">Branches that use fiado pair a Terminal with a <b>Tab account</b>. Credit goes to the Tab, not the Terminal. The drawer stays accurate for daily reconciliation.</p>
+          <p style="margin-top:8px">Branches that use fiado pair a Terminal with a <b>Tab account</b>. Credit goes to the Tab, not the Terminal. The drawer stays accurate for daily reconciliation. The two seeded <b>Cliente</b> TransactionTypes enforce this through <code>RequiresTabAccountAndClient = true</code>.</p>
           <div class="intro-tree" style="margin-top:10px">
 <b>Account</b> "Jennifer" (Terminal) ──<span class="hl">TabAccountId</span>──▸ <b>Account</b> "Tab Jennifer" (Tab)
 │                                     │

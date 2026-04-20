@@ -418,8 +418,8 @@ Ship domain entities, persistence, shared application services, seed-factory upd
 - [x] **1.28** Add `TransactionsRepositoryBuilder` in `CommonTestUtilities` with exact-arg return setups for `GetByIdAndBranchIdAsNoTracking`, `ListByBranchIdAsNoTracking`, `CountByBranchIdAsNoTracking`, `SumActiveValueByAccountAndDateAsNoTracking`, and `ListByOriginTransactionIdAndBranchIdAsNoTracking`
 - [x] **1.29** Extend `TransactionTypesRepositoryBuilder` with an exact-arg helper for `GetActiveByIdAndBranchIdWithCategoryAsNoTracking`
 - [x] **1.30** Extend `SettingsRepositoryBuilder` with an exact-arg helper for `GetByBranchIdAsNoTracking`
-- [ ] **1.31** Update `loto-specs.md` section 3.10 (`TransactionType` adds `SettlementRule` and `RequiresTabAccountAndClient`), section 3.12 (full `Transaction` field set), section 4 (document `SettlementRule` enum values), and section 6.1 (document fiado semantics via `RequiresTabAccountAndClient`); update `loto_presentation.html` and `loto_entity_relationship_diagram.html` for the added columns; bump the shared `Spec revision` on all three files and keep `Sync group: loto-backend-docs`
-- [ ] **1.32** Run `bash server/docs/check-loto-doc-sync.sh`; must pass before Phase 2 starts
+- [x] **1.31** Update `loto-specs.md` section 3.10 (`TransactionType` adds `SettlementRule` and `RequiresTabAccountAndClient`), section 3.12 (full `Transaction` field set), section 4 (document `SettlementRule` enum values), and section 6.1 (document fiado semantics via `RequiresTabAccountAndClient`); update `loto_presentation.html` and `loto_entity_relationship_diagram.html` for the added columns; bump the shared `Spec revision` on all three files and keep `Sync group: loto-backend-docs`
+- [x] **1.32** Run `bash server/docs/check-loto-doc-sync.sh`; must pass before Phase 2 starts
 
 ### Phase 2 — Create Transaction (single)
 
