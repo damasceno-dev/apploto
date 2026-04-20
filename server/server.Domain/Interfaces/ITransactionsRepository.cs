@@ -1,0 +1,17 @@
+using server.Domain.Entities;
+using server.Domain.Entities.Enums;
+using server.Domain.Models;
+
+namespace server.Domain.Interfaces;
+
+public interface ITransactionsRepository
+{
+    Task Add(Transaction transaction);
+    Task AddRange(IEnumerable<Transaction> transactions);
+    Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId);
+    Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId);
+    Task<IReadOnlyList<Transaction>> ListByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
+    Task<int> CountByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
+    Task<IReadOnlyList<Transaction>> ListByOriginTransactionIdAndBranchIdAsNoTracking(Guid originId, Guid branchId);
+    Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(Guid branchId, Guid accountId, DateTime date, Direction? direction = null);
+}
