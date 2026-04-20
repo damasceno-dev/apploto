@@ -398,5 +398,53 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("CLIENT_CPF_CONFLICT", resourceCulture);
             }
         }
+
+        public static string TRANSACTION_TYPE_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_DATE_LOCKED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_DATE_LOCKED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_VALUE_MUST_BE_POSITIVE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_VALUE_MUST_BE_POSITIVE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_VALUE_PRECISION_14X2 {
+            get {
+                return ResourceManager.GetString("TRANSACTION_VALUE_PRECISION_14X2", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_DUE_DATE_BEFORE_DATE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_DUE_DATE_BEFORE_DATE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PAID_AT_BEFORE_DATE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PAID_AT_BEFORE_DATE", resourceCulture);
+            }
+        }
     }
 }

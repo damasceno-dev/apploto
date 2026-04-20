@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
+using server.Application.Services.Transactions;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
 using server.Application.UseCases.BranchUsers.Remove;
@@ -75,6 +76,10 @@ public static class AppDependencyInjection
         services.AddScoped<GetClientUseCase>();
         services.AddScoped<UpdateClientUseCase>();
         services.AddScoped<DeactivateClientUseCase>();
+        services.AddScoped<TransactionBranchConsistencyService>();
+        services.AddScoped<DueDateCalculator>();
+        services.AddScoped<LockDateGuard>();
+        services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

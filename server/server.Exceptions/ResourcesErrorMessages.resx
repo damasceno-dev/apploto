@@ -195,4 +195,28 @@
     <data name="CLIENT_CPF_CONFLICT" xml:space="preserve">
         <value>Já existe um cliente ativo com este CPF nesta filial</value>
     </data>
+    <data name="TRANSACTION_TYPE_NOT_FOUND" xml:space="preserve">
+        <value>Tipo de transação não encontrado</value>
+    </data>
+    <data name="TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT" xml:space="preserve">
+        <value>Este tipo de transação exige uma conta Tab e um cliente informado</value>
+    </data>
+    <data name="TRANSACTION_DATE_LOCKED" xml:space="preserve">
+        <value>A data da transação está bloqueada pelo fechamento</value>
+    </data>
+    <data name="TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE" xml:space="preserve">
+        <value>A conta informada não está vinculada ao operador membro</value>
+    </data>
+    <data name="TRANSACTION_VALUE_MUST_BE_POSITIVE" xml:space="preserve">
+        <value>O valor da transação deve ser maior que zero</value>
+    </data>
+    <data name="TRANSACTION_VALUE_PRECISION_14X2" xml:space="preserve">
+        <value>O valor da transação deve respeitar o limite de 12 dígitos inteiros e 2 casas decimais</value>
+    </data>
+    <data name="TRANSACTION_DUE_DATE_BEFORE_DATE" xml:space="preserve">
+        <value>A data de vencimento deve ser igual ou posterior à data da transação</value>
+    </data>
+    <data name="TRANSACTION_PAID_AT_BEFORE_DATE" xml:space="preserve">
+        <value>A data de pagamento deve ser igual ou posterior à data da transação</value>
+    </data>
 </root>

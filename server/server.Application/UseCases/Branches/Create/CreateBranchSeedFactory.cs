@@ -77,9 +77,24 @@ public static class CreateBranchSeedFactory
             .Select(seed => new TransactionType
             {
                 Name = seed.Name,
-                CategoryId = categoriesByName[seed.CategoryName].Id
+                CategoryId = categoriesByName[seed.CategoryName].Id,
+                SettlementRule = ResolveSettlementRule(seed.Name),
+                RequiresTabAccountAndClient = seed.Name == "Cliente"
             })
             .ToList();
+    }
+
+    private static SettlementRule ResolveSettlementRule(string transactionTypeName)
+    {
+        return transactionTypeName switch
+        {
+            "Depósito Cheque" => SettlementRule.OperatorEnteredCheque,
+            "PIX" => SettlementRule.SameDay,
+            "Cartão de Débito" => SettlementRule.NextBusinessDay,
+            "Cartão de Crédito" => SettlementRule.TwoBusinessDays,
+            "Depósito Dinheiro" => SettlementRule.NextCalendarDay,
+            _ => SettlementRule.SameDay
+        };
     }
 
     public static IReadOnlyList<Product> CreateDefaultProducts(Guid branchId)
