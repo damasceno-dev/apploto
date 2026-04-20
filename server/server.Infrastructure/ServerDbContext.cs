@@ -12,6 +12,7 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     public DbSet<BranchUser> BranchUsers => Set<BranchUser>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<TransactionType> TransactionTypes => Set<TransactionType>();
+    public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Operator> Operators => Set<Operator>();

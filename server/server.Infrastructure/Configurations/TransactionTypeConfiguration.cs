@@ -12,5 +12,9 @@ internal class TransactionTypeConfiguration : IEntityTypeConfiguration<Transacti
         builder.HasKey(transactionType => transactionType.Id);
 
         builder.Property(transactionType => transactionType.Name).HasMaxLength(255);
+        builder.Property(transactionType => transactionType.SettlementRule).HasConversion<short>().IsRequired();
+        builder.Property(transactionType => transactionType.RequiresTabAccountAndClient).IsRequired();
+
+        builder.HasIndex(transactionType => new { transactionType.CategoryId, transactionType.Name }).IsUnique();
     }
 }

@@ -15,9 +15,6 @@ internal class SettingsRepository(ServerDbContext dbContext) : ISettingsReposito
     {
         return await dbContext.Settings
             .AsNoTracking()
-            .FirstOrDefaultAsync(setting =>
-                setting.BranchId == branchId &&
-                setting.Active &&
-                setting.Branch.Active);
+            .FirstOrDefaultAsync(setting => setting.BranchId == branchId);
     }
 }

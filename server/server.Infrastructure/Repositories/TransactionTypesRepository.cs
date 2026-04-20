@@ -14,13 +14,11 @@ internal class TransactionTypesRepository(ServerDbContext dbContext) : ITransact
     public async Task<TransactionType?> GetActiveByIdAndBranchIdWithCategoryAsNoTracking(Guid id, Guid branchId)
     {
         return await dbContext.TransactionTypes
-            .AsNoTracking()
             .Include(transactionType => transactionType.Category)
+            .AsNoTracking()
             .FirstOrDefaultAsync(transactionType =>
-                transactionType.Id == id &&
                 transactionType.Active &&
-                transactionType.Category.BranchId == branchId &&
-                transactionType.Category.Active &&
-                transactionType.Category.Branch.Active);
+                transactionType.Id == id &&
+                transactionType.Category.BranchId == branchId);
     }
 }
