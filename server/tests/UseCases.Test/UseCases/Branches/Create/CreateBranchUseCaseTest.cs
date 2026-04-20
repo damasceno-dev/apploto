@@ -227,6 +227,56 @@ public class CreateBranchUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldSeedDefaultTransactionTypes_WithSettlementMetadata()
+    {
+        var authenticatedUser = new UserBuilder().Build();
+        var request = new RequestCreateBranchJsonBuilder().Build();
+
+        var categoriesRepository = new CategoriesRepositoryBuilder().Build();
+        var transactionTypesRepository = new TransactionTypesRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedUser(authenticatedUser)
+            .Build();
+
+        IReadOnlyList<Category>? persistedCategories = null;
+        await categoriesRepository.AddRange(Arg.Do<IEnumerable<Category>>(categories =>
+            persistedCategories = categories.ToList()));
+
+        IReadOnlyList<TransactionType>? persistedTransactionTypes = null;
+        await transactionTypesRepository.AddRange(Arg.Do<IEnumerable<TransactionType>>(types =>
+            persistedTransactionTypes = types.ToList()));
+
+        var useCase = CreateUseCase(
+            authenticationService,
+            new BranchesRepositoryBuilder().Build(),
+            new BranchUsersRepositoryBuilder().Build(),
+            categoriesRepository,
+            transactionTypesRepository,
+            new ProductsRepositoryBuilder().Build(),
+            new SettingsRepositoryBuilder().Build(),
+            unitOfWork);
+
+        await useCase.Execute(request);
+
+        persistedCategories.ShouldNotBeNull();
+        persistedTransactionTypes.ShouldNotBeNull();
+        persistedTransactionTypes!.Count.ShouldBe(19);
+
+        var categoryIdsByName = persistedCategories!.ToDictionary(category => category.Name, category => category.Id);
+        foreach (var (seed, expected) in ExpectedTransactionTypeMetadata())
+        {
+            persistedTransactionTypes.ShouldContain(type =>
+                type.Name == seed.Name &&
+                type.CategoryId == categoryIdsByName[seed.CategoryName] &&
+                type.SettlementRule == expected.SettlementRule &&
+                type.RequiresTabAccountAndClient == expected.RequiresTabAccountAndClient);
+        }
+
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldSeedExactlyEightDefaultProducts()
     {
         var authenticatedUser = new UserBuilder().Build();
@@ -456,5 +506,32 @@ public class CreateBranchUseCaseTest
             productsRepository,
             settingsRepository,
             unitOfWork);
+    }
+
+    private static IReadOnlyDictionary<(string Name, string CategoryName), (SettlementRule SettlementRule, bool RequiresTabAccountAndClient)>
+        ExpectedTransactionTypeMetadata()
+    {
+        return new Dictionary<(string Name, string CategoryName), (SettlementRule SettlementRule, bool RequiresTabAccountAndClient)>
+        {
+            [("Cliente", "Saídas")] = (SettlementRule.SameDay, true),
+            [("Depósito Dinheiro", "Saídas")] = (SettlementRule.NextCalendarDay, false),
+            [("Cartão de Crédito", "Saídas")] = (SettlementRule.TwoBusinessDays, false),
+            [("MarketPlace", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Sobra de Bolão", "Despesas Comerciais")] = (SettlementRule.SameDay, false),
+            [("Sobra de Federal", "Despesas Comerciais")] = (SettlementRule.SameDay, false),
+            [("Depósito Cheque", "Saídas")] = (SettlementRule.OperatorEnteredCheque, false),
+            [("PIX", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Cartão de Débito", "Saídas")] = (SettlementRule.NextBusinessDay, false),
+            [("Telesena", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Troca de Telesena", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Raspadinha", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Encalhe Federal", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Cliente", "Entradas")] = (SettlementRule.SameDay, true),
+            [("Pgto Prêmio", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Desconto", "Despesas Comerciais")] = (SettlementRule.SameDay, false),
+            [("Volante rejeitado", "Despesas Comerciais")] = (SettlementRule.SameDay, false),
+            [("Tarifa cartão", "Despesas Comerciais")] = (SettlementRule.SameDay, false),
+            [("Outras Despesas", "Despesas Comerciais")] = (SettlementRule.SameDay, false)
+        };
     }
 }
