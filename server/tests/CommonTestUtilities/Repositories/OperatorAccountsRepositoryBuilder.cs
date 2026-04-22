@@ -26,6 +26,12 @@ public class OperatorAccountsRepositoryBuilder
         return this;
     }
 
+    public OperatorAccountsRepositoryBuilder ListActiveByOperatorIdAsNoTracking(Guid operatorId, IReadOnlyList<OperatorAccount> links)
+    {
+        _repository.ListActiveByOperatorIdAsNoTracking(operatorId).Returns(links);
+        return this;
+    }
+
     public OperatorAccountsRepositoryBuilder ListActiveByAccountId(Guid accountId, IReadOnlyList<OperatorAccount> links)
     {
         _repository.ListActiveByAccountId(accountId).Returns(links);

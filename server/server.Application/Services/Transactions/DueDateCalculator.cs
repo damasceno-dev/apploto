@@ -4,7 +4,7 @@ namespace server.Application.Services.Transactions;
 
 public class DueDateCalculator
 {
-    public DateTime Compute(SettlementRule rule, DateTime date, DateTime? operatorProvidedDueDate)
+    public static DateTime Compute(SettlementRule rule, DateTime date, DateTime? operatorProvidedDueDate)
     {
         return rule switch
         {
@@ -26,7 +26,7 @@ public class DueDateCalculator
         {
             result = result.AddDays(1);
 
-            if (result.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            if (result.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) //add holidays here
             {
                 continue;
             }

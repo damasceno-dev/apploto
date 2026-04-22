@@ -219,4 +219,28 @@
     <data name="TRANSACTION_PAID_AT_BEFORE_DATE" xml:space="preserve">
         <value>A data de pagamento deve ser igual ou posterior à data da transação</value>
     </data>
+    <data name="TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR" xml:space="preserve">
+        <value>Membros não podem definir o operador responsável pela transação</value>
+    </data>
+    <data name="TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK" xml:space="preserve">
+        <value>O usuário membro não possui um operador vinculado nesta filial</value>
+    </data>
+    <data name="TRANSACTION_REQUIRES_RECORDED_BY_OPERATOR" xml:space="preserve">
+        <value>O operador responsável pela transação deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_CHEQUE_REQUIRES_DUE_DATE" xml:space="preserve">
+        <value>Transações com cheque exigem uma data de vencimento informada</value>
+    </data>
+    <data name="TRANSACTION_DATE_EMPTY" xml:space="preserve">
+        <value>A data da transação deve ser informada</value>
+    </data>
+    <data name="TRANSACTION_TYPE_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do tipo de transação deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_ACCOUNT_ID_EMPTY" xml:space="preserve">
+        <value>O identificador da conta da transação deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do operador responsável pela transação não pode ser vazio</value>
+    </data>
 </root>

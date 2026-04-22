@@ -68,6 +68,15 @@ internal static class TestSeeder
             return branch;
         }
 
+        /// <summary>
+        /// Seeds a standalone branch for cross-branch isolation tests where the caller only
+        /// needs a different <see cref="Branch"/> id (no user/membership context).
+        /// </summary>
+        public Task<Branch> SeedBranchForOtherContextAsync(string? name = null)
+        {
+            return factory.SeedBranchAsync(name ?? $"Other Branch {Guid.NewGuid():N}");
+        }
+
         public async Task<BranchUser> SeedBranchUserAsync(Guid userId,
             Guid branchId,
             Role role)
@@ -239,6 +248,66 @@ internal static class TestSeeder
                 .Where(operatorAccount => operatorAccount.AccountId == accountId)
                 .OrderBy(operatorAccount => operatorAccount.CreatedAt)
                 .ToListAsync();
+        }
+
+        public async Task<Category> SeedCategoryAsync(
+            Guid branchId,
+            string? name = null,
+            Direction defaultDirection = Direction.In)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var category = new Category
+            {
+                Id = Guid.NewGuid(),
+                Name = name ?? $"Category {Guid.NewGuid():N}",
+                DefaultDirection = defaultDirection,
+                BranchId = branchId
+            };
+            dbContext.Categories.Add(category);
+            await dbContext.SaveChangesAsync();
+            return category;
+        }
+
+        public async Task<TransactionType> SeedTransactionTypeAsync(
+            Guid categoryId,
+            string? name = null,
+            SettlementRule settlementRule = SettlementRule.SameDay,
+            bool requiresTabAccountAndClient = false,
+            bool active = true)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var transactionType = new TransactionType
+            {
+                Id = Guid.NewGuid(),
+                Name = name ?? $"TType {Guid.NewGuid():N}",
+                CategoryId = categoryId,
+                SettlementRule = settlementRule,
+                RequiresTabAccountAndClient = requiresTabAccountAndClient,
+                Active = active
+            };
+            dbContext.TransactionTypes.Add(transactionType);
+            await dbContext.SaveChangesAsync();
+            return transactionType;
+        }
+
+        public async Task<Setting> SeedSettingAsync(Guid branchId, DateTime? lockDate = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var setting = new Setting
+            {
+                Id = Guid.NewGuid(),
+                BranchId = branchId,
+                LockDate = lockDate ?? DateTime.MinValue
+            };
+            dbContext.Settings.Add(setting);
+            await dbContext.SaveChangesAsync();
+            return setting;
         }
 
         /// <summary>

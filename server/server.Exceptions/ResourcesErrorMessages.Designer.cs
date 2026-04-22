@@ -446,5 +446,53 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TRANSACTION_PAID_AT_BEFORE_DATE", resourceCulture);
             }
         }
+
+        public static string TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR {
+            get {
+                return ResourceManager.GetString("TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK {
+            get {
+                return ResourceManager.GetString("TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_REQUIRES_RECORDED_BY_OPERATOR {
+            get {
+                return ResourceManager.GetString("TRANSACTION_REQUIRES_RECORDED_BY_OPERATOR", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_CHEQUE_REQUIRES_DUE_DATE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_CHEQUE_REQUIRES_DUE_DATE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_DATE_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_DATE_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_ACCOUNT_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_ACCOUNT_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY", resourceCulture);
+            }
+        }
     }
 }

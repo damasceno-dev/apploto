@@ -16,9 +16,10 @@ internal static class TransactionValidationExtensions
                 .WithMessage(ResourcesErrorMessages.TRANSACTION_VALUE_MUST_BE_POSITIVE);
         }
 
-        public IRuleBuilderOptions<T, decimal> ValuePrecisionWithin14x2()
+        // ReSharper disable once InconsistentNaming
+        public void ValuePrecisionWithin14x2()
         {
-            return rule
+            rule
                 .Must(value => decimal.Round(value, 2) == value && value < Numeric14X2UpperBound)
                 .WithMessage(ResourcesErrorMessages.TRANSACTION_VALUE_PRECISION_14X2);
         }
@@ -36,9 +37,9 @@ internal static class TransactionValidationExtensions
 
     extension<T>(IRuleBuilder<T, DateTime?> rule)
     {
-        public IRuleBuilderOptions<T, DateTime?> DueDateOnOrAfterDate(Func<T, DateTime> dateSelector)
+        public void DueDateOnOrAfterDate(Func<T, DateTime> dateSelector)
         {
-            return rule
+            rule
                 .Must((instance, dueDate) => dueDate is null || dueDate.Value >= dateSelector(instance))
                 .WithMessage(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
         }
