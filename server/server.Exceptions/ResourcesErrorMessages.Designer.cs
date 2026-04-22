@@ -261,6 +261,12 @@ namespace server.Exceptions {
             }
         }
 
+        public static string OPERATOR_USER_ALREADY_LINKED {
+            get {
+                return ResourceManager.GetString("OPERATOR_USER_ALREADY_LINKED", resourceCulture);
+            }
+        }
+
         public static string ACCOUNT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("ACCOUNT_NOT_FOUND", resourceCulture);

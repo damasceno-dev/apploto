@@ -13,6 +13,12 @@ internal class OperatorConfiguration : IEntityTypeConfiguration<Operator>
 
         builder.Property(op => op.Name).HasMaxLength(255).IsRequired();
 
+        builder.HasIndex(op => op.BranchId);
+
+        builder.HasIndex(op => new { op.BranchId, op.UserId })
+            .IsUnique()
+            .HasFilter("\"UserId\" IS NOT NULL AND \"Active\" = true");
+
         builder.HasOne(op => op.Branch)
             .WithMany()
             .HasForeignKey(op => op.BranchId)

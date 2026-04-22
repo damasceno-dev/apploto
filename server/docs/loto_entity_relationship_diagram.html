@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v7
+Spec revision: v8
 -->
 <html lang="en">
 <head>
@@ -293,6 +293,7 @@ Spec revision: v7
     '    string name\n' +
     '    uuid branchId FK\n' +
     '    uuid userId FK\n' +
+    '    unique activeUserBranch "BranchId+UserId where Active"\n' +
     '  }\n' +
     '\n' +
     '  Account {\n' +
