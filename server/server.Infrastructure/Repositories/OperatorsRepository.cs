@@ -44,14 +44,31 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
             .ToListAsync();
     }
 
-    public async Task<Operator?> GetActiveByUserIdAndBranchId(Guid userId, Guid branchId)
+    public async Task<Operator?> GetActiveLinkedByUserIdAndBranchIdAsNoTracking(Guid userId, Guid branchId)
     {
         return await dbContext.Operators
             .AsNoTracking()
-            .FirstOrDefaultAsync(op =>
+            .Where(op =>
                 op.UserId == userId &&
                 op.BranchId == branchId &&
                 op.Active &&
-                op.Branch.Active);
+                op.Branch.Active)
+            .OrderBy(op => op.Id)
+            .SingleOrDefaultAsync();
+    }
+
+    public async Task<bool> ExistsActiveLinkedByUserIdAndBranchId(
+        Guid userId,
+        Guid branchId,
+        Guid? exceptOperatorId = null)
+    {
+        return await dbContext.Operators
+            .AsNoTracking()
+            .AnyAsync(op =>
+                op.UserId == userId &&
+                op.BranchId == branchId &&
+                op.Active &&
+                op.Branch.Active &&
+                (exceptOperatorId == null || op.Id != exceptOperatorId.Value));
     }
 }

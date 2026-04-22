@@ -12,7 +12,7 @@ public class GetOperatorSelfContextUseCase(
     {
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
 
-        var op = await operatorsRepository.GetActiveByUserIdAndBranchId(
+        var op = await operatorsRepository.GetActiveLinkedByUserIdAndBranchIdAsNoTracking(
             authenticatedBranchUser.UserId,
             authenticatedBranchUser.BranchId);
 

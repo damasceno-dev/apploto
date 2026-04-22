@@ -223,7 +223,7 @@ public class CreateTransactionUseCaseTest
         var ctx = BuildHappyPathContext(Role.Member, SettlementRule.SameDay, Direction.In);
         // No linked operator for this user in this branch.
         ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -240,7 +240,7 @@ public class CreateTransactionUseCaseTest
         var ctx = BuildHappyPathContext(Role.Manager, SettlementRule.SameDay, Direction.In);
         // Manager has no linked operator and the request carries no override.
         ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
             .Build();
         ctx.Request = new RequestCreateTransactionJsonBuilder()
             .WithDate(ctx.Request.Date)
@@ -450,7 +450,7 @@ public class CreateTransactionUseCaseTest
         await useCase.Execute(ctx.Request);
 
         await ctx.OperatorsRepository.Received(1)
-            .GetActiveByUserIdAndBranchId(ctx.BranchUser.UserId, ctx.BranchUser.BranchId);
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId);
         await ctx.AccountsRepository.Received(1)
             .GetActiveByIdAndBranchIdAsNoTracking(ctx.Request.AccountId, ctx.BranchUser.BranchId);
         await ctx.TransactionTypesRepository.Received(1)
@@ -523,7 +523,7 @@ public class CreateTransactionUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
             .GetActiveByIdAndBranchIdAsNoTracking(callerOperator.Id, branchUser.BranchId, callerOperator)
             .Build();
         var accountsRepository = new AccountsRepositoryBuilder()

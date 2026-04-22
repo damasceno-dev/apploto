@@ -25,7 +25,7 @@ public class CreateTransactionUseCase(
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         var callerOperator = await operatorsRepository
-            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
 
         var recordedByOperatorId = ResolveRecordedByOperatorId(
             request.RecordedByOperatorId,

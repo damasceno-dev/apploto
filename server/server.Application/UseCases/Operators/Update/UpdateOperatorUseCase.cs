@@ -25,6 +25,7 @@ public class UpdateOperatorUseCase(
         if (request.UserId.HasValue)
         {
             await ValidateUserBranchMembership(request.UserId.Value, authenticatedBranchUser.BranchId);
+            await EnsureUserLinkIsAvailable(request.UserId.Value, authenticatedBranchUser.BranchId, op.Id);
         }
 
         op.Name = request.Name.Trim();
@@ -49,6 +50,19 @@ public class UpdateOperatorUseCase(
         if (branchUser is null)
         {
             throw new NotFoundException(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
+        }
+    }
+
+    private async Task EnsureUserLinkIsAvailable(Guid userId, Guid branchId, Guid operatorId)
+    {
+        var userAlreadyLinked = await operatorsRepository.ExistsActiveLinkedByUserIdAndBranchId(
+            userId,
+            branchId,
+            operatorId);
+
+        if (userAlreadyLinked)
+        {
+            throw new ConflictException(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
         }
     }
 

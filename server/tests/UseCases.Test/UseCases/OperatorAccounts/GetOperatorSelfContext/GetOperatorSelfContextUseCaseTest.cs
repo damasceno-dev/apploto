@@ -18,7 +18,7 @@ public class GetOperatorSelfContextUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var operatorsRepo = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, null)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, null)
             .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
 
@@ -31,7 +31,8 @@ public class GetOperatorSelfContextUseCaseTest
         response.OperatorName.ShouldBeNull();
         response.PrimaryAccount.ShouldBeNull();
         response.AvailableAccounts.ShouldBeEmpty();
-        await operatorsRepo.Received(1).GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+        await operatorsRepo.Received(1)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
         await operatorAccountsRepo.DidNotReceive().ListActiveByOperatorIdWithAccount(Arg.Any<Guid>());
     }
 
@@ -46,7 +47,7 @@ public class GetOperatorSelfContextUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var operatorsRepo = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, op)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, op)
             .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
             .ListActiveByOperatorIdWithAccount(op.Id, [])
@@ -60,7 +61,8 @@ public class GetOperatorSelfContextUseCaseTest
         response.OperatorName.ShouldBe(op.Name);
         response.PrimaryAccount.ShouldBeNull();
         response.AvailableAccounts.ShouldBeEmpty();
-        await operatorsRepo.Received(1).GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+        await operatorsRepo.Received(1)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
         await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
@@ -89,7 +91,7 @@ public class GetOperatorSelfContextUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var operatorsRepo = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, op)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, op)
             .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
             .ListActiveByOperatorIdWithAccount(op.Id, [primaryLink, secondaryLink])
@@ -107,7 +109,8 @@ public class GetOperatorSelfContextUseCaseTest
         response.AvailableAccounts.Count.ShouldBe(2);
         response.AvailableAccounts.ShouldContain(a => a.AccountId == primaryAccount.Id);
         response.AvailableAccounts.ShouldContain(a => a.AccountId == secondaryAccount.Id);
-        await operatorsRepo.Received(1).GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId);
+        await operatorsRepo.Received(1)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
         await operatorAccountsRepo.Received(1).ListActiveByOperatorIdWithAccount(op.Id);
     }
 
@@ -129,7 +132,7 @@ public class GetOperatorSelfContextUseCaseTest
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var operatorsRepo = new OperatorsRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(branchUser.UserId, branchUser.BranchId, op)
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, op)
             .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder()
             .ListActiveByOperatorIdWithAccount(op.Id, [link])

@@ -26,9 +26,15 @@ public class OperatorsRepositoryBuilder
         return this;
     }
 
-    public OperatorsRepositoryBuilder GetActiveByUserIdAndBranchId(Guid userId, Guid branchId, Operator? op)
+    public OperatorsRepositoryBuilder GetActiveLinkedByUserIdAndBranchIdAsNoTracking(Guid userId,Guid branchId,Operator? op)
     {
-        _repository.GetActiveByUserIdAndBranchId(userId, branchId).Returns(op);
+        _repository.GetActiveLinkedByUserIdAndBranchIdAsNoTracking(userId, branchId).Returns(op);
+        return this;
+    }
+
+    public OperatorsRepositoryBuilder ExistsActiveLinkedByUserIdAndBranchId(Guid userId,Guid branchId,bool exists,Guid? exceptOperatorId = null)
+    {
+        _repository.ExistsActiveLinkedByUserIdAndBranchId(userId, branchId, exceptOperatorId).Returns(exists);
         return this;
     }
 

@@ -1,5 +1,6 @@
 using System.Net;
 using CommonTestUtilities.Requests;
+using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
 using Shouldly;
@@ -271,5 +272,50 @@ public class OperatorControllerUnhappyPathTest(ServerWebApplicationFactory facto
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
+    }
+
+    // -------------------------------------------------------------------------
+    // 409 — Duplicate active operator-user links are rejected.
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Create_ShouldReturn409_WhenLinkedUserAlreadyHasActiveOperatorInBranch()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("OpCreateDuplicateUser");
+        var targetUser = await factory.SeedUserAsync();
+        await factory.SeedBranchUserAsync(targetUser.Id, branch.Id, Role.Member);
+        await factory.SeedOperatorAsync(branch.Id, userId: targetUser.Id);
+        var request = new RequestCreateOperatorJsonBuilder()
+            .WithUserId(targetUser.Id)
+            .Build();
+
+        var httpResponse = await _client.PostAuthAsync("/operator", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturn409_WhenLinkedUserAlreadyHasActiveOperatorInBranch()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("OpUpdateDuplicateUser");
+        var targetUser = await factory.SeedUserAsync();
+        await factory.SeedBranchUserAsync(targetUser.Id, branch.Id, Role.Member);
+        await factory.SeedOperatorAsync(branch.Id, userId: targetUser.Id);
+        var opToUpdate = await factory.SeedOperatorAsync(branch.Id);
+        var request = new RequestUpdateOperatorJsonBuilder()
+            .WithUserId(targetUser.Id)
+            .Build();
+
+        var httpResponse = await _client.PutAuthAsync($"/operator/{opToUpdate.Id}", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
+
+        var persisted = await factory.ReloadAsync<Operator>(opToUpdate.Id);
+        persisted.ShouldNotBeNull();
+        persisted.UserId.ShouldBeNull();
     }
 }

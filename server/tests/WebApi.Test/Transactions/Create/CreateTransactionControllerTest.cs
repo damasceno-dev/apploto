@@ -87,7 +87,7 @@ public class CreateTransactionControllerTest(ServerWebApplicationFactory factory
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         await factory.SeedOperatorAccountAsync(op.Id, account.Id);
-        var category = await factory.SeedCategoryAsync(branch.Id, "Entradas", Direction.In);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Entradas");
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.SameDay);
 
         var request = new RequestCreateTransactionJsonBuilder()
@@ -98,6 +98,12 @@ public class CreateTransactionControllerTest(ServerWebApplicationFactory factory
         var httpResponse = await _client.PostAuthAsync("/transaction", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var payload = await httpResponse.ReadContentAsync<ResponseCreateTransactionJson>();
+        payload.RecordedByOperatorId.ShouldBe(op.Id);
+
+        var persisted = await factory.ReloadAsync<Transaction>(payload.Id);
+        persisted.ShouldNotBeNull();
+        persisted.RecordedByOperatorId.ShouldBe(op.Id);
     }
 
     [Fact]
