@@ -222,11 +222,29 @@
     <data name="TRANSACTION_VALUE_PRECISION_14X2" xml:space="preserve">
         <value>O valor da transação deve respeitar o limite de 12 dígitos inteiros e 2 casas decimais</value>
     </data>
+    <data name="TRANSACTION_DESCRIPTION_MAX_LENGTH" xml:space="preserve">
+        <value>A descrição da transação deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="TRANSACTION_DUE_DATE_EMPTY" xml:space="preserve">
+        <value>A data de vencimento deve ser informada</value>
+    </data>
     <data name="TRANSACTION_DUE_DATE_BEFORE_DATE" xml:space="preserve">
         <value>A data de vencimento deve ser igual ou posterior à data da transação</value>
     </data>
     <data name="TRANSACTION_PAID_AT_BEFORE_DATE" xml:space="preserve">
         <value>A data de pagamento deve ser igual ou posterior à data da transação</value>
+    </data>
+    <data name="TRANSACTION_CANNOT_UPDATE_CANCELLED" xml:space="preserve">
+        <value>Transações canceladas não podem ser atualizadas</value>
+    </data>
+    <data name="TRANSACTION_FIADO_REQUIRES_CLIENT" xml:space="preserve">
+        <value>Este tipo de transação exige um cliente informado</value>
+    </data>
+    <data name="TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR" xml:space="preserve">
+        <value>Sem papel elevado, a atualização exige um operador vinculado ao usuário autenticado e a transação deve pertencer a esse operador</value>
+    </data>
+    <data name="TRANSACTION_UPDATE_REQUIRES_SAME_DAY" xml:space="preserve">
+        <value>Sem papel elevado, a atualização só é permitida no mesmo dia da transação</value>
     </data>
     <data name="TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR" xml:space="preserve">
         <value>Membros não podem definir o operador responsável pela transação</value>

@@ -21,6 +21,8 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     public async Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId)
     {
         return await dbContext.Transactions
+            .Include(transaction => transaction.TransactionType)
+            .ThenInclude(transactionType => transactionType.Category)
             .FirstOrDefaultAsync(transaction =>
                 transaction.Id == id &&
                 transaction.BranchId == branchId);

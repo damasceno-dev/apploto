@@ -10,6 +10,18 @@ public class TransactionsRepositoryBuilder
 {
     private readonly ITransactionsRepository _repository = Substitute.For<ITransactionsRepository>();
 
+    public TransactionsRepositoryBuilder GetByIdAndBranchIdReturns(
+        Guid id,
+        Guid branchId,
+        Transaction? result)
+    {
+        _repository.GetByIdAndBranchId(
+                Arg.Is<Guid>(value => value == id),
+                Arg.Is<Guid>(value => value == branchId))
+            .Returns(result);
+        return this;
+    }
+
     public TransactionsRepositoryBuilder GetByIdAndBranchIdAsNoTrackingReturns(
         Guid id,
         Guid branchId,

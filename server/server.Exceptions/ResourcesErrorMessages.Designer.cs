@@ -453,6 +453,18 @@ namespace server.Exceptions {
             }
         }
         
+        public static string TRANSACTION_DESCRIPTION_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("TRANSACTION_DESCRIPTION_MAX_LENGTH", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_DUE_DATE_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_DUE_DATE_EMPTY", resourceCulture);
+            }
+        }
+        
         public static string TRANSACTION_DUE_DATE_BEFORE_DATE {
             get {
                 return ResourceManager.GetString("TRANSACTION_DUE_DATE_BEFORE_DATE", resourceCulture);
@@ -462,6 +474,30 @@ namespace server.Exceptions {
         public static string TRANSACTION_PAID_AT_BEFORE_DATE {
             get {
                 return ResourceManager.GetString("TRANSACTION_PAID_AT_BEFORE_DATE", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_CANNOT_UPDATE_CANCELLED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_CANNOT_UPDATE_CANCELLED", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_FIADO_REQUIRES_CLIENT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_REQUIRES_CLIENT", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR {
+            get {
+                return ResourceManager.GetString("TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_UPDATE_REQUIRES_SAME_DAY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_UPDATE_REQUIRES_SAME_DAY", resourceCulture);
             }
         }
         

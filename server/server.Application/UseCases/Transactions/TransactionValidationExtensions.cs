@@ -5,7 +5,8 @@ namespace server.Application.UseCases.Transactions;
 
 internal static class TransactionValidationExtensions
 {
-    private const decimal Numeric14X2UpperBound = 1_000_000_000_000m;
+    internal const decimal Numeric14X2UpperBound = 1_000_000_000_000m;
+    internal const int TransactionDescriptionMaxLength = 500;
 
     extension<T>(IRuleBuilder<T, decimal> rule)
     {
@@ -27,11 +28,30 @@ internal static class TransactionValidationExtensions
 
     extension<T>(IRuleBuilder<T, DateTime> rule)
     {
+        public void DueDateIsRequired()
+        {
+            rule
+                .NotEqual(default(DateTime))
+                .WithMessage(ResourcesErrorMessages.TRANSACTION_DUE_DATE_EMPTY);
+        }
+
         public IRuleBuilderOptions<T, DateTime> DueDateOnOrAfterDate(Func<T, DateTime> dateSelector)
         {
             return rule
                 .Must((instance, dueDate) => dueDate >= dateSelector(instance))
                 .WithMessage(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
+        }
+    }
+
+    extension<T>(IRuleBuilder<T, string?> rule)
+    {
+        public void DescriptionMaxLength()
+        {
+            rule
+                .MaximumLength(TransactionDescriptionMaxLength)
+                .WithMessage(string.Format(
+                    ResourcesErrorMessages.TRANSACTION_DESCRIPTION_MAX_LENGTH,
+                    TransactionDescriptionMaxLength));
         }
     }
 

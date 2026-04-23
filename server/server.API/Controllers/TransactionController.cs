@@ -3,6 +3,7 @@ using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.List;
+using server.Application.UseCases.Transactions.Update;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
@@ -73,5 +74,23 @@ public class TransactionController : ControllerBase
     {
         var response = await createTransactionInstallmentUseCase.Execute(request);
         return Created(string.Empty, response);
+    }
+
+    [HttpPut]
+    [Route("{transactionId:guid}")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseTransactionJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(
+        [FromServices] UpdateTransactionUseCase updateTransactionUseCase,
+        [FromRoute] Guid transactionId,
+        [FromBody] RequestUpdateTransactionJson request)
+    {
+        var response = await updateTransactionUseCase.Execute(transactionId, request);
+        return Ok(response);
     }
 }

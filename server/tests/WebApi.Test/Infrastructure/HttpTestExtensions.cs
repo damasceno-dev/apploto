@@ -52,10 +52,8 @@ internal static class HttpTestExtensions
         HttpContent? content,
         string token)
     {
-        using var request = new HttpRequestMessage(method, requestUri)
-        {
-            Content = content
-        };
+        using var request = new HttpRequestMessage(method, requestUri);
+        request.Content = content;
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         return await client.SendAsync(request);
     }
