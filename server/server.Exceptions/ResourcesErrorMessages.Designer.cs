@@ -50,67 +50,67 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("EMAIL_ALREADY_REGISTERED", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_CNPJ_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("BRANCH_CNPJ_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_ID_EMPTY {
             get {
                 return ResourceManager.GetString("BRANCH_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_USER_ID_EMPTY {
             get {
                 return ResourceManager.GetString("BRANCH_USER_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_USER_ALREADY_ACTIVE {
             get {
                 return ResourceManager.GetString("BRANCH_USER_ALREADY_ACTIVE", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_USER_LAST_ADMIN_CONFLICT {
             get {
                 return ResourceManager.GetString("BRANCH_USER_LAST_ADMIN_CONFLICT", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_USER_IDENTIFIER_EXCLUSIVE {
             get {
                 return ResourceManager.GetString("BRANCH_USER_IDENTIFIER_EXCLUSIVE", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_USER_IDENTIFIER_REQUIRED {
             get {
                 return ResourceManager.GetString("BRANCH_USER_IDENTIFIER_REQUIRED", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_USER_NOT_FOUND {
             get {
                 return ResourceManager.GetString("BRANCH_USER_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_NAME_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("BRANCH_NAME_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_NOT_FOUND {
             get {
                 return ResourceManager.GetString("BRANCH_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string BRANCH_PHONE_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("BRANCH_PHONE_MAX_LENGTH", resourceCulture);
@@ -152,31 +152,31 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("ROLE_INVALID", resourceCulture);
             }
         }
-
+        
         public static string ROLE_REQUIRED {
             get {
                 return ResourceManager.GetString("ROLE_REQUIRED", resourceCulture);
             }
         }
-
+        
         public static string UNKNOWN_ERROR {
             get {
                 return ResourceManager.GetString("UNKNOWN_ERROR", resourceCulture);
             }
         }
-
+        
         public static string USER_ID_EMPTY {
             get {
                 return ResourceManager.GetString("USER_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string USER_NOT_FOUND {
             get {
                 return ResourceManager.GetString("USER_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string EMAIL_NOT_REGISTERED {
             get {
                 return ResourceManager.GetString("EMAIL_NOT_REGISTERED", resourceCulture);
@@ -236,265 +236,307 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TOKEN_WITHOUT_PERMISSION", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_NAME_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("OPERATOR_NAME_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_USER_NOT_BRANCH_MEMBER {
             get {
                 return ResourceManager.GetString("OPERATOR_USER_NOT_BRANCH_MEMBER", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_NOT_FOUND {
             get {
                 return ResourceManager.GetString("OPERATOR_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_ID_EMPTY {
             get {
                 return ResourceManager.GetString("OPERATOR_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_USER_ALREADY_LINKED {
             get {
                 return ResourceManager.GetString("OPERATOR_USER_ALREADY_LINKED", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("ACCOUNT_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_ID_EMPTY {
             get {
                 return ResourceManager.GetString("ACCOUNT_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_NAME_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("ACCOUNT_NAME_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_INSTITUTION_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("ACCOUNT_INSTITUTION_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_NUMBER_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("ACCOUNT_NUMBER_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TYPE_INVALID {
             get {
                 return ResourceManager.GetString("ACCOUNT_TYPE_INVALID", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TYPE_IMMUTABLE {
             get {
                 return ResourceManager.GetString("ACCOUNT_TYPE_IMMUTABLE", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB {
             get {
                 return ResourceManager.GetString("ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TERMINAL_NOT_FOUND {
             get {
                 return ResourceManager.GetString("ACCOUNT_TERMINAL_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TERMINAL_ALREADY_LINKED {
             get {
                 return ResourceManager.GetString("ACCOUNT_TERMINAL_ALREADY_LINKED", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TERMINAL_ID_EMPTY {
             get {
                 return ResourceManager.GetString("ACCOUNT_TERMINAL_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TAB_ID_EMPTY {
             get {
                 return ResourceManager.GetString("ACCOUNT_TAB_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TAB_NOT_FOUND {
             get {
                 return ResourceManager.GetString("ACCOUNT_TAB_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string ACCOUNT_TAB_ALREADY_LINKED {
             get {
                 return ResourceManager.GetString("ACCOUNT_TAB_ALREADY_LINKED", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_ACCOUNT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("OPERATOR_ACCOUNT_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string OPERATOR_ACCOUNT_ALREADY_ACTIVE {
             get {
                 return ResourceManager.GetString("OPERATOR_ACCOUNT_ALREADY_ACTIVE", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("CLIENT_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_ID_EMPTY {
             get {
                 return ResourceManager.GetString("CLIENT_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_NAME_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("CLIENT_NAME_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_PHONE_EMPTY {
             get {
                 return ResourceManager.GetString("CLIENT_PHONE_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_PHONE_MAX_LENGTH {
             get {
                 return ResourceManager.GetString("CLIENT_PHONE_MAX_LENGTH", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_CPF_INVALID {
             get {
                 return ResourceManager.GetString("CLIENT_CPF_INVALID", resourceCulture);
             }
         }
-
+        
         public static string CLIENT_CPF_CONFLICT {
             get {
                 return ResourceManager.GetString("CLIENT_CPF_CONFLICT", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_TYPE_NOT_FOUND {
             get {
                 return ResourceManager.GetString("TRANSACTION_TYPE_NOT_FOUND", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT {
             get {
                 return ResourceManager.GetString("TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_DATE_LOCKED {
             get {
                 return ResourceManager.GetString("TRANSACTION_DATE_LOCKED", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE {
             get {
                 return ResourceManager.GetString("TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_VALUE_MUST_BE_POSITIVE {
             get {
                 return ResourceManager.GetString("TRANSACTION_VALUE_MUST_BE_POSITIVE", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_VALUE_PRECISION_14X2 {
             get {
                 return ResourceManager.GetString("TRANSACTION_VALUE_PRECISION_14X2", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_DUE_DATE_BEFORE_DATE {
             get {
                 return ResourceManager.GetString("TRANSACTION_DUE_DATE_BEFORE_DATE", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_PAID_AT_BEFORE_DATE {
             get {
                 return ResourceManager.GetString("TRANSACTION_PAID_AT_BEFORE_DATE", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR {
             get {
                 return ResourceManager.GetString("TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK {
             get {
                 return ResourceManager.GetString("TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_REQUIRES_RECORDED_BY_OPERATOR {
             get {
                 return ResourceManager.GetString("TRANSACTION_REQUIRES_RECORDED_BY_OPERATOR", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_CHEQUE_REQUIRES_DUE_DATE {
             get {
                 return ResourceManager.GetString("TRANSACTION_CHEQUE_REQUIRES_DUE_DATE", resourceCulture);
             }
         }
-
+        
+        public static string TRANSACTION_INSTALLMENT_COUNT_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_COUNT_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_INSTALLMENT_REQUIRES_CHEQUE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_REQUIRES_CHEQUE", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_INSTALLMENT_AUTO_GENERATE_CANNOT_HAVE_ITEMS {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_AUTO_GENERATE_CANNOT_HAVE_ITEMS", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_INSTALLMENT_TOTAL_MISMATCH {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_TOTAL_MISMATCH", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_INSTALLMENT_DUE_DATES_MUST_INCREASE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_DUE_DATES_MUST_INCREASE", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_INSTALLMENT_FIRST_DUE_DATE_MUST_BE_FUTURE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_FIRST_DUE_DATE_MUST_BE_FUTURE", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_INSTALLMENT_ROW_VALUE_MUST_BE_POSITIVE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_INSTALLMENT_ROW_VALUE_MUST_BE_POSITIVE", resourceCulture);
+            }
+        }
+        
         public static string TRANSACTION_DATE_EMPTY {
             get {
                 return ResourceManager.GetString("TRANSACTION_DATE_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_TYPE_ID_EMPTY {
             get {
                 return ResourceManager.GetString("TRANSACTION_TYPE_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_ACCOUNT_ID_EMPTY {
             get {
                 return ResourceManager.GetString("TRANSACTION_ACCOUNT_ID_EMPTY", resourceCulture);
             }
         }
-
+        
         public static string TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY {
             get {
                 return ResourceManager.GetString("TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY", resourceCulture);

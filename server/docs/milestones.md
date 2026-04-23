@@ -460,17 +460,29 @@ Make caller-operator resolution deterministic before installment creation, read/
 
 Add the parallel installment endpoint gated on `SettlementRule == OperatorEnteredCheque`. Reuses the Phase 2 service chain.
 
-- [ ] **3.1** Add `RequestCreateTransactionInstallmentJson` with all fields from Create plus `InstallmentCount` (int; 2 ≤ N ≤ 24)
-- [ ] **3.2** Add `ResponseCreateTransactionInstallmentJson` returning the array of persisted rows
-- [ ] **3.3** Add `CreateTransactionInstallmentFluentValidation` reusing `TransactionValidationExtensions` plus the `InstallmentCount` range rule
-- [ ] **3.4** Add `CreateTransactionInstallmentMapper`
-- [ ] **3.5** Implement `CreateTransactionInstallmentUseCase`: reuses the Phase 2 chain, rejects with `ConflictException` when the resolved `TransactionType.SettlementRule != OperatorEnteredCheque`, constructs N rows sharing `OriginTransactionId == rows[0].Id`, splits value via `Math.Round(total / N, 2, MidpointRounding.AwayFromZero)` for rows 1..N-1 with the residual absorbed by the last row so `Sum(row.Value) == total` exactly, staggers `DueDate` monthly from the caller-supplied base, sets per-row `Description = "CH PRE ({i}/{N})"`, and calls `AddRange` + `Commit` exactly once
-- [ ] **3.6** Add `POST /transaction/installment` endpoint on `TransactionController`
-- [ ] **3.7** Register `CreateTransactionInstallmentUseCase` in `AppDependencyInjection`
-- [ ] **3.8** Add `RequestCreateTransactionInstallmentJsonBuilder` in `CommonTestUtilities`
-- [ ] **3.9** Add `Validators.Test` coverage: `InstallmentCount` in `[2, 24]`, plus the shared shape rules
-- [ ] **3.10** Add `UseCases.Test` coverage: N=2, N=3, N=12 — assert `Sum(row.Value) == total` exactly; staggered monthly `DueDate`; all rows share `OriginTransactionId == rows[0].Id`; `AddRange(Arg.Is<IEnumerable<Transaction>>(rows => rows.Count() == N))` called once; `Commit()` called once; `Conflict` when the resolved type is not `OperatorEnteredCheque`
-- [ ] **3.11** Add `WebApi.Test` coverage: `POST` with N=3 reloads by `OriginTransactionId`, asserts count, shared origin, and summed value equals the original total exactly
+- [x] **3.1** Add `RequestCreateTransactionInstallmentJson` with all fields from Create plus manual `Installments` (`Value`, `DueDate`) as the default entry mode and optional auto-generation fields (`AutoGenerateInstallments`, `InstallmentCount`, base `DueDate`)
+- [x] **3.2** Add `ResponseCreateTransactionInstallmentJson` returning the array of persisted rows
+- [x] **3.3** Add `CreateTransactionInstallmentFluentValidation` reusing `TransactionValidationExtensions`; validate manual rows (2 ≤ N ≤ 24, positive values, exact total sum, first due date future, strictly increasing due dates) and optional auto-generation (`InstallmentCount` in range plus required future base `DueDate`)
+- [x] **3.4** Add `CreateTransactionInstallmentMapper`
+- [x] **3.5** Implement `CreateTransactionInstallmentUseCase`: reuses the Phase 2 chain, rejects with `ConflictException` when the resolved `TransactionType.SettlementRule != OperatorEnteredCheque`, constructs rows sharing `OriginTransactionId == rows[0].Id`, supports manual row values/dates by default, supports optional auto-generation that splits value via `Math.Round(total / N, 2, MidpointRounding.AwayFromZero)` with residual absorbed by the last row so `Sum(row.Value) == total` exactly, staggers generated `DueDate` monthly from the caller-supplied base with weekend adjustment, sets per-row description to `CH PRE ({i}/{N})` plus the trimmed operator description when supplied, rejects generated non-positive rows, and calls `AddRange` + `Commit` exactly once
+- [x] **3.6** Add `POST /transaction/installment` endpoint on `TransactionController`
+- [x] **3.7** Register `CreateTransactionInstallmentUseCase` in `AppDependencyInjection`
+- [x] **3.8** Add `RequestCreateTransactionInstallmentJsonBuilder` in `CommonTestUtilities`
+- [x] **3.9** Add `Validators.Test` coverage: manual row count and auto `InstallmentCount` in `[2, 24]`, shared shape rules, exact total-sum validation, future first due date, strictly increasing due dates, and item value rules
+- [x] **3.10** Add `UseCases.Test` coverage: manual rows preserve exact values/dates/descriptions; auto N=2, N=3, N=12 asserts `Sum(row.Value) == total` exactly; generated monthly `DueDate`; weekend adjustment; all rows share `OriginTransactionId == rows[0].Id`; `AddRange(Arg.Is<IEnumerable<Transaction>>(rows => rows.Count() == N))` called once; `Commit()` called once; `Conflict` when the resolved type is not `OperatorEnteredCheque`; generated non-positive row split rejects before persistence
+- [x] **3.11** Add `WebApi.Test` coverage: `POST` with manual rows reloads by `OriginTransactionId`, asserts count, shared origin, exact values/dates/descriptions, and summed value equals the original total exactly; unhappy paths cover validation and non-cheque conflicts
+
+### Phase 3.1 — Installment Contract Refactor
+
+Refine Phase 3 before commit so cheque installments match operator-entered cheque reality instead of forcing an equal monthly split.
+
+- [x] **3.1.1** Move shared `RecordedByOperatorId` role resolution into `TransactionRecordedByOperatorResolver` under `server.Application/Services/Transactions` and reuse it from both single-create and installment-create use cases
+- [x] **3.1.2** Make manual cheque rows the default request model: each installment carries its own `Value` and `DueDate`, and the request-level `Value` must equal the exact sum of all rows
+- [x] **3.1.3** Keep auto-generation optional through `AutoGenerateInstallments`, `InstallmentCount`, and a base `DueDate`; generated values stay equal except for the residual row and generated dates are monthly with weekend adjustment
+- [x] **3.1.4** Move installment planning business rules out of `CreateTransactionInstallmentMapper`; the use case now builds row values, dates, origin id, and descriptions before mapping to `Transaction`
+- [x] **3.1.5** Preserve operator text in generated descriptions using `CH PRE ({i}/{N}) - {Description}` when `Description` is supplied, otherwise `CH PRE ({i}/{N})`
+- [x] **3.1.6** Guard generated splits so no persisted installment row has `Value <= 0`, including tiny-total cases such as `0.10 / 6` and `0.11 / 7`
+- [x] **3.1.7** Rename Transaction Web API integration tests to the controller-suite convention (`TransactionControllerHappyPathTest`, `TransactionControllerUnhappyPathTest`) and add installment unhappy-path coverage
 
 ### Phase 4 — Get + List Transactions
 
@@ -587,6 +599,7 @@ Terminal state transition with audit trail; same permission matrix as Update.
   - Owing statuses (DayOff, UnjustifiedAbsence): `TotalHours = 0`; `BalanceHours = -DailyTargetHours`
 - Lunch deduction from `Setting`: `LunchDeductionOver6H` when worked >6h, `LunchDeductionOver4H` when worked >4h but ≤6h, zero otherwise
 - `Holiday` is branch-scoped and feeds into the time-entry status resolution and future due-date calculation
+- Add holiday-calendar-backed due-date adjustment for auto-generated installments once the backend has a holiday source; current backend support skips weekends only
 
 ---
 

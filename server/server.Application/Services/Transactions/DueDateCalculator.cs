@@ -18,6 +18,18 @@ public class DueDateCalculator
         };
     }
 
+    public static DateTime AdjustToNextBusinessDay(DateTime date)
+    {
+        var result = date;
+
+        while (result.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+        {
+            result = result.AddDays(1);
+        }
+
+        return result;
+    }
+
     private static DateTime AddBusinessDays(DateTime date, int businessDays)
     {
         var result = date;

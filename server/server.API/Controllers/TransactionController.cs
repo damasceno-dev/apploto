@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Create;
+using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
@@ -24,6 +25,23 @@ public class TransactionController : ControllerBase
         [FromBody] RequestCreateTransactionJson request)
     {
         var response = await createTransactionUseCase.Execute(request);
+        return Created(string.Empty, response);
+    }
+
+    [HttpPost]
+    [Route("installment")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseCreateTransactionInstallmentJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreateInstallment(
+        [FromServices] CreateTransactionInstallmentUseCase createTransactionInstallmentUseCase,
+        [FromBody] RequestCreateTransactionInstallmentJson request)
+    {
+        var response = await createTransactionInstallmentUseCase.Execute(request);
         return Created(string.Empty, response);
     }
 }
