@@ -411,6 +411,18 @@ namespace server.Exceptions {
             }
         }
         
+        public static string TRANSACTION_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TRANSACTION_NOT_FOUND", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR {
+            get {
+                return ResourceManager.GetString("TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR", resourceCulture);
+            }
+        }
+        
         public static string TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT {
             get {
                 return ResourceManager.GetString("TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT", resourceCulture);
@@ -540,6 +552,24 @@ namespace server.Exceptions {
         public static string TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY {
             get {
                 return ResourceManager.GetString("TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_LIST_PAGE_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_LIST_PAGE_INVALID", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_LIST_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_LIST_PAGE_SIZE_INVALID", resourceCulture);
+            }
+        }
+        
+        public static string TRANSACTION_LIST_DATE_RANGE_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_LIST_DATE_RANGE_INVALID", resourceCulture);
             }
         }
     }

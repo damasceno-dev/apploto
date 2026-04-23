@@ -294,6 +294,57 @@ internal static class TestSeeder
             return transactionType;
         }
 
+        public async Task<Transaction> SeedTransactionAsync(
+            Guid branchId,
+            Guid accountId,
+            Guid transactionTypeId,
+            Guid categoryId,
+            Direction direction,
+            Guid recordedByOperatorId,
+            Guid createdByUserId,
+            DateTime? date = null,
+            decimal value = 10m,
+            string? description = null,
+            TimeOnly? transactionTime = null,
+            Guid? clientId = null,
+            DateTime? dueDate = null,
+            DateTime? paidAt = null,
+            Guid? originTransactionId = null,
+            TransactionStatus status = TransactionStatus.Active,
+            DateTime? createdAt = null,
+            Guid? id = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+            var transactionDate = date ?? DateTime.Today;
+
+            var transaction = new Transaction
+            {
+                Id = id ?? Guid.NewGuid(),
+                Date = transactionDate,
+                Value = value,
+                Description = description ?? $"Transaction {Guid.NewGuid():N}",
+                TransactionTime = transactionTime,
+                TransactionTypeId = transactionTypeId,
+                CategoryId = categoryId,
+                Direction = direction,
+                AccountId = accountId,
+                ClientId = clientId,
+                DueDate = dueDate ?? transactionDate,
+                PaidAt = paidAt is null ? null : AsUtc(paidAt.Value),
+                OriginTransactionId = originTransactionId,
+                RecordedByOperatorId = recordedByOperatorId,
+                CreatedByUserId = createdByUserId,
+                Status = status,
+                BranchId = branchId,
+                CreatedAt = AsUtc(createdAt ?? DateTime.UtcNow)
+            };
+
+            dbContext.Transactions.Add(transaction);
+            await dbContext.SaveChangesAsync();
+            return transaction;
+        }
+
         public async Task<Setting> SeedSettingAsync(Guid branchId, DateTime? lockDate = null)
         {
             using var scope = factory.Services.CreateScope();
@@ -323,6 +374,13 @@ internal static class TestSeeder
             return await dbContext.Set<TEntity>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(entity => entity.Id == entityId);
+        }
+
+        private static DateTime AsUtc(DateTime value)
+        {
+            return value.Kind == DateTimeKind.Utc
+                ? value
+                : DateTime.SpecifyKind(value, DateTimeKind.Utc);
         }
     }
 }

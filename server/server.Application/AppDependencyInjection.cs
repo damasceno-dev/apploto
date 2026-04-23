@@ -35,6 +35,8 @@ using server.Application.UseCases.Clients.List;
 using server.Application.UseCases.Clients.Update;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.Get;
+using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Users.Login;
 using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
@@ -84,6 +86,8 @@ public static class AppDependencyInjection
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<CreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();
+        services.AddScoped<GetTransactionUseCase>();
+        services.AddScoped<ListTransactionsUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.Get;
+using server.Application.UseCases.Transactions.List;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
@@ -11,6 +13,34 @@ namespace server.Controllers;
 [ApiController]
 public class TransactionController : ControllerBase
 {
+    [HttpGet]
+    [Route("{transactionId:guid}")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseTransactionJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Get(
+        [FromServices] GetTransactionUseCase useCase,
+        [FromRoute] Guid transactionId)
+    {
+        var response = await useCase.Execute(transactionId);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseListTransactionsJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> List(
+        [FromServices] ListTransactionsUseCase useCase,
+        [FromQuery] RequestListTransactionsJson request)
+    {
+        var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
     [HttpPost]
     [Route("")]
     [TokenAuthenticateBranch]

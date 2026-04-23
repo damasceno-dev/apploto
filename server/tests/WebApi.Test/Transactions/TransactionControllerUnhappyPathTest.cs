@@ -211,6 +211,35 @@ public class TransactionControllerUnhappyPathTest(ServerWebApplicationFactory fa
     }
 
     [Fact]
+    public async Task Get_ShouldReturn404_WhenTransactionBelongsToDifferentBranch()
+    {
+        var (attackerUser, attackerBranch, _, attackerToken) =
+            await factory.SeedFullBranchContextAsync("TxnGetAttacker", Role.Manager);
+        await factory.SeedOperatorAsync(attackerBranch.Id, userId: attackerUser.Id);
+
+        var (victimUser, victimBranch, _, _) =
+            await factory.SeedFullBranchContextAsync("TxnGetVictim", Role.Manager);
+        var victimOperator = await factory.SeedOperatorAsync(victimBranch.Id, userId: victimUser.Id);
+        var victimAccount = await factory.SeedAccountAsync(victimBranch.Id, AccountType.Terminal);
+        var victimCategory = await factory.SeedCategoryAsync(victimBranch.Id, "Victim Category", Direction.In);
+        var victimTransactionType = await factory.SeedTransactionTypeAsync(victimCategory.Id);
+        var victimTransaction = await factory.SeedTransactionAsync(
+            branchId: victimBranch.Id,
+            accountId: victimAccount.Id,
+            transactionTypeId: victimTransactionType.Id,
+            categoryId: victimCategory.Id,
+            direction: Direction.In,
+            recordedByOperatorId: victimOperator.Id,
+            createdByUserId: victimUser.Id);
+
+        var httpResponse = await _client.GetAuthAsync($"/transaction/{victimTransaction.Id}", attackerToken);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
+    }
+
+    [Fact]
     public async Task CreateInstallment_ShouldReturn400_WhenInstallmentValuesDoNotMatchTotal()
     {
         var (_, _, token) = await SeedInstallmentContextAsync("TxnInstallmentTotalMismatch", SettlementRule.OperatorEnteredCheque);
