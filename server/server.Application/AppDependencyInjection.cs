@@ -92,6 +92,7 @@ public static class AppDependencyInjection
         services.AddScoped<IMemberTransactionScopeResolver, MemberTransactionScopeResolver>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
+        services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
         services.AddScoped<CreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();
         services.AddScoped<GetTransactionUseCase>();

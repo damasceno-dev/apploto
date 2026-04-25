@@ -95,11 +95,11 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
     }
 
     [Fact]
-    public async Task Update_ShouldReturn403_WhenMemberIsNotRecordedOperator()
+    public async Task Update_ShouldReturn403_WhenMemberIsLinkedButIsNotRecordedOperator()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnUpdateMemberWrongOperator403", Role.Member);
         var callerOperator = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
@@ -125,7 +125,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR);
     }
 
     [Fact]

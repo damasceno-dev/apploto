@@ -489,9 +489,9 @@ namespace server.Exceptions {
             }
         }
         
-        public static string TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR {
+        public static string TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR {
             get {
-                return ResourceManager.GetString("TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR", resourceCulture);
+                return ResourceManager.GetString("TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR", resourceCulture);
             }
         }
         

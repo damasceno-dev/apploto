@@ -15,8 +15,8 @@ public class UpdateTransactionUseCase(
     IUnitOfWork unitOfWork,
     IMemberTransactionScopeResolver memberTransactionScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
-    LockDateGuard lockDateGuard,
-    IBranchClock branchClock)
+    ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
+    LockDateGuard lockDateGuard)
 {
     public async Task<ResponseTransactionJson> Execute(Guid transactionId, RequestUpdateTransactionJson request)
     {
@@ -32,33 +32,21 @@ public class UpdateTransactionUseCase(
         }
 
         var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
-        var callerOperator = memberScope.LinkedOperator;
 
-        if (branchUser.Role == Role.Member && callerOperator is null)
-        {
-            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
-        }
+        // Mutation permission first so a Member with no linked operator surfaces
+        // TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK; otherwise MemberAccountScopeGuard
+        // (which has empty AllowedAccountIds for an unlinked Member) would mask it.
+        var utcNow = DateTime.UtcNow;
+        transactionMutationPermissionGuard.EnsureAllowed(
+            transaction,
+            branchUser.Role,
+            memberScope.LinkedOperator,
+            utcNow);
 
         memberAccountScopeGuard.EnsureMemberCanActOnAccount(
             branchUser.Role,
             memberScope,
             transaction.AccountId);
-
-        var utcNow = DateTime.UtcNow;
-        var isSameDay = branchClock.IsSameLocalDay(transaction.Date, utcNow);
-        var isOwnOperator = callerOperator is not null && callerOperator.Id == transaction.RecordedByOperatorId;
-        if (isSameDay is false || isOwnOperator is false)
-        {
-            if (branchUser.Role is not Role.Manager and not Role.Admin)
-            {
-                if (isOwnOperator is false)
-                {
-                    throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
-                }
-
-                throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
-            }
-        }
 
         await lockDateGuard.EnsureNotLocked(branchUser.BranchId, transaction.Date);
 
@@ -76,15 +64,7 @@ public class UpdateTransactionUseCase(
             }
         }
 
-        if (request.DueDate < transaction.Date)
-        {
-            throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE]);
-        }
-
-        if (request.PaidAt is { } paidAt && paidAt < transaction.Date)
-        {
-            throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE]);
-        }
+        UpdateTransactionEntityRelativeValidator.EnsureValid(transaction, request);
 
         transaction.Description = request.Description;
         transaction.DueDate = request.DueDate;

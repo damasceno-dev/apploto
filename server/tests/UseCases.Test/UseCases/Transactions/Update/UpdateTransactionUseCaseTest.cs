@@ -13,13 +13,21 @@ using server.Exceptions;
 using server.Exceptions.Exceptions;
 using Shouldly;
 using Xunit;
+using Operator = server.Domain.Entities.Operator;
 
 namespace UseCases.Test.UseCases.Transactions.Update;
 
+/// <summary>
+/// Use-case tests verify orchestration: load → guards → validators → mutate → commit.
+/// The shared <see cref="ITransactionMutationPermissionGuard"/> and
+/// <see cref="IMemberTransactionScopeResolver"/> are substituted so the role × link ×
+/// recording-operator × same-day decision tree is exercised once, in
+/// <c>TransactionMutationPermissionGuardTest</c>, not duplicated here.
+/// </summary>
 public class UpdateTransactionUseCaseTest
 {
     [Fact]
-    public async Task Execute_ShouldUpdateEditableSubset_WhenMemberIsSameDayAndOwnOperator()
+    public async Task Execute_ShouldUpdateEditableSubsetAndStampAudit_WhenAllGuardsPass()
     {
         var ctx = BuildContext(Role.Member);
         var useCase = CreateUseCase(ctx);
@@ -81,6 +89,93 @@ public class UpdateTransactionUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldDelegateToMutationGuard_WithLoadedTransactionAndAuthenticatedUserAndCallerOperator()
+    {
+        var ctx = BuildContext(Role.Member);
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+
+        ctx.MutationPermissionGuard.Received(1).EnsureAllowed(
+            ctx.Transaction,
+            ctx.BranchUser.Role,
+            ctx.CallerOperator,
+            Arg.Any<DateTime>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRethrowMutationGuardException_AndNotCommit()
+    {
+        var ctx = BuildContext(Role.Member);
+        ctx.MutationPermissionGuard
+            .When(guard => guard.EnsureAllowed(
+                Arg.Any<Transaction>(),
+                Arg.Any<Role>(),
+                Arg.Any<Operator?>(),
+                Arg.Any<DateTime>()))
+            .Do(_ => throw new TokenWithoutPermissionException(
+                ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK));
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRunMutationGuardBeforeMemberAccountScopeGuard_ForMemberWithNoLinkedOperator()
+    {
+        // 5.5.18: a Member with no linked operator must surface the mutation guard's
+        // no-link key, not the account-scope guard's out-of-scope key. The use case
+        // calls the mutation guard first; the account-scope guard never runs in this
+        // path because the mutation guard short-circuits.
+        var ctx = BuildContext(Role.Member);
+        ctx.MemberTransactionScopeResolver
+            .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
+            .Returns(new MemberTransactionScope(LinkedOperator: null, AllowedAccountIds: []));
+        ctx.MutationPermissionGuard
+            .When(guard => guard.EnsureAllowed(
+                Arg.Any<Transaction>(),
+                Arg.Any<Role>(),
+                null,
+                Arg.Any<DateTime>()))
+            .Do(_ => throw new TokenWithoutPermissionException(
+                ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK));
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+        ctx.MutationPermissionGuard.Received(1).EnsureAllowed(
+            ctx.Transaction,
+            Role.Member,
+            null,
+            Arg.Any<DateTime>());
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowForbidden_WhenMemberTargetsUnlinkedAccount()
+    {
+        // Mutation guard passes (Member is linked + recording + same-day per default),
+        // so MemberAccountScopeGuard fires next and rejects the unlinked account.
+        var ctx = BuildContext(Role.Member);
+        ctx.MemberTransactionScopeResolver
+            .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
+            .Returns(new MemberTransactionScope(LinkedOperator: ctx.CallerOperator, AllowedAccountIds: []));
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowValidation_WhenDueDateIsBeforeTransactionDate()
     {
         var ctx = BuildContext(Role.Manager);
@@ -93,7 +188,8 @@ public class UpdateTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -112,194 +208,11 @@ public class UpdateTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowForbidden_WhenMemberTargetsUnlinkedAccount()
-    {
-        var ctx = BuildContext(Role.Member);
-        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdAsNoTracking(ctx.CallerOperator!.Id, [])
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
-        await ctx.UnitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowForbidden_WhenMemberUpdatesOlderDayTransaction()
-    {
-        var ctx = BuildContext(Role.Member);
-        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
-            .WithDate(ctx.BranchClock.LocalBusinessDate(DateTime.UtcNow).AddDays(-1))
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
-        ctx.Request = new RequestUpdateTransactionJsonBuilder()
-            .WithDescription(ctx.Request.Description)
-            .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Request.PaidAt)
-            .WithClientId(ctx.Request.ClientId)
-            .WithTransactionTime(ctx.Request.TransactionTime)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
-        await ctx.UnitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldUseBranchClockForMemberSameDayDecision()
-    {
-        var ctx = BuildContext(Role.Member);
-        var localBusinessDate = DateTime.UtcNow.Date.AddDays(-1);
-        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
-            .WithDate(localBusinessDate)
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
-        ctx.BranchClock = Substitute.For<IBranchClock>();
-        ctx.BranchClock
-            .IsSameLocalDay(localBusinessDate, Arg.Any<DateTime>())
-            .Returns(true);
-        ctx.Request = new RequestUpdateTransactionJsonBuilder()
-            .WithDescription(ctx.Request.Description)
-            .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Transaction.Date.AddDays(2))
-            .WithClientId(ctx.Request.ClientId)
-            .WithTransactionTime(ctx.Request.TransactionTime)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        await useCase.Execute(ctx.Transaction.Id, ctx.Request);
-
-        ctx.BranchClock.Received(1).IsSameLocalDay(localBusinessDate, Arg.Any<DateTime>());
-        await ctx.UnitOfWork.Received(1).Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowForbidden_WhenMemberIsNotRecordedOperator()
-    {
-        var ctx = BuildContext(Role.Member);
-        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
-            .WithRecordedByOperatorId(Guid.NewGuid())
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
-        await ctx.UnitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowForbidden_WhenMemberHasNoLinkedOperator()
-    {
-        var ctx = BuildContext(Role.Member);
-        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
-        await ctx.UnitOfWork.DidNotReceive().Commit();
-    }
-
-    [Theory]
-    [InlineData(0, true)]
-    [InlineData(-1, true)]
-    [InlineData(0, false)]
-    public async Task Execute_ShouldAllowManagerInAnyPermissionMatrixCase(int dateOffsetDays, bool ownOperator)
-    {
-        var ctx = BuildContext(Role.Manager);
-        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
-            .WithDate(ctx.BranchClock.LocalBusinessDate(DateTime.UtcNow).AddDays(dateOffsetDays))
-            .WithRecordedByOperatorId(ownOperator ? ctx.CallerOperator!.Id : Guid.NewGuid())
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
-        ctx.Request = new RequestUpdateTransactionJsonBuilder()
-            .WithDescription(ctx.Request.Description)
-            .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Transaction.Date.AddDays(2))
-            .WithClientId(ctx.Request.ClientId)
-            .WithTransactionTime(ctx.Request.TransactionTime)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
-
-        response.Id.ShouldBe(ctx.Transaction.Id);
-        await ctx.UnitOfWork.Received(1).Commit();
-    }
-
-    [Theory]
-    [InlineData(0, true)]
-    [InlineData(-1, true)]
-    [InlineData(0, false)]
-    public async Task Execute_ShouldAllowAdminInAnyPermissionMatrixCase(int dateOffsetDays, bool ownOperator)
-    {
-        var ctx = BuildContext(Role.Admin);
-        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
-            .WithDate(ctx.BranchClock.LocalBusinessDate(DateTime.UtcNow).AddDays(dateOffsetDays))
-            .WithRecordedByOperatorId(ownOperator ? ctx.CallerOperator!.Id : Guid.NewGuid())
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
-        ctx.Request = new RequestUpdateTransactionJsonBuilder()
-            .WithDescription(ctx.Request.Description)
-            .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Transaction.Date.AddDays(2))
-            .WithClientId(ctx.Request.ClientId)
-            .WithTransactionTime(ctx.Request.TransactionTime)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
-
-        response.Id.ShouldBe(ctx.Transaction.Id);
-        await ctx.UnitOfWork.Received(1).Commit();
-    }
-
-    [Theory]
-    [InlineData(Role.Manager)]
-    [InlineData(Role.Admin)]
-    public async Task Execute_ShouldAllowElevatedRoleWithoutLinkedOperator(Role role)
-    {
-        var ctx = BuildContext(role);
-        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
-            .Build();
-        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
-            .WithRecordedByOperatorId(Guid.NewGuid())
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
-
-        response.Id.ShouldBe(ctx.Transaction.Id);
-        await ctx.UnitOfWork.Received(1).Commit();
     }
 
     [Fact]
@@ -317,7 +230,8 @@ public class UpdateTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -330,7 +244,8 @@ public class UpdateTransactionUseCaseTest
         ctx.Transaction.Status = TransactionStatus.Cancelled;
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -346,7 +261,8 @@ public class UpdateTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(transactionId, ctx.Request));
+        var exception = await Should.ThrowAsync<NotFoundException>(
+            () => useCase.Execute(transactionId, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
         await ctx.TransactionsRepository.Received(1).GetByIdAndBranchId(transactionId, ctx.BranchUser.BranchId);
@@ -369,7 +285,8 @@ public class UpdateTransactionUseCaseTest
         ctx.ClientsRepository = new ClientsRepositoryBuilder().Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_FIADO_REQUIRES_CLIENT);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -392,7 +309,8 @@ public class UpdateTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+        var exception = await Should.ThrowAsync<NotFoundException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.CLIENT_NOT_FOUND);
         await ctx.ClientsRepository.Received(1)
@@ -402,9 +320,6 @@ public class UpdateTransactionUseCaseTest
 
     private static UpdateTransactionUseCase CreateUseCase(TestContext ctx)
     {
-        var memberTransactionScopeResolver = new MemberTransactionScopeResolver(
-            ctx.OperatorsRepository,
-            ctx.OperatorAccountsRepository);
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
         var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
 
@@ -413,10 +328,10 @@ public class UpdateTransactionUseCaseTest
             ctx.TransactionsRepository,
             ctx.ClientsRepository,
             ctx.UnitOfWork,
-            memberTransactionScopeResolver,
+            ctx.MemberTransactionScopeResolver,
             memberAccountScopeGuard,
-            lockDateGuard,
-            ctx.BranchClock);
+            ctx.MutationPermissionGuard,
+            lockDateGuard);
     }
 
     private static TestContext BuildContext(Role role)
@@ -439,10 +354,9 @@ public class UpdateTransactionUseCaseTest
             .WithCategory(category)
             .WithRequiresTabAccountAndClient(false)
             .Build();
-        var branchClock = new BranchClock();
         var currentClientId = Guid.NewGuid();
         var requestClientId = Guid.NewGuid();
-        var transactionDate = branchClock.LocalBusinessDate(DateTime.UtcNow);
+        var transactionDate = DateTime.UtcNow.Date;
         var transaction = new TransactionBuilder()
             .WithBranch(branch)
             .WithTransactionType(transactionType)
@@ -468,22 +382,23 @@ public class UpdateTransactionUseCaseTest
         var transactionsRepository = new TransactionsRepositoryBuilder()
             .GetByIdAndBranchIdReturns(transaction.Id, branchUser.BranchId, transaction)
             .Build();
-        var operatorsRepository = new OperatorsRepositoryBuilder()
-            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
-            .Build();
         var clientsRepository = new ClientsRepositoryBuilder()
             .GetActiveByIdAndBranchIdAsNoTracking(
                 requestClientId,
                 branchUser.BranchId,
                 new ClientBuilder().WithId(requestClientId).WithBranchId(branchUser.BranchId).Build())
             .Build();
-        var operatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
-            .ListActiveByOperatorIdAsNoTracking(
-                callerOperator.Id,
-                [new OperatorAccountBuilder().WithOperator(callerOperator).WithAccountId(transaction.AccountId).Build()])
-            .Build();
         var settingsRepository = new SettingsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var memberTransactionScopeResolver = Substitute.For<IMemberTransactionScopeResolver>();
+        memberTransactionScopeResolver
+            .Resolve(branchUser.UserId, branchUser.BranchId)
+            .Returns(new MemberTransactionScope(
+                LinkedOperator: callerOperator,
+                AllowedAccountIds: [transaction.AccountId]));
+
+        var mutationPermissionGuard = Substitute.For<ITransactionMutationPermissionGuard>();
 
         return new TestContext
         {
@@ -493,11 +408,10 @@ public class UpdateTransactionUseCaseTest
             Request = request,
             AuthenticationService = authenticationService,
             TransactionsRepository = transactionsRepository,
-            OperatorsRepository = operatorsRepository,
             ClientsRepository = clientsRepository,
-            OperatorAccountsRepository = operatorAccountsRepository,
             SettingsRepository = settingsRepository,
-            BranchClock = branchClock,
+            MemberTransactionScopeResolver = memberTransactionScopeResolver,
+            MutationPermissionGuard = mutationPermissionGuard,
             UnitOfWork = unitOfWork
         };
     }
@@ -505,16 +419,15 @@ public class UpdateTransactionUseCaseTest
     private sealed class TestContext
     {
         public required BranchUser BranchUser { get; init; }
-        public required Operator? CallerOperator { get; init; }
+        public required Operator CallerOperator { get; init; }
         public required Transaction Transaction { get; set; }
         public required RequestUpdateTransactionJson Request { get; set; }
         public required IAuthenticationService AuthenticationService { get; init; }
         public required ITransactionsRepository TransactionsRepository { get; set; }
-        public required IOperatorsRepository OperatorsRepository { get; set; }
         public required IClientsRepository ClientsRepository { get; set; }
-        public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
         public required ISettingsRepository SettingsRepository { get; set; }
-        public required IBranchClock BranchClock { get; set; }
+        public required IMemberTransactionScopeResolver MemberTransactionScopeResolver { get; init; }
+        public required ITransactionMutationPermissionGuard MutationPermissionGuard { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }
 }
