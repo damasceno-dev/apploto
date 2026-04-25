@@ -174,4 +174,34 @@ public class CreateTransactionFluentValidationTest
         result.Errors.Select(e => e.ErrorMessage)
             .ShouldContain(ResourcesErrorMessages.TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY);
     }
+
+    [Fact]
+    public void Validate_ShouldSucceed_WhenDescriptionIsAtMaxLength()
+    {
+        var description = new string('a', TransactionValidationExtensions.TransactionDescriptionMaxLength);
+        var request = new RequestCreateTransactionJsonBuilder()
+            .WithDescription(description)
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenDescriptionExceedsMaxLength()
+    {
+        var description = new string('a', TransactionValidationExtensions.TransactionDescriptionMaxLength + 1);
+        var request = new RequestCreateTransactionJsonBuilder()
+            .WithDescription(description)
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(e => e.ErrorMessage)
+            .ShouldContain(string.Format(
+                ResourcesErrorMessages.TRANSACTION_DESCRIPTION_MAX_LENGTH,
+                TransactionValidationExtensions.TransactionDescriptionMaxLength));
+    }
 }

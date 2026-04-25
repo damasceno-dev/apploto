@@ -8,6 +8,12 @@ internal static class TransactionValidationExtensions
     internal const decimal Numeric14X2UpperBound = 1_000_000_000_000m;
     internal const int TransactionDescriptionMaxLength = 500;
 
+    // Reserved budget for the auto-prefixed installment row description "CH PRE (XX/YY) - "
+    // ("CH PRE (" = 8) + ("XX/YY" up to 5 with installment count <= 24) + (") - " = 4) = 17.
+    internal const int InstallmentDescriptionPrefixReserve = 17;
+    internal const int InstallmentEffectiveDescriptionMaxLength =
+        TransactionDescriptionMaxLength - InstallmentDescriptionPrefixReserve;
+
     extension<T>(IRuleBuilder<T, decimal> rule)
     {
         public IRuleBuilderOptions<T, decimal> ValueIsPositive()
@@ -52,6 +58,15 @@ internal static class TransactionValidationExtensions
                 .WithMessage(string.Format(
                     ResourcesErrorMessages.TRANSACTION_DESCRIPTION_MAX_LENGTH,
                     TransactionDescriptionMaxLength));
+        }
+
+        public void InstallmentDescriptionMaxLength()
+        {
+            rule
+                .MaximumLength(InstallmentEffectiveDescriptionMaxLength)
+                .WithMessage(string.Format(
+                    ResourcesErrorMessages.TRANSACTION_DESCRIPTION_MAX_LENGTH,
+                    InstallmentEffectiveDescriptionMaxLength));
         }
     }
 

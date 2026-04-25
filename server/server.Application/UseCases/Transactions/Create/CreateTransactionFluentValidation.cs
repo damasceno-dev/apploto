@@ -24,6 +24,9 @@ public class CreateTransactionFluentValidation : AbstractValidator<RequestCreate
             .ValueIsPositive()
             .ValuePrecisionWithin14x2();
 
+        RuleFor(r => r.Description)
+            .DescriptionMaxLength();
+
         RuleFor(r => r.DueDate)
             .DueDateOnOrAfterDate(r => r.Date);
 

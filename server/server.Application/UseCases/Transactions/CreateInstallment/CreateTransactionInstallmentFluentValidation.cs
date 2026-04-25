@@ -27,6 +27,9 @@ public class CreateTransactionInstallmentFluentValidation : AbstractValidator<Re
             .ValueIsPositive()
             .ValuePrecisionWithin14x2();
 
+        RuleFor(r => r.Description)
+            .InstallmentDescriptionMaxLength();
+
         RuleFor(r => r.DueDate)
             .DueDateOnOrAfterDate(r => r.Date);
 
@@ -50,9 +53,6 @@ public class CreateTransactionInstallmentFluentValidation : AbstractValidator<Re
             RuleFor(r => r.DueDate)
                 .NotNull()
                 .WithMessage(ResourcesErrorMessages.TRANSACTION_CHEQUE_REQUIRES_DUE_DATE);
-
-            RuleFor(r => r.DueDate)
-                .DueDateOnOrAfterDate(r => r.Date);
 
             RuleFor(r => r.DueDate)
                 .Must(dueDate => dueDate is null || dueDate.Value.Date > DateTime.Today)

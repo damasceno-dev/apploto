@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v9
+Spec revision: v10
 -->
 <html lang="en">
 <head>
@@ -428,7 +428,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Cheque"'},{n:'SettlementRule',v:'OperatorEnteredCheque'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'System Creates 3 Installments',
-   narrative:'<b>R$3,000 cheque in 3 installments:</b> the system creates 3 Transaction rows. Each has Value = R$1,000 (total ÷ 3). DueDates are offset by 1 month: May 15, June 15, July 15.<br><br>Descriptions: "CH PRE (1/3)", "(2/3)", "(3/3)". <b>All installments share the same OriginTransactionId, including the first</b> (which points to itself). This simplifies group lookups: <code>WHERE OriginTransactionId = @groupId</code> returns all members.',
+   narrative:'<b>R$3,000 cheque in 3 installments:</b> the system creates 3 Transaction rows. <b>Manual rows are the default</b> — the operator supplies each installment\'s Value and DueDate, and the request total must equal the exact sum (rules out fat-finger splits). <b>Auto-generation is optional</b>: the operator sets <code>AutoGenerateInstallments = true</code>, an installment count, and a base DueDate; the server splits equally with the residual on the last row, staggers monthly from the base date, and moves weekend dates to the next business day.<br><br>Row descriptions follow <code>CH PRE ({i}/{N}) - {Description}</code> when the operator supplies a description; otherwise just <code>CH PRE ({i}/{N})</code> with no trailing separator. <b>All installments share the same OriginTransactionId, including the first</b> (which points to itself). This simplifies group lookups: <code>WHERE OriginTransactionId = @groupId</code> returns all members.',
    activeTables:['Tx1','Tx2','Tx3','Account'],
    activeArrows:['tx1-acc','tx2-acc','tx3-acc'],
    data:[

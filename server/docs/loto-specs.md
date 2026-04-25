@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v9
+Spec revision: v10
 -->
 
-> **Status:** Revised spec (v9) — Operator user-link clearing documented
+> **Status:** Revised spec (v10) — Cheque installment contract aligned with Phase 3.1
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -20,6 +20,7 @@ Spec revision: v9
 > v7: Added TransactionType settlement metadata (`SettlementRule`, `RequiresTabAccountAndClient`) and documented due-date and fiado enforcement semantics.
 > v8: Added the active Operator user-link uniqueness invariant: at most one active linked Operator per `(User, Branch)`, enforced by filtered unique index.
 > v9: Documented that updating an Operator with `UserId = null` clears the login link while preserving the Operator row.
+> v10: Aligned §6.3 with the Phase 3.1 cheque-installment contract — manual rows by default, optional auto-generation with monthly stagger and weekend adjustment, exact-sum invariant, prefix-only description fallback, and SaveAsDraft propagation.
 
 ---
 
@@ -943,14 +944,21 @@ Note: **Fiado is NOT a DailyClose product** — it is calculated at query time f
 
 ### 6.3 Installments (cheque pre-dated)
 
-When a pre-dated cheque is recorded with installments:
-- The system creates N separate Transaction rows, one per installment
-- Each installment's `Value` = total / N
-- Each installment's `DueDate` = base due date + (i-1) months
-- Each installment's `Description` = "CH PRE (1/3)", "CH PRE (2/3)", etc.
-- **All installments share the same `OriginTransactionId`, including the first** (which points to itself). This simplifies group lookups: `WHERE OriginTransactionId = @groupId` returns all members.
+When a pre-dated cheque is recorded with installments, the system creates N separate Transaction rows, one per installment. The endpoint requires a TransactionType with `SettlementRule = OperatorEnteredCheque`; otherwise the request is rejected.
 
-This matches the Access behavior where `lco_origem` on the first installment is set to its own `lco_id`.
+**Manual rows are the default.** Each installment item carries its own `Value` and `DueDate`. The request-level `Value` must equal the exact sum of all row values. Row count is bounded `[2..24]`. Row due dates must all be on or after the transaction `Date`, the first must be in the future, and they must be strictly increasing.
+
+**Auto-generation is optional** via `AutoGenerateInstallments = true` together with `InstallmentCount` and a base `DueDate`. When enabled:
+- All generated rows have equal `Value`, rounded to 2 decimal places (`MidpointRounding.AwayFromZero`); any residual goes on the last row so the row sum matches the request total exactly.
+- Generated `DueDate`s are staggered monthly from the base date (`baseDueDate.AddMonths(i-1)`); any row falling on a weekend is moved to the next business day.
+- If the auto-split would produce any non-positive row (e.g. `0.10` over 6 installments), the request is rejected.
+- The base `DueDate` must be in the future; manual `Installments` must be empty when the flag is on.
+
+**Row description format:** `CH PRE ({i}/{N}) - {Description}` when the operator supplies a non-empty description; otherwise the row description is exactly `CH PRE ({i}/{N})` with no trailing separator. The operator-supplied description is capped to leave room for the longest possible prefix (`CH PRE (24/24) - `, 17 chars) so the persisted row description fits the `varchar(500)` column.
+
+**All installments share the same `OriginTransactionId`, including the first** (which points to itself). This simplifies group lookups: `WHERE OriginTransactionId = @groupId` returns all members. This matches the Access behavior where `lco_origem` on the first installment is set to its own `lco_id`.
+
+`SaveAsDraft = true` persists every generated/manual row with `Status = Draft`; the default is `Active`.
 
 Credit card transactions do NOT create multiple rows — the total is stored as one transaction with description "Parcelado 3x" or "à vista". The installment split is informational only for credit cards in the current system.
 
