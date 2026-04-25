@@ -88,6 +88,8 @@ public static class AppDependencyInjection
         services.AddScoped<TransactionCreatePreamble>();
         services.AddScoped<InstallmentPlanBuilder>();
         services.AddScoped<DueDateCalculator>();
+        services.AddScoped<IBranchClock, BranchClock>();
+        services.AddScoped<IMemberTransactionScopeResolver, MemberTransactionScopeResolver>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<CreateTransactionUseCase>();

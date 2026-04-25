@@ -28,6 +28,8 @@ public static class TransactionSharedMapper
                 OriginTransactionId = transaction.OriginTransactionId,
                 RecordedByOperatorId = transaction.RecordedByOperatorId,
                 CreatedByUserId = transaction.CreatedByUserId,
+                UpdatedAt = transaction.UpdatedAt,
+                UpdatedByUserId = transaction.UpdatedByUserId,
                 Status = transaction.Status,
                 CancelledAt = transaction.CancelledAt,
                 CancelledByUserId = transaction.CancelledByUserId,

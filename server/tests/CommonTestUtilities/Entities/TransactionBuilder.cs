@@ -31,6 +31,8 @@ public class TransactionBuilder
     private Operator? _recordedByOperator;
     private Guid _createdByUserId = Guid.NewGuid();
     private User? _createdByUser;
+    private DateTime? _updatedAt;
+    private Guid? _updatedByUserId;
     private TransactionStatus _status = TransactionStatus.Active;
     private DateTime? _cancelledAt;
     private Guid? _cancelledByUserId;
@@ -46,6 +48,46 @@ public class TransactionBuilder
         _value = Math.Round(_faker.Random.Decimal(1m, 999_999.99m), 2);
         _description = _faker.Commerce.ProductDescription();
         _transactionTime = TimeOnly.FromDateTime(_faker.Date.Recent());
+    }
+
+    public static TransactionBuilder From(Transaction existing)
+    {
+        return new TransactionBuilder
+        {
+            _id = existing.Id,
+            _createdAt = existing.CreatedAt,
+            _active = existing.Active,
+            _date = existing.Date,
+            _value = existing.Value,
+            _description = existing.Description,
+            _transactionTime = existing.TransactionTime,
+            _transactionTypeId = existing.TransactionTypeId,
+            _transactionType = existing.TransactionType,
+            _categoryId = existing.CategoryId,
+            _category = existing.Category,
+            _direction = existing.Direction,
+            _accountId = existing.AccountId,
+            _account = existing.Account,
+            _clientId = existing.ClientId,
+            _client = existing.Client,
+            _dueDate = existing.DueDate,
+            _paidAt = existing.PaidAt,
+            _originTransactionId = existing.OriginTransactionId,
+            _originTransaction = existing.OriginTransaction,
+            _recordedByOperatorId = existing.RecordedByOperatorId,
+            _recordedByOperator = existing.RecordedByOperator,
+            _createdByUserId = existing.CreatedByUserId,
+            _createdByUser = existing.CreatedByUser,
+            _updatedAt = existing.UpdatedAt,
+            _updatedByUserId = existing.UpdatedByUserId,
+            _status = existing.Status,
+            _cancelledAt = existing.CancelledAt,
+            _cancelledByUserId = existing.CancelledByUserId,
+            _cancelledByUser = existing.CancelledByUser,
+            _cancellationReason = existing.CancellationReason,
+            _branchId = existing.BranchId,
+            _branch = existing.Branch
+        };
     }
 
     public TransactionBuilder WithId(Guid id)
@@ -131,6 +173,18 @@ public class TransactionBuilder
     {
         _createdByUserId = userId;
         _createdByUser = null;
+        return this;
+    }
+
+    public TransactionBuilder WithUpdatedAt(DateTime? updatedAt)
+    {
+        _updatedAt = updatedAt;
+        return this;
+    }
+
+    public TransactionBuilder WithUpdatedByUserId(Guid? userId)
+    {
+        _updatedByUserId = userId;
         return this;
     }
 
@@ -291,6 +345,8 @@ public class TransactionBuilder
             RecordedByOperator = recordedByOperator,
             CreatedByUserId = _createdByUserId,
             CreatedByUser = createdByUser,
+            UpdatedAt = _updatedAt,
+            UpdatedByUserId = _updatedByUserId,
             Status = _status,
             CancelledAt = _cancelledAt,
             CancelledByUserId = _cancelledByUserId,

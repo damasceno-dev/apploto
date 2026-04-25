@@ -19,6 +19,8 @@ public class ResponseTransactionJson
     public Guid? OriginTransactionId { get; init; }
     public Guid RecordedByOperatorId { get; init; }
     public Guid CreatedByUserId { get; init; }
+    public DateTime? UpdatedAt { get; init; }
+    public Guid? UpdatedByUserId { get; init; }
     public TransactionStatus Status { get; init; }
     public DateTime? CancelledAt { get; init; }
     public Guid? CancelledByUserId { get; init; }

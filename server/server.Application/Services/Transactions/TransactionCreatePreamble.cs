@@ -16,7 +16,7 @@ public sealed record TransactionCreateContext(
 
 public class TransactionCreatePreamble(
     IAuthenticationService authenticationService,
-    IOperatorsRepository operatorsRepository,
+    IMemberTransactionScopeResolver memberTransactionScopeResolver,
     TransactionRecordedByOperatorResolver recordedByOperatorResolver,
     TransactionBranchConsistencyService transactionBranchConsistencyService,
     MemberAccountScopeGuard memberAccountScopeGuard,
@@ -70,8 +70,8 @@ public class TransactionCreatePreamble(
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
-        var callerOperator = await operatorsRepository
-            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var callerOperator = memberScope.LinkedOperator;
 
         var recordedByOperatorId = recordedByOperatorResolver.Resolve(
             requestedRecordedByOperatorId,
@@ -85,9 +85,9 @@ public class TransactionCreatePreamble(
             clientId: clientId,
             transactionTypeId: transactionTypeId);
 
-        await memberAccountScopeGuard.EnsureMemberCanActOnAccount(
+        memberAccountScopeGuard.EnsureMemberCanActOnAccount(
             branchUser.Role,
-            callerOperator?.Id,
+            memberScope,
             accountId);
 
         return new TransactionCreateContext(

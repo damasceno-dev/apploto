@@ -35,6 +35,9 @@ public class Transaction : EntityBase
     public Guid CreatedByUserId { get; init; }
     public User CreatedByUser { get; init; } = null!;
 
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedByUserId { get; set; }
+
     public TransactionStatus Status { get; set; } = TransactionStatus.Active;
 
     public DateTime? CancelledAt { get; set; }

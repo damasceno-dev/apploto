@@ -1,3 +1,4 @@
+using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -10,8 +11,7 @@ namespace server.Application.UseCases.Transactions.List;
 public class ListTransactionsUseCase(
     IAuthenticationService authenticationService,
     ITransactionsRepository transactionsRepository,
-    IOperatorsRepository operatorsRepository,
-    IOperatorAccountsRepository operatorAccountsRepository)
+    IMemberTransactionScopeResolver memberTransactionScopeResolver)
 {
     public async Task<ResponseListTransactionsJson> Execute(RequestListTransactionsJson request)
     {
@@ -22,14 +22,8 @@ public class ListTransactionsUseCase(
 
         if (branchUser.Role == Role.Member)
         {
-            var callerOperator = await operatorsRepository
-                .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
-
-            var allowedAccountIds = callerOperator is null
-                ? []
-                : (await operatorAccountsRepository.ListActiveByOperatorIdAsNoTracking(callerOperator.Id))
-                    .Select(link => link.AccountId)
-                    .ToList();
+            var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+            var allowedAccountIds = memberScope.AllowedAccountIds;
 
             if (filter.AccountId is { } explicitlySuppliedAccountId &&
                 allowedAccountIds.Contains(explicitlySuppliedAccountId) is false)

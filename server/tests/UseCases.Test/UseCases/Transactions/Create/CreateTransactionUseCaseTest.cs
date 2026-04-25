@@ -466,10 +466,13 @@ public class CreateTransactionUseCaseTest
             ctx.ClientsRepository,
             ctx.TransactionTypesRepository);
         var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
-        var memberAccountScopeGuard = new MemberAccountScopeGuard(ctx.OperatorAccountsRepository);
+        var memberTransactionScopeResolver = new MemberTransactionScopeResolver(
+            ctx.OperatorsRepository,
+            ctx.OperatorAccountsRepository);
+        var memberAccountScopeGuard = new MemberAccountScopeGuard();
         var transactionCreatePreamble = new TransactionCreatePreamble(
             ctx.AuthenticationService,
-            ctx.OperatorsRepository,
+            memberTransactionScopeResolver,
             recordedByOperatorResolver,
             branchConsistencyService,
             memberAccountScopeGuard,

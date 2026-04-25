@@ -49,7 +49,9 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
             .WithTransactionTime(new TimeOnly(14, 45))
             .Build();
 
+        var beforeUpdate = DateTime.UtcNow;
         var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var afterUpdate = DateTime.UtcNow;
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseTransactionJson>();
@@ -59,6 +61,10 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         payload.PaidAt.ShouldBe(request.PaidAt);
         payload.ClientId.ShouldBe(request.ClientId);
         payload.TransactionTime.ShouldBe(request.TransactionTime);
+        payload.UpdatedAt.ShouldNotBeNull();
+        payload.UpdatedAt.Value.ShouldBeGreaterThanOrEqualTo(beforeUpdate.AddSeconds(-1));
+        payload.UpdatedAt.Value.ShouldBeLessThanOrEqualTo(afterUpdate.AddSeconds(1));
+        payload.UpdatedByUserId.ShouldBe(user.Id);
 
         var persisted = await factory.ReloadAsync<Transaction>(transaction.Id);
         persisted.ShouldNotBeNull();
@@ -67,6 +73,10 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         persisted.PaidAt.ShouldBe(request.PaidAt);
         persisted.ClientId.ShouldBe(request.ClientId);
         persisted.TransactionTime.ShouldBe(request.TransactionTime);
+        persisted.UpdatedAt.ShouldNotBeNull();
+        persisted.UpdatedAt.Value.ShouldBeGreaterThanOrEqualTo(beforeUpdate.AddSeconds(-1));
+        persisted.UpdatedAt.Value.ShouldBeLessThanOrEqualTo(afterUpdate.AddSeconds(1));
+        persisted.UpdatedByUserId.ShouldBe(user.Id);
     }
 
     [Fact]

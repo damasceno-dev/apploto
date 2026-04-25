@@ -18,6 +18,8 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.Direction).HasConversion<short>().IsRequired();
         builder.Property(t => t.DueDate).HasColumnType("date").IsRequired();
         builder.Property(t => t.PaidAt).HasColumnType("timestamp with time zone").IsRequired(false);
+        builder.Property(t => t.UpdatedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+        builder.Property(t => t.UpdatedByUserId).IsRequired(false);
         builder.Property(t => t.Status).HasConversion<short>().IsRequired();
         builder.Property(t => t.CancelledAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(t => t.CancellationReason).HasMaxLength(500).IsRequired(false);

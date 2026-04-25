@@ -24,7 +24,9 @@ public class UpdateTransactionUseCaseTest
         var ctx = BuildContext(Role.Member);
         var useCase = CreateUseCase(ctx);
 
+        var beforeUpdate = DateTime.UtcNow;
         var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+        var afterUpdate = DateTime.UtcNow;
 
         response.Id.ShouldBe(ctx.Transaction.Id);
         response.Description.ShouldBe(ctx.Request.Description);
@@ -32,12 +34,18 @@ public class UpdateTransactionUseCaseTest
         response.PaidAt.ShouldBe(ctx.Request.PaidAt);
         response.ClientId.ShouldBe(ctx.Request.ClientId);
         response.TransactionTime.ShouldBe(ctx.Request.TransactionTime);
+        response.UpdatedAt.ShouldNotBeNull();
+        response.UpdatedAt.Value.ShouldBeGreaterThanOrEqualTo(beforeUpdate);
+        response.UpdatedAt.Value.ShouldBeLessThanOrEqualTo(afterUpdate);
+        response.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
 
         ctx.Transaction.Description.ShouldBe(ctx.Request.Description);
         ctx.Transaction.DueDate.ShouldBe(ctx.Request.DueDate);
         ctx.Transaction.PaidAt.ShouldBe(ctx.Request.PaidAt);
         ctx.Transaction.ClientId.ShouldBe(ctx.Request.ClientId);
         ctx.Transaction.TransactionTime.ShouldBe(ctx.Request.TransactionTime);
+        ctx.Transaction.UpdatedAt.ShouldBe(response.UpdatedAt);
+        ctx.Transaction.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
 
         await ctx.TransactionsRepository.Received(1)
             .GetByIdAndBranchId(ctx.Transaction.Id, ctx.BranchUser.BranchId);
@@ -129,9 +137,12 @@ public class UpdateTransactionUseCaseTest
     public async Task Execute_ShouldThrowForbidden_WhenMemberUpdatesOlderDayTransaction()
     {
         var ctx = BuildContext(Role.Member);
-        ReplaceTransaction(
-            ctx,
-            date: DateTime.UtcNow.Date.AddDays(-1));
+        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
+            .WithDate(ctx.BranchClock.LocalBusinessDate(DateTime.UtcNow).AddDays(-1))
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(ctx.Request.Description)
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
@@ -148,12 +159,45 @@ public class UpdateTransactionUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldUseBranchClockForMemberSameDayDecision()
+    {
+        var ctx = BuildContext(Role.Member);
+        var localBusinessDate = DateTime.UtcNow.Date.AddDays(-1);
+        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
+            .WithDate(localBusinessDate)
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
+        ctx.BranchClock = Substitute.For<IBranchClock>();
+        ctx.BranchClock
+            .IsSameLocalDay(localBusinessDate, Arg.Any<DateTime>())
+            .Returns(true);
+        ctx.Request = new RequestUpdateTransactionJsonBuilder()
+            .WithDescription(ctx.Request.Description)
+            .WithDueDate(ctx.Transaction.Date.AddDays(1))
+            .WithPaidAt(ctx.Transaction.Date.AddDays(2))
+            .WithClientId(ctx.Request.ClientId)
+            .WithTransactionTime(ctx.Request.TransactionTime)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+
+        ctx.BranchClock.Received(1).IsSameLocalDay(localBusinessDate, Arg.Any<DateTime>());
+        await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowForbidden_WhenMemberIsNotRecordedOperator()
     {
         var ctx = BuildContext(Role.Member);
-        ReplaceTransaction(
-            ctx,
-            recordedByOperatorId: Guid.NewGuid());
+        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
+            .WithRecordedByOperatorId(Guid.NewGuid())
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Transaction.Id, ctx.Request));
@@ -184,10 +228,13 @@ public class UpdateTransactionUseCaseTest
     public async Task Execute_ShouldAllowManagerInAnyPermissionMatrixCase(int dateOffsetDays, bool ownOperator)
     {
         var ctx = BuildContext(Role.Manager);
-        ReplaceTransaction(
-            ctx,
-            date: DateTime.UtcNow.Date.AddDays(dateOffsetDays),
-            recordedByOperatorId: ownOperator ? ctx.CallerOperator!.Id : Guid.NewGuid());
+        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
+            .WithDate(ctx.BranchClock.LocalBusinessDate(DateTime.UtcNow).AddDays(dateOffsetDays))
+            .WithRecordedByOperatorId(ownOperator ? ctx.CallerOperator!.Id : Guid.NewGuid())
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(ctx.Request.Description)
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
@@ -210,10 +257,13 @@ public class UpdateTransactionUseCaseTest
     public async Task Execute_ShouldAllowAdminInAnyPermissionMatrixCase(int dateOffsetDays, bool ownOperator)
     {
         var ctx = BuildContext(Role.Admin);
-        ReplaceTransaction(
-            ctx,
-            date: DateTime.UtcNow.Date.AddDays(dateOffsetDays),
-            recordedByOperatorId: ownOperator ? ctx.CallerOperator!.Id : Guid.NewGuid());
+        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
+            .WithDate(ctx.BranchClock.LocalBusinessDate(DateTime.UtcNow).AddDays(dateOffsetDays))
+            .WithRecordedByOperatorId(ownOperator ? ctx.CallerOperator!.Id : Guid.NewGuid())
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(ctx.Request.Description)
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
@@ -238,9 +288,12 @@ public class UpdateTransactionUseCaseTest
         ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
             .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, null)
             .Build();
-        ReplaceTransaction(
-            ctx,
-            recordedByOperatorId: Guid.NewGuid());
+        ctx.Transaction = TransactionBuilder.From(ctx.Transaction)
+            .WithRecordedByOperatorId(Guid.NewGuid())
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
@@ -349,17 +402,21 @@ public class UpdateTransactionUseCaseTest
 
     private static UpdateTransactionUseCase CreateUseCase(TestContext ctx)
     {
-        var memberAccountScopeGuard = new MemberAccountScopeGuard(ctx.OperatorAccountsRepository);
+        var memberTransactionScopeResolver = new MemberTransactionScopeResolver(
+            ctx.OperatorsRepository,
+            ctx.OperatorAccountsRepository);
+        var memberAccountScopeGuard = new MemberAccountScopeGuard();
         var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
 
         return new UpdateTransactionUseCase(
             ctx.AuthenticationService,
             ctx.TransactionsRepository,
-            ctx.OperatorsRepository,
             ctx.ClientsRepository,
             ctx.UnitOfWork,
+            memberTransactionScopeResolver,
             memberAccountScopeGuard,
-            lockDateGuard);
+            lockDateGuard,
+            ctx.BranchClock);
     }
 
     private static TestContext BuildContext(Role role)
@@ -382,9 +439,10 @@ public class UpdateTransactionUseCaseTest
             .WithCategory(category)
             .WithRequiresTabAccountAndClient(false)
             .Build();
+        var branchClock = new BranchClock();
         var currentClientId = Guid.NewGuid();
         var requestClientId = Guid.NewGuid();
-        var transactionDate = DateTime.UtcNow.Date;
+        var transactionDate = branchClock.LocalBusinessDate(DateTime.UtcNow);
         var transaction = new TransactionBuilder()
             .WithBranch(branch)
             .WithTransactionType(transactionType)
@@ -439,33 +497,9 @@ public class UpdateTransactionUseCaseTest
             ClientsRepository = clientsRepository,
             OperatorAccountsRepository = operatorAccountsRepository,
             SettingsRepository = settingsRepository,
+            BranchClock = branchClock,
             UnitOfWork = unitOfWork
         };
-    }
-
-    private static void ReplaceTransaction(
-        TestContext ctx,
-        DateTime? date = null,
-        Guid? recordedByOperatorId = null)
-    {
-        ctx.Transaction = new TransactionBuilder()
-            .WithId(ctx.Transaction.Id)
-            .WithBranchId(ctx.BranchUser.BranchId)
-            .WithAccountId(ctx.Transaction.AccountId)
-            .WithTransactionType(ctx.Transaction.TransactionType)
-            .WithDate(date ?? ctx.Transaction.Date)
-            .WithDescription(ctx.Transaction.Description)
-            .WithDueDate(ctx.Transaction.DueDate)
-            .WithPaidAt(ctx.Transaction.PaidAt)
-            .WithClientId(ctx.Transaction.ClientId)
-            .WithTransactionTime(ctx.Transaction.TransactionTime)
-            .WithRecordedByOperatorId(recordedByOperatorId ?? ctx.Transaction.RecordedByOperatorId)
-            .WithCreatedByUserId(ctx.Transaction.CreatedByUserId)
-            .WithStatus(ctx.Transaction.Status)
-            .Build();
-        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .Build();
     }
 
     private sealed class TestContext
@@ -480,6 +514,7 @@ public class UpdateTransactionUseCaseTest
         public required IClientsRepository ClientsRepository { get; set; }
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
         public required ISettingsRepository SettingsRepository { get; set; }
+        public required IBranchClock BranchClock { get; set; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }
 }

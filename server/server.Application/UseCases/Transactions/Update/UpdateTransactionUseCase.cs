@@ -11,11 +11,12 @@ namespace server.Application.UseCases.Transactions.Update;
 public class UpdateTransactionUseCase(
     IAuthenticationService authenticationService,
     ITransactionsRepository transactionsRepository,
-    IOperatorsRepository operatorsRepository,
     IClientsRepository clientsRepository,
     IUnitOfWork unitOfWork,
+    IMemberTransactionScopeResolver memberTransactionScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
-    LockDateGuard lockDateGuard)
+    LockDateGuard lockDateGuard,
+    IBranchClock branchClock)
 {
     public async Task<ResponseTransactionJson> Execute(Guid transactionId, RequestUpdateTransactionJson request)
     {
@@ -30,20 +31,21 @@ public class UpdateTransactionUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
         }
 
-        var callerOperator = await operatorsRepository
-            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var callerOperator = memberScope.LinkedOperator;
 
         if (branchUser.Role == Role.Member && callerOperator is null)
         {
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_LINKED_OPERATOR);
         }
 
-        await memberAccountScopeGuard.EnsureMemberCanActOnAccount(
+        memberAccountScopeGuard.EnsureMemberCanActOnAccount(
             branchUser.Role,
-            callerOperator?.Id,
+            memberScope,
             transaction.AccountId);
 
-        var isSameDay = transaction.Date.Date == DateTime.UtcNow.Date;
+        var utcNow = DateTime.UtcNow;
+        var isSameDay = branchClock.IsSameLocalDay(transaction.Date, utcNow);
         var isOwnOperator = callerOperator is not null && callerOperator.Id == transaction.RecordedByOperatorId;
         if (isSameDay is false || isOwnOperator is false)
         {
@@ -89,6 +91,8 @@ public class UpdateTransactionUseCase(
         transaction.PaidAt = request.PaidAt;
         transaction.ClientId = request.ClientId;
         transaction.TransactionTime = request.TransactionTime;
+        transaction.UpdatedAt = utcNow;
+        transaction.UpdatedByUserId = branchUser.UserId;
 
         await unitOfWork.Commit();
 
