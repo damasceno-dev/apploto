@@ -17,7 +17,8 @@ internal static class PostgresExceptionHandler
     private static readonly Dictionary<string, string> UniqueConstraintMessages =
         new(StringComparer.Ordinal)
         {
-            ["IX_Clients_BranchId_Cpf"] = ResourcesErrorMessages.CLIENT_CPF_CONFLICT
+            ["IX_Clients_BranchId_Cpf"] = ResourcesErrorMessages.CLIENT_CPF_CONFLICT,
+            ["IX_Operators_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED
         };
 
     public static Exception Normalize(Exception exception)

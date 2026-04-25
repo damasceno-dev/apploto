@@ -87,6 +87,51 @@ public class UpdateOperatorUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldSucceed_WhenUserIdIsUnchanged()
+    {
+        var targetUser = new UserBuilder().Build();
+        var branchUser = new BranchUserBuilder().Build();
+        var op = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(targetUser.Id)
+            .Build();
+        var activeMembership = new BranchUserBuilder()
+            .WithUserId(targetUser.Id)
+            .WithBranchId(branchUser.BranchId)
+            .Build();
+        var request = new RequestUpdateOperatorJsonBuilder()
+            .WithName("Renamed Linked Operator")
+            .WithUserId(targetUser.Id)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var usersRepository = new UsersRepositoryBuilder()
+            .GetById(targetUser.Id, targetUser)
+            .Build();
+        var branchUsersRepository = new BranchUsersRepositoryBuilder()
+            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, activeMembership)
+            .Build();
+        var operatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveByIdAndBranchId(op.Id, branchUser.BranchId, op)
+            .ExistsActiveLinkedByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, false, op.Id)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
+
+        var response = await useCase.Execute(op.Id, request);
+
+        op.Name.ShouldBe("Renamed Linked Operator");
+        op.UserId.ShouldBe(targetUser.Id);
+        response.UserId.ShouldBe(targetUser.Id);
+        await operatorsRepository.Received(1)
+            .ExistsActiveLinkedByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, op.Id);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldUnlinkUserId_WhenUserIdIsNull()
     {
         var branchUser = new BranchUserBuilder().Build();

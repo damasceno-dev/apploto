@@ -1,5 +1,6 @@
 using System.Net;
 using CommonTestUtilities.Requests;
+using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
@@ -317,5 +318,65 @@ public class OperatorControllerUnhappyPathTest(ServerWebApplicationFactory facto
         var persisted = await factory.ReloadAsync<Operator>(opToUpdate.Id);
         persisted.ShouldNotBeNull();
         persisted.UserId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Create_ShouldReturnOne201AndOne409_WhenTwoRequestsRaceToLinkSameUser()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("OpCreateUserRace");
+        var targetUser = await factory.SeedUserAsync();
+        await factory.SeedBranchUserAsync(targetUser.Id, branch.Id, Role.Member);
+        using var firstClient = factory.CreateClient();
+        using var secondClient = factory.CreateClient();
+
+        var firstRequest = new RequestCreateOperatorJsonBuilder()
+            .WithName("Race Operator A")
+            .WithUserId(targetUser.Id)
+            .Build();
+        var secondRequest = new RequestCreateOperatorJsonBuilder()
+            .WithName("Race Operator B")
+            .WithUserId(targetUser.Id)
+            .Build();
+
+        var responses = await Task.WhenAll(
+            firstClient.PostAuthAsync("/operator", firstRequest, token),
+            secondClient.PostAuthAsync("/operator", secondRequest, token));
+
+        responses.Count(response => response.StatusCode == HttpStatusCode.Created).ShouldBe(1);
+        responses.Count(response => response.StatusCode == HttpStatusCode.Conflict).ShouldBe(1);
+
+        var conflictResponse = responses.Single(response => response.StatusCode == HttpStatusCode.Conflict);
+        var payload = await conflictResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
+    }
+
+    [Fact]
+    public async Task Create_ShouldReturn201_WhenLinkedUserBelongedToDeactivatedOperator()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("OpCreateRelinkAfterDeactivate");
+        var targetUser = await factory.SeedUserAsync();
+        await factory.SeedBranchUserAsync(targetUser.Id, branch.Id, Role.Member);
+        var inactiveOperator = await factory.SeedOperatorAsync(branch.Id, userId: targetUser.Id);
+
+        var deactivateResponse = await _client.DeleteAuthAsync($"/operator/{inactiveOperator.Id}", token);
+        deactivateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var request = new RequestCreateOperatorJsonBuilder()
+            .WithUserId(targetUser.Id)
+            .Build();
+
+        var httpResponse = await _client.PostAuthAsync("/operator", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var payload = await httpResponse.ReadContentAsync<ResponseCreateOperatorJson>();
+        payload.UserId.ShouldBe(targetUser.Id);
+
+        var deactivatedOperator = await factory.ReloadAsync<Operator>(inactiveOperator.Id);
+        var newOperator = await factory.ReloadAsync<Operator>(payload.Id);
+        deactivatedOperator.ShouldNotBeNull();
+        deactivatedOperator.Active.ShouldBeFalse();
+        newOperator.ShouldNotBeNull();
+        newOperator.Active.ShouldBeTrue();
+        newOperator.UserId.ShouldBe(targetUser.Id);
     }
 }
