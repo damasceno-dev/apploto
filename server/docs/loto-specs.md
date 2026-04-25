@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v8
+Spec revision: v9
 -->
 
-> **Status:** Revised spec (v8) — Operator user-link uniqueness documented
+> **Status:** Revised spec (v9) — Operator user-link clearing documented
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -19,6 +19,7 @@ Spec revision: v8
 > v6: Changed Client.Cpf storage from formatted varchar(14) to normalized digits varchar(11); application layer strips non-digit chars before persistence.
 > v7: Added TransactionType settlement metadata (`SettlementRule`, `RequiresTabAccountAndClient`) and documented due-date and fiado enforcement semantics.
 > v8: Added the active Operator user-link uniqueness invariant: at most one active linked Operator per `(User, Branch)`, enforced by filtered unique index.
+> v9: Documented that updating an Operator with `UserId = null` clears the login link while preserving the Operator row.
 
 ---
 
@@ -265,6 +266,8 @@ public class Operator : EntityBase
 | Active | boolean | NOT NULL |                                                                 |
 
 **Unique active user-link constraint:** `(BranchId, UserId) WHERE UserId IS NOT NULL AND Active = true` — a user can have at most one active linked Operator per branch. Multiple terminal/account access is represented through `OperatorAccount`, not through multiple active Operator rows for the same user. Operators without a login keep `UserId = null` and are not constrained by this index.
+
+**Login-link clearing:** `PUT /operator/{id}` with `UserId = null` intentionally clears the login link while preserving the active `Operator` row for history, reporting, and account assignment continuity. This does not deactivate or delete the employee record.
 
 ### 3.7 Account
 

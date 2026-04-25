@@ -1,5 +1,6 @@
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Application.Services.Operators;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -8,9 +9,8 @@ namespace server.Application.UseCases.Operators.Create;
 
 public class CreateOperatorUseCase(
     IAuthenticationService authenticationService,
-    IUsersRepository usersRepository,
-    IBranchUsersRepository branchUsersRepository,
     IOperatorsRepository operatorsRepository,
+    IOperatorUserLinkGuard operatorUserLinkGuard,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseCreateOperatorJson> Execute(RequestCreateOperatorJson request)
@@ -21,8 +21,7 @@ public class CreateOperatorUseCase(
 
         if (request.UserId.HasValue)
         {
-            await ValidateUserBranchMembership(request.UserId.Value, authenticatedBranchUser.BranchId);
-            await EnsureUserLinkIsAvailable(request.UserId.Value, authenticatedBranchUser.BranchId);
+            await operatorUserLinkGuard.EnsureLinkable(request.UserId.Value, authenticatedBranchUser.BranchId);
         }
 
         var op = request.ToDomain(authenticatedBranchUser.BranchId);
@@ -31,33 +30,6 @@ public class CreateOperatorUseCase(
         await unitOfWork.Commit();
 
         return op.ToResponse();
-    }
-
-    private async Task ValidateUserBranchMembership(Guid userId, Guid branchId)
-    {
-        var user = await usersRepository.GetById(userId);
-
-        if (user is null || user.Active is false)
-        {
-            throw new NotFoundException(ResourcesErrorMessages.USER_NOT_FOUND);
-        }
-
-        var branchUser = await branchUsersRepository.GetActiveByUserIdAndBranchId(userId, branchId);
-
-        if (branchUser is null)
-        {
-            throw new NotFoundException(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
-        }
-    }
-
-    private async Task EnsureUserLinkIsAvailable(Guid userId, Guid branchId)
-    {
-        var userAlreadyLinked = await operatorsRepository.ExistsActiveLinkedByUserIdAndBranchId(userId, branchId);
-
-        if (userAlreadyLinked)
-        {
-            throw new ConflictException(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
-        }
     }
 
     private static void Validate(RequestCreateOperatorJson request)

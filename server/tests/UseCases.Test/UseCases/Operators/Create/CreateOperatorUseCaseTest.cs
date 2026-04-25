@@ -3,6 +3,7 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Operators;
 using server.Application.UseCases.Operators.Create;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
@@ -27,18 +28,18 @@ public class CreateOperatorUseCaseTest
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
-        var usersRepository = new UsersRepositoryBuilder().Build();
-        var branchUsersRepository = new BranchUsersRepositoryBuilder().Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
+        var operatorUserLinkGuard = CreateOperatorUserLinkGuard();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
+        var useCase = CreateUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
 
         var response = await useCase.Execute(request);
 
         response.Name.ShouldBe(request.Name);
         response.BranchId.ShouldBe(branchUser.BranchId);
         response.UserId.ShouldBeNull();
+        await operatorUserLinkGuard.DidNotReceiveWithAnyArgs().EnsureLinkable(Guid.Empty, Guid.Empty);
         await operatorsRepository.Received(1).Add(Arg.Is<Operator>(op =>
             op.Name == request.Name.Trim() &&
             op.BranchId == branchUser.BranchId &&
@@ -48,46 +49,38 @@ public class CreateOperatorUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldCreateOperator_WhenUserIdIsActiveBranchMember()
+    public async Task Execute_ShouldCreateOperator_WhenUserIdIsPresentAndGuardPasses()
     {
-        var targetUser = new UserBuilder().Build();
+        var targetUserId = Guid.NewGuid();
         var branchUser = new BranchUserBuilder()
             .WithBranchId(Guid.NewGuid())
             .Build();
-        var activeMembership = new BranchUserBuilder()
-            .WithUserId(targetUser.Id)
-            .WithBranchId(branchUser.BranchId)
-            .Build();
         var request = new RequestCreateOperatorJsonBuilder()
-            .WithUserId(targetUser.Id)
+            .WithUserId(targetUserId)
             .Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
-        var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser.Id, targetUser)
-            .Build();
-        var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, activeMembership)
-            .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
+        var operatorUserLinkGuard = CreateOperatorUserLinkGuard();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
+        var useCase = CreateUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
 
         var response = await useCase.Execute(request);
 
-        response.UserId.ShouldBe(targetUser.Id);
-        await usersRepository.Received(1).GetById(targetUser.Id);
-        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId);
-        await operatorsRepository.Received(1)
-            .ExistsActiveLinkedByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, null);
+        response.UserId.ShouldBe(targetUserId);
+        await operatorUserLinkGuard.Received(1).EnsureLinkable(targetUserId, branchUser.BranchId);
+        await operatorsRepository.Received(1).Add(Arg.Is<Operator>(op =>
+            op.BranchId == branchUser.BranchId &&
+            op.UserId == targetUserId &&
+            op.Active));
         await unitOfWork.Received(1).Commit();
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowNotFoundException_WhenLinkedUserDoesNotExist()
+    public async Task Execute_ShouldPropagateGuardException_WhenLinkedUserIsNotLinkable()
     {
         var branchUser = new BranchUserBuilder().Build();
         var targetUserId = Guid.NewGuid();
@@ -98,115 +91,19 @@ public class CreateOperatorUseCaseTest
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
-        var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUserId, null)
-            .Build();
-        var branchUsersRepository = new BranchUsersRepositoryBuilder().Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
+        var operatorUserLinkGuard = CreateOperatorUserLinkGuard();
+        operatorUserLinkGuard
+            .EnsureLinkable(targetUserId, branchUser.BranchId)
+            .Returns(Task.FromException(new ConflictException(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED)));
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
-
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.USER_NOT_FOUND);
-        await usersRepository.Received(1).GetById(targetUserId);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowNotFoundException_WhenLinkedUserIsInactive()
-    {
-        var inactiveUser = new UserBuilder().WithActive(false).Build();
-        var branchUser = new BranchUserBuilder().Build();
-        var request = new RequestCreateOperatorJsonBuilder()
-            .WithUserId(inactiveUser.Id)
-            .Build();
-
-        var authenticationService = new AuthenticationServiceBuilder()
-            .GetAuthenticatedBranchUser(branchUser)
-            .Build();
-        var usersRepository = new UsersRepositoryBuilder()
-            .GetById(inactiveUser.Id, inactiveUser)
-            .Build();
-        var branchUsersRepository = new BranchUsersRepositoryBuilder().Build();
-        var operatorsRepository = new OperatorsRepositoryBuilder().Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
-
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.USER_NOT_FOUND);
-        await usersRepository.Received(1).GetById(inactiveUser.Id);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowNotFoundException_WhenLinkedUserHasNoActiveBranchMembership()
-    {
-        var targetUser = new UserBuilder().Build();
-        var branchUser = new BranchUserBuilder().Build();
-        var request = new RequestCreateOperatorJsonBuilder()
-            .WithUserId(targetUser.Id)
-            .Build();
-
-        var authenticationService = new AuthenticationServiceBuilder()
-            .GetAuthenticatedBranchUser(branchUser)
-            .Build();
-        var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser.Id, targetUser)
-            .Build();
-        var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, null)
-            .Build();
-        var operatorsRepository = new OperatorsRepositoryBuilder().Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
-
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(request));
-
-        exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
-        await usersRepository.Received(1).GetById(targetUser.Id);
-        await branchUsersRepository.Received(1).GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowConflictException_WhenLinkedUserAlreadyHasActiveOperatorInBranch()
-    {
-        var targetUser = new UserBuilder().Build();
-        var branchUser = new BranchUserBuilder().Build();
-        var activeMembership = new BranchUserBuilder()
-            .WithUserId(targetUser.Id)
-            .WithBranchId(branchUser.BranchId)
-            .Build();
-        var request = new RequestCreateOperatorJsonBuilder()
-            .WithUserId(targetUser.Id)
-            .Build();
-
-        var authenticationService = new AuthenticationServiceBuilder()
-            .GetAuthenticatedBranchUser(branchUser)
-            .Build();
-        var usersRepository = new UsersRepositoryBuilder()
-            .GetById(targetUser.Id, targetUser)
-            .Build();
-        var branchUsersRepository = new BranchUsersRepositoryBuilder()
-            .GetActiveByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, activeMembership)
-            .Build();
-        var operatorsRepository = new OperatorsRepositoryBuilder()
-            .ExistsActiveLinkedByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, true)
-            .Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-
-        var useCase = CreateUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
+        var useCase = CreateUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
 
         var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
-        await operatorsRepository.Received(1)
-            .ExistsActiveLinkedByUserIdAndBranchId(targetUser.Id, branchUser.BranchId, null);
+        await operatorUserLinkGuard.Received(1).EnsureLinkable(targetUserId, branchUser.BranchId);
         await operatorsRepository.DidNotReceive().Add(Arg.Any<Operator>());
         await unitOfWork.DidNotReceive().Commit();
     }
@@ -223,23 +120,32 @@ public class CreateOperatorUseCaseTest
             .GetAuthenticatedBranchUser(branchUser)
             .Build();
         var operatorsRepository = new OperatorsRepositoryBuilder().Build();
+        var operatorUserLinkGuard = CreateOperatorUserLinkGuard();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = CreateUseCase(authenticationService, new UsersRepositoryBuilder().Build(), new BranchUsersRepositoryBuilder().Build(), operatorsRepository, unitOfWork);
+        var useCase = CreateUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
 
         var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.NAME_EMPTY);
+        await operatorUserLinkGuard.DidNotReceiveWithAnyArgs().EnsureLinkable(Guid.Empty, Guid.Empty);
         await unitOfWork.DidNotReceive().Commit();
     }
 
     private static CreateOperatorUseCase CreateUseCase(
         IAuthenticationService authenticationService,
-        IUsersRepository usersRepository,
-        IBranchUsersRepository branchUsersRepository,
         IOperatorsRepository operatorsRepository,
+        IOperatorUserLinkGuard operatorUserLinkGuard,
         IUnitOfWork unitOfWork)
     {
-        return new CreateOperatorUseCase(authenticationService, usersRepository, branchUsersRepository, operatorsRepository, unitOfWork);
+        return new CreateOperatorUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
+    }
+
+    private static IOperatorUserLinkGuard CreateOperatorUserLinkGuard()
+    {
+        var guard = Substitute.For<IOperatorUserLinkGuard>();
+
+        guard.EnsureLinkable(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid?>()).Returns(Task.CompletedTask);
+        return guard;
     }
 }

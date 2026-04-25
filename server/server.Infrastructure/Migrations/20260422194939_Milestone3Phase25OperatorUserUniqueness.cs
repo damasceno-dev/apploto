@@ -21,7 +21,11 @@ namespace server.Infrastructure.Migrations
                         GROUP BY "BranchId", "UserId"
                         HAVING COUNT(*) > 1
                     ) THEN
-                        RAISE EXCEPTION 'Cannot create unique active operator user-link index. Duplicate active Operators exist for the same BranchId/UserId. Inspect with: SELECT "BranchId", "UserId", COUNT(*) FROM "Operators" WHERE "UserId" IS NOT NULL AND "Active" = true GROUP BY "BranchId", "UserId" HAVING COUNT(*) > 1;';
+                        RAISE EXCEPTION 'Cannot create unique active operator user-link index. Duplicate active Operators exist for the same BranchId/UserId.
+                Inspect duplicates:
+                SELECT "BranchId", "UserId", COUNT(*) FROM "Operators" WHERE "UserId" IS NOT NULL AND "Active" = true GROUP BY "BranchId", "UserId" HAVING COUNT(*) > 1;
+                Repair development data before retrying:
+                WITH ranked AS (SELECT "Id", ROW_NUMBER() OVER (PARTITION BY "BranchId", "UserId" ORDER BY "CreatedAt" DESC, "Id" DESC) AS rn FROM "Operators" WHERE "UserId" IS NOT NULL AND "Active" = true) UPDATE "Operators" SET "Active" = false WHERE "Id" IN (SELECT "Id" FROM ranked WHERE rn > 1);';
                     END IF;
                 END $$;
                 """);

@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v8
+Spec revision: v9
 -->
 <html lang="en">
 <head>
@@ -379,7 +379,7 @@ const SLIDES=[
     {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Manager"',hl:'hl'}]}
    ]},
   {title:'Operator: Why Separate from User?',
-   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Today\'s scenario:</b> Jennifer is <b>off today</b>. Maria (Manager) logs in and covers Jennifer\'s terminal. This is exactly why User, Operator, and Account are separate — on transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another.<br><br><b style="color:var(--blue)">Design note:</b> Operator links directly to User (optional FK), <em>not</em> to BranchUser. This is intentional — the link must survive BranchUser deactivation. Each User can have at most one active linked Operator per Branch, enforced by a filtered unique index on (BranchId, UserId) where UserId is not null and Active is true. Branch consistency is enforced at the <b>API/service layer</b>.',
+   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Today\'s scenario:</b> Jennifer is <b>off today</b>. Maria (Manager) logs in and covers Jennifer\'s terminal. This is exactly why User, Operator, and Account are separate — on transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another.<br><br><b style="color:var(--blue)">Design note:</b> Operator links directly to User (optional FK), <em>not</em> to BranchUser. This is intentional — the link must survive BranchUser deactivation. Each User can have at most one active linked Operator per Branch, enforced by a filtered unique index on (BranchId, UserId) where UserId is not null and Active is true. Updating an Operator with UserId null clears only the login link; the Operator row remains active for history, reporting, and account assignments. Branch consistency is enforced at the <b>API/service layer</b>.',
    activeTables:['Operator','Branch','User'],
    activeArrows:['op-branch','op-user'],
    data:[

@@ -1,5 +1,6 @@
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Application.Services.Operators;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -8,11 +9,14 @@ namespace server.Application.UseCases.Operators.Update;
 
 public class UpdateOperatorUseCase(
     IAuthenticationService authenticationService,
-    IUsersRepository usersRepository,
-    IBranchUsersRepository branchUsersRepository,
     IOperatorsRepository operatorsRepository,
+    IOperatorUserLinkGuard operatorUserLinkGuard,
     IUnitOfWork unitOfWork)
 {
+    /// <summary>
+    /// Updates mutable Operator fields. Passing <c>UserId = null</c> intentionally clears
+    /// the login link while preserving the Operator row for history and reports.
+    /// </summary>
     public async Task<ResponseOperatorJson> Execute(Guid operatorId, RequestUpdateOperatorJson request)
     {
         Validate(operatorId, request);
@@ -24,8 +28,7 @@ public class UpdateOperatorUseCase(
 
         if (request.UserId.HasValue)
         {
-            await ValidateUserBranchMembership(request.UserId.Value, authenticatedBranchUser.BranchId);
-            await EnsureUserLinkIsAvailable(request.UserId.Value, authenticatedBranchUser.BranchId, op.Id);
+            await operatorUserLinkGuard.EnsureLinkable(request.UserId.Value, authenticatedBranchUser.BranchId, op.Id);
         }
 
         op.Name = request.Name.Trim();
@@ -34,36 +37,6 @@ public class UpdateOperatorUseCase(
         await unitOfWork.Commit();
 
         return op.ToOperatorResponse();
-    }
-
-    private async Task ValidateUserBranchMembership(Guid userId, Guid branchId)
-    {
-        var user = await usersRepository.GetById(userId);
-
-        if (user is null || user.Active is false)
-        {
-            throw new NotFoundException(ResourcesErrorMessages.USER_NOT_FOUND);
-        }
-
-        var branchUser = await branchUsersRepository.GetActiveByUserIdAndBranchId(userId, branchId);
-
-        if (branchUser is null)
-        {
-            throw new NotFoundException(ResourcesErrorMessages.OPERATOR_USER_NOT_BRANCH_MEMBER);
-        }
-    }
-
-    private async Task EnsureUserLinkIsAvailable(Guid userId, Guid branchId, Guid operatorId)
-    {
-        var userAlreadyLinked = await operatorsRepository.ExistsActiveLinkedByUserIdAndBranchId(
-            userId,
-            branchId,
-            operatorId);
-
-        if (userAlreadyLinked)
-        {
-            throw new ConflictException(ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED);
-        }
     }
 
     private static void Validate(Guid operatorId, RequestUpdateOperatorJson request)

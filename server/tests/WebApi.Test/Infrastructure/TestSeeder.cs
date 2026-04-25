@@ -162,6 +162,26 @@ internal static class TestSeeder
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
 
+            if (userId is { } linkedUserId)
+            {
+                var existingOperatorId = await dbContext.Operators
+                    .AsNoTracking()
+                    .Where(op =>
+                        op.BranchId == branchId &&
+                        op.UserId == linkedUserId &&
+                        op.Active)
+                    .Select(op => (Guid?)op.Id)
+                    .FirstOrDefaultAsync();
+
+                if (existingOperatorId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"SeedOperatorAsync fixture setup violated the active operator user-link invariant. " +
+                        $"BranchId '{branchId}' and UserId '{linkedUserId}' are already linked to active OperatorId '{existingOperatorId}'. " +
+                        "Deactivate the existing seeded operator, seed the new operator without a UserId, or drive the duplicate-link scenario through the API/use case.");
+                }
+            }
+
             var op = new Operator
             {
                 Id = Guid.NewGuid(),

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
+using server.Application.Services.Operators;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
@@ -76,6 +77,7 @@ public static class AppDependencyInjection
         services.AddScoped<GetOperatorUseCase>();
         services.AddScoped<UpdateOperatorUseCase>();
         services.AddScoped<DeactivateOperatorUseCase>();
+        services.AddScoped<IOperatorUserLinkGuard, OperatorUserLinkGuard>();
         services.AddScoped<CreateClientUseCase>();
         services.AddScoped<ListClientsUseCase>();
         services.AddScoped<GetClientUseCase>();
