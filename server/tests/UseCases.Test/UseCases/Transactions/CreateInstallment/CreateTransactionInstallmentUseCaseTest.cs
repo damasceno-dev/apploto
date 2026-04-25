@@ -201,6 +201,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
     private static CreateTransactionInstallmentUseCase CreateUseCase(HappyPathContext ctx)
     {
+        var recordedByOperatorResolver = new TransactionRecordedByOperatorResolver();
         var branchConsistencyService = new TransactionBranchConsistencyService(
             ctx.AccountsRepository,
             ctx.OperatorsRepository,
@@ -208,15 +209,20 @@ public class CreateTransactionInstallmentUseCaseTest
             ctx.TransactionTypesRepository);
         var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
         var memberAccountScopeGuard = new MemberAccountScopeGuard(ctx.OperatorAccountsRepository);
-
-        return new CreateTransactionInstallmentUseCase(
+        var transactionCreatePreamble = new TransactionCreatePreamble(
             ctx.AuthenticationService,
             ctx.OperatorsRepository,
-            ctx.TransactionsRepository,
-            ctx.UnitOfWork,
+            recordedByOperatorResolver,
             branchConsistencyService,
-            lockDateGuard,
-            memberAccountScopeGuard);
+            memberAccountScopeGuard,
+            lockDateGuard);
+        var installmentPlanBuilder = new InstallmentPlanBuilder();
+
+        return new CreateTransactionInstallmentUseCase(
+            transactionCreatePreamble,
+            installmentPlanBuilder,
+            ctx.TransactionsRepository,
+            ctx.UnitOfWork);
     }
 
     private static HappyPathContext BuildHappyPathContext(SettlementRule settlementRule)

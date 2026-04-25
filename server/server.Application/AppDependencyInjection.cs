@@ -83,7 +83,10 @@ public static class AppDependencyInjection
         services.AddScoped<GetClientUseCase>();
         services.AddScoped<UpdateClientUseCase>();
         services.AddScoped<DeactivateClientUseCase>();
+        services.AddScoped<TransactionRecordedByOperatorResolver>();
         services.AddScoped<TransactionBranchConsistencyService>();
+        services.AddScoped<TransactionCreatePreamble>();
+        services.AddScoped<InstallmentPlanBuilder>();
         services.AddScoped<DueDateCalculator>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
