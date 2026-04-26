@@ -204,9 +204,6 @@
     <data name="TRANSACTION_NOT_FOUND" xml:space="preserve">
         <value>Transação não encontrada</value>
     </data>
-    <data name="TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR" xml:space="preserve">
-        <value>Transação não encontrada ou não disponível para as contas vinculadas ao operador autenticado</value>
-    </data>
     <data name="TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT" xml:space="preserve">
         <value>Este tipo de transação exige uma conta Tab e um cliente informado</value>
     </data>

@@ -69,6 +69,141 @@ public class ListTransactionsUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldShortCircuitWithoutRepositoryCalls_WhenMemberHasNoLinkedOperatorAndNoExplicitAccountId()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var request = new RequestListTransactionsJsonBuilder().Build();
+        var ctx = BuildContext(branchUser);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, null)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.Items.ShouldBeEmpty();
+        response.TotalCount.ShouldBe(0);
+        response.TotalPages.ShouldBe(0);
+        response.HasNext.ShouldBeFalse();
+        response.HasPrevious.ShouldBeFalse();
+        await ctx.TransactionsRepository.DidNotReceive()
+            .ListByBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<TransactionListFilter>());
+        await ctx.TransactionsRepository.DidNotReceive()
+            .CountByBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<TransactionListFilter>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldShortCircuitWithoutRepositoryCalls_WhenMemberHasLinkedOperatorButNoActiveAccountsAndNoExplicitAccountId()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var request = new RequestListTransactionsJsonBuilder().Build();
+        var ctx = BuildContext(branchUser);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .Build();
+        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
+            .ListActiveByOperatorIdAsNoTracking(callerOperator.Id, [])
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.Items.ShouldBeEmpty();
+        response.TotalCount.ShouldBe(0);
+        response.TotalPages.ShouldBe(0);
+        response.HasNext.ShouldBeFalse();
+        response.HasPrevious.ShouldBeFalse();
+        await ctx.TransactionsRepository.DidNotReceive()
+            .ListByBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<TransactionListFilter>());
+        await ctx.TransactionsRepository.DidNotReceive()
+            .CountByBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<TransactionListFilter>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldPopulateAccountClientAndTransactionTypeNames_OnListItems()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var account = new AccountBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithName("Caixa Centro")
+            .Build();
+        var client = new ClientBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithName("Maria")
+            .Build();
+        var category = new Category
+        {
+            Id = Guid.NewGuid(),
+            Name = "Entradas",
+            DefaultDirection = Direction.In,
+            BranchId = branchUser.BranchId
+        };
+        var transactionType = new TransactionTypeBuilder()
+            .WithCategory(category)
+            .WithName("Depósito")
+            .Build();
+        var transaction = new TransactionBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithAccount(account)
+            .WithClient(client)
+            .WithTransactionType(transactionType)
+            .Build();
+        var request = new RequestListTransactionsJsonBuilder().Build();
+        var ctx = BuildContext(branchUser);
+        ctx.TransactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
+            .Returns([transaction]);
+        ctx.TransactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
+            .Returns(1);
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.Items.Count.ShouldBe(1);
+        var item = response.Items[0];
+        item.AccountName.ShouldBe("Caixa Centro");
+        item.ClientName.ShouldBe("Maria");
+        item.TransactionTypeName.ShouldBe("Depósito");
+    }
+
+    [Theory]
+    [InlineData(7, 3, 1, 3, true, false)]
+    [InlineData(7, 3, 2, 3, true, true)]
+    [InlineData(7, 3, 3, 3, false, true)]
+    [InlineData(0, 10, 1, 0, false, false)]
+    [InlineData(10, 10, 1, 1, false, false)]
+    public async Task Execute_ShouldComputePagingMetadata(
+        int totalCount,
+        int pageSize,
+        int page,
+        int expectedTotalPages,
+        bool expectedHasNext,
+        bool expectedHasPrevious)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithPage(page)
+            .WithPageSize(pageSize)
+            .Build();
+        var ctx = BuildContext(branchUser);
+        ctx.TransactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
+            .Returns([]);
+        ctx.TransactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
+            .Returns(totalCount);
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.TotalCount.ShouldBe(totalCount);
+        response.TotalPages.ShouldBe(expectedTotalPages);
+        response.HasNext.ShouldBe(expectedHasNext);
+        response.HasPrevious.ShouldBe(expectedHasPrevious);
+    }
+
+    [Fact]
     public async Task Execute_ShouldShortCircuitWithoutRepositoryCalls_WhenMemberExplicitAccountIsUnlinked()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();

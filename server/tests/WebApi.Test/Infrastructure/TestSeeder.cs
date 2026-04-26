@@ -111,7 +111,7 @@ internal static class TestSeeder
         /// Issues a real branch-scoped JWT for the given membership using the production
         /// <see cref="ITokenServices"/> wired into the factory.
         /// </summary>
-        private string IssueBranchToken(BranchUser branchUser)
+        public string IssueBranchToken(BranchUser branchUser)
         {
             using var scope = factory.Services.CreateScope();
             var tokenServices = scope.ServiceProvider.GetRequiredService<ITokenServices>();

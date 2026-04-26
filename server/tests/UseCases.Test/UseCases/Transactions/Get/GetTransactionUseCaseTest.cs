@@ -70,7 +70,7 @@ public class GetTransactionUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowNotFoundWithUnavailableMessage_WhenMemberTargetsUnlinkedAccount()
+    public async Task Execute_ShouldThrowForbiddenWithAccountOutOfScopeKey_WhenMemberTargetsUnlinkedAccount()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
         var callerOperator = new OperatorBuilder()
@@ -93,14 +93,14 @@ public class GetTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(transaction.Id));
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(transaction.Id));
 
-        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR);
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await ctx.OperatorAccountsRepository.Received(1).ListActiveByOperatorIdAsNoTracking(callerOperator.Id);
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowNotFoundWithOperatorLinkMessage_WhenMemberHasNoLinkedOperator()
+    public async Task Execute_ShouldThrowForbiddenWithRequiresOperatorLinkKey_WhenMemberHasNoLinkedOperator()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
         var transaction = new TransactionBuilder()
@@ -109,11 +109,38 @@ public class GetTransactionUseCaseTest
         var ctx = BuildContext(branchUser, transaction);
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(transaction.Id));
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(transaction.Id));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         await ctx.TransactionsRepository.DidNotReceive()
             .GetByIdAndBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<Guid>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowNotFound_WhenMemberWithLinkedOperatorTargetsMissingTransaction()
+    {
+        // Missing/cross-branch ids stay 404 even for Members so attackers can't probe
+        // for transaction existence outside their branch via account-scope vs not-found.
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var transactionId = Guid.NewGuid();
+        var ctx = BuildContext(branchUser, transaction: null, transactionId);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .Build();
+        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
+            .ListActiveByOperatorIdAsNoTracking(
+                callerOperator.Id,
+                [new OperatorAccountBuilder().WithOperator(callerOperator).WithAccountId(Guid.NewGuid()).Build()])
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(transactionId));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
     }
 
     private static GetTransactionUseCase CreateUseCase(TestContext ctx)

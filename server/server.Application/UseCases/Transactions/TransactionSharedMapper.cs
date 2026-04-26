@@ -50,8 +50,11 @@ public static class TransactionSharedMapper
                 Direction = transaction.Direction,
                 Status = transaction.Status,
                 AccountId = transaction.AccountId,
+                AccountName = transaction.Account.Name,
                 ClientId = transaction.ClientId,
+                ClientName = transaction.Client?.Name,
                 TransactionTypeId = transaction.TransactionTypeId,
+                TransactionTypeName = transaction.TransactionType.Name,
                 DueDate = transaction.DueDate,
                 PaidAt = transaction.PaidAt,
                 CreatedAt = transaction.CreatedAt
@@ -63,12 +66,19 @@ public static class TransactionSharedMapper
     {
         public ResponseListTransactionsJson ToListResponse(TransactionListFilter filter, int totalCount)
         {
+            var totalPages = filter.PageSize > 0
+                ? (int)Math.Ceiling(totalCount / (double)filter.PageSize)
+                : 0;
+
             return new ResponseListTransactionsJson
             {
                 Items = transactions.Select(t => t.ToListItemResponse()).ToList(),
                 Page = filter.Page,
                 PageSize = filter.PageSize,
-                TotalCount = totalCount
+                TotalCount = totalCount,
+                TotalPages = totalPages,
+                HasNext = filter.Page < totalPages,
+                HasPrevious = filter.Page > 1
             };
         }
     }

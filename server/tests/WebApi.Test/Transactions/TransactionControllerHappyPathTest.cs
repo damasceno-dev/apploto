@@ -422,7 +422,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     }
 
     [Fact]
-    public async Task List_ShouldPageWithTotalCountFromFullFilteredSet()
+    public async Task List_ShouldPageWithTotalCountFromFullFilteredSetAndExposePagingMetadata()
     {
         var ctx = await SeedReadContextAsync("TxnListPagination");
         foreach (var index in Enumerable.Range(1, 7))
@@ -440,10 +440,121 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
 
         page1.Items.Count.ShouldBe(3);
         page1.TotalCount.ShouldBe(7);
+        page1.TotalPages.ShouldBe(3);
+        page1.HasNext.ShouldBeTrue();
+        page1.HasPrevious.ShouldBeFalse();
+
         page2.Items.Count.ShouldBe(3);
         page2.TotalCount.ShouldBe(7);
+        page2.TotalPages.ShouldBe(3);
+        page2.HasNext.ShouldBeTrue();
+        page2.HasPrevious.ShouldBeTrue();
+
         page3.Items.Count.ShouldBe(1);
         page3.TotalCount.ShouldBe(7);
+        page3.TotalPages.ShouldBe(3);
+        page3.HasNext.ShouldBeFalse();
+        page3.HasPrevious.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task List_ShouldExposeJoinedNamesOnItems()
+    {
+        var ctx = await SeedReadContextAsync("TxnListNames");
+        var client = await factory.SeedClientAsync(ctx.Branch.Id, "Maria Cliente");
+        await SeedReadTransactionAsync(
+            ctx,
+            date: new DateTime(2025, 5, 7),
+            clientId: client.Id,
+            description: "named");
+
+        var payload = await GetListAsync($"/transaction?accountId={ctx.Account.Id}", ctx.Token);
+
+        payload.Items.Count.ShouldBe(1);
+        var item = payload.Items[0];
+        item.AccountName.ShouldBe(ctx.Account.Name);
+        item.ClientName.ShouldBe(client.Name);
+        item.TransactionTypeName.ShouldBe(ctx.TransactionType.Name);
+    }
+
+    [Fact]
+    public async Task List_ShouldShowSharedTerminalAccountRowsAcrossMembers_RegardlessOfRecordedByOperator()
+    {
+        // Shared terminal: a single account is linked to BOTH Member A and Member B.
+        // 5.5.4 policy: a Member sees every row on a linked account, even rows recorded
+        // by the OTHER operator on the SAME account.
+        var (userA, branch, _, tokenA) = await factory.SeedFullBranchContextAsync("TxnListSharedTerminal", Role.Member);
+        var operatorA = await factory.SeedOperatorAsync(branch.Id, userId: userA.Id);
+        var userB = await factory.SeedUserAsync();
+        var membershipB = await factory.SeedBranchUserAsync(userB.Id, branch.Id, Role.Member);
+        var operatorB = await factory.SeedOperatorAsync(branch.Id, userId: userB.Id);
+        var sharedAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(operatorA.Id, sharedAccount.Id);
+        await factory.SeedOperatorAccountAsync(operatorB.Id, sharedAccount.Id);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Shared Category", Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+
+        var rowFromA = await factory.SeedTransactionAsync(
+            branchId: branch.Id,
+            accountId: sharedAccount.Id,
+            transactionTypeId: transactionType.Id,
+            categoryId: category.Id,
+            direction: category.DefaultDirection,
+            recordedByOperatorId: operatorA.Id,
+            createdByUserId: userA.Id);
+        var rowFromB = await factory.SeedTransactionAsync(
+            branchId: branch.Id,
+            accountId: sharedAccount.Id,
+            transactionTypeId: transactionType.Id,
+            categoryId: category.Id,
+            direction: category.DefaultDirection,
+            recordedByOperatorId: operatorB.Id,
+            createdByUserId: userB.Id);
+
+        var payload = await GetListAsync("/transaction", tokenA);
+
+        payload.Items.Select(item => item.Id).ShouldContain(rowFromA.Id);
+        payload.Items.Select(item => item.Id).ShouldContain(rowFromB.Id);
+        payload.TotalCount.ShouldBe(2);
+        // Sanity: the second member token also sees both rows.
+        var tokenB = factory.IssueBranchToken(membershipB);
+        var payloadB = await GetListAsync("/transaction", tokenB);
+        payloadB.Items.Select(item => item.Id).ShouldContain(rowFromA.Id);
+        payloadB.Items.Select(item => item.Id).ShouldContain(rowFromB.Id);
+    }
+
+    [Fact]
+    public async Task List_ShouldReturn200WithEmptyItems_WhenMemberHasLinkedOperatorButNoActiveAccounts()
+    {
+        // 5.5.21 parity for the use-case empty-scope short-circuit (5.5.3): the Member
+        // has a linked operator but zero active OperatorAccount rows. The HTTP pipeline
+        // must mirror the use case and return 200 OK with Items=[] and TotalCount=0.
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnListEmptyScope", Role.Member);
+        await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        // No SeedOperatorAccountAsync calls — operator has zero active accounts.
+        var category = await factory.SeedCategoryAsync(branch.Id, "EmptyScope Category", Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+        // Seed an unrelated transaction in the same branch by another operator on
+        // an account NOT linked to the Member, to prove the short-circuit isn't
+        // accidentally returning rows.
+        var otherOperator = await factory.SeedOperatorAsync(branch.Id);
+        var otherAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedTransactionAsync(
+            branchId: branch.Id,
+            accountId: otherAccount.Id,
+            transactionTypeId: transactionType.Id,
+            categoryId: category.Id,
+            direction: category.DefaultDirection,
+            recordedByOperatorId: otherOperator.Id,
+            createdByUserId: user.Id);
+
+        var payload = await GetListAsync("/transaction", token);
+
+        payload.Items.ShouldBeEmpty();
+        payload.TotalCount.ShouldBe(0);
+        payload.TotalPages.ShouldBe(0);
+        payload.HasNext.ShouldBeFalse();
+        payload.HasPrevious.ShouldBeFalse();
     }
 
     private async Task<ResponseListTransactionsJson> GetListAsync(string uri, string token)

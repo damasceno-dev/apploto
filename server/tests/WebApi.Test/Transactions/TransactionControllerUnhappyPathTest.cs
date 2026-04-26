@@ -240,6 +240,56 @@ public class TransactionControllerUnhappyPathTest(ServerWebApplicationFactory fa
     }
 
     [Fact]
+    public async Task Get_ShouldReturn403_WhenMemberHasNoLinkedOperator()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnGetMemberNoLink", Role.Member);
+        var recordedByOperator = await factory.SeedOperatorAsync(branch.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Entradas", Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+        var transaction = await factory.SeedTransactionAsync(
+            branchId: branch.Id,
+            accountId: account.Id,
+            transactionTypeId: transactionType.Id,
+            categoryId: category.Id,
+            direction: category.DefaultDirection,
+            recordedByOperatorId: recordedByOperator.Id,
+            createdByUserId: user.Id);
+
+        var httpResponse = await _client.GetAuthAsync($"/transaction/{transaction.Id}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+    }
+
+    [Fact]
+    public async Task Get_ShouldReturn403_WhenMemberTargetsTransactionOnUnlinkedAccount()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnGetMemberOutOfScope", Role.Member);
+        var callerOperator = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var linkedAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(callerOperator.Id, linkedAccount.Id);
+        var unlinkedAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Entradas", Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+        var unlinkedTransaction = await factory.SeedTransactionAsync(
+            branchId: branch.Id,
+            accountId: unlinkedAccount.Id,
+            transactionTypeId: transactionType.Id,
+            categoryId: category.Id,
+            direction: category.DefaultDirection,
+            recordedByOperatorId: callerOperator.Id,
+            createdByUserId: user.Id);
+
+        var httpResponse = await _client.GetAuthAsync($"/transaction/{unlinkedTransaction.Id}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
+    }
+
+    [Fact]
     public async Task CreateInstallment_ShouldReturn400_WhenInstallmentValuesDoNotMatchTotal()
     {
         var (_, _, token) = await SeedInstallmentContextAsync("TxnInstallmentTotalMismatch", SettlementRule.OperatorEnteredCheque);

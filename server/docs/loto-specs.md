@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v10
+Spec revision: v11
 -->
 
-> **Status:** Revised spec (v10) — Cheque installment contract aligned with Phase 3.1
+> **Status:** Revised spec (v11) — Member transaction read scope and enriched list response documented
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -21,6 +21,7 @@ Spec revision: v10
 > v8: Added the active Operator user-link uniqueness invariant: at most one active linked Operator per `(User, Branch)`, enforced by filtered unique index.
 > v9: Documented that updating an Operator with `UserId = null` clears the login link while preserving the Operator row.
 > v10: Aligned §6.3 with the Phase 3.1 cheque-installment contract — manual rows by default, optional auto-generation with monthly stagger and weekend adjustment, exact-sum invariant, prefix-only description fallback, and SaveAsDraft propagation.
+> v11: Added §6.10 documenting the Member transaction read scope: 403 vs 404 contract on Get, account-scope visibility on List (members see all rows on linked accounts regardless of recording operator), empty-scope short-circuit on List, and the enriched list response shape (joined names + paging metadata).
 
 ---
 
@@ -989,7 +990,7 @@ WHERE AccountId = @tabAccountId
 
 **Opening values** for the current day = closing values (DailyCloseItems) from the previous day for the same account. The system queries: `DailyClose WHERE AccountId=X AND Date = @today - 1`.
 
-**CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.10 for the calculation formula. The operator does not enter this value directly.
+**CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.11 for the calculation formula. The operator does not enter this value directly.
 
 **Fiado balance** is NOT stored as a DailyCloseItem — it is always calculated at query time from Tab account transactions (see rule 6.4). The daily close form displays it for reference but does not persist it as a snapshot value.
 
@@ -1049,7 +1050,23 @@ The same principle applies to DailyClose: `DailyClose.BranchId` must equal `Acco
 
 This prevents cross-branch data leakage in a multi-tenant system. In EF Core, implement as a shared validation method called by all relevant use cases, not as a DB trigger (keeps the logic testable and explicit).
 
-### 6.10 CashVariance calculation
+### 6.10 Member transaction read scope
+
+Members read transactions through the same scope used by `MemberAccountScopeGuard`: a Member sees a transaction if and only if the transaction's `AccountId` is in the Member's set of active linked operator accounts. Three response shapes follow from this contract:
+
+- **GET `/transaction/{id}`:**
+  - Member without a linked operator → 403 with `TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK`.
+  - Member linked to an operator but the transaction's account is not in their linked-account set → 403 with `TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE`.
+  - Missing or cross-branch transaction id → 404 with `TRANSACTION_NOT_FOUND` regardless of role. 404 is reserved for "not in your branch" so attackers cannot probe transaction existence outside their branch via the 403/404 split.
+
+- **GET `/transaction` (list):**
+  - A Member sees **every** row on a linked account, including rows recorded by another operator on the same account. List visibility is account-scoped, not recording-operator-scoped, so a shared terminal account exposes both operators' rows to both members linked to it.
+  - When a Member has no linked operator OR has a linked operator with zero active `OperatorAccount` rows AND does not supply an explicit `AccountId`, the use case short-circuits to `Items = []`, `TotalCount = 0` without calling the repository's list/count methods.
+  - When a Member supplies an explicit `AccountId` outside their linked set, the same empty short-circuit applies.
+
+The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious`) and joined names (`AccountName`, `ClientName`, `TransactionTypeName`) on each item so operational screens don't N+1 the API.
+
+### 6.11 CashVariance calculation
 
 CashVariance (Diferença de Caixa) is **system-calculated, not operator-entered**. The operator enters closing product values (Dinheiro, Telesena, etc.); the system computes the variance and persists it as a DailyCloseItem.
 

@@ -19,6 +19,7 @@ public class TransactionController : ControllerBase
     [TokenAuthenticateBranch]
     [ProducesResponseType(typeof(ResponseTransactionJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(
         [FromServices] GetTransactionUseCase useCase,

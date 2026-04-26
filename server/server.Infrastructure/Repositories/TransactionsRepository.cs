@@ -41,8 +41,14 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         Guid branchId,
         TransactionListFilter filter)
     {
+        // Single branch-scoped projection: include the joined names so the response
+        // can carry AccountName / ClientName / TransactionTypeName without forcing
+        // frontend N+1 lookups. EF translates this into one SQL query with LEFT JOINs.
         return await ApplyFilter(dbContext.Transactions, branchId, filter)
             .AsNoTracking()
+            .Include(transaction => transaction.Account)
+            .Include(transaction => transaction.Client)
+            .Include(transaction => transaction.TransactionType)
             .OrderByDescending(transaction => transaction.Date)
             .ThenByDescending(transaction => transaction.TransactionTime.HasValue)
             .ThenByDescending(transaction => transaction.TransactionTime)

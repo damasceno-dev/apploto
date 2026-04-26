@@ -1,6 +1,7 @@
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
@@ -25,16 +26,20 @@ public class ListTransactionsUseCase(
             var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
             var allowedAccountIds = memberScope.AllowedAccountIds;
 
+            // Empty-scope short-circuit: a Member with no linked operator OR with a
+            // linked operator but zero active OperatorAccount rows AND no explicit
+            // AccountId has nothing to list. Skip both repo calls.
+            if (filter.AccountId is null && allowedAccountIds.Count == 0)
+            {
+                return EmptyResponse(filter);
+            }
+
+            // Explicit AccountId outside the Member's scope → empty result without
+            // hitting the repository.
             if (filter.AccountId is { } explicitlySuppliedAccountId &&
                 allowedAccountIds.Contains(explicitlySuppliedAccountId) is false)
             {
-                return new ResponseListTransactionsJson
-                {
-                    Items = [],
-                    Page = filter.Page,
-                    PageSize = filter.PageSize,
-                    TotalCount = 0
-                };
+                return EmptyResponse(filter);
             }
 
             filter.AllowedAccountIds = allowedAccountIds;
@@ -44,6 +49,11 @@ public class ListTransactionsUseCase(
         var totalCount = await transactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, filter);
 
         return items.ToListResponse(filter, totalCount);
+    }
+
+    private static ResponseListTransactionsJson EmptyResponse(TransactionListFilter filter)
+    {
+        return Array.Empty<Transaction>().ToListResponse(filter, totalCount: 0);
     }
 
     private static void Validate(RequestListTransactionsJson request)

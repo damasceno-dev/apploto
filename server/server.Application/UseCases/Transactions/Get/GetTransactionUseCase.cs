@@ -37,16 +37,18 @@ public class GetTransactionUseCase(
 
         if (memberScope.LinkedOperator is null)
         {
-            throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         }
 
+        // 404 stays reserved for missing/cross-branch ids so attackers can't probe
+        // for transaction existence outside their branch.
         var transaction = await transactionsRepository
             .GetByIdAndBranchIdAsNoTracking(transactionId, branchId)
-            ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR);
+            ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         if (memberScope.AllowedAccountIds.Contains(transaction.AccountId) is false)
         {
-            throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR);
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         }
 
         return transaction.ToTransactionResponse();

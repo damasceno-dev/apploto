@@ -8,6 +8,9 @@ public class ResponseListTransactionsJson
     public int Page { get; init; }
     public int PageSize { get; init; }
     public int TotalCount { get; init; }
+    public int TotalPages { get; init; }
+    public bool HasNext { get; init; }
+    public bool HasPrevious { get; init; }
 }
 
 public class ResponseListTransactionItemJson
@@ -19,8 +22,11 @@ public class ResponseListTransactionItemJson
     public Direction Direction { get; init; }
     public TransactionStatus Status { get; init; }
     public Guid AccountId { get; init; }
+    public string AccountName { get; init; } = string.Empty;
     public Guid? ClientId { get; init; }
+    public string? ClientName { get; init; }
     public Guid TransactionTypeId { get; init; }
+    public string TransactionTypeName { get; init; } = string.Empty;
     public DateTime DueDate { get; init; }
     public DateTime? PaidAt { get; init; }
     public DateTime CreatedAt { get; init; }

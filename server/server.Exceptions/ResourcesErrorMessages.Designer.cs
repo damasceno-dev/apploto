@@ -417,12 +417,6 @@ namespace server.Exceptions {
             }
         }
         
-        public static string TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR {
-            get {
-                return ResourceManager.GetString("TRANSACTION_NOT_AVAILABLE_FOR_OPERATOR", resourceCulture);
-            }
-        }
-        
         public static string TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT {
             get {
                 return ResourceManager.GetString("TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT", resourceCulture);
