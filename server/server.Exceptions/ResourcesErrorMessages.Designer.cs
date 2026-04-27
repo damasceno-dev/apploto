@@ -477,6 +477,12 @@ namespace server.Exceptions {
             }
         }
         
+        public static string TRANSACTION_CANNOT_FINALIZE_NON_DRAFT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_CANNOT_FINALIZE_NON_DRAFT", resourceCulture);
+            }
+        }
+
         public static string TRANSACTION_FIADO_REQUIRES_CLIENT {
             get {
                 return ResourceManager.GetString("TRANSACTION_FIADO_REQUIRES_CLIENT", resourceCulture);

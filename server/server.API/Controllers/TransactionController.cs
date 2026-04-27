@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
@@ -75,6 +76,22 @@ public class TransactionController : ControllerBase
     {
         var response = await createTransactionInstallmentUseCase.Execute(request);
         return Created(string.Empty, response);
+    }
+
+    [HttpPost]
+    [Route("{transactionId:guid}/finalize")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseTransactionJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Finalize(
+        [FromServices] FinalizeTransactionUseCase finalizeTransactionUseCase,
+        [FromRoute] Guid transactionId)
+    {
+        var response = await finalizeTransactionUseCase.Execute(transactionId);
+        return Ok(response);
     }
 
     [HttpPut]

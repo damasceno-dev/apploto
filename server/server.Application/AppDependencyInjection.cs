@@ -36,6 +36,7 @@ using server.Application.UseCases.Clients.List;
 using server.Application.UseCases.Clients.Update;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
@@ -95,6 +96,7 @@ public static class AppDependencyInjection
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
         services.AddScoped<CreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();
+        services.AddScoped<FinalizeTransactionUseCase>();
         services.AddScoped<GetTransactionUseCase>();
         services.AddScoped<ListTransactionsUseCase>();
         services.AddScoped<UpdateTransactionUseCase>();

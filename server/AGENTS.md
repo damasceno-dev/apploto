@@ -480,8 +480,10 @@ tests/
 │           └── {Service}Test.cs
 └── WebApi.Test/
     └── {Feature}/
-        └── {Operation}/
-            └── {Feature}{Operation}ControllerTest.cs
+        ├── {Feature}ControllerHappyPathTest.cs
+        ├── {Feature}ControllerUnhappyPathTest.cs
+        ├── {Feature}Controller{Operation}HappyPathTest.cs
+        └── {Feature}Controller{Operation}UnhappyPathTest.cs
 ```
 
 ### Common test utilities
@@ -547,6 +549,7 @@ tests/
 - Use thin authenticated-request helpers when they reduce boilerplate without obscuring the HTTP verb, route, payload, or asserted outcome.
 - Use request builders in `WebApi.Test` when the request payload is generic setup data and the builder does not get in the way of the scenario being exercised.
 - Verify persistence through database reload/query helpers from the test infrastructure, not by assuming request input equals persisted state.
+- In `tests/WebApi.Test/{Feature}/`, keep file names and class names aligned with the existing happy/unhappy path convention. Broad feature coverage uses `{Feature}ControllerHappyPathTest` and `{Feature}ControllerUnhappyPathTest`; operation-specific slices use `{Feature}Controller{Operation}HappyPathTest` and `{Feature}Controller{Operation}UnhappyPathTest`, such as `TransactionControllerUpdateHappyPathTest`.
 - Standardize the shared integration-test host fixture as `tests/WebApi.Test/Infrastructure/ServerWebApplicationFactory.cs`.
 - Standardize the shared xUnit collection for API integration tests as `tests/WebApi.Test/Infrastructure/ServerApiCollection.cs`.
 

@@ -21,6 +21,12 @@ internal static class HttpTestExtensions
             return SendAuthAsync(client, HttpMethod.Post, requestUri, JsonContent.Create(request), token);
         }
 
+        public Task<HttpResponseMessage> PostAuthAsync(string requestUri,
+            string token)
+        {
+            return SendAuthAsync(client, HttpMethod.Post, requestUri, null, token);
+        }
+
         public Task<HttpResponseMessage> PutAuthAsync<TRequest>(string requestUri,
             TRequest request,
             string token)

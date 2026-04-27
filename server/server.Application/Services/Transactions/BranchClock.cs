@@ -5,6 +5,11 @@ public sealed class BranchClock : IBranchClock
     private static readonly TimeZoneInfo BranchTimeZone =
         TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
 
+    public DateTime UtcNow()
+    {
+        return DateTime.UtcNow;
+    }
+
     public DateTime LocalBusinessDate(DateTime utcInstant)
     {
         // Replace the MVP fixed business timezone with branch-level timezone configuration. (to do)

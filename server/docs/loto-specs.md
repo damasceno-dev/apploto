@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v12
+Spec revision: v13
 -->
 
-> **Status:** Revised spec (v12) — Transaction update and member read/list UX filters documented
+> **Status:** Revised spec (v13) — Draft transaction finalization added to the shared mutation contract
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -23,6 +23,7 @@ Spec revision: v12
 > v10: Aligned §6.3 with the Phase 3.1 cheque-installment contract — manual rows by default, optional auto-generation with monthly stagger and weekend adjustment, exact-sum invariant, prefix-only description fallback, and SaveAsDraft propagation.
 > v11: Added §6.10 documenting the Member transaction read scope: 403 vs 404 contract on Get, account-scope visibility on List (members see all rows on linked accounts regardless of recording operator), empty-scope short-circuit on List, and the enriched list response shape (joined names + paging metadata).
 > v12: Added §6.11 documenting the transaction update contract: editable and non-editable fields, local-business-day permission matrix, Member account-scope ordering, Mine list filter behavior, update audit stamping, and lock-date behavior.
+> v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 
 ---
 
@@ -1069,9 +1070,9 @@ Members read transactions through the same scope used by `MemberAccountScopeGuar
 
 The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious`) and joined names (`AccountName`, `ClientName`, `TransactionTypeName`) on each item so operational screens don't N+1 the API.
 
-### 6.11 Transaction update contract
+### 6.11 Transaction mutation contract
 
-Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row.
+Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`.
 
 **Editable fields:**
 
@@ -1099,6 +1100,8 @@ Transaction update is intentionally narrow. The client sends the editable subset
 
 `UpdatedAt` and `UpdatedByUserId` are server-stamped on every successful update. `UpdatedAt` uses the current UTC instant; `UpdatedByUserId` is the authenticated branch user's `UserId`.
 
+The same audit convention applies to successful finalization: `POST /transaction/{transactionId}/finalize` sets `Status = Active`, stamps `UpdatedAt` with the current UTC instant, stamps `UpdatedByUserId` with the authenticated branch user's `UserId`, and returns `ResponseTransactionJson`.
+
 **Entity-relative validation:**
 
 - `DueDate` must be on or after the transaction `Date`.
@@ -1106,25 +1109,26 @@ Transaction update is intentionally narrow. The client sends the editable subset
 - A transaction type that requires fiado context must keep a valid `ClientId`.
 - A replacement `ClientId`, when present, must resolve to an active client in the authenticated branch.
 
-**Permission matrix:**
+**Permission matrix for update and finalize:**
 
-- `Admin` and `Manager` can update branch-visible `Draft` or `Active` transactions, subject to validation and lock date.
+- `Admin` and `Manager` can update branch-visible `Draft` or `Active` transactions and can finalize branch-visible `Draft` transactions, subject to validation where applicable and lock date.
 - `Member` must have a linked active operator.
 - `Member` must have an active `OperatorAccount` link to the transaction's account. A linked Member with zero active account links is denied by account scope before mutation-specific rules.
 - `Member` must be the transaction's `RecordedByOperator`.
-- `Member` may update only on the same local business day as the transaction `Date`. MVP local business day uses `America/Sao_Paulo`; branch-level time zones can replace this later.
+- `Member` may update or finalize only on the same local business day as the transaction `Date`. MVP local business day uses `America/Sao_Paulo`; branch-level time zones can replace this later.
 
 **Failure contract:**
 
 - Missing or cross-branch transaction id → 404 `TRANSACTION_NOT_FOUND`.
 - Canceled transaction → 409 `TRANSACTION_CANNOT_UPDATE_CANCELLED`.
+- Finalize called for any non-`Draft` transaction, including already `Active` or `Cancelled` → 409 `TRANSACTION_CANNOT_FINALIZE_NON_DRAFT`.
 - Transaction date at or before branch `LockDate` → 409 `TRANSACTION_DATE_LOCKED`.
 - Member with no linked operator → 403 `TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK`.
 - Linked Member without account scope → 403 `TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE`.
 - Linked Member who is not the recording operator → 403 `TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR`.
 - Linked recording Member outside the local business day → 403 `TRANSACTION_UPDATE_REQUIRES_SAME_DAY`.
 
-The read/list rules in §6.10 and the update rules here intentionally share the same linked-account scope but expose different response shapes: `GET /transaction/{id}` uses 403/404, list uses empty result sets for empty or out-of-scope account filters, and update uses 403 because it is an attempted mutation.
+The read/list rules in §6.10 and the mutation rules here intentionally share the same linked-account scope but expose different response shapes: `GET /transaction/{id}` uses 403/404, list uses empty result sets for empty or out-of-scope account filters, and update/finalize use 403 because they are attempted mutations.
 
 ### 6.12 CashVariance calculation
 

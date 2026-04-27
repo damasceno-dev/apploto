@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v12
+Spec revision: v13
 -->
 <html lang="en">
 <head>
@@ -841,7 +841,7 @@ function renderClosing(i){
     {t:'Dual Ledger + Snapshot',d:'Transaction ledger for audit trail, DailyClose for physical reconciliation. CashVariance bridges them — the most important daily metric.'},
     {t:'Fiado Isolation',d:'Terminal / Tab account separation prevents credit sales from distorting cash drawer counts, keeping daily reconciliation accurate.'},
     {t:'Branch Consistency',d:'Every FK on Transaction and DailyClose (Account, Operator, Client, TransactionType→Category) must resolve to the same BranchId — enforced at the service layer to prevent cross-tenant data leakage.'},
-    {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update only linked-account rows they recorded on the same local business day.'}
+    {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update or finalize only linked-account rows they recorded on the same local business day. Draft finalization promotes Status to Active and stamps the update audit fields.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">

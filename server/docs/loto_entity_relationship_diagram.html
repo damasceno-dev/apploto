@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v12
+Spec revision: v13
 -->
 <html lang="en">
 <head>
@@ -351,6 +351,8 @@ Spec revision: v12
     '    timestamp paidAt\n' +
     '    uuid originTransactionId FK\n' +
     '    enum status\n' +
+    '    timestamp updatedAt\n' +
+    '    uuid updatedByUserId\n' +
     '    timestamp cancelledAt\n' +
     '    uuid recordedByOperatorId FK\n' +
     '    uuid createdByUserId FK\n' +
