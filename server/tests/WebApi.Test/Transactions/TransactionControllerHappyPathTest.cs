@@ -340,6 +340,28 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     }
 
     [Fact]
+    public async Task List_ShouldResolveMineToAuthenticatedLinkedOperator()
+    {
+        var ctx = await SeedReadContextAsync("TxnListMine");
+        var otherOperator = await factory.SeedOperatorAsync(ctx.Branch.Id);
+
+        var ownRow = await SeedReadTransactionAsync(
+            ctx,
+            recordedByOperatorId: ctx.Operator.Id,
+            description: "mine");
+        var otherRow = await SeedReadTransactionAsync(
+            ctx,
+            recordedByOperatorId: otherOperator.Id,
+            description: "not-mine");
+
+        var payload = await GetListAsync("/transaction?mine=true", ctx.Token);
+
+        payload.Items.Select(item => item.Id).ShouldBe([ownRow.Id]);
+        payload.Items.Select(item => item.Id).ShouldNotContain(otherRow.Id);
+        payload.TotalCount.ShouldBe(1);
+    }
+
+    [Fact]
     public async Task List_ShouldNarrowMemberRowsToLinkedAccounts()
     {
         var ctx = await SeedReadContextAsync("TxnListMember", Role.Member);

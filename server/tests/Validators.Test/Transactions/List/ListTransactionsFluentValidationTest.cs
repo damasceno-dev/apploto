@@ -76,4 +76,19 @@ public class ListTransactionsFluentValidationTest
         result.Errors.Select(e => e.ErrorMessage)
             .ShouldContain(ResourcesErrorMessages.TRANSACTION_LIST_DATE_RANGE_INVALID);
     }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenMineAndOperatorIdAreCombined()
+    {
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithMine(true)
+            .WithOperatorId(Guid.NewGuid())
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(e => e.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT);
+    }
 }

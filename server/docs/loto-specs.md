@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v11
+Spec revision: v12
 -->
 
-> **Status:** Revised spec (v11) — Member transaction read scope and enriched list response documented
+> **Status:** Revised spec (v12) — Transaction update and member read/list UX filters documented
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -22,6 +22,7 @@ Spec revision: v11
 > v9: Documented that updating an Operator with `UserId = null` clears the login link while preserving the Operator row.
 > v10: Aligned §6.3 with the Phase 3.1 cheque-installment contract — manual rows by default, optional auto-generation with monthly stagger and weekend adjustment, exact-sum invariant, prefix-only description fallback, and SaveAsDraft propagation.
 > v11: Added §6.10 documenting the Member transaction read scope: 403 vs 404 contract on Get, account-scope visibility on List (members see all rows on linked accounts regardless of recording operator), empty-scope short-circuit on List, and the enriched list response shape (joined names + paging metadata).
+> v12: Added §6.11 documenting the transaction update contract: editable and non-editable fields, local-business-day permission matrix, Member account-scope ordering, Mine list filter behavior, update audit stamping, and lock-date behavior.
 
 ---
 
@@ -990,7 +991,7 @@ WHERE AccountId = @tabAccountId
 
 **Opening values** for the current day = closing values (DailyCloseItems) from the previous day for the same account. The system queries: `DailyClose WHERE AccountId=X AND Date = @today - 1`.
 
-**CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.11 for the calculation formula. The operator does not enter this value directly.
+**CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.12 for the calculation formula. The operator does not enter this value directly.
 
 **Fiado balance** is NOT stored as a DailyCloseItem — it is always calculated at query time from Tab account transactions (see rule 6.4). The daily close form displays it for reference but does not persist it as a snapshot value.
 
@@ -1061,12 +1062,71 @@ Members read transactions through the same scope used by `MemberAccountScopeGuar
 
 - **GET `/transaction` (list):**
   - A Member sees **every** row on a linked account, including rows recorded by another operator on the same account. List visibility is account-scoped, not recording-operator-scoped, so a shared terminal account exposes both operators' rows to both members linked to it.
+  - A Member-supplied `OperatorId` filter is ignored server-side because Member list scope is linked-account based. To filter to the authenticated operator's own rows, clients use `Mine = true`.
+  - `Mine = true` is a convenience filter: the server resolves the caller's linked operator and sets the repository `OperatorId` filter to that operator. It never expands or changes `AllowedAccountIds`, and combining `Mine = true` with an explicit `OperatorId` returns 400.
   - When a Member has no linked operator OR has a linked operator with zero active `OperatorAccount` rows AND does not supply an explicit `AccountId`, the use case short-circuits to `Items = []`, `TotalCount = 0` without calling the repository's list/count methods.
   - When a Member supplies an explicit `AccountId` outside their linked set, the same empty short-circuit applies.
 
 The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious`) and joined names (`AccountName`, `ClientName`, `TransactionTypeName`) on each item so operational screens don't N+1 the API.
 
-### 6.11 CashVariance calculation
+### 6.11 Transaction update contract
+
+Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row.
+
+**Editable fields:**
+
+- `Description`
+- `DueDate`
+- `PaidAt`
+- `ClientId`
+- `TransactionTime`
+
+**Non-editable fields after creation:**
+
+- `Date`
+- `Value`
+- `AccountId`
+- `TransactionTypeId`
+- `CategoryId`
+- `Direction`
+- `RecordedByOperatorId`
+- `CreatedByUserId`
+- `BranchId`
+- `OriginTransactionId`
+- `CreatedAt`
+- `Status` through the update endpoint
+- cancellation fields (`CancelledAt`, `CancelledByUserId`, `CancellationReason`)
+
+`UpdatedAt` and `UpdatedByUserId` are server-stamped on every successful update. `UpdatedAt` uses the current UTC instant; `UpdatedByUserId` is the authenticated branch user's `UserId`.
+
+**Entity-relative validation:**
+
+- `DueDate` must be on or after the transaction `Date`.
+- `PaidAt`, when present, must be on or after the transaction `Date`.
+- A transaction type that requires fiado context must keep a valid `ClientId`.
+- A replacement `ClientId`, when present, must resolve to an active client in the authenticated branch.
+
+**Permission matrix:**
+
+- `Admin` and `Manager` can update branch-visible `Draft` or `Active` transactions, subject to validation and lock date.
+- `Member` must have a linked active operator.
+- `Member` must have an active `OperatorAccount` link to the transaction's account. A linked Member with zero active account links is denied by account scope before mutation-specific rules.
+- `Member` must be the transaction's `RecordedByOperator`.
+- `Member` may update only on the same local business day as the transaction `Date`. MVP local business day uses `America/Sao_Paulo`; branch-level time zones can replace this later.
+
+**Failure contract:**
+
+- Missing or cross-branch transaction id → 404 `TRANSACTION_NOT_FOUND`.
+- Canceled transaction → 409 `TRANSACTION_CANNOT_UPDATE_CANCELLED`.
+- Transaction date at or before branch `LockDate` → 409 `TRANSACTION_DATE_LOCKED`.
+- Member with no linked operator → 403 `TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK`.
+- Linked Member without account scope → 403 `TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE`.
+- Linked Member who is not the recording operator → 403 `TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR`.
+- Linked recording Member outside the local business day → 403 `TRANSACTION_UPDATE_REQUIRES_SAME_DAY`.
+
+The read/list rules in §6.10 and the update rules here intentionally share the same linked-account scope but expose different response shapes: `GET /transaction/{id}` uses 403/404, list uses empty result sets for empty or out-of-scope account filters, and update uses 403 because it is an attempted mutation.
+
+### 6.12 CashVariance calculation
 
 CashVariance (Diferença de Caixa) is **system-calculated, not operator-entered**. The operator enters closing product values (Dinheiro, Telesena, etc.); the system computes the variance and persists it as a DailyCloseItem.
 

@@ -14,9 +14,14 @@ public class TransactionMutationPermissionGuardTest
 {
     private static readonly DateTime UtcNow = new(2026, 4, 25, 17, 0, 0, DateTimeKind.Utc);
 
+    public static TheoryData<Role> ElevatedRoles => new()
+    {
+        Role.Manager,
+        Role.Admin
+    };
+
     [Theory]
-    [InlineData(Role.Manager)]
-    [InlineData(Role.Admin)]
+    [MemberData(nameof(ElevatedRoles))]
     public void EnsureAllowed_ShouldPass_ForElevatedRolesEvenWhenNotRecordingOperatorAndDifferentDay(Role role)
     {
         var transaction = BuildTransaction(recordedByOperatorId: Guid.NewGuid());

@@ -48,10 +48,10 @@ public class ListTransactionsUseCaseTest
         };
         var transactions = BuildTransactions(branchUser.BranchId, accountId, 3);
         var ctx = BuildContext(branchUser);
-        ctx.TransactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns(transactions);
-        ctx.TransactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns(42);
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, transactions)
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 42)
+            .Build();
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(request);
@@ -153,11 +153,16 @@ public class ListTransactionsUseCaseTest
             .WithTransactionType(transactionType)
             .Build();
         var request = new RequestListTransactionsJsonBuilder().Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            Page = 1,
+            PageSize = 50
+        };
         var ctx = BuildContext(branchUser);
-        ctx.TransactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns([transaction]);
-        ctx.TransactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns(1);
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, [transaction])
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 1)
+            .Build();
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(request);
@@ -188,11 +193,16 @@ public class ListTransactionsUseCaseTest
             .WithPage(page)
             .WithPageSize(pageSize)
             .Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            Page = page,
+            PageSize = pageSize
+        };
         var ctx = BuildContext(branchUser);
-        ctx.TransactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns([]);
-        ctx.TransactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns(totalCount);
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, [])
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, totalCount)
+            .Build();
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(request);
@@ -272,10 +282,13 @@ public class ListTransactionsUseCaseTest
                         .Build())
                     .ToList())
             .Build();
-        ctx.TransactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns(BuildTransactions(branchUser.BranchId, linkedAccountIds[0], 1));
-        ctx.TransactionsRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, Arg.Any<TransactionListFilter>())
-            .Returns(1);
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId,
+                expectedFilter,
+                BuildTransactions(branchUser.BranchId, linkedAccountIds[0], 1))
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 1)
+            .Build();
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(request);
@@ -285,6 +298,128 @@ public class ListTransactionsUseCaseTest
             branchUser.BranchId,
             Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
         await ctx.TransactionsRepository.Received(1).CountByBranchIdAsNoTracking(
+            branchUser.BranchId,
+            Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldStripOperatorId_WhenMemberListsWithoutMine()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var linkedAccountId = Guid.NewGuid();
+        var ignoredOperatorId = Guid.NewGuid();
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithOperatorId(ignoredOperatorId)
+            .Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            AllowedAccountIds = [linkedAccountId],
+            Page = 1,
+            PageSize = 50
+        };
+        var ctx = BuildContext(branchUser);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .Build();
+        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
+            .ListActiveByOperatorIdAsNoTracking(
+                callerOperator.Id,
+                [new OperatorAccountBuilder().WithOperator(callerOperator).WithAccountId(linkedAccountId).Build()])
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, [])
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 0)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.TotalCount.ShouldBe(0);
+        await ctx.TransactionsRepository.Received(1).ListByBranchIdAsNoTracking(
+            branchUser.BranchId,
+            Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldSetOperatorIdToCallerOperator_WhenMemberUsesMine()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var linkedAccountId = Guid.NewGuid();
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithMine(true)
+            .Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            OperatorId = callerOperator.Id,
+            AllowedAccountIds = [linkedAccountId],
+            Page = 1,
+            PageSize = 50
+        };
+        var ctx = BuildContext(branchUser);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .Build();
+        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
+            .ListActiveByOperatorIdAsNoTracking(
+                callerOperator.Id,
+                [new OperatorAccountBuilder().WithOperator(callerOperator).WithAccountId(linkedAccountId).Build()])
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, [])
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 0)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.TotalCount.ShouldBe(0);
+        await ctx.TransactionsRepository.Received(1).ListByBranchIdAsNoTracking(
+            branchUser.BranchId,
+            Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldSetOperatorIdToCallerOperator_WhenManagerUsesMine()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithMine(true)
+            .Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            OperatorId = callerOperator.Id,
+            Page = 1,
+            PageSize = 50
+        };
+        var ctx = BuildContext(branchUser);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .Build();
+        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
+            .ListActiveByOperatorIdAsNoTracking(callerOperator.Id, [])
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, [])
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 0)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.TotalCount.ShouldBe(0);
+        await ctx.TransactionsRepository.Received(1).ListByBranchIdAsNoTracking(
             branchUser.BranchId,
             Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
     }
@@ -308,7 +443,7 @@ public class ListTransactionsUseCaseTest
             AuthenticationService = new AuthenticationServiceBuilder()
                 .GetAuthenticatedBranchUser(branchUser)
                 .Build(),
-            TransactionsRepository = Substitute.For<ITransactionsRepository>(),
+            TransactionsRepository = new TransactionsRepositoryBuilder().Build(),
             OperatorsRepository = new OperatorsRepositoryBuilder().Build(),
             OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder().Build()
         };
@@ -347,7 +482,7 @@ public class ListTransactionsUseCaseTest
     private class TestContext
     {
         public required IAuthenticationService AuthenticationService { get; init; }
-        public required ITransactionsRepository TransactionsRepository { get; init; }
+        public required ITransactionsRepository TransactionsRepository { get; set; }
         public required IOperatorsRepository OperatorsRepository { get; set; }
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
     }

@@ -14,7 +14,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Update_ShouldReturn403_WhenMemberTargetsUnlinkedAccount()
+    public async Task Update_ShouldReturn403_WhenMemberHasLinkedOperatorButNoActiveAccounts()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnUpdateMemberScope403", Role.Member);
         var callerOperator = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
@@ -44,6 +44,9 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
     [Fact]
     public async Task Update_ShouldReturn403_WhenMemberNeedsElevatedRole()
     {
+        // -2 days makes the seeded date unambiguously outside the local business day
+        // even when the suite runs in the 00:00-03:00 UTC window where "yesterday UTC"
+        // still maps to "today" in Sao_Paulo (UTC-3) under BranchClock.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnUpdateMemberRole403", Role.Member);
         var callerOperator = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
@@ -58,7 +61,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             direction: category.DefaultDirection,
             recordedByOperatorId: callerOperator.Id,
             createdByUserId: user.Id,
-            date: DateTime.UtcNow.Date.AddDays(-1));
+            date: DateTime.UtcNow.Date.AddDays(-2));
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDueDate(transaction.Date.AddDays(2))
             .Build();

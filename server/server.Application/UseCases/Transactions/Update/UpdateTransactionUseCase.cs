@@ -33,20 +33,23 @@ public class UpdateTransactionUseCase(
 
         var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
 
-        // Mutation permission first so a Member with no linked operator surfaces
-        // TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK; otherwise MemberAccountScopeGuard
-        // (which has empty AllowedAccountIds for an unlinked Member) would mask it.
+        if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
+        {
+            memberAccountScopeGuard.EnsureMemberCanActOnAccount(
+                branchUser.Role,
+                memberScope,
+                transaction.AccountId);
+        }
+
+        // Keep mutation permission first only for Members with no linked operator so
+        // they surface TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK. Linked Members with
+        // no active accounts are rejected by account scope before mutation rules.
         var utcNow = DateTime.UtcNow;
         transactionMutationPermissionGuard.EnsureAllowed(
             transaction,
             branchUser.Role,
             memberScope.LinkedOperator,
             utcNow);
-
-        memberAccountScopeGuard.EnsureMemberCanActOnAccount(
-            branchUser.Role,
-            memberScope,
-            transaction.AccountId);
 
         await lockDateGuard.EnsureNotLocked(branchUser.BranchId, transaction.Date);
 

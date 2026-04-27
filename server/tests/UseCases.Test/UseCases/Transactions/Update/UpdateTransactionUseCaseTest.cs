@@ -61,6 +61,30 @@ public class UpdateTransactionUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldUpdateDraftTransaction_WhenAllGuardsPass()
+    {
+        var ctx = BuildContext(Role.Manager);
+        ctx.Transaction.Status = TransactionStatus.Draft;
+        ctx.Request = new RequestUpdateTransactionJsonBuilder()
+            .WithDescription("Draft after edit")
+            .WithDueDate(ctx.Transaction.Date.AddDays(1))
+            .WithPaidAt(null)
+            .WithClientId(null)
+            .WithTransactionTime(new TimeOnly(10, 20))
+            .Build();
+        ctx.ClientsRepository = new ClientsRepositoryBuilder().Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+
+        response.Status.ShouldBe(TransactionStatus.Draft);
+        response.Description.ShouldBe("Draft after edit");
+        response.TransactionTime.ShouldBe(new TimeOnly(10, 20));
+        ctx.Transaction.Status.ShouldBe(TransactionStatus.Draft);
+        await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldClearNullableEditableFields_WhenRequestSuppliesNulls()
     {
         var ctx = BuildContext(Role.Manager);
@@ -158,10 +182,10 @@ public class UpdateTransactionUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowForbidden_WhenMemberTargetsUnlinkedAccount()
+    public async Task Execute_ShouldThrowForbiddenBeforeMutationGuard_WhenMemberHasLinkedOperatorButNoActiveAccounts()
     {
-        // Mutation guard passes (Member is linked + recording + same-day per default),
-        // so MemberAccountScopeGuard fires next and rejects the unlinked account.
+        // 5.5.14: a linked Member with zero active account links is account-scope
+        // denied before mutation-specific rules such as same-day or recording operator.
         var ctx = BuildContext(Role.Member);
         ctx.MemberTransactionScopeResolver
             .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
@@ -172,6 +196,8 @@ public class UpdateTransactionUseCaseTest
             () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
+        ctx.MutationPermissionGuard.DidNotReceiveWithAnyArgs()
+            .EnsureAllowed(default!, default, default, default);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 

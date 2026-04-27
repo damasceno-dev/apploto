@@ -2,10 +2,14 @@ using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using server;
 using server.Application;
 using server.Controllers;
+using server.ExceptionHandling;
 using server.Filters;
+using server.Infrastructure;
 using Shouldly;
 using Xunit;
 
@@ -53,6 +57,12 @@ public class ArchitectureTest
         typeof(AllowAnonymousAttribute),
     ];
 
+    private static readonly string[] PublicServiceNamespacePrefixes =
+    [
+        "server.Application.Services",
+        "server.ExceptionHandling"
+    ];
+
     [Fact]
     public void AllUseCases_AreRegisteredInApplicationDi()
     {
@@ -81,6 +91,37 @@ public class ArchitectureTest
         unregistered.ShouldBeEmpty(
             "The following use cases are not registered in AppDependencyInjection.AddApplication(): "
             + string.Join(", ", unregistered)
+        );
+    }
+
+    [Fact]
+    public void AllPublicServicesAndExceptionHandlers_AreResolvableFromConfiguredRootContainer()
+    {
+        var services = new ServiceCollection();
+        services.AddApi();
+        services.AddApplication();
+        services.AddInfrastructure(BuildArchitectureConfiguration());
+
+        var serviceTypes = DiscoverPublicServiceTypes().ToList();
+        serviceTypes.ShouldNotBeEmpty(
+            "No public services were discovered under server.Application/Services or server.API/ExceptionHandling."
+        );
+
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = true
+        });
+        using var scope = provider.CreateScope();
+
+        var failures = serviceTypes
+            .Select(type => (ServiceType: type, RegistrationType: FindRegistrationType(services, type)))
+            .Select(entry => TryResolve(scope.ServiceProvider, entry.ServiceType, entry.RegistrationType))
+            .Where(message => message is not null)
+            .ToList();
+
+        failures.ShouldBeEmpty(
+            "The following public services or exception handlers could not be resolved from the configured container: "
+            + string.Join(" | ", failures)
         );
     }
 
@@ -126,5 +167,62 @@ public class ArchitectureTest
             + "TokenAuthenticate, TokenAuthenticateBranch, TokenAuthorize, or AllowAnonymous: "
             + string.Join(", ", endpointsMissingAuth)
         );
+    }
+
+    private static IConfiguration BuildArchitectureConfiguration()
+    {
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:DefaultConnection"] =
+                    "Host=localhost;Database=loto_architecture_test;Username=postgres;Password=postgres",
+                ["Token:SigningKey"] =
+                    "architecture-test-signing-key-with-at-least-256-bits",
+                ["Token:ExpirationTimeInMinutes"] = "60"
+            })
+            .Build();
+    }
+
+    private static IEnumerable<Type> DiscoverPublicServiceTypes()
+    {
+        return new[] { typeof(AppDependencyInjection).Assembly, typeof(IApiExceptionHandler).Assembly }
+            .SelectMany(assembly => assembly.GetTypes())
+            .Where(type => type.IsPublic)
+            .Where(type => type.IsInterface || type is { IsClass: true, IsAbstract: false })
+            .Where(type => PublicServiceNamespacePrefixes.Any(prefix =>
+                type.Namespace?.StartsWith(prefix, StringComparison.Ordinal) is true))
+            .Where(type => IsRecordType(type) is false);
+    }
+
+    private static Type FindRegistrationType(IServiceCollection services, Type serviceType)
+    {
+        if (services.Any(descriptor => descriptor.ServiceType == serviceType))
+        {
+            return serviceType;
+        }
+
+        var implementationRegistration = services.FirstOrDefault(descriptor =>
+            descriptor.ImplementationType == serviceType);
+
+        return implementationRegistration?.ServiceType ?? serviceType;
+    }
+
+    private static string? TryResolve(IServiceProvider serviceProvider, Type serviceType, Type registrationType)
+    {
+        try
+        {
+            _ = serviceProvider.GetRequiredService(registrationType);
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return $"{serviceType.FullName} via {registrationType.FullName}: {exception.GetType().Name} - {exception.Message}";
+        }
+    }
+
+    private static bool IsRecordType(Type type)
+    {
+        return type.GetMethod("<Clone>$", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+            is not null;
     }
 }

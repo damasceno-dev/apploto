@@ -21,5 +21,9 @@ public class ListTransactionsFluentValidation : AbstractValidator<RequestListTra
         RuleFor(r => r)
             .Must(r => r.DateFrom is null || r.DateTo is null || r.DateFrom.Value <= r.DateTo.Value)
             .WithMessage(ResourcesErrorMessages.TRANSACTION_LIST_DATE_RANGE_INVALID);
+
+        RuleFor(r => r)
+            .Must(r => r.Mine is false || r.OperatorId is null)
+            .WithMessage(ResourcesErrorMessages.TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT);
     }
 }

@@ -297,4 +297,7 @@
     <data name="TRANSACTION_LIST_DATE_RANGE_INVALID" xml:space="preserve">
         <value>A data inicial deve ser igual ou anterior à data final</value>
     </data>
+    <data name="TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
+        <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
+    </data>
 </root>

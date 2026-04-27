@@ -13,6 +13,7 @@ public class RequestListTransactionsJsonBuilder
     private Guid? _clientId;
     private int _page = 1;
     private int _pageSize = 50;
+    private bool _mine;
 
     public RequestListTransactionsJsonBuilder WithAccountId(Guid? accountId)
     {
@@ -62,6 +63,12 @@ public class RequestListTransactionsJsonBuilder
         return this;
     }
 
+    public RequestListTransactionsJsonBuilder WithMine(bool mine)
+    {
+        _mine = mine;
+        return this;
+    }
+
     public RequestListTransactionsJson Build()
     {
         return new RequestListTransactionsJson
@@ -73,7 +80,8 @@ public class RequestListTransactionsJsonBuilder
             OperatorId = _operatorId,
             ClientId = _clientId,
             Page = _page,
-            PageSize = _pageSize
+            PageSize = _pageSize,
+            Mine = _mine
         };
     }
 }

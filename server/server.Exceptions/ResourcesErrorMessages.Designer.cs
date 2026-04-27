@@ -602,5 +602,11 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TRANSACTION_LIST_DATE_RANGE_INVALID", resourceCulture);
             }
         }
+
+        public static string TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
+            }
+        }
     }
 }

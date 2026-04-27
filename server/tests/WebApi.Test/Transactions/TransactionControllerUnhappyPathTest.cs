@@ -240,6 +240,18 @@ public class TransactionControllerUnhappyPathTest(ServerWebApplicationFactory fa
     }
 
     [Fact]
+    public async Task List_ShouldReturn400_WhenMineAndOperatorIdAreCombined()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("TxnListMineConflict400", Role.Manager);
+
+        var httpResponse = await _client.GetAuthAsync($"/transaction?mine=true&operatorId={Guid.NewGuid()}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT);
+    }
+
+    [Fact]
     public async Task Get_ShouldReturn403_WhenMemberHasNoLinkedOperator()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnGetMemberNoLink", Role.Member);

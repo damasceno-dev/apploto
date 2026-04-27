@@ -21,28 +21,49 @@ public class ListTransactionsUseCase(
 
         var filter = request.ToFilter();
 
+        // 5.5.15: Member list scope is account-based; an arbitrary client-supplied
+        // OperatorId is meaningless for Members. Use Mine for own-operator filtering.
         if (branchUser.Role == Role.Member)
         {
+            filter.OperatorId = null;
+        }
+
+        // Members always need their resolved scope; non-Members only resolve when
+        // Mine=true so we can surface the caller's linked operator id.
+        var needsScope = branchUser.Role == Role.Member || request.Mine;
+        Operator? callerOperator = null;
+        IReadOnlyList<Guid> allowedAccountIds = [];
+        if (needsScope)
+        {
             var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
-            var allowedAccountIds = memberScope.AllowedAccountIds;
+            callerOperator = memberScope.LinkedOperator;
+            allowedAccountIds = memberScope.AllowedAccountIds;
+        }
 
-            // Empty-scope short-circuit: a Member with no linked operator OR with a
-            // linked operator but zero active OperatorAccount rows AND no explicit
-            // AccountId has nothing to list. Skip both repo calls.
-            if (filter.AccountId is null && allowedAccountIds.Count == 0)
+        // 5.5.16: Mine convenience filter — server-resolved from the caller's linked
+        // operator. No-op when the caller has no linked operator.
+        if (request.Mine && callerOperator is not null)
+        {
+            filter.OperatorId = callerOperator.Id;
+        }
+
+        if (branchUser.Role == Role.Member)
+        {
+            switch (filter.AccountId)
             {
-                return EmptyResponse(filter);
+                // Empty-scope short-circuit: a Member with no linked operator OR with a
+                // linked operator but zero active OperatorAccount rows AND no explicit
+                // AccountId has nothing to list. Skip both repo calls.
+                case null when allowedAccountIds.Count == 0:
+                // Explicit AccountId outside the Member's scope → empty result without
+                // hitting the repository.
+                case { } explicitlySuppliedAccountId when
+                    allowedAccountIds.Contains(explicitlySuppliedAccountId) is false:
+                    return EmptyResponse(filter);
+                default:
+                    filter.AllowedAccountIds = allowedAccountIds;
+                    break;
             }
-
-            // Explicit AccountId outside the Member's scope → empty result without
-            // hitting the repository.
-            if (filter.AccountId is { } explicitlySuppliedAccountId &&
-                allowedAccountIds.Contains(explicitlySuppliedAccountId) is false)
-            {
-                return EmptyResponse(filter);
-            }
-
-            filter.AllowedAccountIds = allowedAccountIds;
         }
 
         var items = await transactionsRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, filter);
