@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v13
+Spec revision: v14
 -->
 
-> **Status:** Revised spec (v13) — Draft transaction finalization added to the shared mutation contract
+> **Status:** Revised spec (v14) — Transaction cancellation added to the shared mutation contract
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -24,6 +24,7 @@ Spec revision: v13
 > v11: Added §6.10 documenting the Member transaction read scope: 403 vs 404 contract on Get, account-scope visibility on List (members see all rows on linked accounts regardless of recording operator), empty-scope short-circuit on List, and the enriched list response shape (joined names + paging metadata).
 > v12: Added §6.11 documenting the transaction update contract: editable and non-editable fields, local-business-day permission matrix, Member account-scope ordering, Mine list filter behavior, update audit stamping, and lock-date behavior.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
+> v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 
 ---
 
@@ -1072,7 +1073,7 @@ The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious
 
 ### 6.11 Transaction mutation contract
 
-Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`.
+Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`. Cancellation is a terminal state transition: the client sends a required `CancellationReason`, and the server moves a `Draft` or `Active` row to `Cancelled` with an explicit cancellation audit trail. All three operations share the same member account scope, mutation permission matrix, lock-date behavior, and generic update audit convention.
 
 **Editable fields:**
 
@@ -1102,6 +1103,8 @@ Transaction update is intentionally narrow. The client sends the editable subset
 
 The same audit convention applies to successful finalization: `POST /transaction/{transactionId}/finalize` sets `Status = Active`, stamps `UpdatedAt` with the current UTC instant, stamps `UpdatedByUserId` with the authenticated branch user's `UserId`, and returns `ResponseTransactionJson`.
 
+The same audit convention also applies to successful cancellation: `POST /transaction/{transactionId}/cancel` accepts a required `CancellationReason` (max length 500), sets `Status = Cancelled`, and stamps the cancellation audit fields (`CancelledAt`, `CancelledByUserId`, `CancellationReason`) plus the generic update audit fields (`UpdatedAt`, `UpdatedByUserId`) from the same clock instant. The branch clock is captured once per request so the same-day permission check, the cancellation audit timestamp, and the generic update timestamp cannot drift apart under concurrent clock ticks. The endpoint returns `ResponseTransactionJson`.
+
 **Entity-relative validation:**
 
 - `DueDate` must be on or after the transaction `Date`.
@@ -1109,26 +1112,35 @@ The same audit convention applies to successful finalization: `POST /transaction
 - A transaction type that requires fiado context must keep a valid `ClientId`.
 - A replacement `ClientId`, when present, must resolve to an active client in the authenticated branch.
 
-**Permission matrix for update and finalize:**
+**Permission matrix for update, finalize, and cancel:**
 
-- `Admin` and `Manager` can update branch-visible `Draft` or `Active` transactions and can finalize branch-visible `Draft` transactions, subject to validation where applicable and lock date.
+- `Admin` and `Manager` can update branch-visible `Draft` or `Active` transactions, finalize branch-visible `Draft` transactions, and cancel branch-visible `Draft` or `Active` transactions, subject to validation where applicable and lock date.
 - `Member` must have a linked active operator.
 - `Member` must have an active `OperatorAccount` link to the transaction's account. A linked Member with zero active account links is denied by account scope before mutation-specific rules.
 - `Member` must be the transaction's `RecordedByOperator`.
-- `Member` may update or finalize only on the same local business day as the transaction `Date`. MVP local business day uses `America/Sao_Paulo`; branch-level time zones can replace this later.
+- `Member` may update, finalize, or cancel only on the same local business day as the transaction `Date`. MVP local business day uses `America/Sao_Paulo`; branch-level time zones can replace this later.
 
 **Failure contract:**
 
 - Missing or cross-branch transaction id → 404 `TRANSACTION_NOT_FOUND`.
-- Canceled transaction → 409 `TRANSACTION_CANNOT_UPDATE_CANCELLED`.
+- Update called for an already-cancelled transaction → 409 `TRANSACTION_CANNOT_UPDATE_CANCELLED`.
 - Finalize called for any non-`Draft` transaction, including already `Active` or `Cancelled` → 409 `TRANSACTION_CANNOT_FINALIZE_NON_DRAFT`.
+- Cancel called for an already-cancelled transaction → 409 `TRANSACTION_ALREADY_CANCELLED`.
+- Cancel called with a missing `CancellationReason` → 400 `TRANSACTION_CANCELLATION_REASON_EMPTY`.
+- Cancel called with a `CancellationReason` longer than 500 characters → 400 `TRANSACTION_CANCELLATION_REASON_MAX_LENGTH`.
 - Transaction date at or before branch `LockDate` → 409 `TRANSACTION_DATE_LOCKED`.
 - Member with no linked operator → 403 `TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK`.
 - Linked Member without account scope → 403 `TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE`.
 - Linked Member who is not the recording operator → 403 `TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR`.
 - Linked recording Member outside the local business day → 403 `TRANSACTION_UPDATE_REQUIRES_SAME_DAY`.
 
-The read/list rules in §6.10 and the mutation rules here intentionally share the same linked-account scope but expose different response shapes: `GET /transaction/{id}` uses 403/404, list uses empty result sets for empty or out-of-scope account filters, and update/finalize use 403 because they are attempted mutations.
+**Installment sibling isolation:**
+
+Cancelling an installment row never touches its siblings. Each installment is loaded by its own id and only that single row is mutated; rows that share an `OriginTransactionId` retain their `Status`, their generic update audit fields (`UpdatedAt`, `UpdatedByUserId`), and their cancellation audit fields. Reactivating the cancelled installment is intentionally not part of this contract — cancellation is terminal. Cancelled installment rows are also excluded from the active-sum query (`SumActiveValueByAccountAndDate`) used by Milestone 4 cash-variance calculations because the query filters on `Status == Active`.
+
+**Why per-row.** A cheque-installment plan is N independent post-dated cheques (§6.3), not one atomic obligation. Cheques bounce or get renegotiated individually, and siblings may already have settled (`PaidAt` set) and been counted in a closed `DailyClose` snapshot. When the manager wants to cancel the whole plan (for example, the client returns the next day and pays the outstanding balance in cash), the frontend is responsible for offering a "cancel siblings too?" confirmation when the targeted row has active siblings and, if confirmed, issuing one `POST /transaction/{transactionId}/cancel` per sibling. The backend never cascades automatically. Each sibling cancel runs the full permission/lock/scope chain on its own and carries its own `CancellationReason`, so a sibling that legitimately cannot be cancelled (for example, already past a `LockDate` or in a different branch-local business day for a Member) is rejected without affecting the others.
+
+The read/list rules in §6.10 and the mutation rules here intentionally share the same linked-account scope but expose different response shapes: `GET /transaction/{id}` uses 403/404, list uses empty result sets for empty or out-of-scope account filters, and update/finalize/cancel use 403 because they are attempted mutations.
 
 ### 6.12 CashVariance calculation
 

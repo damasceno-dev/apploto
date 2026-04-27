@@ -483,6 +483,24 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TRANSACTION_ALREADY_CANCELLED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_ALREADY_CANCELLED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_CANCELLATION_REASON_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_CANCELLATION_REASON_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_CANCELLATION_REASON_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("TRANSACTION_CANCELLATION_REASON_MAX_LENGTH", resourceCulture);
+            }
+        }
+
         public static string TRANSACTION_FIADO_REQUIRES_CLIENT {
             get {
                 return ResourceManager.GetString("TRANSACTION_FIADO_REQUIRES_CLIENT", resourceCulture);

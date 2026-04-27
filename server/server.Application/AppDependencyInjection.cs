@@ -34,6 +34,7 @@ using server.Application.UseCases.Clients.Deactivate;
 using server.Application.UseCases.Clients.Get;
 using server.Application.UseCases.Clients.List;
 using server.Application.UseCases.Clients.Update;
+using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.Finalize;
@@ -100,6 +101,7 @@ public static class AppDependencyInjection
         services.AddScoped<GetTransactionUseCase>();
         services.AddScoped<ListTransactionsUseCase>();
         services.AddScoped<UpdateTransactionUseCase>();
+        services.AddScoped<CancelTransactionUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

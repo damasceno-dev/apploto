@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.Finalize;
@@ -91,6 +92,24 @@ public class TransactionController : ControllerBase
         [FromRoute] Guid transactionId)
     {
         var response = await finalizeTransactionUseCase.Execute(transactionId);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{transactionId:guid}/cancel")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseTransactionJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Cancel(
+        [FromServices] CancelTransactionUseCase cancelTransactionUseCase,
+        [FromRoute] Guid transactionId,
+        [FromBody] RequestCancelTransactionJson request)
+    {
+        var response = await cancelTransactionUseCase.Execute(transactionId, request);
         return Ok(response);
     }
 

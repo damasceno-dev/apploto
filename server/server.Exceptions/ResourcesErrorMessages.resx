@@ -237,6 +237,15 @@
     <data name="TRANSACTION_CANNOT_FINALIZE_NON_DRAFT" xml:space="preserve">
         <value>Somente transações em rascunho podem ser finalizadas</value>
     </data>
+    <data name="TRANSACTION_ALREADY_CANCELLED" xml:space="preserve">
+        <value>Esta transação já foi cancelada</value>
+    </data>
+    <data name="TRANSACTION_CANCELLATION_REASON_EMPTY" xml:space="preserve">
+        <value>O motivo do cancelamento deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_CANCELLATION_REASON_MAX_LENGTH" xml:space="preserve">
+        <value>O motivo do cancelamento deve conter no máximo {0} caracteres</value>
+    </data>
     <data name="TRANSACTION_FIADO_REQUIRES_CLIENT" xml:space="preserve">
         <value>Este tipo de transação exige um cliente informado</value>
     </data>
