@@ -2,11 +2,11 @@ using server.Domain.Entities.Enums;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
-namespace server.Application.Services.Transactions;
+namespace server.Application.Services.Members;
 
 public class MemberAccountScopeGuard
 {
-    public void EnsureMemberCanActOnAccount(Role role, MemberTransactionScope memberScope, Guid accountId)
+    public void EnsureMemberCanActOnAccount(Role role, MemberAccountScope memberScope, Guid accountId)
     {
         if (role != Role.Member)
         {
@@ -15,7 +15,7 @@ public class MemberAccountScopeGuard
 
         if (memberScope.LinkedOperator is null)
         {
-            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         }
 
         if (memberScope.AllowedAccountIds.Contains(accountId))

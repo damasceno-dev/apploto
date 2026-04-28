@@ -1,3 +1,5 @@
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -13,7 +15,7 @@ public class UpdateTransactionUseCase(
     ITransactionsRepository transactionsRepository,
     IClientsRepository clientsRepository,
     IUnitOfWork unitOfWork,
-    IMemberTransactionScopeResolver memberTransactionScopeResolver,
+    IMemberAccountScopeResolver memberAccountScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
     LockDateGuard lockDateGuard)
@@ -31,7 +33,7 @@ public class UpdateTransactionUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
         }
 
-        var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
 
         if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
         {
@@ -51,7 +53,10 @@ public class UpdateTransactionUseCase(
             memberScope.LinkedOperator,
             utcNow);
 
-        await lockDateGuard.EnsureNotLocked(branchUser.BranchId, transaction.Date);
+        await lockDateGuard.EnsureNotLocked(
+            branchUser.BranchId,
+            transaction.Date,
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
 
         if (transaction.TransactionType.RequiresTabAccountAndClient && request.ClientId is null)
         {

@@ -2,7 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using NSubstitute;
-using server.Application.Services.Transactions;
+using server.Application.Services.Members;
 using server.Application.UseCases.Transactions.Get;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -145,14 +145,14 @@ public class GetTransactionUseCaseTest
 
     private static GetTransactionUseCase CreateUseCase(TestContext ctx)
     {
-        var memberTransactionScopeResolver = new MemberTransactionScopeResolver(
+        var memberAccountScopeResolver = new MemberAccountScopeResolver(
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
 
         return new GetTransactionUseCase(
             ctx.AuthenticationService,
             ctx.TransactionsRepository,
-            memberTransactionScopeResolver);
+            memberAccountScopeResolver);
     }
 
     private static TestContext BuildContext(

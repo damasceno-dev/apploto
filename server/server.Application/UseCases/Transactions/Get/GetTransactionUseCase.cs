@@ -1,4 +1,4 @@
-using server.Application.Services.Transactions;
+using server.Application.Services.Members;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
@@ -10,7 +10,7 @@ namespace server.Application.UseCases.Transactions.Get;
 public class GetTransactionUseCase(
     IAuthenticationService authenticationService,
     ITransactionsRepository transactionsRepository,
-    IMemberTransactionScopeResolver memberTransactionScopeResolver)
+    IMemberAccountScopeResolver memberAccountScopeResolver)
 {
     public async Task<ResponseTransactionJson> Execute(Guid transactionId)
     {
@@ -33,7 +33,7 @@ public class GetTransactionUseCase(
         Guid userId,
         Guid branchId)
     {
-        var memberScope = await memberTransactionScopeResolver.Resolve(userId, branchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(userId, branchId);
 
         if (memberScope.LinkedOperator is null)
         {

@@ -3,7 +3,7 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
-using server.Application.Services.Transactions;
+using server.Application.Services.Members;
 using server.Application.UseCases.Transactions.List;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -426,14 +426,14 @@ public class ListTransactionsUseCaseTest
 
     private static ListTransactionsUseCase CreateUseCase(TestContext ctx)
     {
-        var memberTransactionScopeResolver = new MemberTransactionScopeResolver(
+        var memberAccountScopeResolver = new MemberAccountScopeResolver(
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
 
         return new ListTransactionsUseCase(
             ctx.AuthenticationService,
             ctx.TransactionsRepository,
-            memberTransactionScopeResolver);
+            memberAccountScopeResolver);
     }
 
     private static TestContext BuildContext(BranchUser branchUser)

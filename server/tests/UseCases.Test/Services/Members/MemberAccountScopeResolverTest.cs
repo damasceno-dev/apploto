@@ -1,14 +1,14 @@
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using NSubstitute;
-using server.Application.Services.Transactions;
+using server.Application.Services.Members;
 using server.Domain.Interfaces;
 using Shouldly;
 using Xunit;
 
-namespace UseCases.Test.Services.Transactions;
+namespace UseCases.Test.Services.Members;
 
-public class MemberTransactionScopeResolverTest
+public class MemberAccountScopeResolverTest
 {
     [Fact]
     public async Task Resolve_ShouldReturnNoLinkedOperatorAndEmptyAllowedAccounts_WhenCallerHasNoActiveLinkedOperator()
@@ -19,7 +19,7 @@ public class MemberTransactionScopeResolverTest
             .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(userId, branchId, null)
             .Build();
         var operatorAccountsRepository = new OperatorAccountsRepositoryBuilder().Build();
-        var resolver = new MemberTransactionScopeResolver(operatorsRepository, operatorAccountsRepository);
+        var resolver = new MemberAccountScopeResolver(operatorsRepository, operatorAccountsRepository);
 
         var scope = await resolver.Resolve(userId, branchId);
 
@@ -57,7 +57,7 @@ public class MemberTransactionScopeResolverTest
         var operatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
             .ListActiveByOperatorIdAsNoTracking(linkedOperator.Id, linkedAccounts)
             .Build();
-        var resolver = new MemberTransactionScopeResolver(operatorsRepository, operatorAccountsRepository);
+        var resolver = new MemberAccountScopeResolver(operatorsRepository, operatorAccountsRepository);
 
         var scope = await resolver.Resolve(userId, branchId);
 

@@ -1,3 +1,5 @@
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -10,7 +12,7 @@ namespace server.Application.UseCases.Transactions.Finalize;
 public class FinalizeTransactionUseCase(
     IAuthenticationService authenticationService,
     ITransactionsRepository transactionsRepository,
-    IMemberTransactionScopeResolver memberTransactionScopeResolver,
+    IMemberAccountScopeResolver memberAccountScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
     LockDateGuard lockDateGuard,
@@ -29,7 +31,7 @@ public class FinalizeTransactionUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_FINALIZE_NON_DRAFT);
         }
 
-        var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
 
         if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
         {
@@ -46,7 +48,10 @@ public class FinalizeTransactionUseCase(
             memberScope.LinkedOperator,
             utcNow);
 
-        await lockDateGuard.EnsureNotLocked(branchUser.BranchId, transaction.Date);
+        await lockDateGuard.EnsureNotLocked(
+            branchUser.BranchId,
+            transaction.Date,
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
 
         transaction.Status = TransactionStatus.Active;
         transaction.UpdatedAt = utcNow;

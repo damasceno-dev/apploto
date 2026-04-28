@@ -3,6 +3,8 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Transactions.Update;
 using server.Communication.Requests;
@@ -20,7 +22,7 @@ namespace UseCases.Test.UseCases.Transactions.Update;
 /// <summary>
 /// Use-case tests verify orchestration: load → guards → validators → mutate → commit.
 /// The shared <see cref="ITransactionMutationPermissionGuard"/> and
-/// <see cref="IMemberTransactionScopeResolver"/> are substituted so the role × link ×
+/// <see cref="IMemberAccountScopeResolver"/> are substituted so the role × link ×
 /// recording-operator × same-day decision tree is exercised once, in
 /// <c>TransactionMutationPermissionGuardTest</c>, not duplicated here.
 /// </summary>
@@ -156,9 +158,9 @@ public class UpdateTransactionUseCaseTest
         // calls the mutation guard first; the account-scope guard never runs in this
         // path because the mutation guard short-circuits.
         var ctx = BuildContext(Role.Member);
-        ctx.MemberTransactionScopeResolver
+        ctx.MemberAccountScopeResolver
             .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
-            .Returns(new MemberTransactionScope(LinkedOperator: null, AllowedAccountIds: []));
+            .Returns(new MemberAccountScope(LinkedOperator: null, AllowedAccountIds: []));
         ctx.MutationPermissionGuard
             .When(guard => guard.EnsureAllowed(
                 Arg.Any<Transaction>(),
@@ -187,9 +189,9 @@ public class UpdateTransactionUseCaseTest
         // 5.5.14: a linked Member with zero active account links is account-scope
         // denied before mutation-specific rules such as same-day or recording operator.
         var ctx = BuildContext(Role.Member);
-        ctx.MemberTransactionScopeResolver
+        ctx.MemberAccountScopeResolver
             .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
-            .Returns(new MemberTransactionScope(LinkedOperator: ctx.CallerOperator, AllowedAccountIds: []));
+            .Returns(new MemberAccountScope(LinkedOperator: ctx.CallerOperator, AllowedAccountIds: []));
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
@@ -354,7 +356,7 @@ public class UpdateTransactionUseCaseTest
             ctx.TransactionsRepository,
             ctx.ClientsRepository,
             ctx.UnitOfWork,
-            ctx.MemberTransactionScopeResolver,
+            ctx.MemberAccountScopeResolver,
             memberAccountScopeGuard,
             ctx.MutationPermissionGuard,
             lockDateGuard);
@@ -417,10 +419,10 @@ public class UpdateTransactionUseCaseTest
         var settingsRepository = new SettingsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var memberTransactionScopeResolver = Substitute.For<IMemberTransactionScopeResolver>();
-        memberTransactionScopeResolver
+        var memberAccountScopeResolver = Substitute.For<IMemberAccountScopeResolver>();
+        memberAccountScopeResolver
             .Resolve(branchUser.UserId, branchUser.BranchId)
-            .Returns(new MemberTransactionScope(
+            .Returns(new MemberAccountScope(
                 LinkedOperator: callerOperator,
                 AllowedAccountIds: [transaction.AccountId]));
 
@@ -436,7 +438,7 @@ public class UpdateTransactionUseCaseTest
             TransactionsRepository = transactionsRepository,
             ClientsRepository = clientsRepository,
             SettingsRepository = settingsRepository,
-            MemberTransactionScopeResolver = memberTransactionScopeResolver,
+            MemberAccountScopeResolver = memberAccountScopeResolver,
             MutationPermissionGuard = mutationPermissionGuard,
             UnitOfWork = unitOfWork
         };
@@ -452,7 +454,7 @@ public class UpdateTransactionUseCaseTest
         public required ITransactionsRepository TransactionsRepository { get; set; }
         public required IClientsRepository ClientsRepository { get; set; }
         public required ISettingsRepository SettingsRepository { get; set; }
-        public required IMemberTransactionScopeResolver MemberTransactionScopeResolver { get; init; }
+        public required IMemberAccountScopeResolver MemberAccountScopeResolver { get; init; }
         public required ITransactionMutationPermissionGuard MutationPermissionGuard { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }

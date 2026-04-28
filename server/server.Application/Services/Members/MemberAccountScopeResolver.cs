@@ -1,26 +1,26 @@
 using server.Domain.Interfaces;
 
-namespace server.Application.Services.Transactions;
+namespace server.Application.Services.Members;
 
-public sealed class MemberTransactionScopeResolver(
+public sealed class MemberAccountScopeResolver(
     IOperatorsRepository operatorsRepository,
     IOperatorAccountsRepository operatorAccountsRepository)
-    : IMemberTransactionScopeResolver
+    : IMemberAccountScopeResolver
 {
-    public async Task<MemberTransactionScope> Resolve(Guid userId, Guid branchId)
+    public async Task<MemberAccountScope> Resolve(Guid userId, Guid branchId)
     {
         var linkedOperator = await operatorsRepository
             .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(userId, branchId);
 
         if (linkedOperator is null)
         {
-            return new MemberTransactionScope(null, []);
+            return new MemberAccountScope(null, []);
         }
 
         var linkedAccounts = await operatorAccountsRepository
             .ListActiveByOperatorIdAsNoTracking(linkedOperator.Id);
 
-        return new MemberTransactionScope(
+        return new MemberAccountScope(
             linkedOperator,
             linkedAccounts?.Select(operatorAccount => operatorAccount.AccountId).ToList() ?? []);
     }

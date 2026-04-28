@@ -3,6 +3,8 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Transactions.Cancel;
 using server.Communication.Requests;
@@ -160,9 +162,9 @@ public class CancelTransactionUseCaseTest
     public async Task Execute_ShouldThrowForbiddenBeforeMutationGuard_WhenMemberHasLinkedOperatorButNoActiveAccounts()
     {
         var ctx = BuildContext(Role.Member);
-        ctx.MemberTransactionScopeResolver
+        ctx.MemberAccountScopeResolver
             .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
-            .Returns(new MemberTransactionScope(LinkedOperator: ctx.CallerOperator, AllowedAccountIds: []));
+            .Returns(new MemberAccountScope(LinkedOperator: ctx.CallerOperator, AllowedAccountIds: []));
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
@@ -181,9 +183,9 @@ public class CancelTransactionUseCaseTest
         var ctx = BuildContext(Role.Member);
         if (errorMessage == ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK)
         {
-            ctx.MemberTransactionScopeResolver
+            ctx.MemberAccountScopeResolver
                 .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
-                .Returns(new MemberTransactionScope(LinkedOperator: null, AllowedAccountIds: []));
+                .Returns(new MemberAccountScope(LinkedOperator: null, AllowedAccountIds: []));
         }
 
         ctx.MutationPermissionGuard
@@ -220,9 +222,9 @@ public class CancelTransactionUseCaseTest
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
             .Build();
-        ctx.MemberTransactionScopeResolver
+        ctx.MemberAccountScopeResolver
             .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
-            .Returns(new MemberTransactionScope(ctx.CallerOperator, [ctx.Transaction.AccountId]));
+            .Returns(new MemberAccountScope(ctx.CallerOperator, [ctx.Transaction.AccountId]));
         ctx.MutationPermissionGuard = new TransactionMutationPermissionGuard(branchClock);
         ctx.BranchClock = branchClock;
         var useCase = CreateUseCase(ctx);
@@ -246,9 +248,9 @@ public class CancelTransactionUseCaseTest
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
             .Build();
-        ctx.MemberTransactionScopeResolver
+        ctx.MemberAccountScopeResolver
             .Resolve(ctx.BranchUser.UserId, ctx.BranchUser.BranchId)
-            .Returns(new MemberTransactionScope(ctx.CallerOperator, [ctx.Transaction.AccountId]));
+            .Returns(new MemberAccountScope(ctx.CallerOperator, [ctx.Transaction.AccountId]));
         ctx.MutationPermissionGuard = new TransactionMutationPermissionGuard(branchClock);
         ctx.BranchClock = branchClock;
         var useCase = CreateUseCase(ctx);
@@ -304,7 +306,7 @@ public class CancelTransactionUseCaseTest
         return new CancelTransactionUseCase(
             ctx.AuthenticationService,
             ctx.TransactionsRepository,
-            ctx.MemberTransactionScopeResolver,
+            ctx.MemberAccountScopeResolver,
             memberAccountScopeGuard,
             ctx.MutationPermissionGuard,
             lockDateGuard,
@@ -350,10 +352,10 @@ public class CancelTransactionUseCaseTest
         var settingsRepository = new SettingsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var memberTransactionScopeResolver = Substitute.For<IMemberTransactionScopeResolver>();
-        memberTransactionScopeResolver
+        var memberAccountScopeResolver = Substitute.For<IMemberAccountScopeResolver>();
+        memberAccountScopeResolver
             .Resolve(branchUser.UserId, branchUser.BranchId)
-            .Returns(new MemberTransactionScope(
+            .Returns(new MemberAccountScope(
                 LinkedOperator: callerOperator,
                 AllowedAccountIds: [transaction.AccountId]));
 
@@ -367,7 +369,7 @@ public class CancelTransactionUseCaseTest
             AuthenticationService = authenticationService,
             TransactionsRepository = transactionsRepository,
             SettingsRepository = settingsRepository,
-            MemberTransactionScopeResolver = memberTransactionScopeResolver,
+            MemberAccountScopeResolver = memberAccountScopeResolver,
             MutationPermissionGuard = mutationPermissionGuard,
             BranchClock = new BranchClock(),
             UnitOfWork = unitOfWork
@@ -418,7 +420,7 @@ public class CancelTransactionUseCaseTest
         public required IAuthenticationService AuthenticationService { get; init; }
         public required ITransactionsRepository TransactionsRepository { get; set; }
         public required ISettingsRepository SettingsRepository { get; set; }
-        public required IMemberTransactionScopeResolver MemberTransactionScopeResolver { get; init; }
+        public required IMemberAccountScopeResolver MemberAccountScopeResolver { get; init; }
         public required ITransactionMutationPermissionGuard MutationPermissionGuard { get; set; }
         public required IBranchClock BranchClock { get; set; }
         public required IUnitOfWork UnitOfWork { get; init; }

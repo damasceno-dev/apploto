@@ -1,3 +1,5 @@
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -16,7 +18,7 @@ public sealed record TransactionCreateContext(
 
 public class TransactionCreatePreamble(
     IAuthenticationService authenticationService,
-    IMemberTransactionScopeResolver memberTransactionScopeResolver,
+    IMemberAccountScopeResolver memberAccountScopeResolver,
     TransactionRecordedByOperatorResolver recordedByOperatorResolver,
     TransactionBranchConsistencyService transactionBranchConsistencyService,
     MemberAccountScopeGuard memberAccountScopeGuard,
@@ -42,7 +44,10 @@ public class TransactionCreatePreamble(
             request.Date,
             request.DueDate);
 
-        await lockDateGuard.EnsureNotLocked(context.BranchUser.BranchId, request.Date);
+        await lockDateGuard.EnsureNotLocked(
+            context.BranchUser.BranchId,
+            request.Date,
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
 
         return context with { DueDate = dueDate };
     }
@@ -56,7 +61,10 @@ public class TransactionCreatePreamble(
             transactionTypeId: request.TransactionTypeId,
             transactionDate: request.Date);
 
-        await lockDateGuard.EnsureNotLocked(context.BranchUser.BranchId, request.Date);
+        await lockDateGuard.EnsureNotLocked(
+            context.BranchUser.BranchId,
+            request.Date,
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
 
         return context;
     }
@@ -70,7 +78,7 @@ public class TransactionCreatePreamble(
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
-        var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
         var callerOperator = memberScope.LinkedOperator;
 
         var recordedByOperatorId = recordedByOperatorResolver.Resolve(

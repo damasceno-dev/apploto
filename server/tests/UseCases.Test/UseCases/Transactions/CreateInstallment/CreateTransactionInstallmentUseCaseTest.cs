@@ -4,6 +4,8 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Transactions;
 using server.Application.UseCases.Transactions.CreateInstallment;
@@ -354,13 +356,13 @@ public class CreateTransactionInstallmentUseCaseTest
             ctx.ClientsRepository,
             ctx.TransactionTypesRepository);
         var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
-        var memberTransactionScopeResolver = new MemberTransactionScopeResolver(
+        var memberAccountScopeResolver = new MemberAccountScopeResolver(
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
         var transactionCreatePreamble = new TransactionCreatePreamble(
             ctx.AuthenticationService,
-            memberTransactionScopeResolver,
+            memberAccountScopeResolver,
             recordedByOperatorResolver,
             branchConsistencyService,
             memberAccountScopeGuard,

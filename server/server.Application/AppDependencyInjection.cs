@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
 using server.Application.Services.Operators;
+using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
@@ -91,7 +93,7 @@ public static class AppDependencyInjection
         services.AddScoped<InstallmentPlanBuilder>();
         services.AddScoped<DueDateCalculator>();
         services.AddScoped<IBranchClock, BranchClock>();
-        services.AddScoped<IMemberTransactionScopeResolver, MemberTransactionScopeResolver>();
+        services.AddScoped<IMemberAccountScopeResolver, MemberAccountScopeResolver>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();

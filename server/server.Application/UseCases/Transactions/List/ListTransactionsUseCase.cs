@@ -1,3 +1,4 @@
+using server.Application.Services.Members;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -12,7 +13,7 @@ namespace server.Application.UseCases.Transactions.List;
 public class ListTransactionsUseCase(
     IAuthenticationService authenticationService,
     ITransactionsRepository transactionsRepository,
-    IMemberTransactionScopeResolver memberTransactionScopeResolver)
+    IMemberAccountScopeResolver memberAccountScopeResolver)
 {
     public async Task<ResponseListTransactionsJson> Execute(RequestListTransactionsJson request)
     {
@@ -35,7 +36,7 @@ public class ListTransactionsUseCase(
         IReadOnlyList<Guid> allowedAccountIds = [];
         if (needsScope)
         {
-            var memberScope = await memberTransactionScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
             callerOperator = memberScope.LinkedOperator;
             allowedAccountIds = memberScope.AllowedAccountIds;
         }

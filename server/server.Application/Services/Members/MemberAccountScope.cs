@@ -1,7 +1,7 @@
 using Operator = server.Domain.Entities.Operator;
 
-namespace server.Application.Services.Transactions;
+namespace server.Application.Services.Members;
 
-public sealed record MemberTransactionScope(
+public sealed record MemberAccountScope(
     Operator? LinkedOperator,
     IReadOnlyList<Guid> AllowedAccountIds);
