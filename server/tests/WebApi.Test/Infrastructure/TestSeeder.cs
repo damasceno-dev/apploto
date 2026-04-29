@@ -427,20 +427,27 @@ internal static class TestSeeder
             DateTime? date = null,
             DailyCloseStatus status = DailyCloseStatus.Draft,
             Guid? submittedByOperatorId = null,
-            DateTime? submittedAt = null)
+            DateTime? submittedAt = null,
+            Guid? approvedByUserId = null,
+            DateTime? approvedAt = null,
+            DateTime? createdAt = null,
+            Guid? id = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
 
             var dailyClose = new DailyClose
             {
-                Id = Guid.NewGuid(),
+                Id = id ?? Guid.NewGuid(),
+                CreatedAt = AsUtc(createdAt ?? DateTime.UtcNow),
                 BranchId = branchId,
                 AccountId = accountId,
                 Date = date ?? DateTime.Today,
                 Status = status,
                 SubmittedByOperatorId = submittedByOperatorId,
-                SubmittedAt = submittedAt is null ? null : AsUtc(submittedAt.Value)
+                SubmittedAt = submittedAt is null ? null : AsUtc(submittedAt.Value),
+                ApprovedByUserId = approvedByUserId,
+                ApprovedAt = approvedAt is null ? null : AsUtc(approvedAt.Value)
             };
 
             dbContext.DailyCloses.Add(dailyClose);

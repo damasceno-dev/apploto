@@ -357,4 +357,16 @@
     <data name="DAILYCLOSE_BRANCH_MISMATCH" xml:space="preserve">
         <value>Os dados do fechamento diário devem pertencer à mesma filial</value>
     </data>
+    <data name="DAILYCLOSE_LIST_PAGE_INVALID" xml:space="preserve">
+        <value>A página deve ser maior ou igual a 1</value>
+    </data>
+    <data name="DAILYCLOSE_LIST_PAGE_SIZE_INVALID" xml:space="preserve">
+        <value>O tamanho da página deve estar entre {0} e {1}</value>
+    </data>
+    <data name="DAILYCLOSE_LIST_DATE_RANGE_INVALID" xml:space="preserve">
+        <value>A data inicial deve ser igual ou anterior à data final</value>
+    </data>
+    <data name="DAILYCLOSE_LIST_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
+        <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
+    </data>
 </root>

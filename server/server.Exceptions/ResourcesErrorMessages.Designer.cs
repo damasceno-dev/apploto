@@ -722,5 +722,29 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("DAILYCLOSE_BRANCH_MISMATCH", resourceCulture);
             }
         }
+
+        public static string DAILYCLOSE_LIST_PAGE_INVALID {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_LIST_PAGE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_LIST_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_LIST_PAGE_SIZE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_LIST_DATE_RANGE_INVALID {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_LIST_DATE_RANGE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_LIST_MINE_AND_OPERATOR_ID_CONFLICT {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_LIST_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
+            }
+        }
     }
 }
