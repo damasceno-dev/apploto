@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -25,5 +26,20 @@ public class DailyCloseController : ControllerBase
     {
         var response = await useCase.Execute(request);
         return Created(string.Empty, response);
+    }
+
+    [HttpGet]
+    [Route("{dailyCloseId:guid}")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Get(
+        [FromServices] GetDailyCloseUseCase useCase,
+        [FromRoute] Guid dailyCloseId)
+    {
+        var response = await useCase.Execute(dailyCloseId);
+        return Ok(response);
     }
 }

@@ -381,6 +381,46 @@ internal static class TestSeeder
             return setting;
         }
 
+        public async Task<Product> SeedProductAsync(
+            Guid branchId,
+            string? name = null,
+            int displayOrder = 1)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var product = new Product
+            {
+                Id = Guid.NewGuid(),
+                Name = name ?? $"Product {Guid.NewGuid():N}",
+                DisplayOrder = displayOrder,
+                BranchId = branchId
+            };
+            dbContext.Products.Add(product);
+            await dbContext.SaveChangesAsync();
+            return product;
+        }
+
+        public async Task<DailyCloseItem> SeedDailyCloseItemAsync(
+            Guid dailyCloseId,
+            Guid productId,
+            decimal value = 100m)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var item = new DailyCloseItem
+            {
+                Id = Guid.NewGuid(),
+                DailyCloseId = dailyCloseId,
+                ProductId = productId,
+                Value = value
+            };
+            dbContext.DailyCloseItems.Add(item);
+            await dbContext.SaveChangesAsync();
+            return item;
+        }
+
         public async Task<DailyClose> SeedDailyCloseAsync(
             Guid branchId,
             Guid accountId,
