@@ -44,6 +44,7 @@ using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
+using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.Users.Login;
 using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
@@ -107,6 +108,7 @@ public static class AppDependencyInjection
         services.AddScoped<ListTransactionsUseCase>();
         services.AddScoped<UpdateTransactionUseCase>();
         services.AddScoped<CancelTransactionUseCase>();
+        services.AddScoped<OpenDailyCloseUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

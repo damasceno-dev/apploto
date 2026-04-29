@@ -381,6 +381,33 @@ internal static class TestSeeder
             return setting;
         }
 
+        public async Task<DailyClose> SeedDailyCloseAsync(
+            Guid branchId,
+            Guid accountId,
+            DateTime? date = null,
+            DailyCloseStatus status = DailyCloseStatus.Draft,
+            Guid? submittedByOperatorId = null,
+            DateTime? submittedAt = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var dailyClose = new DailyClose
+            {
+                Id = Guid.NewGuid(),
+                BranchId = branchId,
+                AccountId = accountId,
+                Date = date ?? DateTime.Today,
+                Status = status,
+                SubmittedByOperatorId = submittedByOperatorId,
+                SubmittedAt = submittedAt is null ? null : AsUtc(submittedAt.Value)
+            };
+
+            dbContext.DailyCloses.Add(dailyClose);
+            await dbContext.SaveChangesAsync();
+            return dailyClose;
+        }
+
         /// <summary>
         /// Reloads an entity from the database so tests can assert persisted state without
         /// relying on cached tracking from the seed calls.
