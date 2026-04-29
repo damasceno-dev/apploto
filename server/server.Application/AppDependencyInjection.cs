@@ -102,6 +102,7 @@ public static class AppDependencyInjection
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
+        services.AddScoped<ICashVarianceProductResolver, CashVarianceProductResolver>();
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
         services.AddScoped<CreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();
