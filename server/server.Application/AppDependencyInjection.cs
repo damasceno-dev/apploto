@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Operators;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
@@ -96,6 +97,8 @@ public static class AppDependencyInjection
         services.AddScoped<IMemberAccountScopeResolver, MemberAccountScopeResolver>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
+        services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
+        services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
         services.AddScoped<CreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();

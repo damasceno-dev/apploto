@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v14
+Spec revision: v15
 -->
 <html lang="en">
 <head>
@@ -579,11 +579,11 @@ const SLIDES=[
     ]}
    ]},
   {title:'Open Day: Opening Values',
-   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> — yesterday\'s DailyCloseItems for this account. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$2,800</b> (R$2,000 + R$500 + R$300).<br><br>LottoGest tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
+   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> from the most recent prior close for this same account, not necessarily literal yesterday. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$2,800</b> (R$2,000 + R$500 + R$300).<br><br>LottoGest tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
-    {entity:'Yesterday\'s Closing = Today\'s Opening',fields:[
+    {entity:'Most recent prior closing = today\'s opening',fields:[
      {n:'Dinheiro',v:'"R$ 2,000.00"'},{n:'Telesena',v:'"R$ 500.00"'},{n:'Raspadinha',v:'"R$ 300.00"'},
      {n:'TotalOpening',v:'"R$ 2,800.00"',hl:'hl'}
     ]},
@@ -644,7 +644,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> using the formula:<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − TotalTransactions</b><br>= R$5,780 − R$2,800 − R$3,000 = <b style="color:#ef5350">−R$20</b><br><br>The <b>−R$20</b> means Jennifer counted <b>R$20 less</b> than expected in the drawer (R$4,980 cash vs R$5,000 expected). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. The manager now sees this in their <b>pending review queue</b>.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> using the formula:<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$5,780 − R$2,800 − R$3,000 = <b style="color:#ef5350">−R$20</b><br><br>The <b>−R$20</b> means Jennifer counted <b>R$20 less</b> than expected in the drawer (R$4,980 cash vs R$5,000 expected). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. The manager now sees this in their <b>pending review queue</b>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -656,18 +656,20 @@ const SLIDES=[
     {entity:'DailyClose (updated)',fields:[
      {n:'Status',v:'"Submitted"',hl:'hl'},
      {n:'SubmittedAt',v:'"2025-03-15T18:30:00Z"',hl:'hl'},
-     {n:'SubmittedByOperatorId',v:'→ Jennifer'}
+     {n:'SubmittedByOperatorId',v:'→ Jennifer'},
+     {n:'UpdatedAt',v:'same instant as SubmittedAt'}
     ]}
    ]},
   {title:'Manager Approves',
-   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the CashVariance (<b>−R$20</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt and ApprovedByUserId are set. If issues were found, Maria would <b>Reject</b> with a reason, and Jennifer would edit and resubmit. This workflow — <b>Draft → Submitted → Approved/Rejected</b> — replaces the paper-based process that lottery houses currently use.',
+   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the CashVariance (<b>−R$20</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin. This workflow replaces the paper-based process that lottery houses currently use.',
    activeTables:['DailyClose'],
    activeArrows:[],
    data:[
     {entity:'DailyClose (final)',fields:[
      {n:'Status',v:'"Approved"',hl:'hl-green'},
      {n:'ApprovedAt',v:'"2025-03-16T09:15:00Z"',hl:'hl-green'},
-     {n:'ApprovedByUserId',v:'→ Maria'}
+     {n:'ApprovedByUserId',v:'→ Maria'},
+     {n:'UpdatedAt',v:'same instant as ApprovedAt'}
     ]}
    ]}
  ]
@@ -778,7 +780,7 @@ function renderIntro(s,i){
     </div>
     <div class="intro-cols stacked" style="margin-top:16px">
       <div class="intro-card" style="max-width:700px;text-align:center;border:2px solid var(--accent)">
-        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − TotalTransactions</span></h3>
+        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − (Active In − Active Out)</span></h3>
         <p style="font-size:15px;margin-top:8px">This is <b>the single most important number</b> in the system. The owner reviews it daily for each operator. A mismatch triggers investigation — was a transaction missed? Did the operator miscount? Was there theft?</p>
         <p style="font-size:13px;margin-top:10px;color:var(--dim)"><b>Note:</b> The Fiado (credit) balance is <em>not</em> part of the snapshot — it is always calculated at query time from Tab account transactions, never persisted as a DailyClose product.</p>
       </div>
@@ -838,10 +840,11 @@ function renderClosing(i){
   const cards=[
     {t:'Multi-Tenancy',d:'Branch as tenant, BranchId on every entity, query-level isolation. A single User can span multiple Branches with different Roles.'},
     {t:'Three-Date Model',d:'Date / DueDate / PaidAt enables receivables tracking and reconciliation. Know exactly when money is expected and when it actually arrives.'},
-    {t:'Dual Ledger + Snapshot',d:'Transaction ledger for audit trail, DailyClose for physical reconciliation. CashVariance bridges them — the most important daily metric.'},
+    {t:'Dual Ledger + Snapshot',d:'Transaction ledger for audit trail, DailyClose for physical reconciliation. CashVariance bridges them using the most recent prior close as opening values.'},
     {t:'Fiado Isolation',d:'Terminal / Tab account separation prevents credit sales from distorting cash drawer counts, keeping daily reconciliation accurate.'},
     {t:'Branch Consistency',d:'Every FK on Transaction and DailyClose (Account, Operator, Client, TransactionType→Category) must resolve to the same BranchId — enforced at the service layer to prevent cross-tenant data leakage.'},
-    {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update, finalize, or cancel only linked-account rows they recorded on the same local business day. Draft finalization promotes Status to Active. Cancellation is terminal: Status moves to Cancelled with a required reason, the cancellation audit fields and the generic update audit fields are stamped from the same clock instant, and installment siblings are not touched.'}
+    {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update, finalize, or cancel only linked-account rows they recorded on the same local business day. Draft finalization promotes Status to Active. Cancellation is terminal: Status moves to Cancelled with a required reason, the cancellation audit fields and the generic update audit fields are stamped from the same clock instant, and installment siblings are not touched.'},
+    {t:'DailyClose Recall',d:'DailyClose supports Rejected→Draft resubmission and same-day Submitted→Draft recall for the recording operator, or any Manager/Admin. Workflow-specific timestamps and UpdatedAt use the same captured instant.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">

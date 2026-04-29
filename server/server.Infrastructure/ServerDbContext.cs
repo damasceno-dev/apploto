@@ -19,6 +19,8 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     public DbSet<Account> Accounts => Set<Account>();
     public DbSet<OperatorAccount> OperatorAccounts => Set<OperatorAccount>();
     public DbSet<Client> Clients => Set<Client>();
+    public DbSet<DailyClose> DailyCloses => Set<DailyClose>();
+    public DbSet<DailyCloseItem> DailyCloseItems => Set<DailyCloseItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

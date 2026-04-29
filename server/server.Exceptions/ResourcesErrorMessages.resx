@@ -312,4 +312,49 @@
     <data name="TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
         <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
     </data>
+    <data name="DAILYCLOSE_NOT_FOUND" xml:space="preserve">
+        <value>Fechamento diário não encontrado</value>
+    </data>
+    <data name="DAILYCLOSE_DATE_REQUIRED" xml:space="preserve">
+        <value>A data do fechamento diário deve ser informada</value>
+    </data>
+    <data name="DAILYCLOSE_ACCOUNT_REQUIRED" xml:space="preserve">
+        <value>A conta do fechamento diário deve ser informada</value>
+    </data>
+    <data name="DAILYCLOSE_LOCK_DATE_VIOLATION" xml:space="preserve">
+        <value>A data do fechamento diário está bloqueada pelo fechamento</value>
+    </data>
+    <data name="DAILYCLOSE_DATE_CONFLICT" xml:space="preserve">
+        <value>Já existe um fechamento diário ativo para esta filial, conta e data</value>
+    </data>
+    <data name="DAILYCLOSE_ITEM_DUPLICATE" xml:space="preserve">
+        <value>Já existe um item ativo para este produto no fechamento diário</value>
+    </data>
+    <data name="DAILYCLOSE_NOT_EDITABLE" xml:space="preserve">
+        <value>Este fechamento diário não pode ser editado</value>
+    </data>
+    <data name="DAILYCLOSE_NOT_SUBMITTABLE" xml:space="preserve">
+        <value>Este fechamento diário não pode ser enviado</value>
+    </data>
+    <data name="DAILYCLOSE_NOT_APPROVABLE" xml:space="preserve">
+        <value>Este fechamento diário não pode ser aprovado</value>
+    </data>
+    <data name="DAILYCLOSE_NOT_REJECTABLE" xml:space="preserve">
+        <value>Este fechamento diário não pode ser rejeitado</value>
+    </data>
+    <data name="DAILYCLOSE_REJECTION_REASON_REQUIRED" xml:space="preserve">
+        <value>O motivo da rejeição deve ser informado</value>
+    </data>
+    <data name="DAILYCLOSE_REJECTION_REASON_LENGTH" xml:space="preserve">
+        <value>O motivo da rejeição deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN" xml:space="preserve">
+        <value>O produto Diferença Caixa é calculado pelo sistema e não pode ser informado manualmente</value>
+    </data>
+    <data name="DAILYCLOSE_ITEM_VALUE_NEGATIVE" xml:space="preserve">
+        <value>O valor do item do fechamento diário não pode ser negativo</value>
+    </data>
+    <data name="DAILYCLOSE_BRANCH_MISMATCH" xml:space="preserve">
+        <value>Os dados do fechamento diário devem pertencer à mesma filial</value>
+    </data>
 </root>

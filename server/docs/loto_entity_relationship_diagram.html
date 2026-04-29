@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v14
+Spec revision: v15
 -->
 <html lang="en">
 <head>
@@ -239,6 +239,7 @@ Spec revision: v14
     '  User o|--o{ Operator : "logs in as"\n' +
     '  User ||--o{ Transaction : "created by"\n' +
     '  User o|--o{ Transaction : "cancelled by"\n' +
+    '  User o|--o{ DailyClose : "updated by"\n' +
     '\n' +
     '  BranchUser {\n' +
     '    uuid id PK\n' +
@@ -378,6 +379,9 @@ Spec revision: v14
     '    timestamp approvedAt\n' +
     '    uuid approvedByUserId FK\n' +
     '    string rejectionReason\n' +
+    '    string notes\n' +
+    '    timestamp updatedAt\n' +
+    '    uuid updatedByUserId FK\n' +
     '    uuid branchId FK\n' +
     '  }\n' +
     '\n' +

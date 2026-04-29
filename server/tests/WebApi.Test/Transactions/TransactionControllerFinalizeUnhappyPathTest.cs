@@ -111,7 +111,7 @@ public class TransactionControllerFinalizeUnhappyPathTest(ServerWebApplicationFa
 
         var category = await factory.SeedCategoryAsync(branch.Id, $"{label} Entradas", Direction.In);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
-        var transactionDate = date ?? DateTime.UtcNow.Date;
+        var transactionDate = date ?? new BranchClock().LocalBusinessDate(DateTime.UtcNow);
         var transaction = await factory.SeedTransactionAsync(
             branchId: branch.Id,
             accountId: account.Id,

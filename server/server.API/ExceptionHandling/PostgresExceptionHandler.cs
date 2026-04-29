@@ -18,7 +18,9 @@ internal static class PostgresExceptionHandler
         new(StringComparer.Ordinal)
         {
             ["IX_Clients_BranchId_Cpf"] = ResourcesErrorMessages.CLIENT_CPF_CONFLICT,
-            ["IX_Operators_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED
+            ["IX_Operators_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED,
+            ["IX_DailyCloses_BranchId_AccountId_Date"] = ResourcesErrorMessages.DAILYCLOSE_DATE_CONFLICT,
+            ["IX_DailyCloseItems_DailyCloseId_ProductId"] = ResourcesErrorMessages.DAILYCLOSE_ITEM_DUPLICATE
         };
 
     public static Exception Normalize(Exception exception)

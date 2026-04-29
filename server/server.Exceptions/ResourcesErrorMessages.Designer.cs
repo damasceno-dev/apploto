@@ -632,5 +632,95 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
             }
         }
+
+        public static string DAILYCLOSE_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_DATE_REQUIRED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_DATE_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_ACCOUNT_REQUIRED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_ACCOUNT_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_LOCK_DATE_VIOLATION {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_LOCK_DATE_VIOLATION", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_DATE_CONFLICT {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_DATE_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_ITEM_DUPLICATE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_ITEM_DUPLICATE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOT_EDITABLE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_EDITABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOT_SUBMITTABLE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_SUBMITTABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOT_APPROVABLE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_APPROVABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOT_REJECTABLE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_REJECTABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_REJECTION_REASON_REQUIRED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_REJECTION_REASON_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_REJECTION_REASON_LENGTH {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_REJECTION_REASON_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_ITEM_VALUE_NEGATIVE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_ITEM_VALUE_NEGATIVE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_BRANCH_MISMATCH {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_BRANCH_MISMATCH", resourceCulture);
+            }
+        }
     }
 }

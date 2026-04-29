@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v14
+Spec revision: v15
 -->
 
-> **Status:** Revised spec (v14) — Transaction cancellation added to the shared mutation contract
+> **Status:** Revised spec (v15) — DailyClose foundation and workflow contract added
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -25,6 +25,7 @@ Spec revision: v14
 > v12: Added §6.11 documenting the transaction update contract: editable and non-editable fields, local-business-day permission matrix, Member account-scope ordering, Mine list filter behavior, update audit stamping, and lock-date behavior.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
+> v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
 
 ---
 
@@ -617,11 +618,11 @@ The daily register closing session. One row per account per day. Tracks the subm
 ```csharp
 public class DailyClose : EntityBase
 {
-    public DateTime Date { get; set; }
+    public DateTime Date { get; init; }
     public DailyCloseStatus Status { get; set; } = DailyCloseStatus.Draft;
 
-    public Guid AccountId { get; set; }
-    public Account Account { get; set; } = null!;
+    public Guid AccountId { get; init; }
+    public Account Account { get; init; } = null!;
 
     public Guid? SubmittedByOperatorId { get; set; }
     public Operator? SubmittedByOperator { get; set; }
@@ -635,31 +636,36 @@ public class DailyClose : EntityBase
     public string? RejectionReason { get; set; }
     public string? Notes { get; set; }
 
-    public Guid BranchId { get; set; }
-    public Branch Branch { get; set; } = null!;
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedByUserId { get; set; }
+
+    public Guid BranchId { get; init; }
+    public Branch Branch { get; init; } = null!;
 
     // Navigation
-    public ICollection<DailyCloseItem> Items { get; set; } = [];
+    public ICollection<DailyCloseItem> Items { get; init; } = [];
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Date | date | NOT NULL | The business day being closed |
-| Status | smallint | NOT NULL | Enum: Draft=0, Submitted=1, Approved=2, Rejected=3 |
-| AccountId | uuid | NOT NULL | FK → Account |
-| SubmittedByOperatorId | uuid | NULL | FK → Operator |
-| SubmittedAt | timestamptz | NULL | |
-| ApprovedAt | timestamptz | NULL | |
-| ApprovedByUserId | uuid | NULL | FK → User (manager/admin who approved) |
-| RejectionReason | varchar(500) | NULL | |
-| Notes | text | NULL | Operator notes about the day |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column                | Type          | Null     | Notes                                              |
+|-----------------------|---------------|----------|----------------------------------------------------|
+| Id                    | uuid          | PK       |                                                    |
+| Date                  | date          | NOT NULL | The business day being closed                      |
+| Status                | smallint      | NOT NULL | Enum: Draft=0, Submitted=1, Approved=2, Rejected=3 |
+| AccountId             | uuid          | NOT NULL | FK → Account                                       |
+| SubmittedByOperatorId | uuid          | NULL     | FK → Operator                                      |
+| SubmittedAt           | timestamptz   | NULL     |                                                    |
+| ApprovedAt            | timestamptz   | NULL     |                                                    |
+| ApprovedByUserId      | uuid          | NULL     | FK → User (manager/admin who approved)             |
+| RejectionReason       | varchar(500)  | NULL     |                                                    |
+| Notes                 | varchar(1000) | NULL     | Operator notes about the day                       |
+| UpdatedAt             | timestamptz   | NULL     | Generic workflow mutation audit timestamp          |
+| UpdatedByUserId       | uuid          | NULL     | User who last changed the workflow/item state      |
+| BranchId              | uuid          | NOT NULL | FK → Branch                                        |
+| CreatedAt             | timestamptz   | NOT NULL |                                                    |
+| Active                | boolean       | NOT NULL |                                                    |
 
-**Unique constraint:** `(BranchId, AccountId, Date)` — one closing per account per day.
+**Unique constraint:** filtered unique index `(BranchId, AccountId, Date) WHERE Active = true` — one active closing per account per day.
 
 ### 3.15 DailyCloseItem
 
@@ -670,24 +676,24 @@ public class DailyCloseItem : EntityBase
 {
     public decimal Value { get; set; }
 
-    public Guid DailyCloseId { get; set; }
-    public DailyClose DailyClose { get; set; } = null!;
+    public Guid DailyCloseId { get; init; }
+    public DailyClose DailyClose { get; init; } = null!;
 
-    public Guid ProductId { get; set; }
-    public Product Product { get; set; } = null!;
+    public Guid ProductId { get; init; }
+    public Product Product { get; init; } = null!;
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Value | numeric(14,2) | NOT NULL | The closing value for this product |
-| DailyCloseId | uuid | NOT NULL | FK → DailyClose |
-| ProductId | uuid | NOT NULL | FK → Product |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column       | Type          | Null     | Notes                              |
+|--------------|---------------|----------|------------------------------------|
+| Id           | uuid          | PK       |                                    |
+| Value        | numeric(14,2) | NOT NULL | The closing value for this product |
+| DailyCloseId | uuid          | NOT NULL | FK → DailyClose                    |
+| ProductId    | uuid          | NOT NULL | FK → Product                       |
+| CreatedAt    | timestamptz   | NOT NULL |                                    |
+| Active       | boolean       | NOT NULL |                                    |
 
-**Unique constraint:** `(DailyCloseId, ProductId)` — one value per product per closing session.
+**Unique constraint:** filtered unique index `(DailyCloseId, ProductId) WHERE Active = true` — one active value per product per closing session. Soft-deleted item rows do not block a later re-insert for the same product.
 
 ### 3.16 TimeEntry
 
@@ -989,9 +995,10 @@ WHERE AccountId = @tabAccountId
 4. Manager reviews:
    - Approve (Status=Approved, ApprovedAt=now)
    - Reject with reason (Status=Rejected, RejectionReason filled)
-5. If rejected, operator edits and resubmits
+5. If rejected, the next item edit automatically transitions `Rejected -> Draft`; the operator edits and resubmits.
+6. If submitted by mistake, the next item edit can automatically recall `Submitted -> Draft` when the editing caller is the recording operator Member on the same branch-local business day, or any Manager/Admin. The recall clears `SubmittedAt`, keeps the existing system-managed CashVariance row, and stamps the generic audit pair.
 
-**Opening values** for the current day = closing values (DailyCloseItems) from the previous day for the same account. The system queries: `DailyClose WHERE AccountId=X AND Date = @today - 1`.
+**Opening values** for the current day = closing values (DailyCloseItems) from the most recent prior DailyClose for the same account. The system queries the top row where `BranchId = @branchId AND AccountId = @accountId AND Date < @today`, ordered by `Date DESC, CreatedAt DESC, Id DESC`. This handles weekends, holidays, and missing close days without a holiday calendar dependency.
 
 **CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.12 for the calculation formula. The operator does not enter this value directly.
 
@@ -999,7 +1006,7 @@ WHERE AccountId = @tabAccountId
 
 ### 6.6 Date locking
 
-`Setting.LockDate` defines the cutoff. Transactions on or before this date cannot be created, edited, or cancelled. DailyClose entries on or before this date cannot be modified. The lock date is advanced by the manager after month-end reconciliation.
+`Setting.LockDate` defines the cutoff. Transactions on or before this date cannot be created, edited, or cancelled. Every DailyClose workflow transition on or before this date is blocked: open, edit items, submit, approve, reject, `Rejected -> Draft` auto-transition, and `Submitted -> Draft` recall. The lock date is advanced by the manager after month-end reconciliation.
 
 ### 6.7 Time entry calculation
 
@@ -1151,12 +1158,39 @@ CashVariance = TotalClosing - TotalOpening - TotalTransactions
 
 Where:
   TotalClosing  = sum of today's DailyCloseItems (excluding CashVariance itself)
-  TotalOpening  = sum of yesterday's DailyCloseItems for the same account
-                  (excluding CashVariance)
-  TotalTransactions = sum of today's Active transactions for the same account
+  TotalOpening  = sum of the most recent prior DailyCloseItems for the same account
+                  where Date < today, excluding CashVariance
+  TotalTransactions = SumActive(In) - SumActive(Out) for today's Active
+                      transactions for the same account
 ```
 
-The CashVariance DailyCloseItem is written by the system when the operator submits the daily close, and updated if the close is rejected and resubmitted. The operator cannot directly type a variance value.
+The CashVariance DailyCloseItem is written by the system when the operator submits the daily close, and updated in place if the close is rejected and resubmitted or recalled and submitted again. The operator cannot directly type a variance value.
+
+### 6.13 DailyClose contract
+
+**Workflow states.** The state machine is `Draft -> Submitted -> Approved | Rejected`, with two automatic edit-time transitions: `Rejected -> Draft` for resubmission after manager feedback, and `Submitted -> Draft` for same-day soft-final recall. `Approved` is terminal.
+
+**Role x state x local-day matrix.**
+
+| Operation | Draft | Submitted | Approved | Rejected |
+|---|---|---|---|---|
+| Open | Member with account in scope, Manager, Admin | n/a | n/a | n/a |
+| Edit items | Member who recorded it on the same branch-local day, Manager, Admin | Recall allowed for recording-operator Member on the same branch-local day, or any Manager/Admin | Not editable | Same rules as Draft; auto-transitions to Draft |
+| Submit | Member who recorded it on the same branch-local day, Manager, Admin | Not submittable | Not submittable | Same rules as Draft |
+| Approve | n/a | Manager/Admin only | Not approvable | Not approvable |
+| Reject | n/a | Manager/Admin only | Not rejectable | Not rejectable |
+
+All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`, never `DateTime.UtcNow.Date`.
+
+**Account scope.** Get uses `404` for missing/cross-branch ids, `403 TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK` for Members without a linked operator, and `403 TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE` when a linked Member targets an account outside `AllowedAccountIds`. List uses the same server-resolved `AllowedAccountIds`; empty scope or explicit out-of-scope account filters return an empty page without leaking row existence. Writes use `MemberAccountScopeGuard` and surface the same two `403` keys.
+
+**Audit stamping.** Every workflow mutation stamps `UpdatedAt` and `UpdatedByUserId`. Submit, approve, reject, `Rejected -> Draft`, and `Submitted -> Draft` recall capture one `branchClock.UtcNow()` instant and use that same value for the workflow timestamp (`SubmittedAt` or `ApprovedAt`, where applicable) and `UpdatedAt`.
+
+**Lock-date behavior.** `LockDateGuard` applies to every transition listed in §6.6. DailyClose callers pass `DAILYCLOSE_LOCK_DATE_VIOLATION`.
+
+**Sibling-account isolation.** Submit computes and persists CashVariance for exactly one `(BranchId, AccountId, Date)` close. It reads transactions and prior close rows for that account only; sibling accounts never contribute to the variance.
+
+**System-only product.** The `"Diferença Caixa"` product is resolved by display name and is owned by Submit. It is never accepted in client `PUT /items` payloads (`DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN`), never deleted on rejection or recall, and is updated in place on resubmission or submit-after-recall.
 
 ---
 
