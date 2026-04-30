@@ -1,11 +1,11 @@
 using FluentValidation;
+using server.Application.Services;
 using server.Exceptions;
 
 namespace server.Application.UseCases.Transactions;
 
 internal static class TransactionValidationExtensions
 {
-    internal const decimal Numeric14X2UpperBound = 1_000_000_000_000m;
     internal const int TransactionDescriptionMaxLength = 500;
 
     // Reserved budget for the auto-prefixed installment row description "CH PRE (XX/YY) - "
@@ -26,9 +26,7 @@ internal static class TransactionValidationExtensions
         // ReSharper disable once InconsistentNaming
         public void ValuePrecisionWithin14x2()
         {
-            rule
-                .Must(value => decimal.Round(value, 2) == value && value < Numeric14X2UpperBound)
-                .WithMessage(ResourcesErrorMessages.TRANSACTION_VALUE_PRECISION_14X2);
+            rule.ValuePrecisionWithin14x2(ResourcesErrorMessages.TRANSACTION_VALUE_PRECISION_14X2);
         }
     }
 

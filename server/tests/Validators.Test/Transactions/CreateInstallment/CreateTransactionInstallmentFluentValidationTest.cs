@@ -1,4 +1,5 @@
 using CommonTestUtilities.Requests;
+using server.Application.Services;
 using server.Application.UseCases.Transactions;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Communication.Requests;
@@ -202,7 +203,7 @@ public class CreateTransactionInstallmentFluentValidationTest
     public void Validate_ShouldFail_WhenValueExceeds14x2UpperBound()
     {
         var request = new RequestCreateTransactionInstallmentJsonBuilder()
-            .WithValue(TransactionValidationExtensions.Numeric14X2UpperBound)
+            .WithValue(SharedValidators.Numeric14X2UpperBound)
             .Build();
 
         var result = _validator.Validate(request);

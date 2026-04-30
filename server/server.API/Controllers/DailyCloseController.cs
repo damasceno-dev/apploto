@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
+using server.Application.UseCases.DailyCloses.PutItems;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
@@ -40,6 +41,24 @@ public class DailyCloseController : ControllerBase
         [FromQuery] RequestListDailyClosesJson request)
     {
         var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpPut]
+    [Route("{dailyCloseId:guid}/items")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PutItems(
+        [FromServices] PutDailyCloseItemsUseCase useCase,
+        [FromRoute] Guid dailyCloseId,
+        [FromBody] RequestPutDailyCloseItemsJson request)
+    {
+        var response = await useCase.Execute(dailyCloseId, request);
         return Ok(response);
     }
 

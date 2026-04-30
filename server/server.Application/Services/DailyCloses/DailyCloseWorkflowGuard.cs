@@ -1,9 +1,13 @@
+using server.Application.Services.Transactions;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
+using server.Exceptions;
+using server.Exceptions.Exceptions;
 using Operator = server.Domain.Entities.Operator;
 
 namespace server.Application.Services.DailyCloses;
 
-public class DailyCloseWorkflowGuard : IDailyCloseWorkflowGuard
+public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWorkflowGuard
 {
     public void EnsureCanOpen(BranchUser caller, Operator? callerOperator, Guid accountId, DateTime branchLocalDate)
     {
@@ -14,7 +18,48 @@ public class DailyCloseWorkflowGuard : IDailyCloseWorkflowGuard
         BranchUser caller,
         Operator? callerOperator)
     {
-        throw new NotImplementedException();
+        switch (close.Status)
+        {
+            case DailyCloseStatus.Approved:
+                throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+            case DailyCloseStatus.Submitted:
+            {
+                var recallAllowed =
+                    caller.Role is Role.Manager or Role.Admin
+                    || (callerOperator is not null
+                        && callerOperator.Id == close.SubmittedByOperatorId
+                        && branchClock.IsSameLocalDay(close.Date, branchClock.UtcNow()));
+
+                return recallAllowed is false ? 
+                    throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE) : 
+                    DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft;
+            }
+            case DailyCloseStatus.Draft:
+            case DailyCloseStatus.Rejected:
+                break;
+            default:
+                throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+        }
+
+        // Draft or Rejected — Manager/Admin always allowed.
+        if (caller.Role is Role.Manager or Role.Admin)
+        {
+            return close.Status == DailyCloseStatus.Rejected
+                ? DailyCloseEditItemsOutcome.EditOnRejectedAutoTransitionToDraft
+                : DailyCloseEditItemsOutcome.EditOnDraft;
+        }
+
+        // Member must be the recording operator AND on the same local business day.
+        var memberCanEdit = callerOperator is not null
+            && callerOperator.Id == close.SubmittedByOperatorId
+            && branchClock.IsSameLocalDay(close.Date, branchClock.UtcNow());
+
+        if (memberCanEdit is false)
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+
+        return close.Status == DailyCloseStatus.Rejected
+            ? DailyCloseEditItemsOutcome.EditOnRejectedAutoTransitionToDraft
+            : DailyCloseEditItemsOutcome.EditOnDraft;
     }
 
     public void EnsureCanSubmit(DailyClose close, BranchUser caller, Operator? callerOperator)

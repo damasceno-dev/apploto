@@ -354,6 +354,18 @@
     <data name="DAILYCLOSE_ITEM_VALUE_NEGATIVE" xml:space="preserve">
         <value>O valor do item do fechamento diário não pode ser negativo</value>
     </data>
+    <data name="DAILYCLOSE_ITEM_VALUE_PRECISION" xml:space="preserve">
+        <value>O valor do item deve respeitar o limite de 12 dígitos inteiros e 2 casas decimais</value>
+    </data>
+    <data name="DAILYCLOSE_ITEMS_REQUIRED" xml:space="preserve">
+        <value>A lista de itens é obrigatória</value>
+    </data>
+    <data name="DAILYCLOSE_ITEM_PRODUCT_ID_REQUIRED" xml:space="preserve">
+        <value>O produto do item é obrigatório</value>
+    </data>
+    <data name="DAILYCLOSE_ITEM_PRODUCT_NOT_FOUND" xml:space="preserve">
+        <value>Um ou mais produtos informados não foram encontrados ou não pertencem a esta filial</value>
+    </data>
     <data name="DAILYCLOSE_BRANCH_MISMATCH" xml:space="preserve">
         <value>Os dados do fechamento diário devem pertencer à mesma filial</value>
     </data>
