@@ -3,6 +3,7 @@ using server.Application.Services.DailyCloses;
 using server.Application.Services.Transactions;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
+using server.Exceptions;
 using server.Exceptions.Exceptions;
 using Shouldly;
 using Xunit;
@@ -12,6 +13,18 @@ namespace UseCases.Test.Services.DailyCloses;
 
 public class DailyCloseWorkflowGuardTest
 {
+    public static TheoryData<DailyCloseStatus> SubmittableStatuses =>
+    [
+        DailyCloseStatus.Draft,
+        DailyCloseStatus.Rejected
+    ];
+
+    public static TheoryData<DailyCloseStatus> NotSubmittableStatuses =>
+    [
+        DailyCloseStatus.Submitted,
+        DailyCloseStatus.Approved
+    ];
+
     // ──────────────────────────────────────────────
     // Draft → EditOnDraft
     // ──────────────────────────────────────────────
@@ -160,6 +173,90 @@ public class DailyCloseWorkflowGuardTest
         var guard = BuildGuard(new TodayBranchClock());
 
         Should.Throw<ConflictException>(() => guard.EnsureCanEditItems(close, branchUser, callerOperator: null));
+    }
+
+    // ──────────────────────────────────────────────
+    // Submit
+    // ──────────────────────────────────────────────
+
+    [Theory]
+    [MemberData(nameof(SubmittableStatuses))]
+    public void EnsureCanSubmit_ShouldAllowManager_WhenDraftOrRejected(DailyCloseStatus status)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var close = BuildClose(status, date: DateTime.UtcNow.Date.AddDays(-2));
+        var guard = BuildGuard(new TodayBranchClock());
+
+        Should.NotThrow(() => guard.EnsureCanSubmit(close, branchUser, callerOperator: null));
+    }
+
+    [Theory]
+    [MemberData(nameof(SubmittableStatuses))]
+    public void EnsureCanSubmit_ShouldAllowMember_WhenRecordingOperatorAndSameDay(DailyCloseStatus status)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var close = BuildClose(status, submittedByOperatorId: callerOperator.Id);
+        var guard = BuildGuard(new TodayBranchClock());
+
+        Should.NotThrow(() => guard.EnsureCanSubmit(close, branchUser, callerOperator));
+    }
+
+    [Theory]
+    [MemberData(nameof(NotSubmittableStatuses))]
+    public void EnsureCanSubmit_ShouldThrowConflict_WhenStatusIsNotDraftOrRejected(DailyCloseStatus status)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var close = BuildClose(status);
+        var guard = BuildGuard(new TodayBranchClock());
+
+        var exception = Should.Throw<ConflictException>(() =>
+            guard.EnsureCanSubmit(close, branchUser, callerOperator: null));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_SUBMITTABLE);
+    }
+
+    [Fact]
+    public void EnsureCanSubmit_ShouldThrow_WhenMemberHasNoLinkedOperator()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var close = BuildClose(DailyCloseStatus.Draft);
+        var guard = BuildGuard(new TodayBranchClock());
+
+        var exception = Should.Throw<TokenWithoutPermissionException>(() =>
+            guard.EnsureCanSubmit(close, branchUser, callerOperator: null));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+    }
+
+    [Fact]
+    public void EnsureCanSubmit_ShouldThrow_WhenMemberIsNotRecordingOperator()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var close = BuildClose(DailyCloseStatus.Draft, submittedByOperatorId: Guid.NewGuid());
+        var guard = BuildGuard(new TodayBranchClock());
+
+        var exception = Should.Throw<TokenWithoutPermissionException>(() =>
+            guard.EnsureCanSubmit(close, branchUser, callerOperator));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR);
+    }
+
+    [Fact]
+    public void EnsureCanSubmit_ShouldThrow_WhenMemberIsRecordingOperatorButOlderDay()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var close = BuildClose(DailyCloseStatus.Draft,
+            submittedByOperatorId: callerOperator.Id,
+            date: DateTime.UtcNow.Date.AddDays(-1));
+        var guard = BuildGuard(new TodayBranchClock());
+
+        var exception = Should.Throw<TokenWithoutPermissionException>(() =>
+            guard.EnsureCanSubmit(close, branchUser, callerOperator));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
     }
 
     // ──────────────────────────────────────────────

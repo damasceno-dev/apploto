@@ -64,7 +64,30 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 
     public void EnsureCanSubmit(DailyClose close, BranchUser caller, Operator? callerOperator)
     {
-        throw new NotImplementedException();
+        if (close.Status is not (DailyCloseStatus.Draft or DailyCloseStatus.Rejected))
+        {
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_SUBMITTABLE);
+        }
+
+        if (caller.Role is Role.Manager or Role.Admin)
+        {
+            return;
+        }
+
+        if (callerOperator is null)
+        {
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+        }
+
+        if (callerOperator.Id != close.SubmittedByOperatorId)
+        {
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR);
+        }
+
+        if (branchClock.IsSameLocalDay(close.Date, branchClock.UtcNow()) is false)
+        {
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
+        }
     }
 
     public void EnsureCanApprove(DailyClose close, BranchUser caller)

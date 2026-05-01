@@ -3,6 +3,7 @@ using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
+using server.Application.UseCases.DailyCloses.Submit;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
@@ -59,6 +60,22 @@ public class DailyCloseController : ControllerBase
         [FromBody] RequestPutDailyCloseItemsJson request)
     {
         var response = await useCase.Execute(dailyCloseId, request);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{dailyCloseId:guid}/submit")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Submit(
+        [FromServices] SubmitDailyCloseUseCase useCase,
+        [FromRoute] Guid dailyCloseId)
+    {
+        var response = await useCase.Execute(dailyCloseId);
         return Ok(response);
     }
 

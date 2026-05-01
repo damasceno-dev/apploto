@@ -48,6 +48,7 @@ using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
+using server.Application.UseCases.DailyCloses.Submit;
 using server.Application.UseCases.Users.Login;
 using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
@@ -116,6 +117,7 @@ public static class AppDependencyInjection
         services.AddScoped<GetDailyCloseUseCase>();
         services.AddScoped<ListDailyClosesUseCase>();
         services.AddScoped<PutDailyCloseItemsUseCase>();
+        services.AddScoped<SubmitDailyCloseUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

@@ -357,7 +357,7 @@ internal static class TestSeeder
                 CreatedByUserId = createdByUserId,
                 Status = status,
                 BranchId = branchId,
-                CreatedAt = AsUtc(createdAt ?? DateTime.UtcNow)
+                CreatedAt = ServerWebApplicationFactory.AsUtc(createdAt ?? DateTime.UtcNow)
             };
 
             dbContext.Transactions.Add(transaction);
@@ -419,6 +419,18 @@ internal static class TestSeeder
             dbContext.DailyCloseItems.Add(item);
             await dbContext.SaveChangesAsync();
             return item;
+        }
+
+        public async Task<List<DailyCloseItem>> ListDailyCloseItemsByDailyCloseIdAsync(Guid dailyCloseId)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            return await dbContext.DailyCloseItems
+                .AsNoTracking()
+                .Where(item => item.DailyCloseId == dailyCloseId)
+                .OrderBy(item => item.CreatedAt)
+                .ToListAsync();
         }
 
         public async Task<DailyClose> SeedDailyCloseAsync(
