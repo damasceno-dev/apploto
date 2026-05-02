@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v15
+Spec revision: v16
 -->
 
-> **Status:** Revised spec (v15) — DailyClose foundation and workflow contract added
+> **Status:** Revised spec (v16) — Milestone 4 DailyClose workflow hardened and locked
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -26,6 +26,7 @@ Spec revision: v15
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
+> v16: Closed the DailyClose workflow hardening pass: locked the Open enforcement order, clarified guard-owned versus account-scope/unique-constraint rules, and confirmed CashVariance is updated in place across rejected resubmits and submitted recall cycles.
 
 ---
 
@@ -1160,9 +1161,11 @@ Where:
   TotalClosing  = sum of today's DailyCloseItems (excluding CashVariance itself)
   TotalOpening  = sum of the most recent prior DailyCloseItems for the same account
                   where Date < today, excluding CashVariance
-  TotalTransactions = SumActive(In) - SumActive(Out) for today's Active
-                      transactions for the same account
+  TotalTransactions = SumActive(Direction.In) - SumActive(Direction.Out)
+                      for today's Active transactions for the same account
 ```
+
+The calculator reads `Direction.In` and `Direction.Out` with two explicit calls to `SumActiveValueByAccountAndDateAsNoTracking(branchId, accountId, date, direction)`, then subtracts `In - Out`. It never relies on an unfiltered transaction sum for CashVariance.
 
 The CashVariance DailyCloseItem is written by the system when the operator submits the daily close, and updated in place if the close is rejected and resubmitted or recalled and submitted again. The operator cannot directly type a variance value.
 
@@ -1172,17 +1175,19 @@ The CashVariance DailyCloseItem is written by the system when the operator submi
 
 **Role x state x local-day matrix.**
 
-| Operation | Draft | Submitted | Approved | Rejected |
-|---|---|---|---|---|
-| Open | Member with account in scope, Manager, Admin | n/a | n/a | n/a |
-| Edit items | Member who recorded it on the same branch-local day, Manager, Admin | Recall allowed for recording-operator Member on the same branch-local day, or any Manager/Admin | Not editable | Same rules as Draft; auto-transitions to Draft |
-| Submit | Member who recorded it on the same branch-local day, Manager, Admin | Not submittable | Not submittable | Same rules as Draft |
-| Approve | n/a | Manager/Admin only | Not approvable | Not approvable |
-| Reject | n/a | Manager/Admin only | Not rejectable | Not rejectable |
+| Operation  | Draft                                                               | Submitted                                                                                       | Approved        | Rejected                                       |
+|------------|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|-----------------|------------------------------------------------|
+| Open       | Member with account in scope, Manager, Admin                        | n/a                                                                                             | n/a             | n/a                                            |
+| Edit items | Member who recorded it on the same branch-local day, Manager, Admin | Recall allowed for recording-operator Member on the same branch-local day, or any Manager/Admin | Not editable    | Same rules as Draft; auto-transitions to Draft |
+| Submit     | Member who recorded it on the same branch-local day, Manager, Admin | Not submittable                                                                                 | Not submittable | Same rules as Draft                            |
+| Approve    | n/a                                                                 | Manager/Admin only                                                                              | Not approvable  | Not approvable                                 |
+| Reject     | n/a                                                                 | Manager/Admin only                                                                              | Not rejectable  | Not rejectable                                 |
 
 All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`, never `DateTime.UtcNow.Date`.
 
 **Account scope.** Get uses `404` for missing/cross-branch ids, `403 TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK` for Members without a linked operator, and `403 TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE` when a linked Member targets an account outside `AllowedAccountIds`. List uses the same server-resolved `AllowedAccountIds`; empty scope or explicit out-of-scope account filters return an empty page without leaking row existence. Writes use `MemberAccountScopeGuard` and surface the same two `403` keys.
+
+**Open ordering.** `POST /dailyclose` runs in this order: request validation -> account branch lookup -> `MemberAccountScopeGuard` -> `DailyCloseWorkflowGuard.EnsureCanOpen` -> `LockDateGuard` -> repository add/commit. `EnsureCanOpen` owns only the role/linked-operator part of the Open matrix: Manager/Admin are allowed even without a linked Operator; Member must have a linked Operator. Account membership belongs to `MemberAccountScopeGuard`, and duplicate active closes for `(BranchId, AccountId, Date)` are enforced by the filtered unique constraint plus PostgreSQL `23505` translation.
 
 **Audit stamping.** Every workflow mutation stamps `UpdatedAt` and `UpdatedByUserId`. Submit, approve, reject, `Rejected -> Draft`, and `Submitted -> Draft` recall capture one `branchClock.UtcNow()` instant and use that same value for the workflow timestamp (`SubmittedAt` or `ApprovedAt`, where applicable) and `UpdatedAt`.
 

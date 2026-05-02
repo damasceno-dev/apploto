@@ -71,6 +71,21 @@ public class OpenDailyCloseUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldDelegateToWorkflowGuard_WhenMemberHasLinkedOperator()
+    {
+        var ctx = BuildHappyPathContext(Role.Member);
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.Request);
+
+        ctx.WorkflowGuard.Received(1).EnsureCanOpen(
+            ctx.BranchUser,
+            ctx.CallerOperator,
+            ctx.Request.AccountId,
+            ctx.Request.Date);
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowNotFound_WhenAccountMissingOrCrossBranch()
     {
         var ctx = BuildHappyPathContext(Role.Manager);

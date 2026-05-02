@@ -14,6 +14,28 @@ public class DailyCloseControllerApproveUnhappyPathTest(ServerWebApplicationFact
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
+    public async Task Approve_ShouldReturn401_WhenTokenIsMissing()
+    {
+        var httpResponse = await _client.PostAsync($"/dailyclose/{Guid.NewGuid()}/approve", content: null);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_EMPTY);
+    }
+
+    [Fact]
+    public async Task Approve_ShouldReturn404_WhenCloseDoesNotExist()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcApproveMissing", Role.Manager);
+
+        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/approve", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+    }
+
+    [Fact]
     public async Task Approve_ShouldReturn403_WhenMemberApproves()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DcApproveMember403", Role.Member);

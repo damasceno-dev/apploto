@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -13,6 +14,44 @@ namespace WebApi.Test.DailyCloses;
 public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
+
+    [Fact]
+    public async Task Reject_ShouldReturn401_WhenTokenIsMissing()
+    {
+        var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
+
+        var httpResponse = await _client.PostAsJsonAsync($"/dailyclose/{Guid.NewGuid()}/reject", request);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_EMPTY);
+    }
+
+    [Fact]
+    public async Task Reject_ShouldReturn400_WhenRejectionReasonIsEmpty()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcReject400", Role.Manager);
+        var request = new RequestRejectDailyCloseJson { RejectionReason = string.Empty };
+
+        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/reject", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_REJECTION_REASON_REQUIRED);
+    }
+
+    [Fact]
+    public async Task Reject_ShouldReturn404_WhenCloseDoesNotExist()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcRejectMissing", Role.Manager);
+        var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
+
+        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/reject", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+    }
 
     [Fact]
     public async Task Reject_ShouldReturn403_WhenMemberRejects()

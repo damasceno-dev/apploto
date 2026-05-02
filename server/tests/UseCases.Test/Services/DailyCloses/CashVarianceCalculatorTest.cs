@@ -93,6 +93,82 @@ public class CashVarianceCalculatorTest
     }
 
     [Fact]
+    public async Task CalculateAsync_ShouldUseZeroTransactions_WhenNoTransactionsExist()
+    {
+        var ctx = BuildContext(
+            currentItems: [Item(Guid.NewGuid(), 250m)],
+            priorClose: null);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [Item(Guid.NewGuid(), 150m)]);
+        RewirePriorClose(ctx);
+
+        var result = await ctx.CalculateAsync();
+
+        result.ShouldBe(100m);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_ShouldSubtractOnlyInTransactions_WhenOnlyInExists()
+    {
+        var ctx = BuildContext(
+            currentItems: [Item(Guid.NewGuid(), 500m)],
+            priorClose: null,
+            transactionsIn: 75m);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [Item(Guid.NewGuid(), 100m)]);
+        RewirePriorClose(ctx);
+
+        var result = await ctx.CalculateAsync();
+
+        result.ShouldBe(325m);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_ShouldAddBackOutTransactions_WhenOnlyOutExists()
+    {
+        var ctx = BuildContext(
+            currentItems: [Item(Guid.NewGuid(), 500m)],
+            priorClose: null,
+            transactionsOut: 75m);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [Item(Guid.NewGuid(), 100m)]);
+        RewirePriorClose(ctx);
+
+        var result = await ctx.CalculateAsync();
+
+        result.ShouldBe(475m);
+    }
+
+    [Fact]
+    public async Task CalculateAsync_ShouldPreserveDecimalPrecision_ForLargeValues()
+    {
+        var ctx = BuildContext(
+            currentItems: [Item(Guid.NewGuid(), 9_999_999_999.99m)],
+            priorClose: null,
+            transactionsIn: 123_456_789.12m,
+            transactionsOut: 23_456_789.01m);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [Item(Guid.NewGuid(), 8_765_432_100.10m)]);
+        RewirePriorClose(ctx);
+
+        var result = await ctx.CalculateAsync();
+
+        result.ShouldBe(1_134_567_899.78m);
+    }
+
+    [Fact]
     public async Task CalculateAsync_ShouldQueryOnlyRequestedAccount_WhenSiblingAccountHasDifferentSums()
     {
         var siblingAccountId = Guid.NewGuid();

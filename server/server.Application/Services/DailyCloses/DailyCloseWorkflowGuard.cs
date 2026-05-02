@@ -11,6 +11,18 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 {
     public void EnsureCanOpen(BranchUser caller, Operator? callerOperator, Guid accountId, DateTime branchLocalDate)
     {
+        if (caller.Role is Role.Manager or Role.Admin)
+        {
+            return;
+        }
+
+        // Account scope and duplicate-close races live outside this guard:
+        // MemberAccountScopeGuard checks accountId before this call, and the
+        // database unique constraint is the final authority for concurrent opens.
+        if (callerOperator is null)
+        {
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+        }
     }
 
     public DailyCloseEditItemsOutcome EnsureCanEditItems(

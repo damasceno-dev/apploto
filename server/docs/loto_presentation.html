@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v15
+Spec revision: v16
 -->
 <html lang="en">
 <head>
@@ -644,7 +644,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> using the formula:<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$5,780 − R$2,800 − R$3,000 = <b style="color:#ef5350">−R$20</b><br><br>The <b>−R$20</b> means Jennifer counted <b>R$20 less</b> than expected in the drawer (R$4,980 cash vs R$5,000 expected). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. The manager now sees this in their <b>pending review queue</b>.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> using the formula:<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$5,780 − R$2,800 − R$3,000 = <b style="color:#ef5350">−R$20</b><br><br>The <b>−R$20</b> means Jennifer counted <b>R$20 less</b> than expected in the drawer (R$4,980 cash vs R$5,000 expected). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. On rejected resubmits or submit-after-recall, that same system row is updated in place. The manager now sees this in their <b>pending review queue</b>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -844,7 +844,7 @@ function renderClosing(i){
     {t:'Fiado Isolation',d:'Terminal / Tab account separation prevents credit sales from distorting cash drawer counts, keeping daily reconciliation accurate.'},
     {t:'Branch Consistency',d:'Every FK on Transaction and DailyClose (Account, Operator, Client, TransactionType→Category) must resolve to the same BranchId — enforced at the service layer to prevent cross-tenant data leakage.'},
     {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update, finalize, or cancel only linked-account rows they recorded on the same local business day. Draft finalization promotes Status to Active. Cancellation is terminal: Status moves to Cancelled with a required reason, the cancellation audit fields and the generic update audit fields are stamped from the same clock instant, and installment siblings are not touched.'},
-    {t:'DailyClose Recall',d:'DailyClose supports Rejected→Draft resubmission and same-day Submitted→Draft recall for the recording operator, or any Manager/Admin. Workflow-specific timestamps and UpdatedAt use the same captured instant.'}
+    {t:'DailyClose Recall',d:'DailyClose supports Rejected→Draft resubmission and same-day Submitted→Draft recall for the recording operator, or any Manager/Admin. Workflow-specific timestamps and UpdatedAt use the same captured instant, and the system CashVariance row survives recall until the next Submit overwrites it in place.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">

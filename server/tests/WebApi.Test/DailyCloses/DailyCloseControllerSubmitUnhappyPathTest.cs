@@ -24,6 +24,18 @@ public class DailyCloseControllerSubmitUnhappyPathTest(ServerWebApplicationFacto
     }
 
     [Fact]
+    public async Task Submit_ShouldReturn404_WhenCloseDoesNotExist()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcSubmitMissing", Role.Manager);
+
+        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/submit", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+    }
+
+    [Fact]
     public async Task Submit_ShouldReturn409_WhenCloseIsLocked()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DcSubmitLocked", Role.Manager);
