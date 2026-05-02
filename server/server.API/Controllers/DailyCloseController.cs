@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
@@ -73,6 +74,22 @@ public class DailyCloseController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Submit(
         [FromServices] SubmitDailyCloseUseCase useCase,
+        [FromRoute] Guid dailyCloseId)
+    {
+        var response = await useCase.Execute(dailyCloseId);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{dailyCloseId:guid}/approve")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Approve(
+        [FromServices] ApproveDailyCloseUseCase useCase,
         [FromRoute] Guid dailyCloseId)
     {
         var response = await useCase.Execute(dailyCloseId);

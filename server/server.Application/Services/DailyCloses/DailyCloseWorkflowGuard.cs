@@ -92,7 +92,15 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 
     public void EnsureCanApprove(DailyClose close, BranchUser caller)
     {
-        throw new NotImplementedException();
+        if (caller.Role is not (Role.Manager or Role.Admin))
+        {
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
+        }
+
+        if (close.Status != DailyCloseStatus.Submitted)
+        {
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_APPROVABLE);
+        }
     }
 
     public void EnsureCanReject(DailyClose close, BranchUser caller)
