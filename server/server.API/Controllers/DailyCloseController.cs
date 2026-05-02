@@ -4,6 +4,7 @@ using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
+using server.Application.UseCases.DailyCloses.Reject;
 using server.Application.UseCases.DailyCloses.Submit;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -93,6 +94,24 @@ public class DailyCloseController : ControllerBase
         [FromRoute] Guid dailyCloseId)
     {
         var response = await useCase.Execute(dailyCloseId);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{dailyCloseId:guid}/reject")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reject(
+        [FromServices] RejectDailyCloseUseCase useCase,
+        [FromRoute] Guid dailyCloseId,
+        [FromBody] RequestRejectDailyCloseJson request)
+    {
+        var response = await useCase.Execute(dailyCloseId, request);
         return Ok(response);
     }
 

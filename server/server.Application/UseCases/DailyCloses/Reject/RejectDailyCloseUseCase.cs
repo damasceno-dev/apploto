@@ -1,15 +1,17 @@
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
+using server.Application.UseCases.DailyCloses;
+using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
-namespace server.Application.UseCases.DailyCloses.Approve;
+namespace server.Application.UseCases.DailyCloses.Reject;
 
-public class ApproveDailyCloseUseCase(
+public class RejectDailyCloseUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
     IDailyCloseWorkflowGuard workflowGuard,
@@ -17,14 +19,16 @@ public class ApproveDailyCloseUseCase(
     IBranchClock branchClock,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId)
+    public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId, RequestRejectDailyCloseJson request)
     {
+        Validate(request);
+
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         var close = await dailyClosesRepository.GetByIdAndBranchId(dailyCloseId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
 
-        workflowGuard.EnsureCanApprove(close, branchUser);
+        workflowGuard.EnsureCanReject(close, branchUser);
 
         await lockDateGuard.EnsureNotLocked(
             branchUser.BranchId,
@@ -33,14 +37,25 @@ public class ApproveDailyCloseUseCase(
 
         var now = branchClock.UtcNow();
 
-        close.Status = DailyCloseStatus.Approved;
-        close.ApprovedAt = now;
-        close.ApprovedByUserId = branchUser.UserId;
+        close.Status = DailyCloseStatus.Rejected;
+        close.RejectionReason = request.RejectionReason;
+        close.ApprovedAt = null;
+        close.ApprovedByUserId = null;
+        close.ApprovedByUser = null;
         close.UpdatedAt = now;
         close.UpdatedByUserId = branchUser.UserId;
 
         await unitOfWork.Commit();
 
         return close.ToResponse();
+    }
+
+    private static void Validate(RequestRejectDailyCloseJson request)
+    {
+        var result = new RejectDailyCloseFluentValidation().Validate(request);
+        if (result.IsValid is false)
+        {
+            throw new OnValidationException(result.Errors.Select(error => error.ErrorMessage).ToList());
+        }
     }
 }

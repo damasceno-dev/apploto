@@ -2,7 +2,6 @@ using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
-using server.Application.UseCases.DailyCloses.Open;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;

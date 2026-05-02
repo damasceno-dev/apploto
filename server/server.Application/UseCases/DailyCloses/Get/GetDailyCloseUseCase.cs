@@ -1,5 +1,4 @@
 using server.Application.Services.Members;
-using server.Application.UseCases.DailyCloses.Open;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
