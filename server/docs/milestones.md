@@ -820,24 +820,164 @@ Mirroring Milestone 3 Phase 5.5: a small refactor pass after the user-facing sur
 
 ## Milestone 5 — Time Entry & Holiday
 
-**Goal:** Implement operator attendance tracking with hours/balance calculation from `Setting`, holiday management, and manager review flows.
+**Goal:** Implement operator attendance tracking with `TotalHours` and `BalanceHours` derived from `Setting`, branch-scoped `Holiday` management, and holiday-aware business-day calculation for transaction due dates and auto-generated cheque installment dates.
 
-**Scope boundary:** `TimeEntry` and `Holiday` entities. No reporting dashboards yet.
+**Scope boundary:** `TimeEntry`, `Holiday`, `TimeEntryStatus`, attendance calculation, Holiday CRUD, TimeEntry upsert/read/deactivate flows, and holiday-aware due-date calculation. No reporting dashboards, no payroll export, no time-entry approval workflow, no live clock-event log, and no admin CRUD for `Setting` yet.
 
-**Precondition:** Milestone 2 `Operator` and `Setting` are available.
+**Precondition:** Milestone 4 is fully closed. `Operator`, `Setting`, branch-scoped auth, `IBranchClock`, `MemberAccountScopeResolver`, the M4 `LockDateGuard` location, the audit-stamping convention, architecture tests, and `PostgresExceptionHandler` unique-constraint translation pattern are already available.
 
 **Key behaviors:**
 
-- `TimeEntry` entity carries: `Date`, `ClockIn` (nullable `TimeOnly`), `ClockOut` (nullable `TimeOnly`), `Status` (`TimeEntryStatus`), `TotalHours`, `BalanceHours`, `OperatorId`, and `BranchId`
-- `Holiday` entity carries: `Date`, nullable `Description`, and `BranchId`
-- One `TimeEntry` per `(BranchId, OperatorId, Date)` — enforced by unique constraint
-- Calculation logic driven by `TimeEntryStatus`:
-  - Present: `TotalHours = (ClockOut - ClockIn) / 60 - lunchDeduction`; `BalanceHours = TotalHours - DailyTargetHours`
-  - Abonado statuses (Sunday, Holiday, Vacation, JustifiedAbsence): `TotalHours = DailyTargetHours`; `BalanceHours = 0`
-  - Owing statuses (DayOff, UnjustifiedAbsence): `TotalHours = 0`; `BalanceHours = -DailyTargetHours`
-- Lunch deduction from `Setting`: `LunchDeductionOver6H` when worked >6h, `LunchDeductionOver4H` when worked >4h but ≤6h, zero otherwise
-- `Holiday` is branch-scoped and feeds into the time-entry status resolution and future due-date calculation
-- Add holiday-calendar-backed due-date adjustment for auto-generated installments once the backend has a holiday source; current backend support skips weekends only, and this milestone is where installment planning should start honoring branch holidays as part of the business-day calculation
+- `TimeEntry` is a daily attendance record, not a punch-event log.
+- `TimeEntry` carries the field set from `loto-specs.md` §3.16 plus the generic mutation audit pair `UpdatedAt` and `UpdatedByUserId`.
+- `Holiday` carries the field set from `loto-specs.md` §3.17.
+- One active `TimeEntry` per `(BranchId, OperatorId, Date)` is enforced by a filtered unique index.
+- One active `Holiday` per `(BranchId, Date)` is enforced by a filtered unique index.
+- TimeEntry writes use a single `PUT /timeentry` upsert keyed by `(OperatorId, Date)`.
+- TimeEntry writes are not blocked by `Setting.LockDate`; LockDate remains a financial and DailyClose cutoff for now.
+- `Member` callers may upsert only their linked operator's own entry for the same branch-local business day, and only with `Status = Present`.
+- `Manager` and `Admin` may upsert or deactivate any operator's TimeEntry in the branch on any date.
+- `Member` read scope is their own linked operator only. A Member without a linked operator gets an empty list for list calls and `403` for targeted get/write calls.
+- `Holiday` reads are available to any authenticated branch role. Holiday writes are restricted to `Manager` and `Admin`.
+- `TimeEntryCalculationService` computes `TotalHours` and `BalanceHours` server-side from `Status`, clocks, and the branch `Setting`.
+- Clients never send `TotalHours` or `BalanceHours`.
+- Holiday-aware due-date calculation extends the existing M3 transaction behavior so `NextBusinessDay`, `TwoBusinessDays`, and auto-generated installment dates skip weekends and active branch holidays.
+- Manual cheque due dates remain operator-entered and are not auto-moved by the holiday calendar.
+
+### Phase 1 — Foundation
+
+Add the domain, persistence, shared services, resource keys, migration, and spec sync needed before user-facing endpoints.
+
+- [ ] **1.1** Add `TimeEntryStatus` enum to `server.Domain/Entities/Enums/` with values from `loto-specs.md`: `Present`, `DayOff`, `Sunday`, `Holiday`, `Vacation`, `JustifiedAbsence`, and `UnjustifiedAbsence`
+- [ ] **1.2** Add `TimeEntry` entity to `server.Domain` with `Date`, nullable `ClockIn`, nullable `ClockOut`, `Status`, `TotalHours`, `BalanceHours`, `OperatorId`, `BranchId`, `UpdatedAt`, `UpdatedByUserId`, and navigations to `Operator`, `Branch`, and `UpdatedByUser?`
+- [ ] **1.3** Use `init` setters on `TimeEntry.OperatorId`, `TimeEntry.BranchId`, and `TimeEntry.Date`; keep clocks, status, calculated hours, `Active`, and audit fields settable
+- [ ] **1.4** Add `Holiday` entity to `server.Domain` with `Date`, nullable `Description`, `BranchId`, and navigation to `Branch`
+- [ ] **1.5** Use `init` setters on `Holiday.BranchId` and `Holiday.Date`; keep `Description` and `Active` settable
+- [ ] **1.6** Add `TimeEntryListFilter` domain model with `OperatorId?`, `DateFrom?`, `DateTo?`, `Status?`, `Mine?`, server-resolved `AllowedOperatorIds?`, `Page`, and `PageSize`
+- [ ] **1.7** Add `HolidayListFilter` domain model with optional `Year`, `DateFrom?`, `DateTo?`, `Page`, and `PageSize`
+- [ ] **1.8** Add `ITimeEntriesRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, tracked get by `(BranchId, OperatorId, Date)`, list/count by branch filter, and active existence helpers needed for uniqueness pre-checks
+- [ ] **1.9** Add `IHolidaysRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, active get by `(BranchId, Date)`, list/count by branch filter, and `ListActiveDatesByBranchIdAsNoTracking`
+- [ ] **1.10** Add EF Core configurations, `DbSet`s, column types, indexes, and repository implementations for `TimeEntry` and `Holiday`
+- [ ] **1.11** Enforce filtered unique index `UNIQUE (BranchId, OperatorId, Date) WHERE Active = true` for `TimeEntry`
+- [ ] **1.12** Enforce filtered unique index `UNIQUE (BranchId, Date) WHERE Active = true` for `Holiday`
+- [ ] **1.13** Add list-supporting indexes for `TimeEntry` on `(BranchId, Date)` and `(BranchId, OperatorId, Date)`
+- [ ] **1.14** Add the Phase 1 migration/model snapshot for `TimeEntry`, `Holiday`, and their constraints
+- [ ] **1.15** Add resource keys for TimeEntry and Holiday validation, not-found, permission, and conflict errors
+- [ ] **1.16** Extend `PostgresExceptionHandler` to map `IX_TimeEntries_BranchId_OperatorId_Date` to `TIMEENTRY_DATE_CONFLICT`
+- [ ] **1.17** Extend `PostgresExceptionHandler` to map `IX_Holidays_BranchId_Date` to `HOLIDAY_DATE_CONFLICT`
+- [ ] **1.18** Implement `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`
+- [ ] **1.19** Implement the calculation rules from `loto-specs.md` §6.7, including midnight crossing, lunch tiers, abonado statuses, owing statuses, and boundary behavior at exactly 4h and exactly 6h
+- [ ] **1.20** Add `IBranchHolidaySource` and `BranchHolidaySource` under application services to read active holiday dates from `IHolidaysRepository`
+- [ ] **1.21** Refactor `DueDateCalculator` so business-day methods stay synchronous and accept an `IReadOnlySet<DateOnly>` holiday date set while staying deterministic and testable
+- [ ] **1.22** Register new repositories and application services in DI
+- [ ] **1.23** Add `CommonTestUtilities` builders for `TimeEntry`, `Holiday`, TimeEntry requests, Holiday requests, `TimeEntriesRepositoryBuilder`, and `HolidaysRepositoryBuilder`
+- [ ] **1.24** Update `loto-specs.md` §3.16, §3.17, §6.3, §6.7, and §6.8 plus `loto_presentation.html` and `loto_entity_relationship_diagram.html` for the new entities, audit fields, constraints, time-entry rules, holiday contract, installment auto-generation wording, and holiday-aware due-date behavior
+- [ ] **1.25** Bump shared spec sync metadata across all three docs
+- [ ] **1.26** Run `bash docs/check-loto-doc-sync.sh`
+
+### Phase 2 — Holiday CRUD Slice
+
+Implement branch-scoped Holiday CRUD first so TimeEntry and due-date behavior have calendar data to consume.
+
+- [ ] **2.1** Add `RequestCreateHolidayJson`, `RequestUpdateHolidayJson`, `RequestListHolidaysJson`, `ResponseHolidayJson`, and `ResponseListHolidaysJson`
+- [ ] **2.2** Add Holiday validators covering required `Date`, optional `Description` length, paging, and date/year filter shape
+- [ ] **2.3** Implement `CreateHolidayUseCase` restricted to `Manager` and `Admin`
+- [ ] **2.4** Reject create when another active Holiday already exists for the same `(BranchId, Date)` and translate race-condition unique violations to `409`
+- [ ] **2.5** Implement `UpdateHolidayUseCase` for `Description` only; `Date` stays immutable after creation
+- [ ] **2.6** Implement `DeactivateHolidayUseCase` as soft delete
+- [ ] **2.7** Implement `GetHolidayUseCase` for any authenticated branch role
+- [ ] **2.8** Implement `ListHolidaysUseCase` for any authenticated branch role with optional year/date filters and pagination
+- [ ] **2.9** Add `HolidayController` with explicit per-action `[Route]`, branch auth filters, and `[ProducesResponseType]` metadata
+- [ ] **2.10** Register Holiday use cases in Application DI
+- [ ] **2.11** Add `Validators.Test` coverage for Holiday create/update/list validation
+- [ ] **2.12** Add `UseCases.Test` coverage for Holiday create, list, get, update, deactivate, duplicate-date conflict, role permissions, and branch isolation
+- [ ] **2.13** Add `WebApi.Test` happy-path and unhappy-path coverage for all Holiday endpoints, including `401`, `403`, `404`, `409`, filtered unique-index race translation, soft-delete recreation, and branch isolation
+
+### Phase 3 — TimeEntry Write Path
+
+Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation flow.
+
+- [ ] **3.1** Add `RequestUpsertTimeEntryJson` with `OperatorId`, `Date`, `Status`, nullable `ClockIn`, and nullable `ClockOut`
+- [ ] **3.2** Add `ResponseTimeEntryJson` with ids, date, clocks, status, calculated hours, operator info, branch id, created/audit fields, and active flag
+- [ ] **3.3** Add `UpsertTimeEntryFluentValidation` for shape-only validation: non-empty `OperatorId`, non-default `Date`, valid enum status, and clock ordering when both clocks are present
+- [ ] **3.4** Keep status-relative validation in the use case or calculation service: `Present` requires both clocks; non-`Present` statuses reject clocks
+- [ ] **3.5** Enforce `Sunday` status only when `Date.DayOfWeek == Sunday`
+- [ ] **3.6** Enforce `Holiday` status only when an active Holiday exists for the branch/date
+- [ ] **3.7** Add `ITimeEntryWritePermissionGuard` under `Services/TimeEntries/` with explicit outcome enum values: `SelfSameDayPresent`, `Elevated`, `MissingLinkedOperator`, `NotOwnOperator`, `OlderDayMember`, and `MemberNonPresent`
+- [ ] **3.8** Implement `UpsertTimeEntryUseCase` flow: authenticate branch user, validate request, resolve caller linked operator, validate target operator belongs to branch, authorize, load existing entry by `(BranchId, OperatorId, Date)` tracked, load branch Setting, calculate hours, insert or mutate in place, stamp `UpdatedAt`/`UpdatedByUserId` from one captured clock instant, commit, and map response
+- [ ] **3.9** Treat `PUT /timeentry` insert and update as `200 OK` with `ResponseTimeEntryJson`
+- [ ] **3.10** Do not call `LockDateGuard` from TimeEntry write use cases in this milestone
+- [ ] **3.11** Implement `DeactivateTimeEntryUseCase` restricted to `Manager` and `Admin`, using soft delete and audit stamping
+- [ ] **3.12** Add `TimeEntryController` routes for `PUT /timeentry` and `DELETE /timeentry/{timeEntryId:guid}` with explicit auth and response metadata
+- [ ] **3.13** Register TimeEntry write use cases and services in Application DI
+- [ ] **3.14** Add `Validators.Test` coverage for TimeEntry upsert shape validation
+- [ ] **3.15** Add isolated `TimeEntryCalculationServiceTest` coverage for all calculation branches, lunch thresholds, exact 4h/6h boundaries, and midnight crossing
+- [ ] **3.16** Add isolated `TimeEntryWritePermissionGuardTest` coverage for the full role × operator × local-business-day × status matrix
+- [ ] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation
+- [ ] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation
+
+### Phase 4 — TimeEntry Read Path
+
+Implement get/list with role-aware operator scope and pagination.
+
+- [ ] **4.1** Add `RequestListTimeEntriesJson` with `OperatorId?`, `DateFrom?`, `DateTo?`, `Status?`, `Mine?`, `Page`, and `PageSize`
+- [ ] **4.2** Add lightweight list item response carrying `TimeEntry` summary plus `OperatorName`
+- [ ] **4.3** Add `ResponseListTimeEntriesJson` envelope with `Items`, `TotalCount`, `TotalPages`, `HasNext`, and `HasPrevious`
+- [ ] **4.4** Add `ListTimeEntriesFluentValidation` covering paging bounds, `DateFrom <= DateTo`, enum validity, and `Mine = true` plus explicit `OperatorId` mutex
+- [ ] **4.5** Implement `GetTimeEntryUseCase`: missing/cross-branch id returns `404`; Member without linked operator returns `403 TIMEENTRY_REQUIRES_OPERATOR_LINK`; Member targeting another operator returns `403 TIMEENTRY_NOT_OWN_OPERATOR`; Manager/Admin may read any branch entry
+- [ ] **4.6** Implement `ListTimeEntriesUseCase` with server-resolved Member operator scope
+- [ ] **4.7** For Member list with no linked operator, return an empty page without calling repository list/count
+- [ ] **4.8** For `Mine = true`, resolve the caller's linked operator and set the server-side operator filter; combining `Mine = true` and explicit `OperatorId` returns `400`; for a Member with no linked operator, `Mine = true` falls through to the empty-scope short-circuit from 4.7 with no repository list/count call
+- [ ] **4.9** Ensure repository list uses a single branch-scoped projection with deterministic ordering `Date DESC, CreatedAt DESC, Id DESC`
+- [ ] **4.10** Add `GET /timeentry/{timeEntryId:guid}` and `GET /timeentry` to `TimeEntryController`
+- [ ] **4.11** Register read use cases in Application DI
+- [ ] **4.12** Add `Validators.Test` coverage for list validation
+- [ ] **4.13** Add `UseCases.Test` coverage for get/list permissions, Member empty-scope short-circuit, `Mine` behavior, branch isolation, deterministic filter mapping, and pagination metadata
+- [ ] **4.14** Add `WebApi.Test` happy-path and unhappy-path coverage for get/list, including Member scope, Manager/Admin visibility, empty-scope response, pagination metadata over multiple pages, `401`, `403`, and `404`
+
+### Phase 5 — Holiday-Aware Due Dates
+
+Apply the branch holiday calendar to the existing transaction due-date behavior.
+
+- [ ] **5.1** Update `CreateTransactionUseCase` / transaction create preamble to load active branch holidays once and pass them into due-date calculation
+- [ ] **5.2** Update `CreateTransactionInstallmentUseCase` / `InstallmentPlanBuilder` to load active branch holidays once and pass them into generated installment due-date adjustment
+- [ ] **5.3** Preserve manual `OperatorEnteredCheque` due-date behavior: explicit manual due dates are validated but not auto-moved
+- [ ] **5.4** Mechanically update existing M3 due-date tests that assumed weekend-only behavior to pass an empty holiday set; this is test plumbing, not a redesign of those cases
+- [ ] **5.5** Add tests proving `NextBusinessDay` skips a branch holiday
+- [ ] **5.6** Add tests proving `TwoBusinessDays` skips one or more branch holidays
+- [ ] **5.7** Add tests proving auto-generated installment due dates that land on holidays move to the next non-weekend, non-holiday business day
+- [ ] **5.8** Add Web API integration coverage proving holiday-aware due dates persist through transaction create and installment create endpoints
+
+### Phase 6 — Hardening + Spec Close-Out
+
+Close the milestone with the same discipline used in M3 and M4.
+
+- [ ] **6.1** Audit `[ProducesResponseType]` declarations on every `HolidayController` and `TimeEntryController` action; remove spurious codes and add missing ones
+- [ ] **6.2** Confirm architecture tests resolve every new use case and public service under `Services/TimeEntries/`, `Services/Holidays/`, and holiday/calendar support
+- [ ] **6.3** Confirm validator, use-case, Web API, and architecture tests cover every new endpoint and service
+- [ ] **6.4** Run `dotnet test tests/Validators.Test`
+- [ ] **6.5** Run `dotnet test tests/UseCases.Test`
+- [ ] **6.6** Run `dotnet test tests/WebApi.Test`
+- [ ] **6.7** Run `bash docs/check-loto-doc-sync.sh`
+- [ ] **6.8** Update this milestone checklist with completion notes where implementation intentionally differs from the original plan
+
+### Done criteria
+
+- `TimeEntryStatus`, `TimeEntry`, and `Holiday` exist in Domain, Infrastructure, and the Milestone 5 migration/model snapshot
+- `TimeEntry` enforces one active row per `(BranchId, OperatorId, Date)` through a filtered unique index
+- `Holiday` enforces one active row per `(BranchId, Date)` through a filtered unique index
+- API-level PostgreSQL unique-violation translation returns clean `409` responses for TimeEntry and Holiday uniqueness races
+- `TimeEntry` carries `UpdatedAt` and `UpdatedByUserId`; successful TimeEntry upsert and deactivate stamp the audit pair consistently
+- `PUT /timeentry` is the only TimeEntry write/upsert path and computes `TotalHours` / `BalanceHours` server-side
+- Members can upsert only their linked operator's same-day `Present` entry; Manager/Admin can upsert or deactivate any branch operator's entry on any date
+- TimeEntry writes are not blocked by `Setting.LockDate`
+- TimeEntry read/list scope follows the agreed role rules: Members see only their linked operator; Manager/Admin see all branch entries; missing/cross-branch ids stay `404`
+- Holiday CRUD is live: any branch role can read; only Manager/Admin can create/update/deactivate
+- Holiday dates are immutable after creation; moving a holiday is handled by deactivate + create
+- Holiday-aware due-date calculation is live for transaction create and auto-generated installment rows, skipping weekends and active branch holidays
+- Manual cheque due dates remain explicit operator input and are not auto-adjusted by the holiday calendar
+- Spec sync covers TimeEntry audit fields, Holiday constraints, TimeEntry calculation, TimeEntry permission/read/write contract, Holiday contract, and holiday-aware due-date behavior; shared revision metadata is bumped and `check-loto-doc-sync.sh` passes
+- Validator, use-case, Web API, and architecture tests pass with the new TimeEntry, Holiday, and due-date behavior
 
 ---
 
