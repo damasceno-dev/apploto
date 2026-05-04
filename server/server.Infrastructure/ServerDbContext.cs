@@ -21,6 +21,8 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     public DbSet<Client> Clients => Set<Client>();
     public DbSet<DailyClose> DailyCloses => Set<DailyClose>();
     public DbSet<DailyCloseItem> DailyCloseItems => Set<DailyCloseItem>();
+    public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
+    public DbSet<Holiday> Holidays => Set<Holiday>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

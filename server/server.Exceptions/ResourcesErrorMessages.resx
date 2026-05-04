@@ -381,4 +381,10 @@
     <data name="DAILYCLOSE_LIST_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
         <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
     </data>
+    <data name="TIMEENTRY_DATE_CONFLICT" xml:space="preserve">
+        <value>Já existe um registro de ponto ativo para este operador nesta data</value>
+    </data>
+    <data name="HOLIDAY_DATE_CONFLICT" xml:space="preserve">
+        <value>Já existe um feriado ativo para esta data nesta filial</value>
+    </data>
 </root>

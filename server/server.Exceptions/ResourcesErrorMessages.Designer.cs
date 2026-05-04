@@ -770,5 +770,17 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("DAILYCLOSE_LIST_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
             }
         }
+
+        public static string TIMEENTRY_DATE_CONFLICT {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_DATE_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_DATE_CONFLICT {
+            get {
+                return ResourceManager.GetString("HOLIDAY_DATE_CONFLICT", resourceCulture);
+            }
+        }
     }
 }

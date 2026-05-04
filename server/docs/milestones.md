@@ -857,20 +857,21 @@ Add the domain, persistence, shared services, resource keys, migration, and spec
 - [x] **1.7** Add `HolidayListFilter` domain model with optional `Year`, `DateFrom?`, `DateTo?`, `Page`, and `PageSize`
 - [x] **1.8** Add `ITimeEntriesRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, tracked get by `(BranchId, OperatorId, Date)`, list/count by branch filter, and active existence helpers needed for uniqueness pre-checks
 - [x] **1.9** Add `IHolidaysRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, active get by `(BranchId, Date)`, list/count by branch filter, and `ListActiveDatesByBranchIdAsNoTracking`
-- [ ] **1.10** Add EF Core configurations, `DbSet`s, column types, indexes, and repository implementations for `TimeEntry` and `Holiday`
-- [ ] **1.11** Enforce filtered unique index `UNIQUE (BranchId, OperatorId, Date) WHERE Active = true` for `TimeEntry`
-- [ ] **1.12** Enforce filtered unique index `UNIQUE (BranchId, Date) WHERE Active = true` for `Holiday`
-- [ ] **1.13** Add list-supporting indexes for `TimeEntry` on `(BranchId, Date)` and `(BranchId, OperatorId, Date)`
-- [ ] **1.14** Add the Phase 1 migration/model snapshot for `TimeEntry`, `Holiday`, and their constraints
+- [x] **1.10** Add EF Core configurations, `DbSet`s, column types, indexes, and repository implementations for `TimeEntry` and `Holiday`
+- [x] **1.11** Enforce filtered unique index `UNIQUE (BranchId, OperatorId, Date) WHERE Active = true` for `TimeEntry`
+- [x] **1.12** Enforce filtered unique index `UNIQUE (BranchId, Date) WHERE Active = true` for `Holiday`
+- [x] **1.13** Add list-supporting indexes for `TimeEntry` on `(BranchId, Date)` and `(BranchId, OperatorId, Date)`
+- [x] **1.14** Add the Phase 1 migration/model snapshot for `TimeEntry`, `Holiday`, and their constraints
 - [ ] **1.15** Add resource keys for TimeEntry and Holiday validation, not-found, permission, and conflict errors
-- [ ] **1.16** Extend `PostgresExceptionHandler` to map `IX_TimeEntries_BranchId_OperatorId_Date` to `TIMEENTRY_DATE_CONFLICT`
-- [ ] **1.17** Extend `PostgresExceptionHandler` to map `IX_Holidays_BranchId_Date` to `HOLIDAY_DATE_CONFLICT`
+- [x] **1.16** Extend `PostgresExceptionHandler` to map `IX_TimeEntries_BranchId_OperatorId_Date` to `TIMEENTRY_DATE_CONFLICT`
+- [x] **1.17** Extend `PostgresExceptionHandler` to map `IX_Holidays_BranchId_Date` to `HOLIDAY_DATE_CONFLICT`
 - [ ] **1.18** Implement `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`
 - [ ] **1.19** Implement the calculation rules from `loto-specs.md` §6.7, including midnight crossing, lunch tiers, abonado statuses, owing statuses, and boundary behavior at exactly 4h and exactly 6h
 - [ ] **1.20** Add `IBranchHolidaySource` and `BranchHolidaySource` under application services to read active holiday dates from `IHolidaysRepository`
 - [ ] **1.21** Refactor `DueDateCalculator` so business-day methods stay synchronous and accept an `IReadOnlySet<DateOnly>` holiday date set while staying deterministic and testable
 - [ ] **1.22** Register new repositories and application services in DI
-- [ ] **1.23** Add `CommonTestUtilities` builders for `TimeEntry`, `Holiday`, TimeEntry requests, Holiday requests, `TimeEntriesRepositoryBuilder`, and `HolidaysRepositoryBuilder`
+- [x] **1.23** Add `CommonTestUtilities` builders for `TimeEntry`, `Holiday`, TimeEntry requests, Holiday requests, `TimeEntriesRepositoryBuilder`, and `HolidaysRepositoryBuilder`
+  > Note: repository builders only (`TimeEntriesRepositoryBuilder`, `HolidaysRepositoryBuilder`); entity/request builders deferred to slice 1.C
 - [ ] **1.24** Update `loto-specs.md` §3.16, §3.17, §6.3, §6.7, and §6.8 plus `loto_presentation.html` and `loto_entity_relationship_diagram.html` for the new entities, audit fields, constraints, time-entry rules, holiday contract, installment auto-generation wording, and holiday-aware due-date behavior
 - [ ] **1.25** Bump shared spec sync metadata across all three docs
 - [ ] **1.26** Run `bash docs/check-loto-doc-sync.sh`

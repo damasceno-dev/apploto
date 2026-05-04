@@ -51,6 +51,8 @@ public static class InfraDependencyInjection
         services.AddScoped<ITransactionsRepository, TransactionsRepository>();
         services.AddScoped<IDailyClosesRepository, DailyClosesRepository>();
         services.AddScoped<IDailyCloseItemsRepository, DailyCloseItemsRepository>();
+        services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();
+        services.AddScoped<IHolidaysRepository, HolidaysRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
 
