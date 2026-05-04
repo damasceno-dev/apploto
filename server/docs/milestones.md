@@ -848,15 +848,15 @@ Mirroring Milestone 3 Phase 5.5: a small refactor pass after the user-facing sur
 
 Add the domain, persistence, shared services, resource keys, migration, and spec sync needed before user-facing endpoints.
 
-- [ ] **1.1** Add `TimeEntryStatus` enum to `server.Domain/Entities/Enums/` with values from `loto-specs.md`: `Present`, `DayOff`, `Sunday`, `Holiday`, `Vacation`, `JustifiedAbsence`, and `UnjustifiedAbsence`
-- [ ] **1.2** Add `TimeEntry` entity to `server.Domain` with `Date`, nullable `ClockIn`, nullable `ClockOut`, `Status`, `TotalHours`, `BalanceHours`, `OperatorId`, `BranchId`, `UpdatedAt`, `UpdatedByUserId`, and navigations to `Operator`, `Branch`, and `UpdatedByUser?`
-- [ ] **1.3** Use `init` setters on `TimeEntry.OperatorId`, `TimeEntry.BranchId`, and `TimeEntry.Date`; keep clocks, status, calculated hours, `Active`, and audit fields settable
-- [ ] **1.4** Add `Holiday` entity to `server.Domain` with `Date`, nullable `Description`, `BranchId`, and navigation to `Branch`
-- [ ] **1.5** Use `init` setters on `Holiday.BranchId` and `Holiday.Date`; keep `Description` and `Active` settable
-- [ ] **1.6** Add `TimeEntryListFilter` domain model with `OperatorId?`, `DateFrom?`, `DateTo?`, `Status?`, `Mine?`, server-resolved `AllowedOperatorIds?`, `Page`, and `PageSize`
-- [ ] **1.7** Add `HolidayListFilter` domain model with optional `Year`, `DateFrom?`, `DateTo?`, `Page`, and `PageSize`
-- [ ] **1.8** Add `ITimeEntriesRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, tracked get by `(BranchId, OperatorId, Date)`, list/count by branch filter, and active existence helpers needed for uniqueness pre-checks
-- [ ] **1.9** Add `IHolidaysRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, active get by `(BranchId, Date)`, list/count by branch filter, and `ListActiveDatesByBranchIdAsNoTracking`
+- [x] **1.1** Add `TimeEntryStatus` enum to `server.Domain/Entities/Enums/` with values from `loto-specs.md`: `Present`, `DayOff`, `Sunday`, `Holiday`, `Vacation`, `JustifiedAbsence`, and `UnjustifiedAbsence`
+- [x] **1.2** Add `TimeEntry` entity to `server.Domain` with `Date`, nullable `ClockIn`, nullable `ClockOut`, `Status`, `TotalHours`, `BalanceHours`, `OperatorId`, `BranchId`, `UpdatedAt`, `UpdatedByUserId`, and navigations to `Operator`, `Branch`, and `UpdatedByUser?`
+- [x] **1.3** Use `init` setters on `TimeEntry.OperatorId`, `TimeEntry.BranchId`, and `TimeEntry.Date`; keep clocks, status, calculated hours, `Active`, and audit fields settable
+- [x] **1.4** Add `Holiday` entity to `server.Domain` with `Date`, nullable `Description`, `BranchId`, and navigation to `Branch`
+- [x] **1.5** Use `init` setters on `Holiday.BranchId` and `Holiday.Date`; keep `Description` and `Active` settable
+- [x] **1.6** Add `TimeEntryListFilter` domain model with `OperatorId?`, `DateFrom?`, `DateTo?`, `Status?`, `Mine?`, server-resolved `AllowedOperatorIds?`, `Page`, and `PageSize`
+- [x] **1.7** Add `HolidayListFilter` domain model with optional `Year`, `DateFrom?`, `DateTo?`, `Page`, and `PageSize`
+- [x] **1.8** Add `ITimeEntriesRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, tracked get by `(BranchId, OperatorId, Date)`, list/count by branch filter, and active existence helpers needed for uniqueness pre-checks
+- [x] **1.9** Add `IHolidaysRepository` with `Add`, tracked get by id and branch, no-tracking get by id and branch, active get by `(BranchId, Date)`, list/count by branch filter, and `ListActiveDatesByBranchIdAsNoTracking`
 - [ ] **1.10** Add EF Core configurations, `DbSet`s, column types, indexes, and repository implementations for `TimeEntry` and `Holiday`
 - [ ] **1.11** Enforce filtered unique index `UNIQUE (BranchId, OperatorId, Date) WHERE Active = true` for `TimeEntry`
 - [ ] **1.12** Enforce filtered unique index `UNIQUE (BranchId, Date) WHERE Active = true` for `Holiday`
