@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v16
+Spec revision: v17
 -->
 <html lang="en">
 <head>
@@ -402,6 +402,8 @@ Spec revision: v16
     '    decimal balanceHours\n' +
     '    uuid operatorId FK\n' +
     '    uuid branchId FK\n' +
+    '    timestamp updatedAt\n' +
+    '    uuid updatedByUserId FK\n' +
     '  }\n' +
     '\n' +
     '  Holiday {\n' +

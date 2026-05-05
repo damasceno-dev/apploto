@@ -1,9 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Holidays;
 using server.Application.Services.Operators;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
+using server.Application.Services.TimeEntries;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
@@ -104,6 +106,8 @@ public static class AppDependencyInjection
         services.AddScoped<IMemberAccountScopeResolver, MemberAccountScopeResolver>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
+        services.AddScoped<ITimeEntryCalculationService, TimeEntryCalculationService>();
+        services.AddScoped<IBranchHolidaySource, BranchHolidaySource>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
         services.AddScoped<ICashVarianceProductResolver, CashVarianceProductResolver>();

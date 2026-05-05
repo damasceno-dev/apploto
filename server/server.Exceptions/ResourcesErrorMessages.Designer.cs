@@ -777,9 +777,93 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_DATE_REQUIRED {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_DATE_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_STATUS_INVALID {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_STATUS_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_OPERATOR_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_OPERATOR_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_NOT_OWN_OPERATOR {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_NOT_OWN_OPERATOR", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_LIST_PAGE_INVALID {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_LIST_PAGE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_LIST_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_LIST_PAGE_SIZE_INVALID", resourceCulture);
+            }
+        }
+
         public static string HOLIDAY_DATE_CONFLICT {
             get {
                 return ResourceManager.GetString("HOLIDAY_DATE_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("HOLIDAY_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("HOLIDAY_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_DATE_REQUIRED {
+            get {
+                return ResourceManager.GetString("HOLIDAY_DATE_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_DESCRIPTION_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("HOLIDAY_DESCRIPTION_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_LIST_PAGE_INVALID {
+            get {
+                return ResourceManager.GetString("HOLIDAY_LIST_PAGE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_LIST_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("HOLIDAY_LIST_PAGE_SIZE_INVALID", resourceCulture);
             }
         }
     }

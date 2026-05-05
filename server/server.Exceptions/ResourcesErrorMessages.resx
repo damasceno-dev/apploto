@@ -384,7 +384,49 @@
     <data name="TIMEENTRY_DATE_CONFLICT" xml:space="preserve">
         <value>Já existe um registro de ponto ativo para este operador nesta data</value>
     </data>
+    <data name="TIMEENTRY_NOT_FOUND" xml:space="preserve">
+        <value>Registro de ponto não encontrado</value>
+    </data>
+    <data name="TIMEENTRY_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do registro de ponto deve ser informado</value>
+    </data>
+    <data name="TIMEENTRY_DATE_REQUIRED" xml:space="preserve">
+        <value>A data do registro de ponto deve ser informada</value>
+    </data>
+    <data name="TIMEENTRY_STATUS_INVALID" xml:space="preserve">
+        <value>Status de ponto inválido</value>
+    </data>
+    <data name="TIMEENTRY_OPERATOR_ID_REQUIRED" xml:space="preserve">
+        <value>O operador do registro de ponto deve ser informado</value>
+    </data>
+    <data name="TIMEENTRY_NOT_OWN_OPERATOR" xml:space="preserve">
+        <value>Membros só podem gerenciar os próprios registros de ponto</value>
+    </data>
+    <data name="TIMEENTRY_LIST_PAGE_INVALID" xml:space="preserve">
+        <value>A página deve ser maior ou igual a 1</value>
+    </data>
+    <data name="TIMEENTRY_LIST_PAGE_SIZE_INVALID" xml:space="preserve">
+        <value>O tamanho da página deve estar entre {0} e {1}</value>
+    </data>
     <data name="HOLIDAY_DATE_CONFLICT" xml:space="preserve">
         <value>Já existe um feriado ativo para esta data nesta filial</value>
+    </data>
+    <data name="HOLIDAY_NOT_FOUND" xml:space="preserve">
+        <value>Feriado não encontrado</value>
+    </data>
+    <data name="HOLIDAY_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do feriado deve ser informado</value>
+    </data>
+    <data name="HOLIDAY_DATE_REQUIRED" xml:space="preserve">
+        <value>A data do feriado deve ser informada</value>
+    </data>
+    <data name="HOLIDAY_DESCRIPTION_MAX_LENGTH" xml:space="preserve">
+        <value>A descrição do feriado deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="HOLIDAY_LIST_PAGE_INVALID" xml:space="preserve">
+        <value>A página deve ser maior ou igual a 1</value>
+    </data>
+    <data name="HOLIDAY_LIST_PAGE_SIZE_INVALID" xml:space="preserve">
+        <value>O tamanho da página deve estar entre {0} e {1}</value>
     </data>
 </root>

@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v16
+Spec revision: v17
 -->
 
-> **Status:** Revised spec (v16) — Milestone 4 DailyClose workflow hardened and locked
+> **Status:** Revised spec (v17) — Milestone 5 Phase 1 TimeEntry & Holiday foundation
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -23,6 +23,9 @@ Spec revision: v16
 > v10: Aligned §6.3 with the Phase 3.1 cheque-installment contract — manual rows by default, optional auto-generation with monthly stagger and weekend adjustment, exact-sum invariant, prefix-only description fallback, and SaveAsDraft propagation.
 > v11: Added §6.10 documenting the Member transaction read scope: 403 vs 404 contract on Get, account-scope visibility on List (members see all rows on linked accounts regardless of recording operator), empty-scope short-circuit on List, and the enriched list response shape (joined names + paging metadata).
 > v12: Added §6.11 documenting the transaction update contract: editable and non-editable fields, local-business-day permission matrix, Member account-scope ordering, Mine list filter behavior, update audit stamping, and lock-date behavior.
+> v13–v15: (internal milestone iterations)
+> v16: Milestone 4 DailyClose workflow hardened — §3.14 audit pair, §6.5 Submitted→Draft recall transition, §6.12 explicit Direction handling, §6.13 DailyClose contract including role × state × business-day matrix.
+> v17: Milestone 5 Phase 1 TimeEntry & Holiday foundation — §3.16 updated with audit fields and filtered unique constraint; §3.17 updated with table and filtered unique constraint; §6.3 installment stagger now skips weekends and branch holidays; §6.7 references ITimeEntryCalculationService with midnight-crossing and exact-boundary notes; §6.8 documents holiday-aware business-day calculation via DueDateCalculator and IBranchHolidaySource.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -703,18 +706,22 @@ Operator attendance tracking. Standalone — not mixed with the transaction flow
 ```csharp
 public class TimeEntry : EntityBase
 {
-    public DateTime Date { get; set; }
+    public DateTime Date { get; init; }
     public TimeOnly? ClockIn { get; set; }
     public TimeOnly? ClockOut { get; set; }
     public TimeEntryStatus Status { get; set; }
     public decimal TotalHours { get; set; }
     public decimal BalanceHours { get; set; }
 
-    public Guid OperatorId { get; set; }
-    public Operator Operator { get; set; } = null!;
+    public Guid OperatorId { get; init; }
+    public Operator Operator { get; init; } = null!;
 
-    public Guid BranchId { get; set; }
-    public Branch Branch { get; set; } = null!;
+    public Guid BranchId { get; init; }
+    public Branch Branch { get; init; } = null!;
+
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedByUserId { get; set; }
+    public User? UpdatedByUser { get; set; }
 }
 ```
 
@@ -729,10 +736,12 @@ public class TimeEntry : EntityBase
 | BalanceHours | numeric(6,2) | NOT NULL | TotalHours minus daily target. Positive = overtime, negative = owes time |
 | OperatorId | uuid | NOT NULL | FK → Operator |
 | BranchId | uuid | NOT NULL | FK → Branch |
+| UpdatedAt | timestamptz | NULL | Stamped on every upsert after creation |
+| UpdatedByUserId | uuid | NULL | FK → User; who last modified this entry |
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | |
 
-**Unique constraint:** `(BranchId, OperatorId, Date)` — one entry per operator per day.
+**Filtered unique constraint:** `(BranchId, OperatorId, Date) WHERE Active = true` — one active entry per operator per day.
 
 ### 3.17 Holiday
 
@@ -741,13 +750,24 @@ Branch-specific holidays that affect business day calculations and time entries.
 ```csharp
 public class Holiday : EntityBase
 {
-    public DateTime Date { get; set; }
+    public DateTime Date { get; init; }
     public string? Description { get; set; }
 
-    public Guid BranchId { get; set; }
-    public Branch Branch { get; set; } = null!;
+    public Guid BranchId { get; init; }
+    public Branch Branch { get; init; } = null!;
 }
 ```
+
+| Column | Type | Null | Notes |
+|---|---|---|---|
+| Id | uuid | PK | |
+| Date | date | NOT NULL | |
+| Description | varchar(500) | NULL | Human-readable label (e.g. "Natal") |
+| BranchId | uuid | NOT NULL | FK → Branch |
+| CreatedAt | timestamptz | NOT NULL | |
+| Active | boolean | NOT NULL | |
+
+**Filtered unique constraint:** `(BranchId, Date) WHERE Active = true` — one active holiday per date per branch.
 
 ### 3.18 Setting
 
@@ -846,8 +866,8 @@ public enum TimeEntryStatus
 |---|---|
 | SameDay | DueDate equals `Date` |
 | NextCalendarDay | DueDate equals `Date.AddDays(1)` |
-| NextBusinessDay | DueDate is the next Monday-Friday after `Date`; weekends are skipped, holidays are out of scope |
-| TwoBusinessDays | DueDate is the second Monday-Friday after `Date`; weekends are skipped, holidays are out of scope |
+| NextBusinessDay | DueDate is the next business day after `Date`; weekends and branch holidays are skipped |
+| TwoBusinessDays | DueDate is the second business day after `Date`; weekends and branch holidays are skipped |
 | OperatorEnteredCheque | DueDate must be explicitly entered by the operator and must be on or after `Date` |
 
 ### What is NOT an enum
@@ -937,8 +957,8 @@ Note: **Fiado is NOT a DailyClose product** — it is calculated at query time f
 - `DueDate` defaults are driven by `TransactionType.SettlementRule`:
   - `SameDay`: same as `Date`
   - `NextCalendarDay`: `Date + 1 day`
-  - `NextBusinessDay`: next Monday-Friday after `Date`
-  - `TwoBusinessDays`: second Monday-Friday after `Date` (future: skip holidays)
+  - `NextBusinessDay`: next business day after `Date` (skips weekends and branch holidays)
+  - `TwoBusinessDays`: second business day after `Date` (skips weekends and branch holidays)
   - `OperatorEnteredCheque`: operator enters custom date; must be ≥ `Date`
 - `RecordedByOperatorId` is set from the authenticated operator's context
 - `CreatedByUserId` is set from the authenticated user's session
@@ -961,7 +981,7 @@ When a pre-dated cheque is recorded with installments, the system creates N sepa
 
 **Auto-generation is optional** via `AutoGenerateInstallments = true` together with `InstallmentCount` and a base `DueDate`. When enabled:
 - All generated rows have equal `Value`, rounded to 2 decimal places (`MidpointRounding.AwayFromZero`); any residual goes on the last row so the row sum matches the request total exactly.
-- Generated `DueDate`s are staggered monthly from the base date (`baseDueDate.AddMonths(i-1)`); any row falling on a weekend is moved to the next business day.
+- Generated `DueDate`s are staggered monthly from the base date (`baseDueDate.AddMonths(i-1)`); any row falling on a weekend or a branch holiday is moved to the next business day.
 - If the auto-split would produce any non-positive row (e.g. `0.10` over 6 installments), the request is rejected.
 - The base `DueDate` must be in the future; manual `Installments` must be empty when the flag is on.
 
@@ -1011,18 +1031,25 @@ WHERE AccountId = @tabAccountId
 
 ### 6.7 Time entry calculation
 
-This logic belongs in a domain service (`TimeEntryCalculationService`), not in the entity:
+This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. The method signature is:
+
+```
+ITimeEntryCalculationService.Calculate(status, clockIn, clockOut, dailyTargetHours, lunchDeductionOver6H, lunchDeductionOver4H)
+  → (TotalHours, BalanceHours)
+```
+
+Rules:
 
 ```
 Input: ClockIn, ClockOut, Status
 Constants: DailyTarget (from Setting), LunchDeduction rules (from Setting)
 
 If Status = Present:
-    grossMinutes = ClockOut - ClockIn (handle midnight crossing)
+    grossMinutes = ClockOut - ClockIn (midnight crossing: if span < 0, add 24 h)
     grossHours = grossMinutes / 60
-    lunchDeduction = grossHours > 6 ? Setting.LunchDeductionOver6H
-                   : grossHours > 4 ? Setting.LunchDeductionOver4H
-                   : 0
+    lunchDeduction = grossHours > 6 ? Setting.LunchDeductionOver6H   (strictly > 6)
+                   : grossHours > 4 ? Setting.LunchDeductionOver4H   (strictly > 4, ≤ 6)
+                   : 0                                                (exactly 4 or less)
     TotalHours = grossHours - lunchDeduction
     BalanceHours = TotalHours - DailyTarget
 
@@ -1035,18 +1062,21 @@ If Status ∈ {DayOff, UnjustifiedAbsence}:  (hours owed)
     BalanceHours = -DailyTarget
 ```
 
+Boundary notes: exactly 4 h gross → no lunch deduction; exactly 6 h gross → `LunchDeductionOver4H` applies (not `Over6H`).
+
 ### 6.8 Credit card due date calculation
 
-Business day aware: skip weekends, future enhancement to skip holidays.
+Business day aware: skips weekends and branch holidays.
 
 ```
-baseDueDate = TransactionDate + 2 days
-if baseDueDate is Saturday: add 2 days
-if baseDueDate is Sunday: add 1 day
-// Future: loop while baseDueDate is in Holiday table, add 1 day
+baseDueDate = TransactionDate + 2 business days
+// Business day = not Saturday, not Sunday, not in branch holiday set
+// DueDateCalculator.Compute(TwoBusinessDays, date, null, branchHolidayDates)
 ```
 
-Debit cards use the same logic with +1 day instead of +2.
+Debit cards use the same logic with +1 business day instead of +2.
+
+The branch holiday set is supplied at call time via `IBranchHolidaySource.GetHolidayDatesAsync`. Existing M3 transaction callers pass an empty set (no holiday skipping) until Phase 5 wires the real source.
 
 ### 6.9 Branch consistency
 

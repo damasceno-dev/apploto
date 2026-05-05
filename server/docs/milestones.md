@@ -862,25 +862,24 @@ Add the domain, persistence, shared services, resource keys, migration, and spec
 - [x] **1.12** Enforce filtered unique index `UNIQUE (BranchId, Date) WHERE Active = true` for `Holiday`
 - [x] **1.13** Add list-supporting indexes for `TimeEntry` on `(BranchId, Date)` and `(BranchId, OperatorId, Date)`
 - [x] **1.14** Add the Phase 1 migration/model snapshot for `TimeEntry`, `Holiday`, and their constraints
-- [ ] **1.15** Add resource keys for TimeEntry and Holiday validation, not-found, permission, and conflict errors
+- [x] **1.15** Add resource keys for TimeEntry and Holiday validation, not-found, permission, and conflict errors
 - [x] **1.16** Extend `PostgresExceptionHandler` to map `IX_TimeEntries_BranchId_OperatorId_Date` to `TIMEENTRY_DATE_CONFLICT`
 - [x] **1.17** Extend `PostgresExceptionHandler` to map `IX_Holidays_BranchId_Date` to `HOLIDAY_DATE_CONFLICT`
-- [ ] **1.18** Implement `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`
-- [ ] **1.19** Implement the calculation rules from `loto-specs.md` §6.7, including midnight crossing, lunch tiers, abonado statuses, owing statuses, and boundary behavior at exactly 4h and exactly 6h
-- [ ] **1.20** Add `IBranchHolidaySource` and `BranchHolidaySource` under application services to read active holiday dates from `IHolidaysRepository`
-- [ ] **1.21** Refactor `DueDateCalculator` so business-day methods stay synchronous and accept an `IReadOnlySet<DateOnly>` holiday date set while staying deterministic and testable
-- [ ] **1.22** Register new repositories and application services in DI
-- [x] **1.23** Add `CommonTestUtilities` builders for `TimeEntry`, `Holiday`, TimeEntry requests, Holiday requests, `TimeEntriesRepositoryBuilder`, and `HolidaysRepositoryBuilder`
-  > Note: repository builders only (`TimeEntriesRepositoryBuilder`, `HolidaysRepositoryBuilder`); entity/request builders deferred to slice 1.C
-- [ ] **1.24** Update `loto-specs.md` §3.16, §3.17, §6.3, §6.7, and §6.8 plus `loto_presentation.html` and `loto_entity_relationship_diagram.html` for the new entities, audit fields, constraints, time-entry rules, holiday contract, installment auto-generation wording, and holiday-aware due-date behavior
-- [ ] **1.25** Bump shared spec sync metadata across all three docs
-- [ ] **1.26** Run `bash docs/check-loto-doc-sync.sh`
+- [x] **1.18** Implement `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`
+- [x] **1.19** Implement the calculation rules from `loto-specs.md` §6.7, including midnight crossing, lunch tiers, abonado statuses, owing statuses, and boundary behavior at exactly 4h and exactly 6h
+- [x] **1.20** Add `IBranchHolidaySource` and `BranchHolidaySource` under application services to read active holiday dates from `IHolidaysRepository`
+- [x] **1.21** Refactor `DueDateCalculator` so business-day methods stay synchronous and accept an `IReadOnlySet<DateOnly>` holiday date set while staying deterministic and testable
+- [x] **1.22** Register new repositories and application services in DI
+- [x] **1.23** Add `CommonTestUtilities` entity builders and repository builders for `TimeEntry` and `Holiday`: `TimeEntryBuilder`, `HolidayBuilder`, `TimeEntriesRepositoryBuilder`, `HolidaysRepositoryBuilder`
+- [x] **1.24** Update `loto-specs.md` §3.16, §3.17, §6.3, §6.7, and §6.8 plus `loto_presentation.html` and `loto_entity_relationship_diagram.html` for the new entities, audit fields, constraints, time-entry rules, holiday contract, installment auto-generation wording, and holiday-aware due-date behavior
+- [x] **1.25** Bump shared spec sync metadata across all three docs
+- [x] **1.26** Run `bash docs/check-loto-doc-sync.sh`
 
 ### Phase 2 — Holiday CRUD Slice
 
 Implement branch-scoped Holiday CRUD first so TimeEntry and due-date behavior have calendar data to consume.
 
-- [ ] **2.1** Add `RequestCreateHolidayJson`, `RequestUpdateHolidayJson`, `RequestListHolidaysJson`, `ResponseHolidayJson`, and `ResponseListHolidaysJson`
+- [ ] **2.1** Add `RequestCreateHolidayJson`, `RequestUpdateHolidayJson`, `RequestListHolidaysJson`, `ResponseHolidayJson`, and `ResponseListHolidaysJson`; then add `RequestCreateHolidayJsonBuilder`, `RequestUpdateHolidayJsonBuilder` to `CommonTestUtilities`
 - [ ] **2.2** Add Holiday validators covering required `Date`, optional `Description` length, paging, and date/year filter shape
 - [ ] **2.3** Implement `CreateHolidayUseCase` restricted to `Manager` and `Admin`
 - [ ] **2.4** Reject create when another active Holiday already exists for the same `(BranchId, Date)` and translate race-condition unique violations to `409`
@@ -898,7 +897,7 @@ Implement branch-scoped Holiday CRUD first so TimeEntry and due-date behavior ha
 
 Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation flow.
 
-- [ ] **3.1** Add `RequestUpsertTimeEntryJson` with `OperatorId`, `Date`, `Status`, nullable `ClockIn`, and nullable `ClockOut`
+- [ ] **3.1** Add `RequestUpsertTimeEntryJson` with `OperatorId`, `Date`, `Status`, nullable `ClockIn`, and nullable `ClockOut`; then add `RequestUpsertTimeEntryJsonBuilder` to `CommonTestUtilities`
 - [ ] **3.2** Add `ResponseTimeEntryJson` with ids, date, clocks, status, calculated hours, operator info, branch id, created/audit fields, and active flag
 - [ ] **3.3** Add `UpsertTimeEntryFluentValidation` for shape-only validation: non-empty `OperatorId`, non-default `Date`, valid enum status, and clock ordering when both clocks are present
 - [ ] **3.4** Keep status-relative validation in the use case or calculation service: `Present` requires both clocks; non-`Present` statuses reject clocks
