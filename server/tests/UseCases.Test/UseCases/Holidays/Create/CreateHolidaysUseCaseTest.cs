@@ -140,7 +140,7 @@ public class CreateHolidaysUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowConflictException_WhenDuplicateDatesInRequest()
+    public async Task Execute_ShouldThrowOnValidationException_WhenDuplicateDatesInRequest()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var duplicateDate = new DateTime(2025, 9, 7);
@@ -161,9 +161,9 @@ public class CreateHolidaysUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, holidaysRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
 
-        exception.Message.ShouldBe(ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT);
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT);
         await holidaysRepository.DidNotReceive().Add(Arg.Any<Holiday>());
         await unitOfWork.DidNotReceive().Commit();
     }

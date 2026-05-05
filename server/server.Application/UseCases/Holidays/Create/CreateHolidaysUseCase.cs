@@ -21,8 +21,6 @@ public class CreateHolidaysUseCase(
         if (branchUser.Role is not Role.Admin and not Role.Manager)
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
 
-        EnsureNoDuplicateDatesInRequest(request);
-
         await EnsureNoConflictWithExistingHolidays(request, branchUser.BranchId);
 
         var holidays = request.Holidays
@@ -40,16 +38,6 @@ public class CreateHolidaysUseCase(
         {
             Items = holidays.Select(h => h.ToResponse()).ToList()
         };
-    }
-
-    private static void EnsureNoDuplicateDatesInRequest(RequestCreateHolidaysJson request)
-    {
-        var hasDuplicates = request.Holidays
-            .GroupBy(row => DateOnly.FromDateTime(row.Date))
-            .Any(g => g.Count() > 1);
-
-        if (hasDuplicates)
-            throw new ConflictException(ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT);
     }
 
     private async Task EnsureNoConflictWithExistingHolidays(

@@ -86,9 +86,9 @@ public class HolidayControllerCreateUnhappyPathTest(ServerWebApplicationFactory 
     }
 
     [Fact]
-    public async Task Create_ShouldReturn409_WhenDuplicateDatesAreInSameRequest()
+    public async Task Create_ShouldReturn400_WhenDuplicateDatesAreInSameRequest()
     {
-        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("HolCreate409Dup", Role.Manager);
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("HolCreate400Dup", Role.Manager);
         var duplicateDate = new DateTime(2025, 9, 7);
         var request = new RequestCreateHolidaysJsonBuilder()
             .WithHolidays([
@@ -99,7 +99,7 @@ public class HolidayControllerCreateUnhappyPathTest(ServerWebApplicationFactory 
 
         var httpResponse = await _client.PostAuthAsync("/holiday", request, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT);
     }

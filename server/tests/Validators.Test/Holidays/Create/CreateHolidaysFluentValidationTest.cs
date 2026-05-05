@@ -91,4 +91,22 @@ public class CreateHolidaysFluentValidationTest
             .ShouldContain(string.Format(ResourcesErrorMessages.HOLIDAY_DESCRIPTION_MAX_LENGTH,
                 CreateHolidaysFluentValidation.MaximumDescriptionLength));
     }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenBatchHasDuplicateDates()
+    {
+        var duplicateDate = new DateTime(2025, 9, 7);
+        var request = new RequestCreateHolidaysJsonBuilder()
+            .WithHolidays([
+                new RequestCreateHolidayJson { Date = duplicateDate, Description = "First" },
+                new RequestCreateHolidayJson { Date = duplicateDate, Description = "Second" }
+            ])
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(e => e.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT);
+    }
 }

@@ -12,7 +12,9 @@ public class CreateHolidaysFluentValidation : AbstractValidator<RequestCreateHol
     {
         RuleFor(r => r.Holidays)
             .NotEmpty()
-            .WithMessage(ResourcesErrorMessages.HOLIDAY_CREATE_BATCH_EMPTY);
+            .WithMessage(ResourcesErrorMessages.HOLIDAY_CREATE_BATCH_EMPTY)
+            .Must(h => h.GroupBy(row => DateOnly.FromDateTime(row.Date)).All(g => g.Count() == 1))
+            .WithMessage(ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT);
 
         RuleForEach(r => r.Holidays).ChildRules(row =>
         {
