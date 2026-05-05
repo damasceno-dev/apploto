@@ -429,4 +429,10 @@
     <data name="HOLIDAY_LIST_PAGE_SIZE_INVALID" xml:space="preserve">
         <value>O tamanho da página deve estar entre {0} e {1}</value>
     </data>
+    <data name="HOLIDAY_CREATE_BATCH_EMPTY" xml:space="preserve">
+        <value>A lista de feriados não pode ser vazia</value>
+    </data>
+    <data name="HOLIDAY_LIST_DATE_RANGE_INVALID" xml:space="preserve">
+        <value>A data inicial deve ser menor ou igual à data final</value>
+    </data>
 </root>

@@ -866,5 +866,17 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("HOLIDAY_LIST_PAGE_SIZE_INVALID", resourceCulture);
             }
         }
+
+        public static string HOLIDAY_CREATE_BATCH_EMPTY {
+            get {
+                return ResourceManager.GetString("HOLIDAY_CREATE_BATCH_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string HOLIDAY_LIST_DATE_RANGE_INVALID {
+            get {
+                return ResourceManager.GetString("HOLIDAY_LIST_DATE_RANGE_INVALID", resourceCulture);
+            }
+        }
     }
 }

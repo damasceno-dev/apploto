@@ -421,6 +421,26 @@ internal static class TestSeeder
             return item;
         }
 
+        public async Task<Holiday> SeedHolidayAsync(
+            Guid branchId,
+            DateTime date,
+            string? description = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var holiday = new Holiday
+            {
+                Id = Guid.NewGuid(),
+                Date = date,
+                Description = description,
+                BranchId = branchId
+            };
+            dbContext.Holidays.Add(holiday);
+            await dbContext.SaveChangesAsync();
+            return holiday;
+        }
+
         public async Task<List<DailyCloseItem>> ListDailyCloseItemsByDailyCloseIdAsync(Guid dailyCloseId)
         {
             using var scope = factory.Services.CreateScope();

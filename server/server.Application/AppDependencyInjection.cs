@@ -46,6 +46,8 @@ using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
+using server.Application.UseCases.Holidays.Create;
+using server.Application.UseCases.Holidays.List;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
@@ -119,6 +121,8 @@ public static class AppDependencyInjection
         services.AddScoped<ListTransactionsUseCase>();
         services.AddScoped<UpdateTransactionUseCase>();
         services.AddScoped<CancelTransactionUseCase>();
+        services.AddScoped<CreateHolidaysUseCase>();
+        services.AddScoped<ListHolidaysUseCase>();
         services.AddScoped<OpenDailyCloseUseCase>();
         services.AddScoped<GetDailyCloseUseCase>();
         services.AddScoped<ListDailyClosesUseCase>();

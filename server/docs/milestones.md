@@ -880,17 +880,24 @@ Add the domain, persistence, shared services, resource keys, migration, and spec
 Implement branch-scoped Holiday calendar management first so TimeEntry and due-date behavior have calendar data to consume. Holiday reads are list/filter based; no single `GET /holiday/{id}` endpoint is planned because the list row carries the full Holiday shape. Date checks use `GET /holiday?dateFrom={date}&dateTo={date}`.
 
 - [ ] **2.1** Add `RequestCreateHolidaysJson` containing a non-empty list of `RequestCreateHolidayJson` rows, `RequestCreateHolidayJson`, `RequestUpdateHolidayJson`, `RequestListHolidaysJson`, `ResponseHolidayJson`, `ResponseCreateHolidaysJson`, and `ResponseListHolidaysJson`; then add matching `CommonTestUtilities` request builders for create batch, update, and list
+  - Note: Batch Create + List only; Update/Deactivate in next slice
 - [ ] **2.2** Add Holiday validators covering non-empty create batch, required row `Date`, optional `Description` length, duplicate dates inside the same create batch, update description length, paging, and date/year filter shape
-- [ ] **2.3** Implement `CreateHolidaysUseCase` restricted to `Manager` and `Admin`, treating the batch as all-or-nothing and returning all persisted `ResponseHolidayJson` items
-- [ ] **2.4** Reject create when any requested date already has an active Holiday in the same branch, reject duplicate dates inside the request, and translate `(BranchId, Date)` filtered unique race-condition violations to `409 HOLIDAY_DATE_CONFLICT`
-- [ ] **2.5** Implement `ListHolidaysUseCase` for any authenticated branch role with optional `Year`, `DateFrom`, `DateTo`, `Page`, and `PageSize`; return `TotalCount`, `TotalPages`, `HasNext`, and `HasPrevious`
+  - Note: Batch Create + List only; Update/Deactivate in next slice
+- [x] **2.3** Implement `CreateHolidaysUseCase` restricted to `Manager` and `Admin`, treating the batch as all-or-nothing and returning all persisted `ResponseHolidayJson` items
+- [x] **2.4** Reject create when any requested date already has an active Holiday in the same branch, reject duplicate dates inside the request, and translate `(BranchId, Date)` filtered unique race-condition violations to `409 HOLIDAY_DATE_CONFLICT`
+- [x] **2.5** Implement `ListHolidaysUseCase` for any authenticated branch role with optional `Year`, `DateFrom`, `DateTo`, `Page`, and `PageSize`; return `TotalCount`, `TotalPages`, `HasNext`, and `HasPrevious`
 - [ ] **2.6** Implement `UpdateHolidayUseCase` restricted to `Manager` and `Admin`; update `Description` only, with `Date` immutable after creation
 - [ ] **2.7** Implement `DeactivateHolidayUseCase` restricted to `Manager` and `Admin`, using soft delete
 - [ ] **2.8** Add `HolidayController` with explicit per-action `[Route]`, branch auth filters, and audited `[ProducesResponseType]` metadata for `POST /holiday`, `GET /holiday`, `PUT /holiday/{holidayId:guid}`, and `DELETE /holiday/{holidayId:guid}`; do not add a single-item `GET /holiday/{holidayId:guid}`
+  - Note: Batch Create + List only; Update/Deactivate in next slice
 - [ ] **2.9** Register Holiday use cases in Application DI
+  - Note: Batch Create + List only; Update/Deactivate in next slice
 - [ ] **2.10** Add `Validators.Test` coverage for Holiday batch create, update, and list validation
+  - Note: Batch Create + List only; Update/Deactivate in next slice
 - [ ] **2.11** Add `UseCases.Test` coverage for Holiday batch create, list, update, deactivate, duplicate-date conflict, request-internal duplicate dates, role permissions, branch isolation, exact-argument repository assertions, and paging metadata
+  - Note: Batch Create + List only; Update/Deactivate in next slice
 - [ ] **2.12** Add `WebApi.Test` happy-path and unhappy-path coverage for all Holiday endpoints, including `400`, `401`, `403`, `404`, `409`, filtered unique-index race translation, soft-delete recreation, branch isolation, date/year list filters, and pagination metadata over multiple pages
+  - Note: Batch Create + List only; Update/Deactivate in next slice
 
 ### Phase 3 — TimeEntry Write Path
 
