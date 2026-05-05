@@ -875,23 +875,22 @@ Add the domain, persistence, shared services, resource keys, migration, and spec
 - [x] **1.25** Bump shared spec sync metadata across all three docs
 - [x] **1.26** Run `bash docs/check-loto-doc-sync.sh`
 
-### Phase 2 — Holiday CRUD Slice
+### Phase 2 — Holiday Calendar CRUD Slice
 
-Implement branch-scoped Holiday CRUD first so TimeEntry and due-date behavior have calendar data to consume.
+Implement branch-scoped Holiday calendar management first so TimeEntry and due-date behavior have calendar data to consume. Holiday reads are list/filter based; no single `GET /holiday/{id}` endpoint is planned because the list row carries the full Holiday shape. Date checks use `GET /holiday?dateFrom={date}&dateTo={date}`.
 
-- [ ] **2.1** Add `RequestCreateHolidayJson`, `RequestUpdateHolidayJson`, `RequestListHolidaysJson`, `ResponseHolidayJson`, and `ResponseListHolidaysJson`; then add `RequestCreateHolidayJsonBuilder`, `RequestUpdateHolidayJsonBuilder` to `CommonTestUtilities`
-- [ ] **2.2** Add Holiday validators covering required `Date`, optional `Description` length, paging, and date/year filter shape
-- [ ] **2.3** Implement `CreateHolidayUseCase` restricted to `Manager` and `Admin`
-- [ ] **2.4** Reject create when another active Holiday already exists for the same `(BranchId, Date)` and translate race-condition unique violations to `409`
-- [ ] **2.5** Implement `UpdateHolidayUseCase` for `Description` only; `Date` stays immutable after creation
-- [ ] **2.6** Implement `DeactivateHolidayUseCase` as soft delete
-- [ ] **2.7** Implement `GetHolidayUseCase` for any authenticated branch role
-- [ ] **2.8** Implement `ListHolidaysUseCase` for any authenticated branch role with optional year/date filters and pagination
-- [ ] **2.9** Add `HolidayController` with explicit per-action `[Route]`, branch auth filters, and `[ProducesResponseType]` metadata
-- [ ] **2.10** Register Holiday use cases in Application DI
-- [ ] **2.11** Add `Validators.Test` coverage for Holiday create/update/list validation
-- [ ] **2.12** Add `UseCases.Test` coverage for Holiday create, list, get, update, deactivate, duplicate-date conflict, role permissions, and branch isolation
-- [ ] **2.13** Add `WebApi.Test` happy-path and unhappy-path coverage for all Holiday endpoints, including `401`, `403`, `404`, `409`, filtered unique-index race translation, soft-delete recreation, and branch isolation
+- [ ] **2.1** Add `RequestCreateHolidaysJson` containing a non-empty list of `RequestCreateHolidayJson` rows, `RequestCreateHolidayJson`, `RequestUpdateHolidayJson`, `RequestListHolidaysJson`, `ResponseHolidayJson`, `ResponseCreateHolidaysJson`, and `ResponseListHolidaysJson`; then add matching `CommonTestUtilities` request builders for create batch, update, and list
+- [ ] **2.2** Add Holiday validators covering non-empty create batch, required row `Date`, optional `Description` length, duplicate dates inside the same create batch, update description length, paging, and date/year filter shape
+- [ ] **2.3** Implement `CreateHolidaysUseCase` restricted to `Manager` and `Admin`, treating the batch as all-or-nothing and returning all persisted `ResponseHolidayJson` items
+- [ ] **2.4** Reject create when any requested date already has an active Holiday in the same branch, reject duplicate dates inside the request, and translate `(BranchId, Date)` filtered unique race-condition violations to `409 HOLIDAY_DATE_CONFLICT`
+- [ ] **2.5** Implement `ListHolidaysUseCase` for any authenticated branch role with optional `Year`, `DateFrom`, `DateTo`, `Page`, and `PageSize`; return `TotalCount`, `TotalPages`, `HasNext`, and `HasPrevious`
+- [ ] **2.6** Implement `UpdateHolidayUseCase` restricted to `Manager` and `Admin`; update `Description` only, with `Date` immutable after creation
+- [ ] **2.7** Implement `DeactivateHolidayUseCase` restricted to `Manager` and `Admin`, using soft delete
+- [ ] **2.8** Add `HolidayController` with explicit per-action `[Route]`, branch auth filters, and audited `[ProducesResponseType]` metadata for `POST /holiday`, `GET /holiday`, `PUT /holiday/{holidayId:guid}`, and `DELETE /holiday/{holidayId:guid}`; do not add a single-item `GET /holiday/{holidayId:guid}`
+- [ ] **2.9** Register Holiday use cases in Application DI
+- [ ] **2.10** Add `Validators.Test` coverage for Holiday batch create, update, and list validation
+- [ ] **2.11** Add `UseCases.Test` coverage for Holiday batch create, list, update, deactivate, duplicate-date conflict, request-internal duplicate dates, role permissions, branch isolation, exact-argument repository assertions, and paging metadata
+- [ ] **2.12** Add `WebApi.Test` happy-path and unhappy-path coverage for all Holiday endpoints, including `400`, `401`, `403`, `404`, `409`, filtered unique-index race translation, soft-delete recreation, branch isolation, date/year list filters, and pagination metadata over multiple pages
 
 ### Phase 3 — TimeEntry Write Path
 
