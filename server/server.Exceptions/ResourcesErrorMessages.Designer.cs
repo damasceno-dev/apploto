@@ -813,6 +813,24 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_REQUIRES_OPERATOR_LINK {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_REQUIRES_OPERATOR_LINK", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_WRITE_REQUIRES_SAME_DAY {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_WRITE_REQUIRES_SAME_DAY", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_MEMBER_ONLY_PRESENT {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_MEMBER_ONLY_PRESENT", resourceCulture);
+            }
+        }
+
         public static string TIMEENTRY_LIST_PAGE_INVALID {
             get {
                 return ResourceManager.GetString("TIMEENTRY_LIST_PAGE_INVALID", resourceCulture);

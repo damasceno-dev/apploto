@@ -902,7 +902,7 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
 - [ ] **3.4** Keep status-relative validation in the use case or calculation service: `Present` requires both clocks; non-`Present` statuses reject clocks
 - [ ] **3.5** Enforce `Sunday` status only when `Date.DayOfWeek == Sunday`
 - [ ] **3.6** Enforce `Holiday` status only when an active Holiday exists for the branch/date
-- [ ] **3.7** Add `ITimeEntryWritePermissionGuard` under `Services/TimeEntries/` with explicit outcome enum values: `SelfSameDayPresent`, `Elevated`, `MissingLinkedOperator`, `NotOwnOperator`, `OlderDayMember`, and `MemberNonPresent`
+- [x] **3.7** Add `ITimeEntryWritePermissionGuard` under `Services/TimeEntries/` with explicit outcome enum values: `SelfSameDayPresent`, `Elevated`, `MissingLinkedOperator`, `NotOwnOperator`, `OlderDayMember`, and `MemberNonPresent`
 - [ ] **3.8** Implement `UpsertTimeEntryUseCase` flow: authenticate branch user, validate request, resolve caller linked operator, validate target operator belongs to branch, authorize, load existing entry by `(BranchId, OperatorId, Date)` tracked, load branch Setting, calculate hours, insert or mutate in place, stamp `UpdatedAt`/`UpdatedByUserId` from one captured clock instant, commit, and map response
 - [ ] **3.9** Treat `PUT /timeentry` insert and update as `200 OK` with `ResponseTimeEntryJson`
 - [ ] **3.10** Do not call `LockDateGuard` from TimeEntry write use cases in this milestone
@@ -910,8 +910,8 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
 - [ ] **3.12** Add `TimeEntryController` routes for `PUT /timeentry` and `DELETE /timeentry/{timeEntryId:guid}` with explicit auth and response metadata
 - [ ] **3.13** Register TimeEntry write use cases and services in Application DI
 - [ ] **3.14** Add `Validators.Test` coverage for TimeEntry upsert shape validation
-- [ ] **3.15** Add isolated `TimeEntryCalculationServiceTest` coverage for all calculation branches, lunch thresholds, exact 4h/6h boundaries, and midnight crossing
-- [ ] **3.16** Add isolated `TimeEntryWritePermissionGuardTest` coverage for the full role × operator × local-business-day × status matrix
+- [x] **3.15** Add isolated `TimeEntryCalculationServiceTest` coverage for all calculation branches, lunch thresholds, exact 4h/6h boundaries, and midnight crossing
+- [x] **3.16** Add isolated `TimeEntryWritePermissionGuardTest` coverage for the full role × operator × local-business-day × status matrix
 - [ ] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation
 - [ ] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation
 

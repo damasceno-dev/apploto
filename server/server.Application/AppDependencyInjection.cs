@@ -111,6 +111,7 @@ public static class AppDependencyInjection
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<ITimeEntryCalculationService, TimeEntryCalculationService>();
+        services.AddScoped<ITimeEntryWritePermissionGuard, TimeEntryWritePermissionGuard>();
         services.AddScoped<IBranchHolidaySource, BranchHolidaySource>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();

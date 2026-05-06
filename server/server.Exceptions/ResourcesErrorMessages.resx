@@ -402,6 +402,15 @@
     <data name="TIMEENTRY_NOT_OWN_OPERATOR" xml:space="preserve">
         <value>Membros só podem gerenciar os próprios registros de ponto</value>
     </data>
+    <data name="TIMEENTRY_REQUIRES_OPERATOR_LINK" xml:space="preserve">
+        <value>Membros precisam ter um operador vinculado para gerenciar registros de ponto</value>
+    </data>
+    <data name="TIMEENTRY_WRITE_REQUIRES_SAME_DAY" xml:space="preserve">
+        <value>Membros só podem registrar ponto no dia de trabalho atual</value>
+    </data>
+    <data name="TIMEENTRY_MEMBER_ONLY_PRESENT" xml:space="preserve">
+        <value>Membros só podem registrar o status Presente; outros status requerem Gerente ou Admin</value>
+    </data>
     <data name="TIMEENTRY_LIST_PAGE_INVALID" xml:space="preserve">
         <value>A página deve ser maior ou igual a 1</value>
     </data>
