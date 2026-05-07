@@ -67,9 +67,9 @@ public class TimeEntryControllerUpsertUnhappyPathTest(ServerWebApplicationFactor
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn400_WhenPresentMissingClocks()
+    public async Task Upsert_ShouldReturn400_WhenPresentMissingClockIn()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400PresClocks", Role.Manager);
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400PresClockIn", Role.Manager);
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id);
         var request = new RequestUpsertTimeEntryJsonBuilder()
@@ -83,7 +83,28 @@ public class TimeEntryControllerUpsertUnhappyPathTest(ServerWebApplicationFactor
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN);
+    }
+
+    [Fact]
+    public async Task Upsert_ShouldReturn400_WhenClockOutSuppliedWithoutClockIn()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400ClockOutNoIn", Role.Manager);
+        await factory.SeedSettingAsync(branch.Id);
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var request = new RequestUpsertTimeEntryJsonBuilder()
+            .WithOperatorId(op.Id)
+            .WithDate(DateTime.UtcNow.Date)
+            .WithStatus(TimeEntryStatus.Present)
+            .WithClockIn(null)
+            .WithClockOut(new TimeOnly(17, 0))
+            .Build();
+
+        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN);
     }
 
     [Fact]

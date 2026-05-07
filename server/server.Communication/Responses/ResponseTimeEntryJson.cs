@@ -11,6 +11,7 @@ public class ResponseTimeEntryJson
     public TimeEntryStatus Status { get; init; }
     public decimal TotalHours { get; init; }
     public decimal BalanceHours { get; init; }
+    public bool IsInProgress { get; init; }
     public Guid OperatorId { get; init; }
     public string OperatorName { get; init; } = string.Empty;
     public Guid BranchId { get; init; }

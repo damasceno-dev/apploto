@@ -837,9 +837,9 @@ namespace server.Exceptions {
             }
         }
 
-        public static string TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS {
+        public static string TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN {
             get {
-                return ResourceManager.GetString("TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS", resourceCulture);
+                return ResourceManager.GetString("TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN", resourceCulture);
             }
         }
 

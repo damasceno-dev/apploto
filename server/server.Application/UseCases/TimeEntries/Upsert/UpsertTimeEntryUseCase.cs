@@ -62,13 +62,31 @@ public class UpsertTimeEntryUseCase(
         var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId)
             ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
 
-        var (totalHours, balanceHours) = calculationService.Calculate(
-            request.Status,
-            request.ClockIn,
-            request.ClockOut,
-            setting.DailyTargetHours,
-            setting.LunchDeductionOver6H,
-            setting.LunchDeductionOver4H);
+        (decimal totalHours, decimal balanceHours) hours;
+        if (request is { Status: TimeEntryStatus.Present, ClockOut: null })
+        {
+            // Partial Present (open shift on the current branch-local day): live-running estimate.
+            // The persisted value is a last-write checkpoint; the read path recomputes on every call.
+            var branchLocalNow = branchClock.LocalBusinessDateTime(branchClock.UtcNow());
+            hours = calculationService.CalculateLiveRunning(
+                request.ClockIn!.Value,
+                request.Date,
+                branchLocalNow,
+                setting.DailyTargetHours,
+                setting.LunchDeductionOver6H,
+                setting.LunchDeductionOver4H);
+        }
+        else
+        {
+            hours = calculationService.Calculate(
+                request.Status,
+                request.ClockIn,
+                request.ClockOut,
+                setting.DailyTargetHours,
+                setting.LunchDeductionOver6H,
+                setting.LunchDeductionOver4H);
+        }
+        var (totalHours, balanceHours) = hours;
 
         // One captured instant — used for both the audit timestamp and any future
         // "same-instant" comparisons. UpsertTimeEntry has no other workflow timestamps,
@@ -134,20 +152,23 @@ public class UpsertTimeEntryUseCase(
 
     private async Task EnsureStatusRelativeRulesAsync(RequestUpsertTimeEntryJson request, Guid branchId)
     {
-        // Present requires both clocks; everything else rejects clocks.
+        // ClockOut without ClockIn is invalid for any status — fires before the status-specific checks,
+        // so the message is consistent regardless of whether Present or non-Present.
+        if (request.ClockIn is null && request.ClockOut is not null)
+            throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN]);
+
+        // Only Present accepts clocks — ClockIn is required; ClockOut may be null (open shift).
+        // Non-Present statuses are full-day entries whose hours derive from the status itself,
+        // so clocks would be meaningless; both must be null.
         if (request.Status is TimeEntryStatus.Present)
         {
-            if (request.ClockIn is null || request.ClockOut is null)
-            {
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS]);
-            }
+            if (request.ClockIn is null)
+                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN]);
         }
         else
         {
             if (request.ClockIn is not null || request.ClockOut is not null)
-            {
                 throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS]);
-            }
         }
 
         switch (request.Status)
@@ -165,7 +186,7 @@ public class UpsertTimeEntryUseCase(
 
                 break;
             }
-            case TimeEntryStatus.Sunday:  // Sunday on a Sunday-date — the `when` guard above filtered out the wrong-day case.
+            case TimeEntryStatus.Sunday:  // Sunday on a Sunday date — the `when` guard above filtered out the wrong-day case.
             case TimeEntryStatus.Present:
             case TimeEntryStatus.DayOff:
             case TimeEntryStatus.Vacation:

@@ -201,7 +201,7 @@ public class UpsertTimeEntryUseCaseTest
     // ── Status-relative validation ───────────────────────────────────────
 
     [Fact]
-    public async Task Execute_ShouldThrowOnValidation_WhenPresentMissingClocks()
+    public async Task Execute_ShouldThrowOnValidation_WhenPresentMissingClockIn()
     {
         var ctx = BuildContext(Role.Manager, linkedOperator: false);
         ctx.Request.ClockIn = null;
@@ -210,8 +210,132 @@ public class UpsertTimeEntryUseCaseTest
 
         var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
 
-        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS);
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN);
         await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    // ── Phase 3.5 partial Present + live-running ─────────────────────────
+
+    [Fact]
+    public async Task Execute_ShouldSucceed_WhenPresentWithClockInOnly()
+    {
+        var ctx = BuildContext(Role.Manager, linkedOperator: false);
+        ctx.Request.ClockIn = new TimeOnly(8, 0);
+        ctx.Request.ClockOut = null;
+
+        var branchLocalNow = new DateTime(2026, 5, 5, 9, 30, 0);
+        ctx.BranchClock.LocalBusinessDateTime(FixedNow).Returns(branchLocalNow);
+        ctx.CalculationService.CalculateLiveRunning(
+            Arg.Any<TimeOnly>(),
+            Arg.Any<DateTime>(),
+            Arg.Any<DateTime>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>()
+        ).Returns((1.5m, -5.83m));
+
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Request);
+
+        response.IsInProgress.ShouldBeTrue();
+        response.TotalHours.ShouldBe(1.5m);
+        response.BalanceHours.ShouldBe(-5.83m);
+        response.ClockIn.ShouldBe(new TimeOnly(8, 0));
+        response.ClockOut.ShouldBeNull();
+
+        ctx.CalculationService.Received(1).CalculateLiveRunning(
+            new TimeOnly(8, 0),
+            ctx.Request.Date,
+            branchLocalNow,
+            ctx.Setting.DailyTargetHours,
+            ctx.Setting.LunchDeductionOver6H,
+            ctx.Setting.LunchDeductionOver4H);
+        ctx.CalculationService.DidNotReceive().Calculate(
+            Arg.Any<TimeEntryStatus>(),
+            Arg.Any<TimeOnly?>(),
+            Arg.Any<TimeOnly?>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>());
+
+        await ctx.TimeEntriesRepository.Received(1).Add(Arg.Is<TimeEntry>(t =>
+            t.ClockIn == new TimeOnly(8, 0) &&
+            t.ClockOut == null &&
+            t.Status == TimeEntryStatus.Present));
+        await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowOnValidation_WhenClockOutSuppliedWithoutClockIn()
+    {
+        var ctx = BuildContext(Role.Manager, linkedOperator: false);
+        ctx.Request.ClockIn = null;
+        ctx.Request.ClockOut = new TimeOnly(17, 0);
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldUpdateInPlaceAndComputeFinalHours_WhenSecondTapClocksOut()
+    {
+        var ctx = BuildContext(Role.Manager, linkedOperator: false);
+        var existing = new TimeEntryBuilder()
+            .WithBranchId(ctx.BranchUser.BranchId)
+            .WithOperatorId(ctx.TargetOperator.Id)
+            .WithDate(ctx.Request.Date)
+            .WithStatus(TimeEntryStatus.Present)
+            .WithClockIn(new TimeOnly(8, 0))
+            .WithClockOut(null)
+            .WithTotalHours(0m)
+            .WithBalanceHours(-7.33m)
+            .Build();
+        ctx.TimeEntriesRepository
+            .GetByBranchIdOperatorIdAndDate(ctx.BranchUser.BranchId, ctx.TargetOperator.Id, ctx.Request.Date)
+            .Returns(existing);
+
+        ctx.Request.ClockIn = new TimeOnly(8, 0);
+        ctx.Request.ClockOut = new TimeOnly(17, 0);
+        ctx.CalculationService.Calculate(
+            Arg.Any<TimeEntryStatus>(),
+            Arg.Any<TimeOnly?>(),
+            Arg.Any<TimeOnly?>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>()
+        ).Returns((8m, 0.67m));
+
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Request);
+
+        response.Id.ShouldBe(existing.Id);
+        response.IsInProgress.ShouldBeFalse();
+        response.TotalHours.ShouldBe(8m);
+        response.BalanceHours.ShouldBe(0.67m);
+        response.ClockOut.ShouldBe(new TimeOnly(17, 0));
+
+        ctx.CalculationService.Received(1).Calculate(
+            TimeEntryStatus.Present,
+            new TimeOnly(8, 0),
+            new TimeOnly(17, 0),
+            ctx.Setting.DailyTargetHours,
+            ctx.Setting.LunchDeductionOver6H,
+            ctx.Setting.LunchDeductionOver4H);
+        ctx.CalculationService.DidNotReceive().CalculateLiveRunning(
+            Arg.Any<TimeOnly>(),
+            Arg.Any<DateTime>(),
+            Arg.Any<DateTime>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>());
+
+        await ctx.TimeEntriesRepository.DidNotReceive().Add(Arg.Any<TimeEntry>());
+        await ctx.UnitOfWork.Received(1).Commit();
     }
 
     [Fact]
@@ -370,6 +494,7 @@ public class UpsertTimeEntryUseCaseTest
         public required ITimeEntriesRepository TimeEntriesRepository { get; set; }
         public required ISettingsRepository SettingsRepository { get; set; }
         public required IHolidaysRepository HolidaysRepository { get; set; }
+        public required ITimeEntryCalculationService CalculationService { get; set; }
         public required IBranchClock BranchClock { get; set; }
         public required IUnitOfWork UnitOfWork { get; set; }
     }
@@ -431,6 +556,41 @@ public class UpsertTimeEntryUseCaseTest
         var branchClock = Substitute.For<IBranchClock>();
         branchClock.UtcNow().Returns(FixedNow);
         branchClock.IsSameLocalDay(Arg.Any<DateTime>(), Arg.Any<DateTime>()).Returns(true);
+        // Default LocalBusinessDateTime stub; tests that exercise live-running override it.
+        branchClock.LocalBusinessDateTime(Arg.Any<DateTime>()).Returns(c => ((DateTime)c[0]).Date);
+        // Substitute the calc service but delegate to the real implementation by default so
+        // existing tests that exercise calc behavior keep their realistic results. Live-running
+        // and exact-arg tests override the relevant stubs explicitly.
+        var realCalculationService = new TimeEntryCalculationService();
+        var calculationService = Substitute.For<ITimeEntryCalculationService>();
+        calculationService.Calculate(
+            Arg.Any<TimeEntryStatus>(),
+            Arg.Any<TimeOnly?>(),
+            Arg.Any<TimeOnly?>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>()
+        ).Returns(c => realCalculationService.Calculate(
+            (TimeEntryStatus)c[0],
+            (TimeOnly?)c[1],
+            (TimeOnly?)c[2],
+            (decimal)c[3],
+            (decimal)c[4],
+            (decimal)c[5]));
+        calculationService.CalculateLiveRunning(
+            Arg.Any<TimeOnly>(),
+            Arg.Any<DateTime>(),
+            Arg.Any<DateTime>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>(),
+            Arg.Any<decimal>()
+        ).Returns(c => realCalculationService.CalculateLiveRunning(
+            (TimeOnly)c[0],
+            (DateTime)c[1],
+            (DateTime)c[2],
+            (decimal)c[3],
+            (decimal)c[4],
+            (decimal)c[5]));
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
         return new TestContext
@@ -446,6 +606,7 @@ public class UpsertTimeEntryUseCaseTest
             TimeEntriesRepository = timeEntriesRepository,
             SettingsRepository = settingsRepository,
             HolidaysRepository = holidaysRepository,
+            CalculationService = calculationService,
             BranchClock = branchClock,
             UnitOfWork = unitOfWork
         };
@@ -457,7 +618,6 @@ public class UpsertTimeEntryUseCaseTest
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
         var permissionGuard = new TimeEntryWritePermissionGuard(ctx.BranchClock);
-        var calculationService = new TimeEntryCalculationService();
 
         return new UpsertTimeEntryUseCase(
             ctx.AuthenticationService,
@@ -467,7 +627,7 @@ public class UpsertTimeEntryUseCaseTest
             ctx.SettingsRepository,
             ctx.HolidaysRepository,
             permissionGuard,
-            calculationService,
+            ctx.CalculationService,
             ctx.BranchClock,
             ctx.UnitOfWork);
     }

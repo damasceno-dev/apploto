@@ -948,10 +948,10 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
   - Otherwise: synthesize `effectiveClockOut = TimeOnly.FromDateTime(branchLocalNow)` and apply the existing CalculatePresent math (including midnight-crossing safety and lunch tiers).
 - [x] **3.5.5** Add `TimeEntryCalculationServiceTest` coverage for `CalculateLiveRunning`: just-clocked-in (gross 0, balance = -DailyTarget), gross < 4h (no lunch), gross > 4h and ≤ 6h (Over4H), gross > 6h (Over6H), forgotten-clock-out previous day → `(0, 0)`, same-day `effectiveClockOut < clockIn` (clock drift) → `(0, -DailyTarget)`. Existing `Calculate` cases stay untouched.
 - [x] **3.5.6** Add resource key `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN` to `server.Exceptions/ResourcesErrorMessages.resx` and `ResourcesErrorMessages.Designer.cs`. Text: "Não é possível registrar horário de saída sem horário de entrada".
-- [ ] **3.5.7** Add `bool IsInProgress { get; init; }` to `ResponseTimeEntryJson`.
-- [ ] **3.5.8** Update `UpsertTimeEntryMapper.ToResponse` to compute `IsInProgress = timeEntry.Status == TimeEntryStatus.Present && timeEntry.ClockIn is not null && timeEntry.ClockOut is null`.
-- [ ] **3.5.9** Rename resource key `TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS` → `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN` in resx and designer. Update Portuguese text to "O status Presente exige horário de entrada".
-- [ ] **3.5.10** Update `UpsertTimeEntryUseCase.EnsureStatusRelativeRulesAsync`:
+- [x] **3.5.7** Add `bool IsInProgress { get; init; }` to `ResponseTimeEntryJson`.
+- [x] **3.5.8** Update `UpsertTimeEntryMapper.ToResponse` to compute `IsInProgress = timeEntry.Status == TimeEntryStatus.Present && timeEntry.ClockIn is not null && timeEntry.ClockOut is null`.
+- [x] **3.5.9** Rename resource key `TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS` → `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN` in resx and designer. Update Portuguese text to "O status Presente exige horário de entrada".
+- [x] **3.5.10** Update `UpsertTimeEntryUseCase.EnsureStatusRelativeRulesAsync`:
   - First, for any status, throw `OnValidationException` with `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN` if `ClockIn == null && ClockOut != null`.
   - For `Status == Present`, throw `OnValidationException` with `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN` if `ClockIn == null`. `ClockOut` may be null.
   - For non-Present statuses, throw `OnValidationException` with `TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS` if either clock is set (unchanged).
@@ -960,18 +960,18 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
   Update `UpsertTimeEntryUseCase.Execute` to branch the calc call:
   - If `Status == Present && ClockOut == null`: call `calculationService.CalculateLiveRunning(ClockIn.Value, request.Date, branchClock.LocalBusinessDateTime(branchClock.UtcNow()), DailyTargetHours, LunchDeductionOver6H, LunchDeductionOver4H)`.
   - Else: call `calculationService.Calculate(...)` as today.
-- [ ] **3.5.11** Update `UpsertTimeEntryUseCaseTest`:
+- [x] **3.5.11** Update `UpsertTimeEntryUseCaseTest`:
   - Re-key the existing both-clocks-null Present failure test from `TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS` to `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN`. Rename to `Execute_ShouldThrowOnValidation_WhenPresentMissingClockIn`.
   - Add `Execute_ShouldSucceed_WhenPresentWithClockInOnly`: partial Present, Manager role; assert `IsInProgress == true`, `Add` received once with `ClockOut == null`, exact-arg assertion that `CalculateLiveRunning` was invoked once with the request's `ClockIn`/`Date`/`branchClock.LocalBusinessDateTime(now)`/setting values; `Calculate` not invoked.
   - Add `Execute_ShouldThrowOnValidation_WhenClockOutSuppliedWithoutClockIn`: ClockIn = null, ClockOut = 17:00, any status; assert `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN`, `Commit` not received.
   - Add `Execute_ShouldUpdateInPlaceAndComputeFinalHours_WhenSecondTapClocksOut`: seed an existing partial Present row, run the upsert with both clocks; assert same `Id`, final `TotalHours`/`BalanceHours` from `Calculate`, `IsInProgress == false`, `Commit` received once, `Add` not received, `CalculateLiveRunning` not invoked.
-- [ ] **3.5.12** Update `TimeEntryControllerUpsertHappyPathTest`:
+- [x] **3.5.12** Update `TimeEntryControllerUpsertHappyPathTest`:
   - Add `Upsert_ShouldReturn200WithIsInProgressTrue_WhenManagerSendsClockInOnly`: partial Present, asserts `IsInProgress == true` and reload-based persistence with `ClockOut == null`.
   - Add `Upsert_ShouldComputeFinalHoursAndIsInProgressFalse_WhenSecondTapCompletesShift`: first PUT with ClockIn only, second PUT with both clocks, assert same id between responses, second response `IsInProgress == false` and `TotalHours` computed via the standard `Calculate`, reload-based confirmation.
-- [ ] **3.5.13** Update `TimeEntryControllerUpsertUnhappyPathTest`:
+- [x] **3.5.13** Update `TimeEntryControllerUpsertUnhappyPathTest`:
   - Re-key + rename `Upsert_ShouldReturn400_WhenPresentMissingClocks` → `Upsert_ShouldReturn400_WhenPresentMissingClockIn` with `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN`.
   - Add `Upsert_ShouldReturn400_WhenClockOutSuppliedWithoutClockIn` asserting `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN`.
-- [ ] **3.5.14** Mark Phase 3.5 items 3.5.1 – 3.5.13 complete in this file. Run `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, `dotnet test tests/WebApi.Test`. All green.
+- [x] **3.5.14** Mark Phase 3.5 items 3.5.1 – 3.5.13 complete in this file. Run `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, `dotnet test tests/WebApi.Test`. All green.
 
 #### Done criteria
 

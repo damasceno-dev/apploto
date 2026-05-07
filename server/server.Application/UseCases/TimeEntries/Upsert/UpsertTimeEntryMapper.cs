@@ -1,5 +1,6 @@
 using server.Communication.Responses;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 
 namespace server.Application.UseCases.TimeEntries.Upsert;
 
@@ -18,6 +19,9 @@ public static class UpsertTimeEntryMapper
                 Status = timeEntry.Status,
                 TotalHours = timeEntry.TotalHours,
                 BalanceHours = timeEntry.BalanceHours,
+                IsInProgress = timeEntry.Status == TimeEntryStatus.Present
+                    && timeEntry.ClockIn is not null
+                    && timeEntry.ClockOut is null,
                 OperatorId = timeEntry.OperatorId,
                 OperatorName = operatorName,
                 BranchId = timeEntry.BranchId,
