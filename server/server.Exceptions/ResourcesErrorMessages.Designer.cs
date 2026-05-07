@@ -831,6 +831,42 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_CLOCKS_EQUAL {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_CLOCKS_EQUAL", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_HOLIDAY_REQUIRES_ACTIVE_HOLIDAY {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_HOLIDAY_REQUIRES_ACTIVE_HOLIDAY", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_OPERATOR_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_OPERATOR_NOT_FOUND", resourceCulture);
+            }
+        }
+
         public static string TIMEENTRY_LIST_PAGE_INVALID {
             get {
                 return ResourceManager.GetString("TIMEENTRY_LIST_PAGE_INVALID", resourceCulture);

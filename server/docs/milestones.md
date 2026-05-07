@@ -896,24 +896,24 @@ Implement branch-scoped Holiday calendar management first so TimeEntry and due-d
 
 Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation flow.
 
-- [ ] **3.1** Add `RequestUpsertTimeEntryJson` with `OperatorId`, `Date`, `Status`, nullable `ClockIn`, and nullable `ClockOut`; then add `RequestUpsertTimeEntryJsonBuilder` to `CommonTestUtilities`
-- [ ] **3.2** Add `ResponseTimeEntryJson` with ids, date, clocks, status, calculated hours, operator info, branch id, created/audit fields, and active flag
-- [ ] **3.3** Add `UpsertTimeEntryFluentValidation` for shape-only validation: non-empty `OperatorId`, non-default `Date`, valid enum status, and clock ordering when both clocks are present
-- [ ] **3.4** Keep status-relative validation in the use case or calculation service: `Present` requires both clocks; non-`Present` statuses reject clocks
-- [ ] **3.5** Enforce `Sunday` status only when `Date.DayOfWeek == Sunday`
-- [ ] **3.6** Enforce `Holiday` status only when an active Holiday exists for the branch/date
+- [x] **3.1** Add `RequestUpsertTimeEntryJson` with `OperatorId`, `Date`, `Status`, nullable `ClockIn`, and nullable `ClockOut`; then add `RequestUpsertTimeEntryJsonBuilder` to `CommonTestUtilities`
+- [x] **3.2** Add `ResponseTimeEntryJson` with ids, date, clocks, status, calculated hours, operator info, branch id, created/audit fields, and active flag
+- [x] **3.3** Add `UpsertTimeEntryFluentValidation` for shape-only validation: non-empty `OperatorId`, non-default `Date`, valid enum status, and clock ordering when both clocks are present
+- [x] **3.4** Keep status-relative validation in the use case or calculation service: `Present` requires both clocks; non-`Present` statuses reject clocks
+- [x] **3.5** Enforce `Sunday` status only when `Date.DayOfWeek == Sunday`
+- [x] **3.6** Enforce `Holiday` status only when an active Holiday exists for the branch/date
 - [x] **3.7** Add `ITimeEntryWritePermissionGuard` under `Services/TimeEntries/` with explicit outcome enum values: `SelfSameDayPresent`, `Elevated`, `MissingLinkedOperator`, `NotOwnOperator`, `OlderDayMember`, and `MemberNonPresent`
-- [ ] **3.8** Implement `UpsertTimeEntryUseCase` flow: authenticate branch user, validate request, resolve caller linked operator, validate target operator belongs to branch, authorize, load existing entry by `(BranchId, OperatorId, Date)` tracked, load branch Setting, calculate hours, insert or mutate in place, stamp `UpdatedAt`/`UpdatedByUserId` from one captured clock instant, commit, and map response
-- [ ] **3.9** Treat `PUT /timeentry` insert and update as `200 OK` with `ResponseTimeEntryJson`
-- [ ] **3.10** Do not call `LockDateGuard` from TimeEntry write use cases in this milestone
+- [x] **3.8** Implement `UpsertTimeEntryUseCase` flow: authenticate branch user, validate request, resolve caller linked operator, validate target operator belongs to branch, authorize, load existing entry by `(BranchId, OperatorId, Date)` tracked, load branch Setting, calculate hours, insert or mutate in place, stamp `UpdatedAt`/`UpdatedByUserId` from one captured clock instant, commit, and map response
+- [x] **3.9** Treat `PUT /timeentry` insert and update as `200 OK` with `ResponseTimeEntryJson`
+- [x] **3.10** Do not call `LockDateGuard` from TimeEntry write use cases in this milestone
 - [ ] **3.11** Implement `DeactivateTimeEntryUseCase` restricted to `Manager` and `Admin`, using soft delete and audit stamping
-- [ ] **3.12** Add `TimeEntryController` routes for `PUT /timeentry` and `DELETE /timeentry/{timeEntryId:guid}` with explicit auth and response metadata
-- [ ] **3.13** Register TimeEntry write use cases and services in Application DI
-- [ ] **3.14** Add `Validators.Test` coverage for TimeEntry upsert shape validation
+- [~] **3.12** Add `TimeEntryController` routes for `PUT /timeentry` and `DELETE /timeentry/{timeEntryId:guid}` with explicit auth and response metadata — Upsert only; Deactivate in next slice
+- [~] **3.13** Register TimeEntry write use cases and services in Application DI — Upsert only; Deactivate in next slice
+- [~] **3.14** Add `Validators.Test` coverage for TimeEntry upsert shape validation — Upsert only; Deactivate in next slice
 - [x] **3.15** Add isolated `TimeEntryCalculationServiceTest` coverage for all calculation branches, lunch thresholds, exact 4h/6h boundaries, and midnight crossing
 - [x] **3.16** Add isolated `TimeEntryWritePermissionGuardTest` coverage for the full role × operator × local-business-day × status matrix
-- [ ] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation
-- [ ] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation
+- [~] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation — Upsert only; Deactivate in next slice
+- [~] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation — Upsert only; Deactivate in next slice
 
 ### Phase 4 — TimeEntry Read Path
 
