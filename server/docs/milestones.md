@@ -900,6 +900,7 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
 - [x] **3.2** Add `ResponseTimeEntryJson` with ids, date, clocks, status, calculated hours, operator info, branch id, created/audit fields, and active flag
 - [x] **3.3** Add `UpsertTimeEntryFluentValidation` for shape-only validation: non-empty `OperatorId`, non-default `Date`, valid enum status, and clock ordering when both clocks are present
 - [x] **3.4** Keep status-relative validation in the use case or calculation service: `Present` requires both clocks; non-`Present` statuses reject clocks
+  Note: Refactored in Phase 3.5 — `Present` requires only `ClockIn`; partial entries on the current branch-local business day carry server-computed live-running hours.
 - [x] **3.5** Enforce `Sunday` status only when `Date.DayOfWeek == Sunday`
 - [x] **3.6** Enforce `Holiday` status only when an active Holiday exists for the branch/date
 - [x] **3.7** Add `ITimeEntryWritePermissionGuard` under `Services/TimeEntries/` with explicit outcome enum values: `SelfSameDayPresent`, `Elevated`, `MissingLinkedOperator`, `NotOwnOperator`, `OlderDayMember`, and `MemberNonPresent`
@@ -914,6 +915,71 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
 - [x] **3.16** Add isolated `TimeEntryWritePermissionGuardTest` coverage for the full role × operator × local-business-day × status matrix
 - [~] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation — Upsert only; Deactivate in next slice
 - [~] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation — Upsert only; Deactivate in next slice
+
+### Phase 3.5 — Open-Shift Present Refactor
+
+**Goal:** Replace the "Present requires both clocks" constraint with a press-to-clock-in / press-to-clock-out flow. Partial Present rows (`ClockIn` set, `ClockOut` null) on the current branch-local business day carry server-computed live-running `TotalHours` / `BalanceHours` derived from `(branchLocalNow.TimeOfDay - ClockIn)` with the standard lunch tiers. Closed shifts and forgotten clock-outs from prior days remain stable snapshots.
+
+**Scope boundary:** Refactor of the `PUT /timeentry` upsert path, `TimeEntryCalculationService` (new live-running method), `IBranchClock` (new local-datetime accessor), the use case's status-relative validation, the response DTO, and the spec sync group. No schema migration, no new endpoints, no changes to the permission guard outcomes, no changes to Slice 3.C (Deactivate) territory. The Phase 4 read path will inherit the same live-running pattern (recompute on read).
+
+**Precondition:** Phase 3 is fully landed. Phase 3.5 amends Phase 3 item 3.4 (Present clock requirement)..
+
+**Key behaviors:**
+
+- For `Status = Present`, `ClockIn` is required and `ClockOut` is optional.
+- When `ClockOut` is null on a Present entry whose `Date` equals the current branch-local business day, the calc service returns `(branchLocalNow.TimeOfDay - ClockIn)` with the standard lunch-tier rules. The PUT response carries those values; the persisted row stores the same as a "last-write checkpoint".
+- When `ClockOut` is null on a Present entry whose `Date` is in the past (forgotten clock-out), the calc service returns `(0m, 0m)`. The row is flagged via `IsInProgress = true` for manager review.
+- When both clocks are set, calculation is unchanged and the row is a stable snapshot forever.
+- Submitting `ClockOut` without `ClockIn` is rejected as `400 TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN` regardless of status.
+- For non-Present statuses, both clocks must be null (unchanged).
+- The PUT body is authoritative: the second tap re-states both clocks. Reopening a completed shift by sending `ClockOut = null` is allowed subject to the existing permission guard (no new role check).
+- The validator's clock-equality and shape rules are unchanged. The `Sunday` and `Holiday` calendar rules are unchanged.
+- The response DTO gains a server-computed `IsInProgress` flag.
+- The Phase 4 read path will recompute live-running values on every read; the persisted `TotalHours` / `BalanceHours` for a partial Present row may be stale by the time it's read.
+
+**Slice plan:** items 3.5.1 – 3.5.6 land in Slice 3.5.A (foundational, no client-visible behavior change). Items 3.5.7 – 3.5.14 land in Slice 3.5.B (contract change closes the phase).
+
+- [ ] **3.5.1** Update `server/docs/loto-specs.md` §6.7 to define partial-Present semantics and the live-running rule. `ClockIn` required for Present; `ClockOut` optional. `ClockOut` null + `Date == branchLocalToday` → live-running with synthetic `effectiveClockOut = branchLocalNow.TimeOfDay`. `ClockOut` null + `Date < branchLocalToday` → `(TotalHours, BalanceHours) = (0m, 0m)`. `ClockOut` set + `ClockIn` null → invalid (use case rejects). Update `server/docs/loto_presentation.html` and `server/docs/loto_entity_relationship_diagram.html` to mirror §6.7. Bump shared sync metadata across all three files. Run `bash server/docs/check-loto-doc-sync.sh` and confirm green.
+- [ ] **3.5.2** Add `DateTime LocalBusinessDateTime(DateTime utcInstant)` to `IBranchClock` and implement in `BranchClock`. Returns the full São Paulo-local `DateTime` (not truncated). Refactor `LocalBusinessDate` to call `LocalBusinessDateTime` and return `.Date`. Behavior of `LocalBusinessDate` and `IsSameLocalDay` must be byte-for-byte unchanged.
+- [ ] **3.5.3** Add `BranchClockTest` coverage for `LocalBusinessDateTime`: returns the full local `DateTime` for representative UTC instants. Existing `LocalBusinessDate` and `IsSameLocalDay` cases stay untouched.
+- [ ] **3.5.4** Add `(decimal TotalHours, decimal BalanceHours) CalculateLiveRunning(TimeOnly clockIn, DateTime entryDate, DateTime branchLocalNow, decimal dailyTargetHours, decimal lunchDeductionOver6H, decimal lunchDeductionOver4H)` to `ITimeEntryCalculationService` and implement in `TimeEntryCalculationService`. Behavior:
+  - If `branchLocalNow.Date == entryDate.Date`: synthesize `effectiveClockOut = TimeOnly.FromDateTime(branchLocalNow)` and apply the existing CalculatePresent math (including midnight-crossing safety and lunch tiers).
+  - Else (forgotten clock-out from a prior day): return `(0m, 0m)`.
+- [ ] **3.5.5** Add `TimeEntryCalculationServiceTest` coverage for `CalculateLiveRunning`: just-clocked-in (gross 0, balance = -DailyTarget), gross < 4h (no lunch), gross > 4h and ≤ 6h (Over4H), gross > 6h (Over6H), forgotten-clock-out previous day → `(0, 0)`. Existing `Calculate` cases stay untouched.
+- [ ] **3.5.6** Add resource key `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN` to `server.Exceptions/ResourcesErrorMessages.resx` and `ResourcesErrorMessages.Designer.cs`. Text: "Não é possível registrar horário de saída sem horário de entrada".
+- [ ] **3.5.7** Add `bool IsInProgress { get; init; }` to `ResponseTimeEntryJson`.
+- [ ] **3.5.8** Update `UpsertTimeEntryMapper.ToResponse` to compute `IsInProgress = timeEntry.Status == TimeEntryStatus.Present && timeEntry.ClockIn is not null && timeEntry.ClockOut is null`.
+- [ ] **3.5.9** Rename resource key `TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS` → `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN` in resx and designer. Update Portuguese text to "O status Presente exige horário de entrada".
+- [ ] **3.5.10** Update `UpsertTimeEntryUseCase.EnsureStatusRelativeRulesAsync`:
+  - First, for any status, throw `OnValidationException` with `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN` if `ClockIn == null && ClockOut != null`.
+  - For `Status == Present`, throw `OnValidationException` with `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN` if `ClockIn == null`. `ClockOut` may be null.
+  - For non-Present statuses, throw `OnValidationException` with `TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS` if either clock is set (unchanged).
+  - Sunday and Holiday calendar checks run after, unchanged.
+
+  Update `UpsertTimeEntryUseCase.Execute` to branch the calc call:
+  - If `Status == Present && ClockOut == null`: call `calculationService.CalculateLiveRunning(ClockIn.Value, request.Date, branchClock.LocalBusinessDateTime(branchClock.UtcNow()), DailyTargetHours, LunchDeductionOver6H, LunchDeductionOver4H)`.
+  - Else: call `calculationService.Calculate(...)` as today.
+- [ ] **3.5.11** Update `UpsertTimeEntryUseCaseTest`:
+  - Re-key the existing both-clocks-null Present failure test from `TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS` to `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN`. Rename to `Execute_ShouldThrowOnValidation_WhenPresentMissingClockIn`.
+  - Add `Execute_ShouldSucceed_WhenPresentWithClockInOnly`: partial Present, Manager role; assert `IsInProgress == true`, `Add` received once with `ClockOut == null`, exact-arg assertion that `CalculateLiveRunning` was invoked once with the request's `ClockIn`/`Date`/`branchClock.LocalBusinessDateTime(now)`/setting values; `Calculate` not invoked.
+  - Add `Execute_ShouldThrowOnValidation_WhenClockOutSuppliedWithoutClockIn`: ClockIn = null, ClockOut = 17:00, any status; assert `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN`, `Commit` not received.
+  - Add `Execute_ShouldUpdateInPlaceAndComputeFinalHours_WhenSecondTapClocksOut`: seed an existing partial Present row, run the upsert with both clocks; assert same `Id`, final `TotalHours`/`BalanceHours` from `Calculate`, `IsInProgress == false`, `Commit` received once, `Add` not received, `CalculateLiveRunning` not invoked.
+- [ ] **3.5.12** Update `TimeEntryControllerUpsertHappyPathTest`:
+  - Add `Upsert_ShouldReturn200WithIsInProgressTrue_WhenManagerSendsClockInOnly`: partial Present, asserts `IsInProgress == true` and reload-based persistence with `ClockOut == null`.
+  - Add `Upsert_ShouldComputeFinalHoursAndIsInProgressFalse_WhenSecondTapCompletesShift`: first PUT with ClockIn only, second PUT with both clocks, assert same id between responses, second response `IsInProgress == false` and `TotalHours` computed via the standard `Calculate`, reload-based confirmation.
+- [ ] **3.5.13** Update `TimeEntryControllerUpsertUnhappyPathTest`:
+  - Re-key + rename `Upsert_ShouldReturn400_WhenPresentMissingClocks` → `Upsert_ShouldReturn400_WhenPresentMissingClockIn` with `TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN`.
+  - Add `Upsert_ShouldReturn400_WhenClockOutSuppliedWithoutClockIn` asserting `TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN`.
+- [ ] **3.5.14** Mark Phase 3.5 items 3.5.1 – 3.5.13 complete in this file. Run `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, `dotnet test tests/WebApi.Test`. All green.
+
+#### Done criteria
+
+- `PUT /timeentry` with `Status = Present`, `ClockIn` set, `ClockOut` null on the current branch-local business day returns `200 OK` with `IsInProgress = true` and `TotalHours` / `BalanceHours` computed via `CalculateLiveRunning`.
+- A second `PUT` to the same `(BranchId, OperatorId, Date)` with both clocks updates the row in place; `IsInProgress = false` and hours computed from the standard `Calculate`.
+- `PUT` with `ClockOut` set and `ClockIn` null returns `400 TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN`.
+- `IBranchClock` exposes `LocalBusinessDateTime`; `LocalBusinessDate` and `IsSameLocalDay` semantics are unchanged.
+- `TimeEntryCalculationService.CalculateLiveRunning` returns `(0, 0)` for forgotten clock-outs from prior days.
+- All three test suites pass; `bash server/docs/check-loto-doc-sync.sh` passes.
 
 ### Phase 4 — TimeEntry Read Path
 
