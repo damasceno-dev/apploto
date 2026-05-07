@@ -50,6 +50,7 @@ using server.Application.UseCases.Holidays.Create;
 using server.Application.UseCases.Holidays.Deactivate;
 using server.Application.UseCases.Holidays.List;
 using server.Application.UseCases.Holidays.Update;
+using server.Application.UseCases.TimeEntries.Deactivate;
 using server.Application.UseCases.TimeEntries.Upsert;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
@@ -130,6 +131,7 @@ public static class AppDependencyInjection
         services.AddScoped<UpdateHolidayUseCase>();
         services.AddScoped<DeactivateHolidayUseCase>();
         services.AddScoped<UpsertTimeEntryUseCase>();
+        services.AddScoped<DeactivateTimeEntryUseCase>();
         services.AddScoped<OpenDailyCloseUseCase>();
         services.AddScoped<GetDailyCloseUseCase>();
         services.AddScoped<ListDailyClosesUseCase>();

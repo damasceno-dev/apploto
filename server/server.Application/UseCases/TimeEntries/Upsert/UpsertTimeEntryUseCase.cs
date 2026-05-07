@@ -165,6 +165,7 @@ public class UpsertTimeEntryUseCase(
 
                 break;
             }
+            case TimeEntryStatus.Sunday:  // Sunday on a Sunday-date — the `when` guard above filtered out the wrong-day case.
             case TimeEntryStatus.Present:
             case TimeEntryStatus.DayOff:
             case TimeEntryStatus.Vacation:

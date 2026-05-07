@@ -1,5 +1,6 @@
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
+using Operator = server.Domain.Entities.Operator;
 
 namespace CommonTestUtilities.Entities;
 
@@ -18,6 +19,7 @@ public class TimeEntryBuilder
     private Guid _branchId = Guid.NewGuid();
     private DateTime? _updatedAt;
     private Guid? _updatedByUserId;
+    private Operator? _operator;
 
     public TimeEntryBuilder WithId(Guid id)
     {
@@ -92,8 +94,18 @@ public class TimeEntryBuilder
         return this;
     }
 
+    public TimeEntryBuilder WithOperator(Operator op)
+    {
+        _operator = op;
+        _operatorId = op.Id;
+        _branchId = op.BranchId;
+        return this;
+    }
+
     public TimeEntry Build()
     {
+        var op = _operator ?? new OperatorBuilder().WithId(_operatorId).WithBranchId(_branchId).Build();
+
         return new TimeEntry
         {
             Id = _id,
@@ -106,6 +118,7 @@ public class TimeEntryBuilder
             TotalHours = _totalHours,
             BalanceHours = _balanceHours,
             OperatorId = _operatorId,
+            Operator = op,
             BranchId = _branchId,
             UpdatedAt = _updatedAt,
             UpdatedByUserId = _updatedByUserId

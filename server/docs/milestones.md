@@ -907,14 +907,14 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
 - [x] **3.8** Implement `UpsertTimeEntryUseCase` flow: authenticate branch user, validate request, resolve caller linked operator, validate target operator belongs to branch, authorize, load existing entry by `(BranchId, OperatorId, Date)` tracked, load branch Setting, calculate hours, insert or mutate in place, stamp `UpdatedAt`/`UpdatedByUserId` from one captured clock instant, commit, and map response
 - [x] **3.9** Treat `PUT /timeentry` insert and update as `200 OK` with `ResponseTimeEntryJson`
 - [x] **3.10** Do not call `LockDateGuard` from TimeEntry write use cases in this milestone
-- [ ] **3.11** Implement `DeactivateTimeEntryUseCase` restricted to `Manager` and `Admin`, using soft delete and audit stamping
-- [~] **3.12** Add `TimeEntryController` routes for `PUT /timeentry` and `DELETE /timeentry/{timeEntryId:guid}` with explicit auth and response metadata — Upsert only; Deactivate in next slice
-- [~] **3.13** Register TimeEntry write use cases and services in Application DI — Upsert only; Deactivate in next slice
-- [~] **3.14** Add `Validators.Test` coverage for TimeEntry upsert shape validation — Upsert only; Deactivate in next slice
+- [x] **3.11** Implement `DeactivateTimeEntryUseCase` restricted to `Manager` and `Admin`, using soft delete and audit stamping
+- [x] **3.12** Add `TimeEntryController` routes for `PUT /timeentry` and `DELETE /timeentry/{timeEntryId:guid}` with explicit auth and response metadata
+- [x] **3.13** Register TimeEntry write use cases and services in Application DI
+- [x] **3.14** Add `Validators.Test` coverage for TimeEntry upsert shape validation
 - [x] **3.15** Add isolated `TimeEntryCalculationServiceTest` coverage for all calculation branches, lunch thresholds, exact 4h/6h boundaries, and midnight crossing
 - [x] **3.16** Add isolated `TimeEntryWritePermissionGuardTest` coverage for the full role × operator × local-business-day × status matrix
-- [~] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation — Upsert only; Deactivate in next slice
-- [~] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation — Upsert only; Deactivate in next slice
+- [x] **3.17** Add `UseCases.Test` coverage for upsert insert, upsert update, calculated values, audit stamping, `Present` validation, Sunday/Holiday validation, branch isolation, duplicate race path, Member self-same-day success, Member older-day failure, Member another-operator failure, Member non-present failure, Manager/Admin elevated success, and deactivation
+- [x] **3.18** Add `WebApi.Test` coverage for TimeEntry write/deactivate endpoints, including reload-based persistence assertions, `400`, `401`, `403`, `404`, `409`, branch isolation, and unique-index race translation
 
 ### Phase 3.5 — Open-Shift Present Refactor
 
