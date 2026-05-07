@@ -353,6 +353,7 @@ public class SubmitDailyCloseUseCaseTest
     private sealed class FixedBranchClock(DateTime now) : IBranchClock
     {
         public DateTime UtcNow() => now;
+        public DateTime LocalBusinessDateTime(DateTime utcInstant) => utcInstant;
         public DateTime LocalBusinessDate(DateTime utcInstant) => utcInstant.Date;
         public bool IsSameLocalDay(DateTime localBusinessDate, DateTime utcInstant)
             => localBusinessDate.Date == LocalBusinessDate(utcInstant);

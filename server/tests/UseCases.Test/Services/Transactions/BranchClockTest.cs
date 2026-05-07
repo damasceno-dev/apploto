@@ -9,6 +9,28 @@ public class BranchClockTest
     private readonly BranchClock _clock = new();
 
     [Fact]
+    public void LocalBusinessDateTime_ShouldReturnFullSaoPauloDateTime_WhenUtcInstantIsAtMidnightBoundary()
+    {
+        // 2026-05-07T03:00:00Z = 2026-05-07T00:00:00 in São Paulo (UTC-3)
+        var utcInstant = Utc(2026, 5, 7, 3, 0);
+
+        var result = _clock.LocalBusinessDateTime(utcInstant);
+
+        result.ShouldBe(new DateTime(2026, 5, 7, 0, 0, 0));
+    }
+
+    [Fact]
+    public void LocalBusinessDateTime_ShouldReturnFullSaoPauloDateTime_WhenUtcInstantIsBeforeMidnightBoundary()
+    {
+        // 2026-05-07T02:00:00Z = 2026-05-06T23:00:00 in São Paulo (UTC-3)
+        var utcInstant = Utc(2026, 5, 7, 2, 0);
+
+        var result = _clock.LocalBusinessDateTime(utcInstant);
+
+        result.ShouldBe(new DateTime(2026, 5, 6, 23, 0, 0));
+    }
+
+    [Fact]
     public void LocalBusinessDate_ShouldUseSaoPauloDate_WhenUtcInstantIsBeforeLocalMidnightBoundary()
     {
         var utcInstant = Utc(2026, 4, 25, 2, 59);

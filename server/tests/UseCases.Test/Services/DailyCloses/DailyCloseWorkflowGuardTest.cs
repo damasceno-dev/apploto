@@ -509,13 +509,18 @@ public class DailyCloseWorkflowGuardTest
 
         public DateTime UtcNow() => utcNow;
 
-        public DateTime LocalBusinessDate(DateTime utcInstant)
+        public DateTime LocalBusinessDateTime(DateTime utcInstant)
         {
             var normalizedUtcInstant = utcInstant.Kind == DateTimeKind.Utc
                 ? utcInstant
                 : DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
 
-            return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtcInstant, BranchTimeZone).Date;
+            return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtcInstant, BranchTimeZone);
+        }
+
+        public DateTime LocalBusinessDate(DateTime utcInstant)
+        {
+            return LocalBusinessDateTime(utcInstant).Date;
         }
 
         public bool IsSameLocalDay(DateTime localBusinessDate, DateTime utcInstant)

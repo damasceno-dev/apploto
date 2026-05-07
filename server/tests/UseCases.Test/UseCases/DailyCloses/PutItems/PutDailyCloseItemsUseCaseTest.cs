@@ -544,6 +544,7 @@ public class PutDailyCloseItemsUseCaseTest
     private sealed class FixedBranchClock(DateTime utcNow) : IBranchClock
     {
         public DateTime UtcNow() => utcNow;
+        public DateTime LocalBusinessDateTime(DateTime utcInstant) => utcInstant;
         public DateTime LocalBusinessDate(DateTime utcInstant) => utcInstant.Date;
         public bool IsSameLocalDay(DateTime localBusinessDate, DateTime utcInstant)
             => localBusinessDate.Date == LocalBusinessDate(utcInstant);

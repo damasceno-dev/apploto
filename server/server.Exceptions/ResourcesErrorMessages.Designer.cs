@@ -843,6 +843,12 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN", resourceCulture);
+            }
+        }
+
         public static string TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS {
             get {
                 return ResourceManager.GetString("TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS", resourceCulture);

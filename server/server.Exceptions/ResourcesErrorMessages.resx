@@ -417,6 +417,9 @@
     <data name="TIMEENTRY_PRESENT_REQUIRES_BOTH_CLOCKS" xml:space="preserve">
         <value>O status Presente exige horário de entrada e horário de saída</value>
     </data>
+    <data name="TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN" xml:space="preserve">
+        <value>Não é possível registrar horário de saída sem horário de entrada</value>
+    </data>
     <data name="TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS" xml:space="preserve">
         <value>Apenas o status Presente aceita horário de entrada ou saída</value>
     </data>

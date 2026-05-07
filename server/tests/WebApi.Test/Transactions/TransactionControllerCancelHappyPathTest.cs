@@ -236,6 +236,11 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
             return DateTime.UtcNow;
         }
 
+        public DateTime LocalBusinessDateTime(DateTime utcInstant)
+        {
+            return utcInstant.Date.AddDays(-1);
+        }
+
         public DateTime LocalBusinessDate(DateTime utcInstant)
         {
             return utcInstant.Date.AddDays(-1);

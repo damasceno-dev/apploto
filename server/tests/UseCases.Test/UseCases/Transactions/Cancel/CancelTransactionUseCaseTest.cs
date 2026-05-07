@@ -383,6 +383,11 @@ public class CancelTransactionUseCaseTest
             return fixedUtcNow;
         }
 
+        public DateTime LocalBusinessDateTime(DateTime utcInstant)
+        {
+            return utcInstant;
+        }
+
         public DateTime LocalBusinessDate(DateTime utcInstant)
         {
             return utcInstant.Date;
@@ -399,6 +404,11 @@ public class CancelTransactionUseCaseTest
         public DateTime UtcNow()
         {
             return DateTime.UtcNow;
+        }
+
+        public DateTime LocalBusinessDateTime(DateTime utcInstant)
+        {
+            return utcInstant.Date.AddDays(-1);
         }
 
         public DateTime LocalBusinessDate(DateTime utcInstant)

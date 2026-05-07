@@ -18,6 +18,13 @@ public class TimeEntryCalculationServiceTest
         new TimeEntryCalculationService().Calculate(
             status, clockIn, clockOut, DailyTarget, LunchOver6H, LunchOver4H);
 
+    private static (decimal TotalHours, decimal BalanceHours) CalculateLiveRunning(
+        TimeOnly clockIn,
+        DateTime entryDate,
+        DateTime branchLocalNow) =>
+        new TimeEntryCalculationService().CalculateLiveRunning(
+            clockIn, entryDate, branchLocalNow, DailyTarget, LunchOver6H, LunchOver4H);
+
     // ── Present — lunch tiers ─────────────────────────────────────────────
 
     public static TheoryData<string, TimeOnly, TimeOnly, decimal, decimal> PresentCases => new()
@@ -130,6 +137,87 @@ public class TimeEntryCalculationServiceTest
     public void Calculate_OwingStatus_ReturnsZeroTotalAndNegativeBalance(string _, TimeEntryStatus status)
     {
         var (total, balance) = Calculate(status);
+
+        total.ShouldBe(0m);
+        balance.ShouldBe(-DailyTarget);
+    }
+
+    // ── CalculateLiveRunning ──────────────────────────────────────────────
+
+    private static readonly DateTime SameDay = new DateTime(2026, 5, 7);
+
+    public static TheoryData<string, TimeOnly, DateTime, DateTime, decimal, decimal> LiveRunningCases => new()
+    {
+        {
+            "JustClockedIn_GrossZero_BalanceIsNegativeTarget",
+            new TimeOnly(8, 0),
+            SameDay,
+            new DateTime(2026, 5, 7, 8, 0, 0),   // branchLocalNow = 08:00 same day
+            0m, -DailyTarget
+        },
+        {
+            "GrossLessThan4H_NoLunchDeduction",
+            new TimeOnly(8, 0),
+            SameDay,
+            new DateTime(2026, 5, 7, 11, 0, 0),  // branchLocalNow = 11:00 → gross 3h
+            3.00m, 3.00m - DailyTarget
+        },
+        {
+            "GrossOver4HAndUpTo6H_Over4HLunchTier",
+            new TimeOnly(8, 0),
+            SameDay,
+            new DateTime(2026, 5, 7, 13, 30, 0), // branchLocalNow = 13:30 → gross 5.5h
+            5.25m, 5.25m - DailyTarget
+        },
+        {
+            "GrossOver6H_Over6HLunchTier",
+            new TimeOnly(8, 0),
+            SameDay,
+            new DateTime(2026, 5, 7, 17, 0, 0),  // branchLocalNow = 17:00 → gross 9h
+            8.00m, 8.00m - DailyTarget
+        },
+    };
+
+    [Theory]
+    [MemberData(nameof(LiveRunningCases))]
+    public void CalculateLiveRunning_SameDayEntry_AppliesCorrectLunchTier(
+        string _,
+        TimeOnly clockIn,
+        DateTime entryDate,
+        DateTime branchLocalNow,
+        decimal expectedTotal,
+        decimal expectedBalance)
+    {
+        var (total, balance) = CalculateLiveRunning(clockIn, entryDate, branchLocalNow);
+
+        total.ShouldBe(expectedTotal, tolerance: 0.001m);
+        balance.ShouldBe(expectedBalance, tolerance: 0.001m);
+    }
+
+    [Fact]
+    public void CalculateLiveRunning_ForgottenClockOut_PriorDay_ReturnsZeroZero()
+    {
+        // entryDate = yesterday, branchLocalNow = today → forgotten clock-out path
+        var clockIn = new TimeOnly(8, 0);
+        var entryDate = new DateTime(2026, 5, 6);
+        var branchLocalNow = new DateTime(2026, 5, 7, 8, 0, 0);
+
+        var (total, balance) = CalculateLiveRunning(clockIn, entryDate, branchLocalNow);
+
+        total.ShouldBe(0m);
+        balance.ShouldBe(0m);
+    }
+
+    [Fact]
+    public void CalculateLiveRunning_SameDay_EffectiveClockOutBeforeClockIn_ReturnsZeroAndNegativeTarget()
+    {
+        // ClockIn = 22:00 same day, branchLocalNow = 08:00 same day (clock drift / Manager manual date)
+        // Without the guard this would trigger the midnight wrap and produce ~10h phantom work.
+        var clockIn = new TimeOnly(22, 0);
+        var entryDate = SameDay;
+        var branchLocalNow = new DateTime(2026, 5, 7, 8, 0, 0);
+
+        var (total, balance) = CalculateLiveRunning(clockIn, entryDate, branchLocalNow);
 
         total.ShouldBe(0m);
         balance.ShouldBe(-DailyTarget);

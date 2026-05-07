@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v17
+Spec revision: v18
 -->
 <html lang="en">
 <head>
@@ -395,8 +395,8 @@ Spec revision: v17
     '  TimeEntry {\n' +
     '    uuid id PK\n' +
     '    date date\n' +
-    '    time clockIn\n' +
-    '    time clockOut\n' +
+    '    time clockIn "nullable; Present requires ClockIn"\n' +
+    '    time clockOut "nullable; null on current day = open shift"\n' +
     '    enum status\n' +
     '    decimal totalHours\n' +
     '    decimal balanceHours\n' +

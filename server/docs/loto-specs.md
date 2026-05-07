@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v17
+Spec revision: v18
 -->
 
-> **Status:** Revised spec (v17) — Milestone 5 Phase 1 TimeEntry & Holiday foundation
+> **Status:** Revised spec (v18) — Milestone 5 Phase 3.5 foundational live-running TimeEntry calc service
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -26,6 +26,7 @@ Spec revision: v17
 > v13–v15: (internal milestone iterations)
 > v16: Milestone 4 DailyClose workflow hardened — §3.14 audit pair, §6.5 Submitted→Draft recall transition, §6.12 explicit Direction handling, §6.13 DailyClose contract including role × state × business-day matrix.
 > v17: Milestone 5 Phase 1 TimeEntry & Holiday foundation — §3.16 updated with audit fields and filtered unique constraint; §3.17 updated with table and filtered unique constraint; §6.3 installment stagger now skips weekends and branch holidays; §6.7 references ITimeEntryCalculationService with midnight-crossing and exact-boundary notes; §6.8 documents holiday-aware business-day calculation via DueDateCalculator and IBranchHolidaySource.
+> v18: Milestone 5 Phase 3.5 foundational live-running — §6.7 updated with partial-Present semantics (ClockIn required, ClockOut optional), live-running rule with synthetic effectiveClockOut on same branch-local day, forgotten-clock-out path returns (0, 0), ClockOut-without-ClockIn always invalid (TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN); CalculateLiveRunning method signature and contract added.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -1031,14 +1032,39 @@ WHERE AccountId = @tabAccountId
 
 ### 6.7 Time entry calculation
 
-This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. The method signature is:
+This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. Two methods are provided:
+
+**Method signatures:**
 
 ```
 ITimeEntryCalculationService.Calculate(status, clockIn, clockOut, dailyTargetHours, lunchDeductionOver6H, lunchDeductionOver4H)
   → (TotalHours, BalanceHours)
+
+ITimeEntryCalculationService.CalculateLiveRunning(clockIn, entryDate, branchLocalNow, dailyTargetHours, lunchDeductionOver6H, lunchDeductionOver4H)
+  → (TotalHours, BalanceHours)
 ```
 
-Rules:
+**Partial-Present semantics (use-case level):**
+
+```
+If Status = Present:
+    If ClockIn is null:
+        INVALID — use case rejects with TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN
+    If ClockOut is null and Date == branchLocalToday:
+        effectiveClockOut = branchLocalNow.TimeOfDay
+        Apply CalculatePresent(clockIn, effectiveClockOut, settings)
+        # Live-running: persisted TotalHours/BalanceHours are the last-write checkpoint;
+        # read endpoints recompute on every call (see Phase 4).
+    If ClockOut is null and Date < branchLocalToday:
+        TotalHours = 0, BalanceHours = 0
+        # Forgotten clock-out — needs manual review; IsInProgress = true.
+    Else (both clocks set):
+        Apply CalculatePresent(clockIn, clockOut, settings)
+
+ClockOut without ClockIn (any status): INVALID — use case rejects with TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN.
+```
+
+**Calculate rules:**
 
 ```
 Input: ClockIn, ClockOut, Status
@@ -1060,6 +1086,21 @@ If Status ∈ {Sunday, Holiday, Vacation, JustifiedAbsence}:  (abonado)
 If Status ∈ {DayOff, UnjustifiedAbsence}:  (hours owed)
     TotalHours = 0
     BalanceHours = -DailyTarget
+```
+
+**CalculateLiveRunning rules:**
+
+```
+Input: ClockIn, EntryDate, BranchLocalNow
+Constants: DailyTarget, LunchDeduction rules (from Setting)
+
+If branchLocalNow.Date == entryDate.Date:
+    effectiveClockOut = TimeOnly.FromDateTime(branchLocalNow)
+    Apply CalculatePresent(clockIn, effectiveClockOut, settings)
+    # Same midnight-crossing safety and lunch-tier rules as Calculate.
+Else (entryDate.Date != branchLocalNow.Date):
+    TotalHours = 0, BalanceHours = 0
+    # Forgotten clock-out — entry is in the past; manual review needed.
 ```
 
 Boundary notes: exactly 4 h gross → no lunch deduction; exactly 6 h gross → `LunchDeductionOver4H` applies (not `Over6H`).

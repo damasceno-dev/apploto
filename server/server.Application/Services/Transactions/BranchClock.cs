@@ -10,14 +10,19 @@ public sealed class BranchClock : IBranchClock
         return DateTime.UtcNow;
     }
 
-    public DateTime LocalBusinessDate(DateTime utcInstant)
+    public DateTime LocalBusinessDateTime(DateTime utcInstant)
     {
         // Replace the MVP fixed business timezone with branch-level timezone configuration. (to do)
         var normalizedUtcInstant = utcInstant.Kind == DateTimeKind.Utc
             ? utcInstant
             : DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
 
-        return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtcInstant, BranchTimeZone).Date;
+        return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtcInstant, BranchTimeZone);
+    }
+
+    public DateTime LocalBusinessDate(DateTime utcInstant)
+    {
+        return LocalBusinessDateTime(utcInstant).Date;
     }
 
     public bool IsSameLocalDay(DateTime localBusinessDate, DateTime utcInstant)
