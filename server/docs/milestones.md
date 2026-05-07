@@ -983,22 +983,24 @@ Implement the mobile-friendly TimeEntry upsert and manager/admin deactivation fl
 
 ### Phase 4 — TimeEntry Read Path
 
-Implement get/list with role-aware operator scope and pagination.
+Implement get/list with role-aware operator scope, pagination, and the Phase 3.5 read-time live-running recompute. The persisted `TotalHours` / `BalanceHours` for an in-progress current-day partial Present row are a "last-write checkpoint" that may be stale; the read path must recompute them on every call so the API is the source of truth for live values.
+
+**Read-time live-running recompute (used by both Get and List):** when a row satisfies `Status == Present && ClockIn != null && ClockOut == null && Date == branchLocalToday`, the mapper replaces `TotalHours` / `BalanceHours` with `ITimeEntryCalculationService.CalculateLiveRunning(ClockIn, Date, branchClock.LocalBusinessDateTime(branchClock.UtcNow()), DailyTargetHours, LunchDeductionOver6H, LunchDeductionOver4H)`. Closed shifts (both clocks set), non-Present statuses, and prior-day partials (forgotten clock-outs) pass through unchanged. `IsInProgress` always mirrors the row's underlying state and is computed by the mapper, not read from storage.
 
 - [ ] **4.1** Add `RequestListTimeEntriesJson` with `OperatorId?`, `DateFrom?`, `DateTo?`, `Status?`, `Mine?`, `Page`, and `PageSize`
-- [ ] **4.2** Add lightweight list item response carrying `TimeEntry` summary plus `OperatorName`
+- [ ] **4.2** Add lightweight list item response carrying `TimeEntry` summary, `OperatorName`, and the `IsInProgress` flag introduced in Phase 3.5. The summary's `TotalHours` / `BalanceHours` reflect the read-time live-running recompute described above and in 4.5 / 4.6, not the persisted snapshot.
 - [ ] **4.3** Add `ResponseListTimeEntriesJson` envelope with `Items`, `TotalCount`, `TotalPages`, `HasNext`, and `HasPrevious`
 - [ ] **4.4** Add `ListTimeEntriesFluentValidation` covering paging bounds, `DateFrom <= DateTo`, enum validity, and `Mine = true` plus explicit `OperatorId` mutex
-- [ ] **4.5** Implement `GetTimeEntryUseCase`: missing/cross-branch id returns `404`; Member without linked operator returns `403 TIMEENTRY_REQUIRES_OPERATOR_LINK`; Member targeting another operator returns `403 TIMEENTRY_NOT_OWN_OPERATOR`; Manager/Admin may read any branch entry
-- [ ] **4.6** Implement `ListTimeEntriesUseCase` with server-resolved Member operator scope
+- [ ] **4.5** Implement `GetTimeEntryUseCase`: missing/cross-branch id returns `404`; Member without linked operator returns `403 TIMEENTRY_REQUIRES_OPERATOR_LINK`; Member targeting another operator returns `403 TIMEENTRY_NOT_OWN_OPERATOR`; Manager/Admin may read any branch entry. The response applies the read-time live-running recompute: load the branch `Setting` once, capture `branchClock.LocalBusinessDateTime(branchClock.UtcNow())` once, and pass both to the shared mapper helper from 4.6.
+- [ ] **4.6** Implement `ListTimeEntriesUseCase` with server-resolved Member operator scope. The use case loads the branch `Setting` once and captures `branchClock.LocalBusinessDateTime(branchClock.UtcNow())` once, then applies the same read-time live-running recompute to every projected row through a shared mapper helper (e.g., `TimeEntry.ToReadResponse(operatorName, setting, branchLocalNow, calculationService)`) so Get and List share exactly one recompute path.
 - [ ] **4.7** For Member list with no linked operator, return an empty page without calling repository list/count
 - [ ] **4.8** For `Mine = true`, resolve the caller's linked operator and set the server-side operator filter; combining `Mine = true` and explicit `OperatorId` returns `400`; for a Member with no linked operator, `Mine = true` falls through to the empty-scope short-circuit from 4.7 with no repository list/count call
 - [ ] **4.9** Ensure repository list uses a single branch-scoped projection with deterministic ordering `Date DESC, CreatedAt DESC, Id DESC`
 - [ ] **4.10** Add `GET /timeentry/{timeEntryId:guid}` and `GET /timeentry` to `TimeEntryController`
 - [ ] **4.11** Register read use cases in Application DI
 - [ ] **4.12** Add `Validators.Test` coverage for list validation
-- [ ] **4.13** Add `UseCases.Test` coverage for get/list permissions, Member empty-scope short-circuit, `Mine` behavior, branch isolation, deterministic filter mapping, and pagination metadata
-- [ ] **4.14** Add `WebApi.Test` happy-path and unhappy-path coverage for get/list, including Member scope, Manager/Admin visibility, empty-scope response, pagination metadata over multiple pages, `401`, `403`, and `404`
+- [ ] **4.13** Add `UseCases.Test` coverage for get/list permissions, Member empty-scope short-circuit, `Mine` behavior, branch isolation, deterministic filter mapping, and pagination metadata. Include read-time live-running coverage: an in-progress current-day partial Present surfaces live-recomputed hours and `IsInProgress = true`; a forgotten-clock-out prior-day partial Present surfaces `(0, 0)` and `IsInProgress = true`; a closed shift surfaces stable persisted hours and `IsInProgress = false`. Assert the same mapper helper is invoked from both Get and List paths (same `Setting` and same `branchLocalNow` per request).
+- [ ] **4.14** Add `WebApi.Test` happy-path and unhappy-path coverage for get/list, including Member scope, Manager/Admin visibility, empty-scope response, pagination metadata over multiple pages, `401`, `403`, and `404`. Include reload-vs-response divergence assertions for in-progress current-day partial Present rows: the row's persisted `TotalHours` may be stale (e.g., zero, written at clock-in time), but the read response carries the live-recomputed value; closed shifts and prior-day partials must match between persisted and response values.
 
 ### Phase 5 — Holiday-Aware Due Dates
 
@@ -1034,14 +1036,18 @@ Close the milestone with the same discipline used in M3 and M4.
 - API-level PostgreSQL unique-violation translation returns clean `409` responses for TimeEntry and Holiday uniqueness races
 - `TimeEntry` carries `UpdatedAt` and `UpdatedByUserId`; successful TimeEntry upsert and deactivate stamp the audit pair consistently
 - `PUT /timeentry` is the only TimeEntry write/upsert path and computes `TotalHours` / `BalanceHours` server-side
-- Members can upsert only their linked operator's same-day `Present` entry; Manager/Admin can upsert or deactivate any branch operator's entry on any date
+- For `Status = Present`, `ClockIn` is required and `ClockOut` is optional (Phase 3.5). Submitting `ClockOut` without `ClockIn` returns `400 TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN`. Non-Present statuses still reject both clocks.
+- Partial Present rows on the current branch-local business day carry server-computed live-running `TotalHours` / `BalanceHours` via `ITimeEntryCalculationService.CalculateLiveRunning`. Closed shifts (both clocks set) and prior-day partials (forgotten clock-outs, returning `(0, 0)`) are stable snapshots.
+- Response DTOs include the server-computed `IsInProgress` flag (`true` iff `Status == Present && ClockIn != null && ClockOut == null`)
+- TimeEntry read endpoints (`GET /timeentry/{id}` and `GET /timeentry`) recompute live-running values on every read using `IBranchClock.LocalBusinessDateTime` and `CalculateLiveRunning` through a shared mapper helper; `Setting` and `branchLocalNow` are captured once per request and reused across all rows in a list page
+- Members can upsert only their linked operator's same-day `Present` entry — partial (`ClockIn`-only, in-progress) or complete (both clocks). Manager/Admin can upsert or deactivate any branch operator's entry on any date.
 - TimeEntry writes are not blocked by `Setting.LockDate`
 - TimeEntry read/list scope follows the agreed role rules: Members see only their linked operator; Manager/Admin see all branch entries; missing/cross-branch ids stay `404`
 - Holiday CRUD is live: any branch role can read; only Manager/Admin can create/update/deactivate
 - Holiday dates are immutable after creation; moving a holiday is handled by deactivate + create
 - Holiday-aware due-date calculation is live for transaction create and auto-generated installment rows, skipping weekends and active branch holidays
 - Manual cheque due dates remain explicit operator input and are not auto-adjusted by the holiday calendar
-- Spec sync covers TimeEntry audit fields, Holiday constraints, TimeEntry calculation, TimeEntry permission/read/write contract, Holiday contract, and holiday-aware due-date behavior; shared revision metadata is bumped and `check-loto-doc-sync.sh` passes
+- Spec sync covers TimeEntry audit fields, Holiday constraints, TimeEntry calculation (including the Phase 3.5 open-shift Present and live-running rules), TimeEntry permission/read/write contract, Holiday contract, and holiday-aware due-date behavior; shared revision metadata is bumped and `check-loto-doc-sync.sh` passes
 - Validator, use-case, Web API, and architecture tests pass with the new TimeEntry, Holiday, and due-date behavior
 
 ---
