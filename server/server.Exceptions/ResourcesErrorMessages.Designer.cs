@@ -855,6 +855,90 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_SEGMENT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SEGMENT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_SEGMENT_CLOCK_IN_LOCKED {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SEGMENT_CLOCK_IN_LOCKED", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_SEGMENTS_OVERLAP {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SEGMENTS_OVERLAP", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_MULTIPLE_OPEN_SEGMENTS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_MULTIPLE_OPEN_SEGMENTS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_STATUS_CHANGE_REQUIRES_SEGMENT_CLEANUP {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_STATUS_CHANGE_REQUIRES_SEGMENT_CLEANUP", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_MEMBER_TAP_ACTION_REQUIRED {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_MEMBER_TAP_ACTION_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_MEMBER_SHOULD_NOT_SEND_SEGMENTS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_MEMBER_SHOULD_NOT_SEND_SEGMENTS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_ADMIN_REQUIRES_SEGMENTS {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_ADMIN_REQUIRES_SEGMENTS", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_ADMIN_SHOULD_NOT_SEND_TAP_ACTION {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_ADMIN_SHOULD_NOT_SEND_TAP_ACTION", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_OPEN_SEGMENT_CONFLICT {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_OPEN_SEGMENT_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_SEGMENT_CLOCK_IN_REQUIRED {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SEGMENT_CLOCK_IN_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN", resourceCulture);
+            }
+        }
+
         public static string TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE {
             get {
                 return ResourceManager.GetString("TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE", resourceCulture);

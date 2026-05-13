@@ -20,4 +20,6 @@ public class TimeEntry : EntityBase
     public DateTime? UpdatedAt { get; set; }
     public Guid? UpdatedByUserId { get; set; }
     public User? UpdatedByUser { get; set; }
+
+    public ICollection<TimeEntrySegment> Segments { get; init; } = [];
 }

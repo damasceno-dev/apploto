@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v18
+Spec revision: v19
 -->
 
-> **Status:** Revised spec (v18) — Milestone 5 Phase 3.5 foundational live-running TimeEntry calc service
+> **Status:** Revised spec (v19) — Milestone 5 Phase 3.6 multi-segment TimeEntry & admin edits (scaffolding)
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -27,6 +27,7 @@ Spec revision: v18
 > v16: Milestone 4 DailyClose workflow hardened — §3.14 audit pair, §6.5 Submitted→Draft recall transition, §6.12 explicit Direction handling, §6.13 DailyClose contract including role × state × business-day matrix.
 > v17: Milestone 5 Phase 1 TimeEntry & Holiday foundation — §3.16 updated with audit fields and filtered unique constraint; §3.17 updated with table and filtered unique constraint; §6.3 installment stagger now skips weekends and branch holidays; §6.7 references ITimeEntryCalculationService with midnight-crossing and exact-boundary notes; §6.8 documents holiday-aware business-day calculation via DueDateCalculator and IBranchHolidaySource.
 > v18: Milestone 5 Phase 3.5 foundational live-running — §6.7 updated with partial-Present semantics (ClockIn required, ClockOut optional), live-running rule with synthetic effectiveClockOut on same branch-local day, forgotten-clock-out path returns (0, 0), ClockOut-without-ClockIn always invalid (TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN); CalculateLiveRunning method signature and contract added.
+> v19: Milestone 5 Phase 3.6 multi-segment TimeEntry — §3.16 TimeEntry updated to drop ClockIn/ClockOut (end state; code retains them during Slice 3.6.A scaffolding) and add Segments navigation; §3.16a TimeEntrySegment added with full DateTime clock fields, FK, filtered unique open-segment constraint, day-bounds invariant, and audit fields; §6.7 fully rewritten for the segment-list contract using DateTime semantics, top-up gap-aware lunch rule, dual-shape PUT (Member Action vs Admin Segments), idempotent no-ops, status-transition rule, day-bounds rule, and worked examples (overnight, live-running gap, forgotten open).
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -702,14 +703,12 @@ public class DailyCloseItem : EntityBase
 
 ### 3.16 TimeEntry
 
-Operator attendance tracking. Standalone — not mixed with the transaction flow.
+Operator attendance tracking. Standalone — not mixed with the transaction flow. Clock pairs live on child `TimeEntrySegment` rows (full `DateTime`, branch-local wall clock); this parent row stores the day, status, and computed totals.
 
 ```csharp
 public class TimeEntry : EntityBase
 {
     public DateTime Date { get; init; }
-    public TimeOnly? ClockIn { get; set; }
-    public TimeOnly? ClockOut { get; set; }
     public TimeEntryStatus Status { get; set; }
     public decimal TotalHours { get; set; }
     public decimal BalanceHours { get; set; }
@@ -723,26 +722,64 @@ public class TimeEntry : EntityBase
     public DateTime? UpdatedAt { get; set; }
     public Guid? UpdatedByUserId { get; set; }
     public User? UpdatedByUser { get; set; }
+
+    public ICollection<TimeEntrySegment> Segments { get; init; } = [];
+}
+```
+
+| Column          | Type         | Null     | Notes                                                                    |
+|-----------------|--------------|----------|--------------------------------------------------------------------------|
+| Id              | uuid         | PK       |                                                                          |
+| Date            | date         | NOT NULL | Branch-local calendar day                                                |
+| Status          | smallint     | NOT NULL | Enum (see section 4)                                                     |
+| TotalHours      | numeric(6,2) | NOT NULL | Net hours worked after lunch deduction                                   |
+| BalanceHours    | numeric(6,2) | NOT NULL | TotalHours minus daily target. Positive = overtime, negative = owes time |
+| OperatorId      | uuid         | NOT NULL | FK → Operator                                                            |
+| BranchId        | uuid         | NOT NULL | FK → Branch                                                              |
+| UpdatedAt       | timestamptz  | NULL     | Stamped on every upsert after creation                                   |
+| UpdatedByUserId | uuid         | NULL     | FK → User; who last modified this entry                                  |
+| CreatedAt       | timestamptz  | NOT NULL |                                                                          |
+| Active          | boolean      | NOT NULL |                                                                          |
+
+**Filtered unique constraint:** `(BranchId, OperatorId, Date) WHERE Active = true` — one active entry per operator per day.
+
+### 3.16a TimeEntrySegment
+
+Each clock-in/clock-out pair for a `TimeEntry`. A single day may have multiple segments (e.g. morning + afternoon after a lunch break). Clocks are stored as `DateTime` (branch-local wall clock, `timestamp without time zone`).
+
+```csharp
+public class TimeEntrySegment : EntityBase
+{
+    public DateTime ClockIn { get; set; }
+    public DateTime? ClockOut { get; set; }
+
+    public Guid TimeEntryId { get; init; }
+    public TimeEntry TimeEntry { get; init; } = null!;
+
+    public DateTime? UpdatedAt { get; set; }
+    public Guid? UpdatedByUserId { get; set; }
+    public User? UpdatedByUser { get; set; }
 }
 ```
 
 | Column | Type | Null | Notes |
 |---|---|---|---|
 | Id | uuid | PK | |
-| Date | date | NOT NULL | |
-| ClockIn | time | NULL | Null when absent |
-| ClockOut | time | NULL | Null when absent |
-| Status | smallint | NOT NULL | Enum (see section 4) |
-| TotalHours | numeric(6,2) | NOT NULL | Net hours worked after lunch deduction |
-| BalanceHours | numeric(6,2) | NOT NULL | TotalHours minus daily target. Positive = overtime, negative = owes time |
-| OperatorId | uuid | NOT NULL | FK → Operator |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| UpdatedAt | timestamptz | NULL | Stamped on every upsert after creation |
-| UpdatedByUserId | uuid | NULL | FK → User; who last modified this entry |
+| ClockIn | timestamp (no tz) | NOT NULL | Branch-local wall clock; must fall within `[parent.Date, parent.Date + 1 day)` |
+| ClockOut | timestamp (no tz) | NULL | Null = open shift; when set must be > ClockIn and ClockOut − ClockIn ≤ 24 h |
+| TimeEntryId | uuid | NOT NULL | FK → TimeEntry (CASCADE on delete) |
+| UpdatedAt | timestamptz | NULL | Stamped on admin edit |
+| UpdatedByUserId | uuid | NULL | FK → User; who last modified this segment |
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | |
 
-**Filtered unique constraint:** `(BranchId, OperatorId, Date) WHERE Active = true` — one active entry per operator per day.
+**Day-bounds invariant:** `segment.ClockIn ∈ [parent.Date, parent.Date + 1 day)`. When `ClockOut` is set: `ClockOut > ClockIn` and `ClockOut − ClockIn ≤ 24 h`, which implicitly bounds `ClockOut < parent.Date + 2 days`.
+
+**Filtered unique constraint:** `(TimeEntryId) WHERE "ClockOut" IS NULL AND "Active" = true` — at most one open segment per TimeEntry at any moment. Named `IX_TimeEntrySegments_TimeEntryId_OpenShift`.
+
+**Secondary index:** `(TimeEntryId, ClockIn)` for segment ordering queries.
+
+**FK behaviour:** `OnDelete(DeleteBehavior.Cascade)` from `TimeEntry` — deleting (or hard-deleting) a TimeEntry also removes its segments.
 
 ### 3.17 Holiday
 
@@ -759,14 +796,14 @@ public class Holiday : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Date | date | NOT NULL | |
-| Description | varchar(500) | NULL | Human-readable label (e.g. "Natal") |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column      | Type         | Null     | Notes                               |
+|-------------|--------------|----------|-------------------------------------|
+| Id          | uuid         | PK       |                                     |
+| Date        | date         | NOT NULL |                                     |
+| Description | varchar(500) | NULL     | Human-readable label (e.g. "Natal") |
+| BranchId    | uuid         | NOT NULL | FK → Branch                         |
+| CreatedAt   | timestamptz  | NOT NULL |                                     |
+| Active      | boolean      | NOT NULL |                                     |
 
 **Filtered unique constraint:** `(BranchId, Date) WHERE Active = true` — one active holiday per date per branch.
 
@@ -1032,52 +1069,73 @@ WHERE AccountId = @tabAccountId
 
 ### 6.7 Time entry calculation
 
-This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. Two methods are provided:
+This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. The service consumes a list of segment inputs (full `DateTime` pairs) rather than a single clock pair, which makes overnight segments unambiguous without any wrap-around arithmetic.
 
-**Method signatures:**
+**Method signature (Phase 3.6 target):**
 
 ```
-ITimeEntryCalculationService.Calculate(status, clockIn, clockOut, dailyTargetHours, lunchDeductionOver6H, lunchDeductionOver4H)
+ITimeEntryCalculationService.Calculate(
+    status,
+    segments: IReadOnlyList<TimeEntrySegmentInput>,  // (DateTime ClockIn, DateTime? ClockOut)
+    entryDate: DateTime,
+    branchLocalNow: DateTime,
+    dailyTargetHours,
+    lunchDeductionOver6H,
+    lunchDeductionOver4H)
   → (TotalHours, BalanceHours)
-
-ITimeEntryCalculationService.CalculateLiveRunning(clockIn, entryDate, branchLocalNow, dailyTargetHours, lunchDeductionOver6H, lunchDeductionOver4H)
-  → (TotalHours, BalanceHours)
 ```
 
-**Partial-Present semantics (use-case level):**
+**Dual-shape PUT contract:**
+
+The PUT /timeentry endpoint accepts two mutually exclusive shapes:
+
+- **Member shape:** supplies `Action: Open | Close` (no `Segments`). The server stamps the current branch-local `DateTime` as the segment clock. `Open` appends a new open segment (ClockOut = null). `Close` closes the single open segment for that TimeEntry. Sending both `Action` and `Segments` is rejected with `TIMEENTRY_MEMBER_SHOULD_NOT_SEND_SEGMENTS`. Sending neither when the caller is a Member is rejected with `TIMEENTRY_MEMBER_TAP_ACTION_REQUIRED`.
+- **Admin shape (Manager or Admin):** supplies `Segments` (no `Action`) as an explicit list of `{ ClockIn: DateTime, ClockOut: DateTime? }` pairs. The server replaces the entire segment set atomically. Sending both `Action` and `Segments` is rejected with `TIMEENTRY_ADMIN_SHOULD_NOT_SEND_TAP_ACTION`. Sending neither `Action` nor `Segments` as an Admin is rejected with `TIMEENTRY_ADMIN_REQUIRES_SEGMENTS`.
+
+**Idempotent Member no-ops:**
+
+If a Member retries `Action: Open` when an open segment already exists, the use case returns the current entry unchanged (no-op, not a conflict). If a Member retries `Action: Close` when no open segment exists, the use case also returns the current entry unchanged. These no-ops exist so that mobile clients can safely retry on network errors.
+
+**Status-transition rule:**
+
+The PUT payload may change `Status`. If the current TimeEntry already has active segments and the incoming `Status` ≠ `Present`, the use case rejects with `TIMEENTRY_STATUS_CHANGE_REQUIRES_SEGMENT_CLEANUP`. Admins must deactivate all segments before switching a TimeEntry to a non-Present status.
+
+**Day-bounds rule:**
+
+For the Member (Action) shape, the server-stamped `branchLocalNow` must satisfy `branchLocalNow ∈ [entryDate, entryDate + 1 day)`. For the Admin (Segments) shape, each supplied segment must satisfy the day-bounds invariant documented in §3.16a.
+
+**Calculate rules (segment list):**
 
 ```
-If Status = Present:
-    If ClockIn is null:
-        INVALID — use case rejects with TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN
-    If ClockOut is null and Date == branchLocalToday:
-        effectiveClockOut = branchLocalNow.TimeOfDay
-        Apply CalculatePresent(clockIn, effectiveClockOut, settings)
-        # Live-running: persisted TotalHours/BalanceHours are the last-write checkpoint;
-        # read endpoints recompute on every call (see Phase 4).
-    If ClockOut is null and Date < branchLocalToday:
-        TotalHours = 0, BalanceHours = 0
-        # Forgotten clock-out — needs manual review; IsInProgress = true.
-    Else (both clocks set):
-        Apply CalculatePresent(clockIn, clockOut, settings)
-
-ClockOut without ClockIn (any status): INVALID — use case rejects with TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN.
-```
-
-**Calculate rules:**
-
-```
-Input: ClockIn, ClockOut, Status
+Input: segments, Status, entryDate, branchLocalNow
 Constants: DailyTarget (from Setting), LunchDeduction rules (from Setting)
 
+If Status ≠ Present:
+    Segments must be empty (enforced by TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS).
+    TotalHours and BalanceHours use the non-Present rules below.
+
 If Status = Present:
-    grossMinutes = ClockOut - ClockIn (midnight crossing: if span < 0, add 24 h)
-    grossHours = grossMinutes / 60
-    lunchDeduction = grossHours > 6 ? Setting.LunchDeductionOver6H   (strictly > 6)
-                   : grossHours > 4 ? Setting.LunchDeductionOver4H   (strictly > 4, ≤ 6)
-                   : 0                                                (exactly 4 or less)
-    TotalHours = grossHours - lunchDeduction
-    BalanceHours = TotalHours - DailyTarget
+    grossHours = sum of closed segment durations
+                 + live contribution of any open segment (if date == branchLocalToday)
+    # Closed segment duration: (segment.ClockOut − segment.ClockIn).TotalHours
+    # Live contribution: (branchLocalNow − openSegment.ClockIn).TotalHours
+    # DateTime subtraction is exact; no midnight wrap-around needed.
+
+    total_gap = sum of gaps between consecutive segment pairs where the preceding segment
+                is closed, including the gap from the last closed segment to an open trailing
+                segment if present.
+    # gap between seg[i] and seg[i+1] = seg[i+1].ClockIn − seg[i].ClockOut (when seg[i].ClockOut != null)
+    # A trailing open segment (the last one, ClockOut = null) counts as
+    # "following a closed segment" only if there is a closed segment before it.
+
+    effective_lunch = max(0, lunch_tier(grossHours) − total_gap)
+    # lunch_tier: grossHours > 6 → LunchDeductionOver6H (strictly > 6)
+    #             grossHours > 4 → LunchDeductionOver4H (strictly > 4, ≤ 6)
+    #             otherwise → 0
+    # Boundary: exactly 4 h gross → 0; exactly 6 h gross → LunchDeductionOver4H.
+
+    TotalHours  = grossHours − effective_lunch
+    BalanceHours = TotalHours − DailyTarget
 
 If Status ∈ {Sunday, Holiday, Vacation, JustifiedAbsence}:  (abonado)
     TotalHours = DailyTarget
@@ -1088,22 +1146,74 @@ If Status ∈ {DayOff, UnjustifiedAbsence}:  (hours owed)
     BalanceHours = -DailyTarget
 ```
 
-**CalculateLiveRunning rules:**
+**Live-running (open segment on current day):**
+
+When any active segment has `ClockOut = null` and `entryDate.Date == branchLocalNow.Date`, the entry is "in progress". The contribution of that open segment is `(branchLocalNow − segment.ClockIn).TotalHours`. Persisted `TotalHours`/`BalanceHours` are a last-write checkpoint; read endpoints recompute on every call so the API is the live source of truth.
+
+When a segment has `ClockOut = null` and `entryDate.Date < branchLocalNow.Date` (forgotten clock-out), the open segment contributes 0 h (needs manual review). The entry is still marked `IsInProgress = true` in the response.
+
+**Worked examples:**
 
 ```
-Input: ClockIn, EntryDate, BranchLocalNow
-Constants: DailyTarget, LunchDeduction rules (from Setting)
+Example 1 — 10-min gap (no lunch top-up needed):
+  seg[0]: 08:00 → 12:00  (4 h gross)
+  seg[1]: 12:10 → 17:00  (4h50 gross)
+  grossHours = 8h50 ≈ 8.833 h  →  tier = LunchDeductionOver6H (1 h)
+  total_gap = 10 min = 0.167 h
+  effective_lunch = max(0, 1.00 − 0.167) = 0.833 h
+  TotalHours = 8.833 − 0.833 = 8.00 h
 
-If branchLocalNow.Date == entryDate.Date:
-    effectiveClockOut = TimeOnly.FromDateTime(branchLocalNow)
-    Apply CalculatePresent(clockIn, effectiveClockOut, settings)
-    # Same midnight-crossing safety and lunch-tier rules as Calculate.
-Else (entryDate.Date != branchLocalNow.Date):
-    TotalHours = 0, BalanceHours = 0
-    # Forgotten clock-out — entry is in the past; manual review needed.
+Example 2 — 30-min gap:
+  seg[0]: 08:00 → 12:00  (4 h)
+  seg[1]: 12:30 → 17:00  (4h30)
+  grossHours = 8.50 h  →  tier = LunchDeductionOver6H (1 h)
+  total_gap = 0.50 h
+  effective_lunch = max(0, 1.00 − 0.50) = 0.50 h
+  TotalHours = 8.50 − 0.50 = 8.00 h
+
+Example 3 — 1-h gap exactly meeting tier (no deduction):
+  seg[0]: 08:00 → 12:00  (4 h)
+  seg[1]: 13:00 → 17:00  (4 h)
+  grossHours = 8.00 h  →  tier = LunchDeductionOver6H (1 h)
+  total_gap = 1.00 h
+  effective_lunch = max(0, 1.00 − 1.00) = 0
+  TotalHours = 8.00 h
+
+Example 4 — overnight single segment:
+  seg[0]: 2026-05-12T22:00 → 2026-05-13T06:00  (8 h)
+  grossHours = 8 h  →  tier = LunchDeductionOver6H (1 h)
+  total_gap = 0
+  effective_lunch = max(0, 1.00 − 0) = 1.00 h
+  TotalHours = 7.00 h
+  # DateTime subtraction requires no wrap-around; overnight is unambiguous.
+
+Example 5 — multi-segment overnight:
+  seg[0]: 2026-05-12T22:00 → 2026-05-13T02:00  (4 h)
+  seg[1]: 2026-05-13T02:30 → 2026-05-13T06:00  (3h30)
+  grossHours = 7.50 h  →  tier = LunchDeductionOver6H (1 h)
+  total_gap = 30 min = 0.50 h
+  effective_lunch = max(0, 1.00 − 0.50) = 0.50 h
+  TotalHours = 7.50 − 0.50 = 7.00 h
+
+Example 6 — forgotten open segment with closed sibling:
+  seg[0]: 08:00 → 12:00  (closed, 4 h)
+  seg[1]: 13:00 → null   (open, forgotten on a prior day)
+  Live contribution of open segment on a prior day = 0
+  total_gap = gap between seg[0] and seg[1] = 1 h (seg[1] has a preceding closed segment)
+  grossHours = 4 h  →  tier = 0 (≤ 4 h)
+  effective_lunch = 0
+  TotalHours = 4 h  (needs manual review; entry marked IsInProgress = true)
+
+Example 7 — live-running with gap before open segment:
+  Current branchLocalNow = 14:00
+  seg[0]: 08:00 → 12:00  (closed, 4 h)
+  seg[1]: 13:00 → null   (open, same day)
+  live contribution = 14:00 − 13:00 = 1 h
+  grossHours = 4 + 1 = 5 h  →  tier = LunchDeductionOver4H (0.25 h)
+  total_gap = 1 h (gap before the open segment)
+  effective_lunch = max(0, 0.25 − 1.00) = 0
+  TotalHours = 5 h
 ```
-
-Boundary notes: exactly 4 h gross → no lunch deduction; exactly 6 h gross → `LunchDeductionOver4H` applies (not `Over6H`).
 
 ### 6.8 Credit card due date calculation
 

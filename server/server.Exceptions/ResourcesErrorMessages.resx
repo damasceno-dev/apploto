@@ -423,6 +423,48 @@
     <data name="TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS" xml:space="preserve">
         <value>Apenas o status Presente aceita horário de entrada ou saída</value>
     </data>
+    <data name="TIMEENTRY_SEGMENT_NOT_FOUND" xml:space="preserve">
+        <value>Segmento de ponto não encontrado</value>
+    </data>
+    <data name="TIMEENTRY_SEGMENT_CLOCK_IN_LOCKED" xml:space="preserve">
+        <value>O horário de entrada de um segmento existente não pode ser alterado</value>
+    </data>
+    <data name="TIMEENTRY_SEGMENTS_OVERLAP" xml:space="preserve">
+        <value>Segmentos de ponto não podem se sobrepor</value>
+    </data>
+    <data name="TIMEENTRY_MULTIPLE_OPEN_SEGMENTS" xml:space="preserve">
+        <value>Já existe um segmento aberto neste registro de ponto</value>
+    </data>
+    <data name="TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS" xml:space="preserve">
+        <value>Apenas o status Presente aceita segmentos de ponto</value>
+    </data>
+    <data name="TIMEENTRY_STATUS_CHANGE_REQUIRES_SEGMENT_CLEANUP" xml:space="preserve">
+        <value>Remova os segmentos ativos antes de alterar o status</value>
+    </data>
+    <data name="TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS" xml:space="preserve">
+        <value>O segmento deve iniciar no dia de trabalho e não pode exceder 24 horas de duração</value>
+    </data>
+    <data name="TIMEENTRY_MEMBER_TAP_ACTION_REQUIRED" xml:space="preserve">
+        <value>Membros devem informar a ação do toque (Open ou Close)</value>
+    </data>
+    <data name="TIMEENTRY_MEMBER_SHOULD_NOT_SEND_SEGMENTS" xml:space="preserve">
+        <value>Membros não devem informar a lista de segmentos; o servidor registra o horário do toque</value>
+    </data>
+    <data name="TIMEENTRY_ADMIN_REQUIRES_SEGMENTS" xml:space="preserve">
+        <value>Gerente ou Admin deve informar a lista de segmentos com horários explícitos</value>
+    </data>
+    <data name="TIMEENTRY_ADMIN_SHOULD_NOT_SEND_TAP_ACTION" xml:space="preserve">
+        <value>Gerente ou Admin não deve informar ação de toque; use a lista de segmentos</value>
+    </data>
+    <data name="TIMEENTRY_OPEN_SEGMENT_CONFLICT" xml:space="preserve">
+        <value>Já existe um segmento aberto concorrente para este registro de ponto</value>
+    </data>
+    <data name="TIMEENTRY_SEGMENT_CLOCK_IN_REQUIRED" xml:space="preserve">
+        <value>O horário de entrada do segmento é obrigatório</value>
+    </data>
+    <data name="TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN" xml:space="preserve">
+        <value>O horário de saída do segmento deve ser posterior ao horário de entrada</value>
+    </data>
     <data name="TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE" xml:space="preserve">
         <value>O status Domingo só pode ser usado em datas que caem em domingo</value>
     </data>
