@@ -6,12 +6,11 @@ public class ResponseTimeEntryJson
 {
     public Guid Id { get; init; }
     public DateTime Date { get; init; }
-    public TimeOnly? ClockIn { get; init; }
-    public TimeOnly? ClockOut { get; init; }
     public TimeEntryStatus Status { get; init; }
     public decimal TotalHours { get; init; }
     public decimal BalanceHours { get; init; }
     public bool IsInProgress { get; init; }
+    public List<ResponseTimeEntrySegmentJson> Segments { get; init; } = [];
     public Guid OperatorId { get; init; }
     public string OperatorName { get; init; } = string.Empty;
     public Guid BranchId { get; init; }

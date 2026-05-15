@@ -17,7 +17,8 @@ public sealed class BranchClock : IBranchClock
             ? utcInstant
             : DateTime.SpecifyKind(utcInstant, DateTimeKind.Utc);
 
-        return TimeZoneInfo.ConvertTimeFromUtc(normalizedUtcInstant, BranchTimeZone);
+        var branchLocalDateTime = TimeZoneInfo.ConvertTimeFromUtc(normalizedUtcInstant, BranchTimeZone);
+        return DateTime.SpecifyKind(branchLocalDateTime, DateTimeKind.Unspecified);
     }
 
     public DateTime LocalBusinessDate(DateTime utcInstant)

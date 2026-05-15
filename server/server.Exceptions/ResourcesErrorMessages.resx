@@ -414,15 +414,6 @@
     <data name="TIMEENTRY_CLOCKS_EQUAL" xml:space="preserve">
         <value>Os horários de entrada e saída não podem ser iguais</value>
     </data>
-    <data name="TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN" xml:space="preserve">
-        <value>O status Presente exige horário de entrada</value>
-    </data>
-    <data name="TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN" xml:space="preserve">
-        <value>Não é possível registrar horário de saída sem horário de entrada</value>
-    </data>
-    <data name="TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS" xml:space="preserve">
-        <value>Apenas o status Presente aceita horário de entrada ou saída</value>
-    </data>
     <data name="TIMEENTRY_SEGMENT_NOT_FOUND" xml:space="preserve">
         <value>Segmento de ponto não encontrado</value>
     </data>

@@ -83,13 +83,16 @@ public class TimeEntryControllerDeactivateUnhappyPathTest(ServerWebApplicationFa
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id);
 
+        var date = TodayUnspecified();
+        var segment = new CommonTestUtilities.Requests.RequestTimeEntrySegmentJsonBuilder()
+            .WithClockIn(date.AddHours(8))
+            .WithClockOut(date.AddHours(17))
+            .Build();
         var insertRequest = new CommonTestUtilities.Requests.RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot(segment);
         var insertHttp = await _client.PutAuthAsync("/timeentry", insertRequest, token);
         var inserted = await insertHttp.ReadContentAsync<ResponseTimeEntryJson>();
 
@@ -114,9 +117,7 @@ public class TimeEntryControllerDeactivateUnhappyPathTest(ServerWebApplicationFa
         {
             Id = Guid.NewGuid(),
             CreatedAt = DateTime.UtcNow,
-            Date = DateTime.UtcNow.Date,
-            ClockIn = new TimeOnly(8, 0),
-            ClockOut = new TimeOnly(17, 0),
+            Date = TodayUnspecified(),
             Status = TimeEntryStatus.Present,
             TotalHours = 8m,
             BalanceHours = 0.67m,
@@ -124,7 +125,19 @@ public class TimeEntryControllerDeactivateUnhappyPathTest(ServerWebApplicationFa
             BranchId = branchId
         };
         dbContext.TimeEntries.Add(timeEntry);
+        dbContext.TimeEntrySegments.Add(new server.Domain.Entities.TimeEntrySegment
+        {
+            Id = Guid.NewGuid(),
+            TimeEntryId = timeEntry.Id,
+            ClockIn = timeEntry.Date.AddHours(8),
+            ClockOut = timeEntry.Date.AddHours(17)
+        });
         await dbContext.SaveChangesAsync();
         return timeEntry;
+    }
+
+    private static DateTime TodayUnspecified()
+    {
+        return DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Unspecified);
     }
 }

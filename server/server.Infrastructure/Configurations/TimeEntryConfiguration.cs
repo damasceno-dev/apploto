@@ -12,8 +12,6 @@ internal class TimeEntryConfiguration : IEntityTypeConfiguration<TimeEntry>
         builder.HasKey(te => te.Id);
 
         builder.Property(te => te.Date).HasColumnType("date").IsRequired();
-        builder.Property(te => te.ClockIn).HasColumnType("time without time zone").IsRequired(false);
-        builder.Property(te => te.ClockOut).HasColumnType("time without time zone").IsRequired(false);
         builder.Property(te => te.Status).HasConversion<short>().IsRequired();
         builder.Property(te => te.TotalHours).HasPrecision(6, 2).IsRequired();
         builder.Property(te => te.BalanceHours).HasPrecision(6, 2).IsRequired();

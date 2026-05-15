@@ -1,6 +1,5 @@
 using server.Communication.Responses;
 using server.Domain.Entities;
-using server.Domain.Entities.Enums;
 
 namespace server.Application.UseCases.TimeEntries.Upsert;
 
@@ -14,14 +13,26 @@ public static class UpsertTimeEntryMapper
             {
                 Id = timeEntry.Id,
                 Date = timeEntry.Date,
-                ClockIn = timeEntry.ClockIn,
-                ClockOut = timeEntry.ClockOut,
                 Status = timeEntry.Status,
                 TotalHours = timeEntry.TotalHours,
                 BalanceHours = timeEntry.BalanceHours,
-                IsInProgress = timeEntry.Status == TimeEntryStatus.Present
-                    && timeEntry.ClockIn is not null
-                    && timeEntry.ClockOut is null,
+                IsInProgress = timeEntry.Segments.Any(segment => segment.Active && segment.ClockOut is null),
+                Segments = timeEntry.Segments
+                    .Where(segment => segment.Active)
+                    .OrderBy(segment => segment.ClockIn)
+                    .ThenBy(segment => segment.CreatedAt)
+                    .ThenBy(segment => segment.Id)
+                    .Select(segment => new ResponseTimeEntrySegmentJson
+                    {
+                        Id = segment.Id,
+                        ClockIn = segment.ClockIn,
+                        ClockOut = segment.ClockOut,
+                        CreatedAt = segment.CreatedAt,
+                        UpdatedAt = segment.UpdatedAt,
+                        UpdatedByUserId = segment.UpdatedByUserId,
+                        Active = segment.Active
+                    })
+                    .ToList(),
                 OperatorId = timeEntry.OperatorId,
                 OperatorName = operatorName,
                 BranchId = timeEntry.BranchId,

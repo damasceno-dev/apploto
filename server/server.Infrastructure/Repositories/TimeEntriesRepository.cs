@@ -17,6 +17,11 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
         return await dbContext.TimeEntries
             .Include(te => te.Operator)
             .Include(te => te.Branch)
+            .Include(te => te.Segments
+                .Where(segment => segment.Active)
+                .OrderBy(segment => segment.ClockIn)
+                .ThenBy(segment => segment.CreatedAt)
+                .ThenBy(segment => segment.Id))
             .FirstOrDefaultAsync(te =>
                 te.Id == id &&
                 te.BranchId == branchId &&
@@ -28,6 +33,11 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
         return await dbContext.TimeEntries
             .AsNoTracking()
             .Include(te => te.Operator)
+            .Include(te => te.Segments
+                .Where(segment => segment.Active)
+                .OrderBy(segment => segment.ClockIn)
+                .ThenBy(segment => segment.CreatedAt)
+                .ThenBy(segment => segment.Id))
             .FirstOrDefaultAsync(te =>
                 te.Id == id &&
                 te.BranchId == branchId &&
@@ -37,6 +47,11 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
     public async Task<TimeEntry?> GetByBranchIdOperatorIdAndDate(Guid branchId, Guid operatorId, DateTime date)
     {
         return await dbContext.TimeEntries
+            .Include(te => te.Segments
+                .Where(segment => segment.Active)
+                .OrderBy(segment => segment.ClockIn)
+                .ThenBy(segment => segment.CreatedAt)
+                .ThenBy(segment => segment.Id))
             .FirstOrDefaultAsync(te =>
                 te.BranchId == branchId &&
                 te.OperatorId == operatorId &&

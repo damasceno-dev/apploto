@@ -8,8 +8,8 @@ public class RequestUpsertTimeEntryJsonBuilder
     private Guid _operatorId = Guid.NewGuid();
     private DateTime _date = DateTime.Today;
     private TimeEntryStatus _status = TimeEntryStatus.Present;
-    private TimeOnly? _clockIn = new TimeOnly(8, 0);
-    private TimeOnly? _clockOut = new TimeOnly(17, 0);
+    private TimeEntryTapAction? _action;
+    private List<RequestTimeEntrySegmentJson>? _segments = [];
 
     public RequestUpsertTimeEntryJsonBuilder WithOperatorId(Guid operatorId)
     {
@@ -29,23 +29,43 @@ public class RequestUpsertTimeEntryJsonBuilder
         return this;
     }
 
-    public RequestUpsertTimeEntryJsonBuilder WithClockIn(TimeOnly? clockIn)
+    public RequestUpsertTimeEntryJsonBuilder WithAction(TimeEntryTapAction? action)
     {
-        _clockIn = clockIn;
+        _action = action;
         return this;
     }
 
-    public RequestUpsertTimeEntryJsonBuilder WithClockOut(TimeOnly? clockOut)
+    public RequestUpsertTimeEntryJsonBuilder WithSegments(params RequestTimeEntrySegmentJson[] segments)
     {
-        _clockOut = clockOut;
+        _segments = segments.ToList();
         return this;
     }
 
-    public RequestUpsertTimeEntryJsonBuilder WithNoClocks()
+    public RequestUpsertTimeEntryJsonBuilder WithSegments(List<RequestTimeEntrySegmentJson>? segments)
     {
-        _clockIn = null;
-        _clockOut = null;
+        _segments = segments;
         return this;
+    }
+
+    public RequestUpsertTimeEntryJson BuildMemberOpenTap()
+    {
+        _action = TimeEntryTapAction.Open;
+        _segments = null;
+        return Build();
+    }
+
+    public RequestUpsertTimeEntryJson BuildMemberCloseTap()
+    {
+        _action = TimeEntryTapAction.Close;
+        _segments = null;
+        return Build();
+    }
+
+    public RequestUpsertTimeEntryJson BuildAdminSnapshot(params RequestTimeEntrySegmentJson[] segments)
+    {
+        _action = null;
+        _segments = segments.ToList();
+        return Build();
     }
 
     public RequestUpsertTimeEntryJson Build()
@@ -55,8 +75,8 @@ public class RequestUpsertTimeEntryJsonBuilder
             OperatorId = _operatorId,
             Date = _date,
             Status = _status,
-            ClockIn = _clockIn,
-            ClockOut = _clockOut
+            Action = _action,
+            Segments = _segments
         };
     }
 }

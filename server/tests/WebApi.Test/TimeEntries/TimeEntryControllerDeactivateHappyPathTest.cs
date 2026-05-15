@@ -22,13 +22,16 @@ public class TimeEntryControllerDeactivateHappyPathTest(ServerWebApplicationFact
 
         // Insert a TimeEntry through the upsert endpoint so persistence and the row's
         // initial audit state come from the production code path.
+        var date = TodayUnspecified();
+        var segment = new CommonTestUtilities.Requests.RequestTimeEntrySegmentJsonBuilder()
+            .WithClockIn(date.AddHours(8))
+            .WithClockOut(date.AddHours(17))
+            .Build();
         var insertRequest = new CommonTestUtilities.Requests.RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot(segment);
         var insertHttp = await _client.PutAuthAsync("/timeentry", insertRequest, token);
         insertHttp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var inserted = await insertHttp.ReadContentAsync<ResponseTimeEntryJson>();
@@ -60,10 +63,9 @@ public class TimeEntryControllerDeactivateHappyPathTest(ServerWebApplicationFact
 
         var insertRequest = new CommonTestUtilities.Requests.RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
+            .WithDate(TodayUnspecified())
             .WithStatus(TimeEntryStatus.Vacation)
-            .WithNoClocks()
-            .Build();
+            .BuildAdminSnapshot();
         var insertHttp = await _client.PutAuthAsync("/timeentry", insertRequest, token);
         var inserted = await insertHttp.ReadContentAsync<ResponseTimeEntryJson>();
 
@@ -84,15 +86,17 @@ public class TimeEntryControllerDeactivateHappyPathTest(ServerWebApplicationFact
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEDeactivateRecreate", Role.Manager);
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id);
-        var date = DateTime.UtcNow.Date;
+        var date = TodayUnspecified();
+        var segment = new CommonTestUtilities.Requests.RequestTimeEntrySegmentJsonBuilder()
+            .WithClockIn(date.AddHours(8))
+            .WithClockOut(date.AddHours(17))
+            .Build();
 
         var insertRequest = new CommonTestUtilities.Requests.RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
             .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot(segment);
         var firstInsert = await _client.PutAuthAsync("/timeentry", insertRequest, token);
         firstInsert.StatusCode.ShouldBe(HttpStatusCode.OK);
         var firstPayload = await firstInsert.ReadContentAsync<ResponseTimeEntryJson>();
@@ -114,5 +118,10 @@ public class TimeEntryControllerDeactivateHappyPathTest(ServerWebApplicationFact
         var recreated = await factory.ReloadAsync<TimeEntry>(recreatedPayload.Id);
         recreated.ShouldNotBeNull();
         recreated.Active.ShouldBeTrue();
+    }
+
+    private static DateTime TodayUnspecified()
+    {
+        return DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Unspecified);
     }
 }

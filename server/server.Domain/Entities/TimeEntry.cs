@@ -5,8 +5,6 @@ namespace server.Domain.Entities;
 public class TimeEntry : EntityBase
 {
     public DateTime Date { get; init; }
-    public TimeOnly? ClockIn { get; set; }
-    public TimeOnly? ClockOut { get; set; }
     public TimeEntryStatus Status { get; set; }
     public decimal TotalHours { get; set; }
     public decimal BalanceHours { get; set; }

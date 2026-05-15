@@ -837,24 +837,6 @@ namespace server.Exceptions {
             }
         }
 
-        public static string TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN {
-            get {
-                return ResourceManager.GetString("TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN", resourceCulture);
-            }
-        }
-
-        public static string TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN {
-            get {
-                return ResourceManager.GetString("TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN", resourceCulture);
-            }
-        }
-
-        public static string TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS {
-            get {
-                return ResourceManager.GetString("TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS", resourceCulture);
-            }
-        }
-
         public static string TIMEENTRY_SEGMENT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("TIMEENTRY_SEGMENT_NOT_FOUND", resourceCulture);

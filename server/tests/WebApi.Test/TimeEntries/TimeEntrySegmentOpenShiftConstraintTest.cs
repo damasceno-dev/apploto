@@ -42,10 +42,11 @@ public class TimeEntrySegmentOpenShiftConstraintTest(ServerWebApplicationFactory
         };
         setupDb.Operators.Add(op);
 
+        var today = TodayUnspecified();
         var timeEntry = new TimeEntry
         {
             Id = Guid.NewGuid(),
-            Date = DateTime.Today,
+            Date = today,
             Status = TimeEntryStatus.Present,
             TotalHours = 0m,
             BalanceHours = 0m,
@@ -58,7 +59,7 @@ public class TimeEntrySegmentOpenShiftConstraintTest(ServerWebApplicationFactory
         {
             Id = Guid.NewGuid(),
             TimeEntryId = timeEntry.Id,
-            ClockIn = DateTime.Today.AddHours(8),
+            ClockIn = today.AddHours(8),
             ClockOut = null
         };
         setupDb.TimeEntrySegments.Add(firstSegment);
@@ -74,7 +75,7 @@ public class TimeEntrySegmentOpenShiftConstraintTest(ServerWebApplicationFactory
         {
             Id = Guid.NewGuid(),
             TimeEntryId = timeEntry.Id,
-            ClockIn = DateTime.Today.AddHours(10),
+            ClockIn = today.AddHours(10),
             ClockOut = null
         };
         conflictDb.TimeEntrySegments.Add(secondOpenSegment);
@@ -103,10 +104,11 @@ public class TimeEntrySegmentOpenShiftConstraintTest(ServerWebApplicationFactory
         };
         dbContext.Operators.Add(op);
 
+        var today = TodayUnspecified();
         var timeEntry = new TimeEntry
         {
             Id = Guid.NewGuid(),
-            Date = DateTime.Today,
+            Date = today,
             Status = TimeEntryStatus.Present,
             TotalHours = 0m,
             BalanceHours = 0m,
@@ -119,18 +121,23 @@ public class TimeEntrySegmentOpenShiftConstraintTest(ServerWebApplicationFactory
         {
             Id = Guid.NewGuid(),
             TimeEntryId = timeEntry.Id,
-            ClockIn = DateTime.Today.AddHours(8),
-            ClockOut = DateTime.Today.AddHours(12)
+            ClockIn = today.AddHours(8),
+            ClockOut = today.AddHours(12)
         });
         dbContext.TimeEntrySegments.Add(new TimeEntrySegment
         {
             Id = Guid.NewGuid(),
             TimeEntryId = timeEntry.Id,
-            ClockIn = DateTime.Today.AddHours(13),
-            ClockOut = DateTime.Today.AddHours(17)
+            ClockIn = today.AddHours(13),
+            ClockOut = today.AddHours(17)
         });
 
         // Should NOT throw — closed segments are excluded from the open-shift unique index.
         await Should.NotThrowAsync(() => dbContext.SaveChangesAsync());
+    }
+
+    private static DateTime TodayUnspecified()
+    {
+        return DateTime.SpecifyKind(DateTime.Today, DateTimeKind.Unspecified);
     }
 }

@@ -12,9 +12,9 @@ public class UpsertTimeEntryFluentValidationTest
     private readonly UpsertTimeEntryFluentValidation _validator = new();
 
     [Fact]
-    public void Validate_ShouldSucceed_WhenRequestIsValid()
+    public void Validate_ShouldSucceed_WhenMemberTapShapeIsValid()
     {
-        var request = new RequestUpsertTimeEntryJsonBuilder().Build();
+        var request = new RequestUpsertTimeEntryJsonBuilder().BuildMemberOpenTap();
 
         var result = _validator.Validate(request);
 
@@ -22,12 +22,10 @@ public class UpsertTimeEntryFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldSucceed_WhenStatusIsAbonadoAndNoClocks()
+    public void Validate_ShouldSucceed_WhenAdminSnapshotShapeIsValid()
     {
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithStatus(TimeEntryStatus.Vacation)
-            .WithNoClocks()
-            .Build();
+        var segment = new RequestTimeEntrySegmentJsonBuilder().Build();
+        var request = new RequestUpsertTimeEntryJsonBuilder().BuildAdminSnapshot(segment);
 
         var result = _validator.Validate(request);
 
@@ -35,11 +33,12 @@ public class UpsertTimeEntryFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldSucceed_WhenClocksAreMidnightCrossing()
+    public void Validate_ShouldNotRejectActionAndSegmentsTogether()
     {
+        var segment = new RequestTimeEntrySegmentJsonBuilder().Build();
         var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithClockIn(new TimeOnly(22, 0))
-            .WithClockOut(new TimeOnly(6, 0))
+            .WithAction(TimeEntryTapAction.Open)
+            .WithSegments(segment)
             .Build();
 
         var result = _validator.Validate(request);
@@ -52,7 +51,7 @@ public class UpsertTimeEntryFluentValidationTest
     {
         var request = new RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(Guid.Empty)
-            .Build();
+            .BuildMemberOpenTap();
 
         var result = _validator.Validate(request);
 
@@ -66,7 +65,7 @@ public class UpsertTimeEntryFluentValidationTest
     {
         var request = new RequestUpsertTimeEntryJsonBuilder()
             .WithDate(default)
-            .Build();
+            .BuildMemberOpenTap();
 
         var result = _validator.Validate(request);
 
@@ -80,6 +79,21 @@ public class UpsertTimeEntryFluentValidationTest
     {
         var request = new RequestUpsertTimeEntryJsonBuilder()
             .WithStatus((TimeEntryStatus)999)
+            .BuildMemberOpenTap();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(e => e.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.TIMEENTRY_STATUS_INVALID);
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenActionIsOutOfEnumRange()
+    {
+        var request = new RequestUpsertTimeEntryJsonBuilder()
+            .WithAction((TimeEntryTapAction)999)
+            .WithSegments((List<server.Communication.Requests.RequestTimeEntrySegmentJson>?)null)
             .Build();
 
         var result = _validator.Validate(request);
@@ -90,34 +104,33 @@ public class UpsertTimeEntryFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldFail_WhenBothClocksAreEqual()
+    public void Validate_ShouldFail_WhenSegmentClockInIsDefault()
     {
-        var sameTime = new TimeOnly(9, 0);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithClockIn(sameTime)
-            .WithClockOut(sameTime)
+        var segment = new RequestTimeEntrySegmentJsonBuilder()
+            .WithClockIn(default)
             .Build();
+        var request = new RequestUpsertTimeEntryJsonBuilder().BuildAdminSnapshot(segment);
 
         var result = _validator.Validate(request);
 
         result.IsValid.ShouldBeFalse();
         result.Errors.Select(e => e.ErrorMessage)
-            .ShouldContain(ResourcesErrorMessages.TIMEENTRY_CLOCKS_EQUAL);
+            .ShouldContain(ResourcesErrorMessages.TIMEENTRY_SEGMENT_CLOCK_IN_REQUIRED);
     }
 
     [Fact]
-    public void Validate_ShouldNotApplyClockEqualityRule_WhenOnlyOneClockIsPresent()
+    public void Validate_ShouldFail_WhenSegmentClockOutIsNotAfterClockIn()
     {
-        // Status-relative checks (Present requires both clocks; non-Present rejects clocks)
-        // live in the use case, not the validator. The validator stays shape-only and only
-        // compares clocks when both are present.
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(null)
+        var segment = new RequestTimeEntrySegmentJsonBuilder()
+            .WithClockIn(new DateTime(2026, 5, 8, 12, 0, 0))
+            .WithClockOut(new DateTime(2026, 5, 8, 12, 0, 0))
             .Build();
+        var request = new RequestUpsertTimeEntryJsonBuilder().BuildAdminSnapshot(segment);
 
         var result = _validator.Validate(request);
 
-        result.IsValid.ShouldBeTrue();
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(e => e.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN);
     }
 }

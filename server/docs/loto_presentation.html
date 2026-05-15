@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v19
+Spec revision: v20
 -->
 <html lang="en">
 <head>
@@ -845,7 +845,7 @@ function renderClosing(i){
     {t:'Branch Consistency',d:'Every FK on Transaction and DailyClose (Account, Operator, Client, TransactionType→Category) must resolve to the same BranchId — enforced at the service layer to prevent cross-tenant data leakage.'},
     {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update, finalize, or cancel only linked-account rows they recorded on the same local business day. Draft finalization promotes Status to Active. Cancellation is terminal: Status moves to Cancelled with a required reason, the cancellation audit fields and the generic update audit fields are stamped from the same clock instant, and installment siblings are not touched.'},
     {t:'DailyClose Recall',d:'DailyClose supports Rejected→Draft resubmission and same-day Submitted→Draft recall for the recording operator, or any Manager/Admin. Workflow-specific timestamps and UpdatedAt use the same captured instant, and the system CashVariance row survives recall until the next Submit overwrites it in place.'},
-    {t:'TimeEntry Calculation',d:'Clock pairs live on child TimeEntrySegment rows (full DateTime, branch-local wall clock); the parent TimeEntry holds Date, Status, and computed totals. Two shapes: Members send Action: Open|Close (server-stamped DateTime); Managers/Admins send an explicit Segments list. Gross hours = sum of closed segment durations + live contribution of any open segment (same day). Lunch top-up rule: effective_lunch = max(0, lunch_tier(grossHours) − total_gap), where total_gap counts every gap between consecutive segment pairs. Non-Present statuses return TotalHours = DailyTarget (abonado) or 0 (owing). At most one open segment per TimeEntry is enforced by the IX_TimeEntrySegments_TimeEntryId_OpenShift filtered unique index.'}
+    {t:'TimeEntry Calculation',d:'Clock pairs live on child TimeEntrySegment rows (full DateTime, branch-local wall clock); the parent TimeEntry holds Date, Status, and computed totals. Two shapes: Members send Action: Open|Close (server-stamped DateTime); Managers/Admins send an explicit Segments list. A prior-day open segment is overnight if the next tap is Close on that prior-day row, or forgotten (contributes 0h) if the next tap is Open on today\\'s row. Gross hours = sum of closed segment durations + live contribution of any open segment (same day). Lunch top-up rule: effective_lunch = max(0, lunch_tier(grossHours) − total_gap), where total_gap counts every gap between consecutive segment pairs. Non-Present statuses return TotalHours = DailyTarget (abonado) or 0 (owing). At most one open segment per TimeEntry is enforced by the IX_TimeEntrySegments_TimeEntryId_OpenShift filtered unique index.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">

@@ -15,7 +15,11 @@ internal class TimeEntrySegmentsRepository(ServerDbContext dbContext) : ITimeEnt
     {
         return await dbContext.TimeEntrySegments
             .Include(s => s.TimeEntry)
-                .ThenInclude(te => te.Segments.Where(seg => seg.Active))
+                .ThenInclude(te => te.Segments
+                    .Where(seg => seg.Active)
+                    .OrderBy(seg => seg.ClockIn)
+                    .ThenBy(seg => seg.CreatedAt)
+                    .ThenBy(seg => seg.Id))
             .FirstOrDefaultAsync(s =>
                 s.Id == segmentId &&
                 s.TimeEntry.BranchId == branchId &&
@@ -27,7 +31,11 @@ internal class TimeEntrySegmentsRepository(ServerDbContext dbContext) : ITimeEnt
         return await dbContext.TimeEntrySegments
             .AsNoTracking()
             .Include(s => s.TimeEntry)
-                .ThenInclude(te => te.Segments.Where(seg => seg.Active))
+                .ThenInclude(te => te.Segments
+                    .Where(seg => seg.Active)
+                    .OrderBy(seg => seg.ClockIn)
+                    .ThenBy(seg => seg.CreatedAt)
+                    .ThenBy(seg => seg.Id))
             .FirstOrDefaultAsync(s =>
                 s.Id == segmentId &&
                 s.TimeEntry.BranchId == branchId &&

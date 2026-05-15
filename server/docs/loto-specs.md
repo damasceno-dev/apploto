@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v19
+Spec revision: v20
 -->
 
-> **Status:** Revised spec (v19) — Milestone 5 Phase 3.6 multi-segment TimeEntry & admin edits (scaffolding)
+> **Status:** Revised spec (v20) — Milestone 5 Phase 3.6 multi-segment TimeEntry & admin edits
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -27,7 +27,8 @@ Spec revision: v19
 > v16: Milestone 4 DailyClose workflow hardened — §3.14 audit pair, §6.5 Submitted→Draft recall transition, §6.12 explicit Direction handling, §6.13 DailyClose contract including role × state × business-day matrix.
 > v17: Milestone 5 Phase 1 TimeEntry & Holiday foundation — §3.16 updated with audit fields and filtered unique constraint; §3.17 updated with table and filtered unique constraint; §6.3 installment stagger now skips weekends and branch holidays; §6.7 references ITimeEntryCalculationService with midnight-crossing and exact-boundary notes; §6.8 documents holiday-aware business-day calculation via DueDateCalculator and IBranchHolidaySource.
 > v18: Milestone 5 Phase 3.5 foundational live-running — §6.7 updated with partial-Present semantics (ClockIn required, ClockOut optional), live-running rule with synthetic effectiveClockOut on same branch-local day, forgotten-clock-out path returns (0, 0), ClockOut-without-ClockIn always invalid (TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN); CalculateLiveRunning method signature and contract added.
-> v19: Milestone 5 Phase 3.6 multi-segment TimeEntry — §3.16 TimeEntry updated to drop ClockIn/ClockOut (end state; code retains them during Slice 3.6.A scaffolding) and add Segments navigation; §3.16a TimeEntrySegment added with full DateTime clock fields, FK, filtered unique open-segment constraint, day-bounds invariant, and audit fields; §6.7 fully rewritten for the segment-list contract using DateTime semantics, top-up gap-aware lunch rule, dual-shape PUT (Member Action vs Admin Segments), idempotent no-ops, status-transition rule, day-bounds rule, and worked examples (overnight, live-running gap, forgotten open).
+> v19: Milestone 5 Phase 3.6 multi-segment TimeEntry — §3.16 TimeEntry updated to drop ClockIn/ClockOut and add Segments navigation; §3.16a TimeEntrySegment added with full DateTime clock fields, FK, filtered unique open-segment constraint, day-bounds invariant, and audit fields; §6.7 fully rewritten for the segment-list contract using DateTime semantics, top-up gap-aware lunch rule, dual-shape PUT (Member Action vs Admin Segments), idempotent no-ops, status-transition rule, day-bounds rule, and worked examples (overnight, live-running gap, forgotten open).
+> v20: Clarified §6.7 Member tap routing for overnight vs forgotten-close cases: prior-day open segments are resolved by the next submitted Action and Date, not by server reinterpretation.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -1102,7 +1103,7 @@ The PUT payload may change `Status`. If the current TimeEntry already has active
 
 **Day-bounds rule:**
 
-For the Member (Action) shape, the server-stamped `branchLocalNow` must satisfy `branchLocalNow ∈ [entryDate, entryDate + 1 day)`. For the Admin (Segments) shape, each supplied segment must satisfy the day-bounds invariant documented in §3.16a.
+For the Member (Action) shape, an `Open` tap requires the server-stamped `branchLocalNow ∈ [entryDate, entryDate + 1 day)` so the new segment's `ClockIn` satisfies §3.16a. A `Close` tap requires `branchLocalNow > openSegment.ClockIn` and `branchLocalNow - openSegment.ClockIn <= 24h`; this allows a valid overnight close on the prior-day row while still enforcing the segment span cap. For the Admin (Segments) shape, each supplied segment must satisfy the day-bounds invariant documented in §3.16a.
 
 **Calculate rules (segment list):**
 
@@ -1151,6 +1152,15 @@ If Status ∈ {DayOff, UnjustifiedAbsence}:  (hours owed)
 When any active segment has `ClockOut = null` and `entryDate.Date == branchLocalNow.Date`, the entry is "in progress". The contribution of that open segment is `(branchLocalNow − segment.ClockIn).TotalHours`. Persisted `TotalHours`/`BalanceHours` are a last-write checkpoint; read endpoints recompute on every call so the API is the live source of truth.
 
 When a segment has `ClockOut = null` and `entryDate.Date < branchLocalNow.Date` (forgotten clock-out), the open segment contributes 0 h (needs manual review). The entry is still marked `IsInProgress = true` in the response.
+
+**Overnight vs forgotten-close disambiguation:**
+
+A prior-day open segment is ambiguous in isolation: it can mean the worker is still on shift (overnight) or that they forgot to clock out. The Member tap protocol resolves this by the next submitted `Action` and `Date`; the server never reinterprets the submitted date or scans other dates to infer intent.
+
+- **Overnight recorded correctly:** the worker taps `Action: Close` with `Date = <prior day>`. The server closes the open segment on that TimeEntry and stamps `ClockOut = branchLocalNow`. The segment span rule (`ClockOut - ClockIn <= 24h`) enforces the cap. See Example 4 and Example 8.
+- **Forgotten close:** the worker taps `Action: Open` with `Date = <today>`. The server creates or updates today's TimeEntry with a fresh open segment. The prior-day open is untouched, contributes 0 h while it remains open, and stays visible as `IsInProgress = true` for manual review. See Example 6.
+
+The mobile client routes `Close` to the prior-day row when an active prior-day open exists and the user is ending that overnight shift. Admin recovery for misclassified cases uses the Admin `Segments` snapshot in `PUT /timeentry` or the granular segment endpoints.
 
 **Worked examples:**
 
@@ -1213,6 +1223,18 @@ Example 7 — live-running with gap before open segment:
   total_gap = 1 h (gap before the open segment)
   effective_lunch = max(0, 0.25 − 1.00) = 0
   TotalHours = 5 h
+
+Example 8 — overnight via Member tap routing:
+  Mon 22:00: Member sends Action = Open, Date = Monday
+    → Monday TimeEntry gets seg[0].ClockIn = Mon 22:00, ClockOut = null
+
+  Tue 08:00: Member sends Action = Close, Date = Monday
+    → Server closes Monday seg[0].ClockOut = Tue 08:00
+    → Duration = 10 h, allowed because span ≤ 24 h
+
+  Tue 08:01: Member sends Action = Open, Date = Tuesday
+    → Server creates Tuesday TimeEntry with a fresh open segment
+    → Monday remains a completed overnight entry; Tuesday is a separate current-day entry
 ```
 
 ### 6.8 Credit card due date calculation

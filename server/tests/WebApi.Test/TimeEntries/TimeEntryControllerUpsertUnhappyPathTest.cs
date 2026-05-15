@@ -1,11 +1,16 @@
 using System.Net;
 using System.Net.Http.Json;
 using CommonTestUtilities.Requests;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
+using server.Infrastructure;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
+using Operator = server.Domain.Entities.Operator;
 
 namespace WebApi.Test.TimeEntries;
 
@@ -14,16 +19,10 @@ public class TimeEntryControllerUpsertUnhappyPathTest(ServerWebApplicationFactor
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    private static DateTime SpLocalDateNow()
-    {
-        var spTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, spTimeZone).Date;
-    }
-
     [Fact]
     public async Task Upsert_ShouldReturn401_WhenTokenIsMissing()
     {
-        var request = new RequestUpsertTimeEntryJsonBuilder().Build();
+        var request = MemberTap(Guid.NewGuid(), SpLocalDateNow(), TimeEntryTapAction.Open);
 
         var httpResponse = await _client.PutAsync("/timeentry", JsonContent.Create(request));
 
@@ -33,297 +32,321 @@ public class TimeEntryControllerUpsertUnhappyPathTest(ServerWebApplicationFactor
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn400_WhenOperatorIdIsEmpty()
+    public async Task Upsert_MemberWithSegments_ShouldReturn400()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400Op", Role.Manager);
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertMemberSegments", Role.Member);
         await factory.SeedSettingAsync(branch.Id);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(Guid.Empty)
-            .Build();
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var date = SpLocalDateNow();
+        var request = new
+        {
+            OperatorId = op.Id,
+            Date = date,
+            Status = TimeEntryStatus.Present,
+            Segments = new[]
+            {
+                new
+                {
+                    ClockIn = date.AddHours(8),
+                    ClockOut = (DateTime?)date.AddHours(17)
+                }
+            }
+        };
 
         var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_OPERATOR_ID_REQUIRED);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_MEMBER_SHOULD_NOT_SEND_SEGMENTS);
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn400_WhenDateIsDefault()
+    public async Task Upsert_MemberWithNeitherActionNorSegments_ShouldReturn400()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400Date", Role.Manager);
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertMemberNeither", Role.Member);
         await factory.SeedSettingAsync(branch.Id);
-        var op = await factory.SeedOperatorAsync(branch.Id);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(default)
-            .Build();
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var request = new
+        {
+            OperatorId = op.Id,
+            Date = SpLocalDateNow(),
+            Status = TimeEntryStatus.Present
+        };
 
         var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_DATE_REQUIRED);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_MEMBER_TAP_ACTION_REQUIRED);
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn400_WhenPresentMissingClockIn()
+    public async Task Upsert_AdminWithSegmentsNull_ShouldReturn400()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400PresClockIn", Role.Manager);
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminSegmentsNull", Role.Manager);
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
+        var request = new
+        {
+            OperatorId = op.Id,
+            Date = new DateTime(2026, 5, 8),
+            Status = TimeEntryStatus.Present
+        };
+
+        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_ADMIN_REQUIRES_SEGMENTS);
+    }
+
+    [Fact]
+    public async Task Upsert_AdminWithAction_ShouldReturn400()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminAction", Role.Admin);
+        await factory.SeedSettingAsync(branch.Id);
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var request = new
+        {
+            OperatorId = op.Id,
+            Date = new DateTime(2026, 5, 8),
+            Status = TimeEntryStatus.Present,
+            Action = TimeEntryTapAction.Open
+        };
+
+        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_ADMIN_SHOULD_NOT_SEND_TAP_ACTION);
+    }
+
+    [Fact]
+    public async Task Upsert_AdminClockInEditAttempt_ShouldReturn400()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminClockInLocked", Role.Manager);
+        await factory.SeedSettingAsync(branch.Id);
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var date = new DateTime(2026, 5, 8);
+        var create = new RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithNoClocks()
-            .Build();
+            .BuildAdminSnapshot(new RequestTimeEntrySegmentJsonBuilder()
+                .WithClockIn(date.AddHours(8))
+                .WithClockOut(date.AddHours(12))
+                .Build());
+        var createHttp = await _client.PutAuthAsync("/timeentry", create, token);
+        var created = await createHttp.ReadContentAsync<server.Communication.Responses.ResponseTimeEntryJson>();
+        var segmentId = created.Segments.Single().Id;
 
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_PRESENT_REQUIRES_CLOCK_IN);
-    }
-
-    [Fact]
-    public async Task Upsert_ShouldReturn400_WhenClockOutSuppliedWithoutClockIn()
-    {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400ClockOutNoIn", Role.Manager);
-        await factory.SeedSettingAsync(branch.Id);
-        var op = await factory.SeedOperatorAsync(branch.Id);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
+        var edit = new RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(null)
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot(new RequestTimeEntrySegmentJsonBuilder()
+                .WithId(segmentId)
+                .WithClockIn(date.AddHours(9))
+                .WithClockOut(date.AddHours(12))
+                .Build());
 
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
+        var httpResponse = await _client.PutAuthAsync("/timeentry", edit, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_SEGMENT_CLOCK_IN_LOCKED);
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn400_WhenNonPresentHasClocks()
+    public async Task Upsert_AdminStatusChangeToVacationWithActiveSegments_ShouldReturn409()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400NonPresClocks", Role.Manager);
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminStatusCleanup", Role.Admin);
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
+        var date = new DateTime(2026, 5, 8);
+        var create = new RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
+            .WithDate(date)
+            .WithStatus(TimeEntryStatus.Present)
+            .BuildAdminSnapshot(new RequestTimeEntrySegmentJsonBuilder()
+                .WithClockIn(date.AddHours(8))
+                .WithClockOut(date.AddHours(12))
+                .Build());
+        var createHttp = await _client.PutAuthAsync("/timeentry", create, token);
+        createHttp.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var vacation = new RequestUpsertTimeEntryJsonBuilder()
+            .WithOperatorId(op.Id)
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Vacation)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot();
 
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
+        var httpResponse = await _client.PutAuthAsync("/timeentry", vacation, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_NON_PRESENT_REJECTS_CLOCKS);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_STATUS_CHANGE_REQUIRES_SEGMENT_CLEANUP);
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn400_WhenSundayStatusOnNonSundayDate()
+    public async Task Upsert_AdminOutOfDayBoundsSegment_ShouldReturn400()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400Sun", Role.Manager);
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminOutOfBounds", Role.Manager);
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id);
-
-        // Find a non-Sunday date close to today.
-        var nonSunday = DateTime.UtcNow.Date;
-        while (nonSunday.DayOfWeek == DayOfWeek.Sunday)
-        {
-            nonSunday = nonSunday.AddDays(1);
-        }
-
+        var date = new DateTime(2026, 5, 8);
         var request = new RequestUpsertTimeEntryJsonBuilder()
             .WithOperatorId(op.Id)
-            .WithDate(nonSunday)
-            .WithStatus(TimeEntryStatus.Sunday)
-            .WithNoClocks()
-            .Build();
-
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE);
-    }
-
-    [Fact]
-    public async Task Upsert_ShouldReturn400_WhenHolidayStatusButNoActiveHoliday()
-    {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert400Hol", Role.Manager);
-        await factory.SeedSettingAsync(branch.Id);
-        var op = await factory.SeedOperatorAsync(branch.Id);
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(DateTime.UtcNow.Date)
-            .WithStatus(TimeEntryStatus.Holiday)
-            .WithNoClocks()
-            .Build();
-
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_HOLIDAY_REQUIRES_ACTIVE_HOLIDAY);
-    }
-
-    [Fact]
-    public async Task Upsert_ShouldReturn403_WhenMemberHasNoLinkedOperator()
-    {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert403NoLink", Role.Member);
-        await factory.SeedSettingAsync(branch.Id);
-        var op = await factory.SeedOperatorAsync(branch.Id);
-
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(SpLocalDateNow())
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot(new RequestTimeEntrySegmentJsonBuilder()
+                .WithClockIn(date.AddDays(1))
+                .WithClockOut(date.AddDays(1).AddHours(2))
+                .Build());
 
         var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_REQUIRES_OPERATOR_LINK);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS);
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn403_WhenMemberTargetsAnotherOperator()
+    public async Task Upsert_AdminClockOutBeforeClockIn_ShouldReturn400()
     {
-        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert403OtherOp", Role.Member);
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminClockOutBefore", Role.Admin);
         await factory.SeedSettingAsync(branch.Id);
-        await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var anotherOperator = await factory.SeedOperatorAsync(branch.Id);
-
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var date = new DateTime(2026, 5, 8);
         var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(anotherOperator.Id)
-            .WithDate(SpLocalDateNow())
+            .WithOperatorId(op.Id)
+            .WithDate(date)
             .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
+            .BuildAdminSnapshot(new RequestTimeEntrySegmentJsonBuilder()
+                .WithClockIn(date.AddHours(12))
+                .WithClockOut(date.AddHours(11))
+                .Build());
 
         var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_NOT_OWN_OPERATOR);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN);
     }
 
     [Fact]
-    public async Task Upsert_ShouldReturn403_WhenMemberWritesOlderDay()
+    public async Task Upsert_ConcurrentMemberOpenRace_ShouldReturnOpenSegmentConflict()
     {
-        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert403Older", Role.Member);
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertMemberOpenRace", Role.Member);
         await factory.SeedSettingAsync(branch.Id);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var date = SpLocalDateNow();
+        await SeedClosedTimeEntryAsync(branch.Id, op.Id, date);
 
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(SpLocalDateNow().AddDays(-3))
-            .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
-
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_WRITE_REQUIRES_SAME_DAY);
-    }
-
-    [Fact]
-    public async Task Upsert_ShouldReturn403_WhenMemberSubmitsNonPresentStatus()
-    {
-        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert403NonPres", Role.Member);
-        await factory.SeedSettingAsync(branch.Id);
-        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(SpLocalDateNow())
-            .WithStatus(TimeEntryStatus.DayOff)
-            .WithNoClocks()
-            .Build();
-
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_MEMBER_ONLY_PRESENT);
-    }
-
-    [Fact]
-    public async Task Upsert_ShouldReturn404_WhenTargetOperatorBelongsToAnotherBranch()
-    {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsert404Cross", Role.Manager);
-        await factory.SeedSettingAsync(branch.Id);
-        var otherBranch = await factory.SeedBranchForOtherContextAsync();
-        var crossBranchOperator = await factory.SeedOperatorAsync(otherBranch.Id);
-
-        var request = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(crossBranchOperator.Id)
-            .WithDate(DateTime.UtcNow.Date)
-            .Build();
-
-        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_OPERATOR_NOT_FOUND);
-    }
-
-    [Fact]
-    public async Task Upsert_ShouldReturn409WithDateConflictKey_WhenConcurrentInsertsRace()
-    {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertRace", Role.Manager);
-        await factory.SeedSettingAsync(branch.Id);
-        var op = await factory.SeedOperatorAsync(branch.Id);
-        var raceDate = DateTime.UtcNow.Date.AddDays(-30); // Stable date, not affected by clock skew.
-
-        using var firstClient = factory.CreateClient();
-        using var secondClient = factory.CreateClient();
-
-        var firstRequest = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(raceDate)
-            .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(8, 0))
-            .WithClockOut(new TimeOnly(17, 0))
-            .Build();
-        var secondRequest = new RequestUpsertTimeEntryJsonBuilder()
-            .WithOperatorId(op.Id)
-            .WithDate(raceDate)
-            .WithStatus(TimeEntryStatus.Present)
-            .WithClockIn(new TimeOnly(9, 0))
-            .WithClockOut(new TimeOnly(18, 0))
-            .Build();
-
-        var responses = await Task.WhenAll(
-            firstClient.PutAuthAsync("/timeentry", firstRequest, token),
-            secondClient.PutAuthAsync("/timeentry", secondRequest, token));
-
-        // Either both succeed (one after the other due to load-tracked check picking up the
-        // first row) or one races into the unique index and surfaces the 409. Verify we
-        // never end up with two active rows: at least one response must be 200.
-        responses.Count(r => r.StatusCode == HttpStatusCode.OK).ShouldBeGreaterThanOrEqualTo(1);
-
-        var conflict = responses.FirstOrDefault(r => r.StatusCode == HttpStatusCode.Conflict);
-        if (conflict is not null)
+        await InstallOpenSegmentDelayTriggerAsync();
+        try
         {
+            using var firstClient = factory.CreateClient();
+            using var secondClient = factory.CreateClient();
+            var request = MemberTap(op.Id, date, TimeEntryTapAction.Open);
+
+            var responses = await Task.WhenAll(
+                firstClient.PutAuthAsync("/timeentry", request, token),
+                secondClient.PutAuthAsync("/timeentry", request, token));
+
+            responses.Count(response => response.StatusCode == HttpStatusCode.OK).ShouldBe(1);
+            var conflict = responses.Single(response => response.StatusCode == HttpStatusCode.Conflict);
             var payload = await conflict.ReadContentAsync<TestResponseErrorJson>();
-            payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_DATE_CONFLICT);
+            payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_OPEN_SEGMENT_CONFLICT);
         }
+        finally
+        {
+            await DropOpenSegmentDelayTriggerAsync();
+        }
+    }
+
+    private async Task SeedClosedTimeEntryAsync(Guid branchId, Guid operatorId, DateTime date)
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+        var entry = new TimeEntry
+        {
+            Id = Guid.NewGuid(),
+            CreatedAt = DateTime.UtcNow,
+            Date = date,
+            Status = TimeEntryStatus.Present,
+            TotalHours = 4m,
+            BalanceHours = -3.33m,
+            OperatorId = operatorId,
+            BranchId = branchId
+        };
+        dbContext.TimeEntries.Add(entry);
+        dbContext.TimeEntrySegments.Add(new TimeEntrySegment
+        {
+            Id = Guid.NewGuid(),
+            TimeEntryId = entry.Id,
+            ClockIn = date,
+            ClockOut = date.AddMinutes(1)
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private async Task InstallOpenSegmentDelayTriggerAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            CREATE OR REPLACE FUNCTION test_sleep_open_timeentry_segment()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                IF NEW."ClockOut" IS NULL THEN
+                    PERFORM pg_sleep(0.5);
+                END IF;
+                RETURN NEW;
+            END;
+            $$;
+
+            DROP TRIGGER IF EXISTS test_sleep_open_timeentry_segment_trigger ON "TimeEntrySegments";
+
+            CREATE TRIGGER test_sleep_open_timeentry_segment_trigger
+            BEFORE INSERT ON "TimeEntrySegments"
+            FOR EACH ROW
+            EXECUTE FUNCTION test_sleep_open_timeentry_segment();
+            """);
+    }
+
+    private async Task DropOpenSegmentDelayTriggerAsync()
+    {
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+        await dbContext.Database.ExecuteSqlRawAsync(
+            """
+            DROP TRIGGER IF EXISTS test_sleep_open_timeentry_segment_trigger ON "TimeEntrySegments";
+            DROP FUNCTION IF EXISTS test_sleep_open_timeentry_segment();
+            """);
+    }
+
+    private static object MemberTap(Guid operatorId, DateTime date, TimeEntryTapAction action)
+    {
+        return new
+        {
+            OperatorId = operatorId,
+            Date = date,
+            Status = TimeEntryStatus.Present,
+            Action = action
+        };
+    }
+
+    private static DateTime SpLocalDateNow()
+    {
+        var spTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        return DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, spTimeZone).Date, DateTimeKind.Unspecified);
     }
 }

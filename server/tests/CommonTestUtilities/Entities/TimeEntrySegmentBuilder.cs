@@ -6,6 +6,7 @@ public class TimeEntrySegmentBuilder
 {
     private Guid _id = Guid.NewGuid();
     private Guid _timeEntryId = Guid.NewGuid();
+    private DateTime _createdAt = DateTime.UtcNow;
     private DateTime _clockIn = DateTime.Today.AddHours(8);
     private DateTime? _clockOut = DateTime.Today.AddHours(17);
     private bool _active = true;
@@ -21,6 +22,12 @@ public class TimeEntrySegmentBuilder
     public TimeEntrySegmentBuilder WithTimeEntryId(Guid timeEntryId)
     {
         _timeEntryId = timeEntryId;
+        return this;
+    }
+
+    public TimeEntrySegmentBuilder WithCreatedAt(DateTime createdAt)
+    {
+        _createdAt = createdAt;
         return this;
     }
 
@@ -54,6 +61,7 @@ public class TimeEntrySegmentBuilder
         return new TimeEntrySegment
         {
             Id = _id,
+            CreatedAt = _createdAt,
             TimeEntryId = _timeEntryId,
             ClockIn = _clockIn,
             ClockOut = _clockOut,

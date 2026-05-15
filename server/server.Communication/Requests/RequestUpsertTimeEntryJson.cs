@@ -4,9 +4,9 @@ namespace server.Communication.Requests;
 
 public class RequestUpsertTimeEntryJson
 {
-    public Guid OperatorId { get; set; }
-    public DateTime Date { get; set; }
-    public TimeEntryStatus Status { get; set; }
-    public TimeOnly? ClockIn { get; set; }
-    public TimeOnly? ClockOut { get; set; }
+    public Guid OperatorId { get; init; }
+    public DateTime Date { get; init; }
+    public TimeEntryStatus Status { get; init; }
+    public TimeEntryTapAction? Action { get; init; }
+    public List<RequestTimeEntrySegmentJson>? Segments { get; init; }
 }
