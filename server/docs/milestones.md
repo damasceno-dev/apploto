@@ -1102,33 +1102,34 @@ Refactor `TimeEntry` from a single `(ClockIn, ClockOut)` pair into a parent + N 
   - **Happy paths:** Member tap E2E with explicit `Action`: `Open` → `Close` → `Open` → `Close`, all with `Segments` omitted; assert response `Segments` and `IsInProgress` flip correctly; reload-based confirmation (segment ids stable on close). Member retry idempotency: a duplicate `Action = Open` PUT against an already-open parent returns 200 with the unchanged state (no new segment); a duplicate `Action = Close` PUT against an already-closed parent likewise returns 200 unchanged. Admin explicit-times snapshot happy path with `Segments` populated; multi-segment Admin upsert; single-segment overnight Admin snapshot with reload confirming `ClockOut` on the next calendar day.
   - **Unhappy paths:** Member with `Segments` in payload → 400 `TIMEENTRY_MEMBER_SHOULD_NOT_SEND_SEGMENTS`. Member with no `Action` → 400 `TIMEENTRY_MEMBER_TAP_ACTION_REQUIRED`. Admin with `Segments == null` → 400 `TIMEENTRY_ADMIN_REQUIRES_SEGMENTS`. Admin with non-null `Action` → 400 `TIMEENTRY_ADMIN_SHOULD_NOT_SEND_TAP_ACTION`. Admin ClockIn-edit attempt → 400 `TIMEENTRY_SEGMENT_CLOCK_IN_LOCKED`. Admin status change with active segments → 409 `TIMEENTRY_STATUS_CHANGE_REQUIRES_SEGMENT_CLEANUP`. Admin out-of-day-bounds segment → 400 `TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS`. Admin ClockOut-before-ClockIn → 400 `TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN`. Concurrent Member `Action = Open` race against a parent with no active open → 409 `TIMEENTRY_OPEN_SEGMENT_CONFLICT` via the filtered unique (mirror the existing race-test pattern for unique violations).
   Run `bash server/docs/check-loto-doc-sync.sh`, `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, `dotnet test tests/WebApi.Test`. All green.
-- [ ] **3.6.16** Add new use case `server.Application/UseCases/TimeEntries/AddSegment/AddTimeEntrySegmentUseCase.cs` (+ `AddTimeEntrySegmentFluentValidation` + tests):
+- [x] **3.6.16** Add new use case `server.Application/UseCases/TimeEntries/AddSegment/AddTimeEntrySegmentUseCase.cs` (+ `AddTimeEntrySegmentFluentValidation` + tests):
   - Admin/Manager only (controller enforces via `TokenAuthorizeFilter`; use case asserts via permission guard).
   - Loads parent TimeEntry tracked with `.Include(t => t.Segments.Where(s => s.Active))`.
   - Rejects overlap, multiple-open, status≠Present, out-of-day-bounds, lock-date.
   - Inserts new `TimeEntrySegment`, recomputes parent totals via `Calculate`, stamps parent `UpdatedAt`/`UpdatedByUserId`. Commits once.
   - Returns `ResponseTimeEntryJson` (parent with full updated segments).
   - Request DTO: `RequestAddTimeEntrySegmentJson { DateTime ClockIn, DateTime? ClockOut }`.
-- [ ] **3.6.17** Add new use case `server.Application/UseCases/TimeEntries/UpdateSegment/UpdateTimeEntrySegmentUseCase.cs` (+ validator + tests):
+- [x] **3.6.17** Add new use case `server.Application/UseCases/TimeEntries/UpdateSegment/UpdateTimeEntrySegmentUseCase.cs` (+ validator + tests):
   - Admin/Manager only.
   - Loads parent tracked with all active segments; finds target segment.
   - Allows ClockIn and ClockOut edits.
   - Rejects overlap/out-of-day-bounds/multiple-open as above; rejects `ClockOut < ClockIn`.
   - Stamps `segment.UpdatedAt`/`UpdatedByUserId` and parent audit. Recomputes parent totals. Commits once.
   - Request DTO: `RequestUpdateTimeEntrySegmentJson { DateTime ClockIn, DateTime? ClockOut }`.
-- [ ] **3.6.18** Add new use case `server.Application/UseCases/TimeEntries/DeactivateSegment/DeactivateTimeEntrySegmentUseCase.cs` (+ tests):
+- [x] **3.6.18** Add new use case `server.Application/UseCases/TimeEntries/DeactivateSegment/DeactivateTimeEntrySegmentUseCase.cs` (+ tests):
   - Admin/Manager only. Soft-delete via `Active = false`.
   - Recompute parent totals over remaining active segments. Stamp parent audit. Commit once.
   - 404 on missing or cross-branch segment id.
-- [ ] **3.6.19** Update `TimeEntryController`:
+- [x] **3.6.19** Update `TimeEntryController`:
   - Add `POST /timeentry/{timeEntryId:guid}/segment` (Manager/Admin) → 201 with `ResponseTimeEntryJson` and `Location` header.
   - Add `PUT /timeentry/segment/{segmentId:guid}` (Manager/Admin) → 200 with `ResponseTimeEntryJson`.
   - Add `DELETE /timeentry/segment/{segmentId:guid}` (Manager/Admin) → 200 with `ResponseTimeEntryJson` (parent with remaining active segments).
   - All three endpoints: explicit `[Route(...)]` and `[ProducesResponseType]` for every status code per `server/CLAUDE.md` controller rules.
   - Register the three new use cases in `server.Application/AppDependencyInjection.cs`.
-- [ ] **3.6.20** Add `tests/CommonTestUtilities/Requests/RequestAddTimeEntrySegmentJsonBuilder.cs` and `RequestUpdateTimeEntrySegmentJsonBuilder.cs`. Add `tests/WebApi.Test/TimeEntries/TimeEntrySegmentControllerAddHappyPathTest.cs` / `UnhappyPathTest.cs`, `TimeEntrySegmentControllerUpdateHappyPathTest.cs` / `UnhappyPathTest.cs`, `TimeEntrySegmentControllerDeactivateHappyPathTest.cs` / `UnhappyPathTest.cs` covering Manager/Admin happy paths, Member 403, missing or cross-branch 404, overlap/out-of-day-bounds/multiple-open 400, status-not-Present 409, lock-date 409, parent-total recomputation via reload assertions.
-- [ ] **3.6.21** Add architecture-test coverage resolving `AddTimeEntrySegmentUseCase`, `UpdateTimeEntrySegmentUseCase`, `DeactivateTimeEntrySegmentUseCase`, and `ITimeEntrySegmentsRepository` via DI.
-- [ ] **3.6.22** Run `bash server/docs/check-loto-doc-sync.sh`, `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, `dotnet test tests/WebApi.Test`. All green.
+- [x] **3.6.20** Add `tests/CommonTestUtilities/Requests/RequestAddTimeEntrySegmentJsonBuilder.cs` and `RequestUpdateTimeEntrySegmentJsonBuilder.cs`. Add `tests/WebApi.Test/TimeEntries/TimeEntrySegmentControllerAddHappyPathTest.cs` / `UnhappyPathTest.cs`, `TimeEntrySegmentControllerUpdateHappyPathTest.cs` / `UnhappyPathTest.cs`, `TimeEntrySegmentControllerDeactivateHappyPathTest.cs` / `UnhappyPathTest.cs` covering Manager/Admin happy paths, Member 403, missing or cross-branch 404, overlap/out-of-day-bounds/multiple-open 400, status-not-Present 400, lock-date 409, parent-total recomputation via reload assertions.
+- [x] **3.6.21** Add architecture-test coverage resolving `AddTimeEntrySegmentUseCase`, `UpdateTimeEntrySegmentUseCase`, `DeactivateTimeEntrySegmentUseCase`, and `ITimeEntrySegmentsRepository` via DI.
+- [x] **3.6.22** Run `bash server/docs/check-loto-doc-sync.sh`, `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, `dotnet test tests/WebApi.Test`. All green.
+- [x] **3.6.23** Mark items 3.6.16 - 3.6.23 complete. Phase 3.6 is fully closed; Phase 4 (read paths) is unblocked. Phase 3 item 3.4's forward-reference note stays.
 
 #### Done criteria
 

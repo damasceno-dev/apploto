@@ -16,7 +16,7 @@ public static class UpsertTimeEntryMapper
                 Status = timeEntry.Status,
                 TotalHours = timeEntry.TotalHours,
                 BalanceHours = timeEntry.BalanceHours,
-                IsInProgress = timeEntry.Segments.Any(segment => segment.Active && segment.ClockOut is null),
+                IsInProgress = timeEntry.Segments.Any(segment => segment is { Active: true, ClockOut: null }),
                 Segments = timeEntry.Segments
                     .Where(segment => segment.Active)
                     .OrderBy(segment => segment.ClockIn)

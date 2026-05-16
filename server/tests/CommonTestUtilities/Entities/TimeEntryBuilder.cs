@@ -11,7 +11,7 @@ public class TimeEntryBuilder
     private bool _active = true;
     private DateTime _date = DateTime.Today;
     private TimeEntryStatus _status = TimeEntryStatus.Present;
-    private decimal _totalHours = 8m;
+    private decimal _totalHours;
     private decimal _balanceHours = 0.67m;
     private Guid _operatorId = Guid.NewGuid();
     private Guid _branchId = Guid.NewGuid();

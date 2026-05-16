@@ -12,6 +12,7 @@ public class TimeEntrySegmentBuilder
     private bool _active = true;
     private DateTime? _updatedAt;
     private Guid? _updatedByUserId;
+    private TimeEntry? _timeEntry;
 
     public TimeEntrySegmentBuilder WithId(Guid id)
     {
@@ -22,6 +23,14 @@ public class TimeEntrySegmentBuilder
     public TimeEntrySegmentBuilder WithTimeEntryId(Guid timeEntryId)
     {
         _timeEntryId = timeEntryId;
+        _timeEntry = null;
+        return this;
+    }
+
+    public TimeEntrySegmentBuilder WithTimeEntry(TimeEntry timeEntry)
+    {
+        _timeEntry = timeEntry;
+        _timeEntryId = timeEntry.Id;
         return this;
     }
 
@@ -63,6 +72,7 @@ public class TimeEntrySegmentBuilder
             Id = _id,
             CreatedAt = _createdAt,
             TimeEntryId = _timeEntryId,
+            TimeEntry = _timeEntry!,
             ClockIn = _clockIn,
             ClockOut = _clockOut,
             Active = _active,

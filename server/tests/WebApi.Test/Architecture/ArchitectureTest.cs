@@ -6,7 +6,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using server;
 using server.Application;
+using server.Application.UseCases.TimeEntries.AddSegment;
+using server.Application.UseCases.TimeEntries.DeactivateSegment;
+using server.Application.UseCases.TimeEntries.UpdateSegment;
 using server.Controllers;
+using server.Domain.Interfaces;
 using server.ExceptionHandling;
 using server.Filters;
 using server.Infrastructure;
@@ -123,6 +127,26 @@ public class ArchitectureTest
             "The following public services or exception handlers could not be resolved from the configured container: "
             + string.Join(" | ", failures)
         );
+    }
+
+    [Fact]
+    public void TimeEntrySegmentMutationServices_AreResolvableFromConfiguredRootContainer()
+    {
+        var services = new ServiceCollection();
+        services.AddApi();
+        services.AddApplication();
+        services.AddInfrastructure(BuildArchitectureConfiguration());
+
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = true
+        });
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<AddTimeEntrySegmentUseCase>().ShouldNotBeNull();
+        scope.ServiceProvider.GetRequiredService<UpdateTimeEntrySegmentUseCase>().ShouldNotBeNull();
+        scope.ServiceProvider.GetRequiredService<DeactivateTimeEntrySegmentUseCase>().ShouldNotBeNull();
+        scope.ServiceProvider.GetRequiredService<ITimeEntrySegmentsRepository>().ShouldNotBeNull();
     }
 
     [Fact]

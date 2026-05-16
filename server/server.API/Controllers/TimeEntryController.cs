@@ -1,8 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using server.Application.UseCases.TimeEntries.AddSegment;
 using server.Application.UseCases.TimeEntries.Deactivate;
+using server.Application.UseCases.TimeEntries.DeactivateSegment;
+using server.Application.UseCases.TimeEntries.UpdateSegment;
 using server.Application.UseCases.TimeEntries.Upsert;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities.Enums;
 using server.Filters;
 
 namespace server.Controllers;
@@ -25,6 +29,64 @@ public class TimeEntryController : ControllerBase
         [FromBody] RequestUpsertTimeEntryJson request)
     {
         var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{timeEntryId:guid}/segment")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseTimeEntryJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AddSegment(
+        [FromServices] AddTimeEntrySegmentUseCase useCase,
+        [FromRoute] Guid timeEntryId,
+        [FromBody] RequestAddTimeEntrySegmentJson request)
+    {
+        var response = await useCase.Execute(timeEntryId, request);
+        var location = response.Segments
+            .OrderByDescending(segment => segment.CreatedAt)
+            .ThenByDescending(segment => segment.Id)
+            .Select(segment => $"/timeentry/segment/{segment.Id}")
+            .FirstOrDefault() ?? $"/timeentry/{timeEntryId}";
+
+        return Created(location, response);
+    }
+
+    [HttpPut]
+    [Route("segment/{segmentId:guid}")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseTimeEntryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSegment(
+        [FromServices] UpdateTimeEntrySegmentUseCase useCase,
+        [FromRoute] Guid segmentId,
+        [FromBody] RequestUpdateTimeEntrySegmentJson request)
+    {
+        var response = await useCase.Execute(segmentId, request);
+        return Ok(response);
+    }
+
+    [HttpDelete]
+    [Route("segment/{segmentId:guid}")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseTimeEntryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> DeactivateSegment(
+        [FromServices] DeactivateTimeEntrySegmentUseCase useCase,
+        [FromRoute] Guid segmentId)
+    {
+        var response = await useCase.Execute(segmentId);
         return Ok(response);
     }
 

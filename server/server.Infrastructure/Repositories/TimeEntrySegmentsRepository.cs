@@ -15,6 +15,8 @@ internal class TimeEntrySegmentsRepository(ServerDbContext dbContext) : ITimeEnt
     {
         return await dbContext.TimeEntrySegments
             .Include(s => s.TimeEntry)
+                .ThenInclude(te => te.Operator)
+            .Include(s => s.TimeEntry)
                 .ThenInclude(te => te.Segments
                     .Where(seg => seg.Active)
                     .OrderBy(seg => seg.ClockIn)
@@ -30,6 +32,8 @@ internal class TimeEntrySegmentsRepository(ServerDbContext dbContext) : ITimeEnt
     {
         return await dbContext.TimeEntrySegments
             .AsNoTracking()
+            .Include(s => s.TimeEntry)
+                .ThenInclude(te => te.Operator)
             .Include(s => s.TimeEntry)
                 .ThenInclude(te => te.Segments
                     .Where(seg => seg.Active)

@@ -393,6 +393,9 @@
     <data name="TIMEENTRY_DATE_REQUIRED" xml:space="preserve">
         <value>A data do registro de ponto deve ser informada</value>
     </data>
+    <data name="TIMEENTRY_DATE_LOCKED" xml:space="preserve">
+        <value>A data do registro de ponto está bloqueada pelo fechamento</value>
+    </data>
     <data name="TIMEENTRY_STATUS_INVALID" xml:space="preserve">
         <value>Status de ponto inválido</value>
     </data>

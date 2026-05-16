@@ -50,7 +50,10 @@ using server.Application.UseCases.Holidays.Create;
 using server.Application.UseCases.Holidays.Deactivate;
 using server.Application.UseCases.Holidays.List;
 using server.Application.UseCases.Holidays.Update;
+using server.Application.UseCases.TimeEntries.AddSegment;
+using server.Application.UseCases.TimeEntries.DeactivateSegment;
 using server.Application.UseCases.TimeEntries.Deactivate;
+using server.Application.UseCases.TimeEntries.UpdateSegment;
 using server.Application.UseCases.TimeEntries.Upsert;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
@@ -113,6 +116,7 @@ public static class AppDependencyInjection
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<ITimeEntryCalculationService, TimeEntryCalculationService>();
+        services.AddScoped<TimeEntrySegmentMutationService>();
         services.AddScoped<ITimeEntryWritePermissionGuard, TimeEntryWritePermissionGuard>();
         services.AddScoped<IBranchHolidaySource, BranchHolidaySource>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
@@ -132,6 +136,9 @@ public static class AppDependencyInjection
         services.AddScoped<DeactivateHolidayUseCase>();
         services.AddScoped<UpsertTimeEntryUseCase>();
         services.AddScoped<DeactivateTimeEntryUseCase>();
+        services.AddScoped<AddTimeEntrySegmentUseCase>();
+        services.AddScoped<UpdateTimeEntrySegmentUseCase>();
+        services.AddScoped<DeactivateTimeEntrySegmentUseCase>();
         services.AddScoped<OpenDailyCloseUseCase>();
         services.AddScoped<GetDailyCloseUseCase>();
         services.AddScoped<ListDailyClosesUseCase>();

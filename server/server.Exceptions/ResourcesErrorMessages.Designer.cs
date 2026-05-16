@@ -795,6 +795,12 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_DATE_LOCKED {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_DATE_LOCKED", resourceCulture);
+            }
+        }
+
         public static string TIMEENTRY_STATUS_INVALID {
             get {
                 return ResourceManager.GetString("TIMEENTRY_STATUS_INVALID", resourceCulture);
