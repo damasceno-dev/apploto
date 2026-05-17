@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.TimeEntries.AddSegment;
 using server.Application.UseCases.TimeEntries.Deactivate;
 using server.Application.UseCases.TimeEntries.DeactivateSegment;
+using server.Application.UseCases.TimeEntries.Get;
+using server.Application.UseCases.TimeEntries.List;
 using server.Application.UseCases.TimeEntries.UpdateSegment;
 using server.Application.UseCases.TimeEntries.Upsert;
 using server.Communication.Requests;
@@ -27,6 +29,36 @@ public class TimeEntryController : ControllerBase
     public async Task<IActionResult> Upsert(
         [FromServices] UpsertTimeEntryUseCase useCase,
         [FromBody] RequestUpsertTimeEntryJson request)
+    {
+        var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("{timeEntryId:guid}")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseTimeEntryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Get(
+        [FromServices] GetTimeEntryUseCase useCase,
+        [FromRoute] Guid timeEntryId)
+    {
+        var response = await useCase.Execute(timeEntryId);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseListTimeEntriesJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> List(
+        [FromServices] ListTimeEntriesUseCase useCase,
+        [FromQuery] RequestListTimeEntriesJson request)
     {
         var response = await useCase.Execute(request);
         return Ok(response);
