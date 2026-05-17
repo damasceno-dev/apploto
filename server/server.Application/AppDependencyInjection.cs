@@ -53,6 +53,8 @@ using server.Application.UseCases.Holidays.Update;
 using server.Application.UseCases.TimeEntries.AddSegment;
 using server.Application.UseCases.TimeEntries.DeactivateSegment;
 using server.Application.UseCases.TimeEntries.Deactivate;
+using server.Application.UseCases.TimeEntries.Get;
+using server.Application.UseCases.TimeEntries.List;
 using server.Application.UseCases.TimeEntries.UpdateSegment;
 using server.Application.UseCases.TimeEntries.Upsert;
 using server.Application.UseCases.DailyCloses.Approve;
@@ -139,6 +141,8 @@ public static class AppDependencyInjection
         services.AddScoped<AddTimeEntrySegmentUseCase>();
         services.AddScoped<UpdateTimeEntrySegmentUseCase>();
         services.AddScoped<DeactivateTimeEntrySegmentUseCase>();
+        services.AddScoped<GetTimeEntryUseCase>();
+        services.AddScoped<ListTimeEntriesUseCase>();
         services.AddScoped<OpenDailyCloseUseCase>();
         services.AddScoped<GetDailyCloseUseCase>();
         services.AddScoped<ListDailyClosesUseCase>();

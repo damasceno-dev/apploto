@@ -957,6 +957,18 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TIMEENTRY_LIST_DATE_RANGE_INVALID {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_LIST_DATE_RANGE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TIMEENTRY_LIST_MINE_AND_OPERATOR_ID_CONFLICT {
+            get {
+                return ResourceManager.GetString("TIMEENTRY_LIST_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
+            }
+        }
+
         public static string HOLIDAY_DATE_CONFLICT {
             get {
                 return ResourceManager.GetString("HOLIDAY_DATE_CONFLICT", resourceCulture);

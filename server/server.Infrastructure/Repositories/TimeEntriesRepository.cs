@@ -66,6 +66,11 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
         return await ApplyFilter(dbContext.TimeEntries, branchId, filter)
             .AsNoTracking()
             .Include(te => te.Operator)
+            .Include(te => te.Segments
+                .Where(segment => segment.Active)
+                .OrderBy(segment => segment.ClockIn)
+                .ThenBy(segment => segment.CreatedAt)
+                .ThenBy(segment => segment.Id))
             .OrderByDescending(te => te.Date)
             .ThenByDescending(te => te.CreatedAt)
             .ThenByDescending(te => te.Id)
