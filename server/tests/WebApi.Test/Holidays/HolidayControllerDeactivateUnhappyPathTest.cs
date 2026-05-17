@@ -56,4 +56,19 @@ public class HolidayControllerDeactivateUnhappyPathTest(ServerWebApplicationFact
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
+
+    // Phase 6 catch-up: exercise the 400 path declared on DELETE /holiday/{id}.
+    // The route constraint {holidayId:guid} accepts Guid.Empty as a syntactically
+    // valid GUID, so the use case's HOLIDAY_ID_EMPTY validation is reachable.
+    [Fact]
+    public async Task Deactivate_ShouldReturn400_WhenHolidayIdIsEmpty()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("HolDeactivate400Empty", Role.Manager);
+
+        var httpResponse = await _client.DeleteAuthAsync($"/holiday/{Guid.Empty}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.HOLIDAY_ID_EMPTY);
+    }
 }

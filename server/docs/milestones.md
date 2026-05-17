@@ -1120,6 +1120,7 @@ Refactor `TimeEntry` from a single `(ClockIn, ClockOut)` pair into a parent + N 
   - Admin/Manager only. Soft-delete via `Active = false`.
   - Recompute parent totals over remaining active segments. Stamp parent audit. Commit once.
   - 404 on missing or cross-branch segment id.
+  Note: Implementation also calls `EnsureParentAcceptsSegments` as defense in depth, so a non-Present parent surfaces as 400 `TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS`. The Phase 6 audit added that status code to the controller's `[ProducesResponseType]` set and a Phase 6 catch-up WebApi test exercising the path via direct DB seeding (the upsert flow blocks this state otherwise).
 - [x] **3.6.19** Update `TimeEntryController`:
   - Add `POST /timeentry/{timeEntryId:guid}/segment` (Manager/Admin) → 201 with `ResponseTimeEntryJson` and `Location` header.
   - Add `PUT /timeentry/segment/{segmentId:guid}` (Manager/Admin) → 200 with `ResponseTimeEntryJson`.
@@ -1140,7 +1141,8 @@ Refactor `TimeEntry` from a single `(ClockIn, ClockOut)` pair into a parent + N 
 - Single-segment and multi-segment overnight shifts work via DateTime modeling — no rejection.
 - Multi-open, overlap, out-of-day-bounds, status-change-with-segments, ClockOut-before-ClockIn, Member-with-segments, Member-without-Action, Admin-without-segments, and Admin-with-Action paths all return their documented error keys.
 - `IX_TimeEntrySegments_TimeEntryId_OpenShift` race surfaces as 409 `TIMEENTRY_OPEN_SEGMENT_CONFLICT` via `PostgresExceptionHandler`.
-- Spec sync at `Spec revision: v19` across all three documents.
+- Spec sync at `Spec revision: v20` across all three documents.
+  Note: Originally planned to land at v19 in Slice 3.6.A. Slice 3.6.B bumped to v20 to add a §6.7 clarification on Member overnight-Close routing (the `CanAllowPriorDayMemberClose` carve-out — prior-day open segments are closed by the next Member tap with no server-side reinterpretation across days).
 - All three test suites pass; `bash server/docs/check-loto-doc-sync.sh` passes.
 
 ### Phase 4 — TimeEntry Read Path
@@ -1158,6 +1160,7 @@ Implement get/list with role-aware operator scope, pagination, and the Phase 3.5
 - [x] **4.7** For Member list with no linked operator, return an empty page without calling repository list/count
 - [x] **4.8** For `Mine = true`, resolve the caller's linked operator and set the server-side operator filter; combining `Mine = true` and explicit `OperatorId` returns `400`; for a Member with no linked operator, `Mine = true` falls through to the empty-scope short-circuit from 4.7 with no repository list/count call
 - [x] **4.9** Ensure repository list uses a single branch-scoped projection with deterministic ordering `Date DESC, CreatedAt DESC, Id DESC`
+  Note: Implementation extended the existing `ITimeEntriesRepository.ListByBranchIdAsNoTracking` + `CountByBranchIdAsNoTracking` pair with an `.Include(t => t.Segments.Where(s => s.Active))` on the list method (matching the established `ListTransactionsUseCase` pattern) rather than adding a new `ListActiveByBranchScopeAsNoTracking(...) → (items, totalCount)` tuple method. The functional intent (`.Include` on segments, deterministic ordering) is preserved without introducing a near-duplicate repository method.
 - [x] **4.10** Add `GET /timeentry/{timeEntryId:guid}` and `GET /timeentry` to `TimeEntryController`
 - [x] **4.11** Register read use cases in Application DI
 - [x] **4.12** Add `Validators.Test` coverage for list validation
@@ -1181,14 +1184,17 @@ Apply the branch holiday calendar to the existing transaction due-date behavior.
 
 Close the milestone with the same discipline used in M3 and M4.
 
-- [ ] **6.1** Audit `[ProducesResponseType]` declarations on every `HolidayController` and `TimeEntryController` action — including the three new admin segment endpoints (`POST /timeentry/{timeEntryId}/segment`, `PUT /timeentry/segment/{segmentId}`, `DELETE /timeentry/segment/{segmentId}`). Remove spurious codes and add missing ones
-- [ ] **6.2** Confirm architecture tests resolve every new use case and public service under `Services/TimeEntries/`, `Services/Holidays/`, `UseCases/TimeEntries/AddSegment/`, `UseCases/TimeEntries/UpdateSegment/`, `UseCases/TimeEntries/DeactivateSegment/`, and holiday/calendar support. Confirm `ITimeEntrySegmentsRepository` resolves.
-- [ ] **6.3** Confirm validator, use-case, Web API, and architecture tests cover every new endpoint and service, including segment add/update/deactivate happy and unhappy paths and the `IX_TimeEntrySegments_TimeEntryId_OpenShift` open-segment conflict mapping
-- [ ] **6.4** Run `dotnet test tests/Validators.Test`
-- [ ] **6.5** Run `dotnet test tests/UseCases.Test`
-- [ ] **6.6** Run `dotnet test tests/WebApi.Test`
-- [ ] **6.7** Run `bash docs/check-loto-doc-sync.sh`
-- [ ] **6.8** Update this milestone checklist with completion notes where implementation intentionally differs from the original plan
+- [x] **6.1** Audit `[ProducesResponseType]` declarations on every `HolidayController` and `TimeEntryController` action — including the three new admin segment endpoints (`POST /timeentry/{timeEntryId}/segment`, `PUT /timeentry/segment/{segmentId}`, `DELETE /timeentry/segment/{segmentId}`). Remove spurious codes and add missing ones
+  Note: Audit added 400 to `DELETE /holiday/{id}` (route binding accepts `Guid.Empty`, which the use case rejects via `HOLIDAY_ID_EMPTY`) and 400 to `DELETE /timeentry/segment/{id}` (defense-in-depth `EnsureParentAcceptsSegments` produces `TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS`). Two Phase 6 catch-up WebApi tests exercise the newly-declared codes.
+- [x] **6.2** Confirm architecture tests resolve every new use case and public service under `Services/TimeEntries/`, `Services/Holidays/`, `UseCases/TimeEntries/AddSegment/`, `UseCases/TimeEntries/UpdateSegment/`, `UseCases/TimeEntries/DeactivateSegment/`, and holiday/calendar support. Confirm `ITimeEntrySegmentsRepository` resolves.
+  Note: The reflection-based `AllUseCases_AreRegisteredInApplicationDi` and `AllPublicServicesAndExceptionHandlers_AreResolvableFromConfiguredRootContainer` tests automatically pick up every M5 use case (including Get/List/Upsert/AddSegment/UpdateSegment/DeactivateSegment/Deactivate TimeEntry and Holiday Create/Update/Deactivate/List) and every service under `server.Application.Services.TimeEntries` / `server.Application.Services.Holidays` (including `TimeEntryCalculationService`, `BranchClock`, `BranchHolidaySource`, `TimeEntrySegmentMutationService`, `LockDateGuard`). The explicit `TimeEntrySegmentMutationServices_AreResolvableFromConfiguredRootContainer` test already pins `ITimeEntrySegmentsRepository` resolution. No additional architecture cases needed.
+- [x] **6.3** Confirm validator, use-case, Web API, and architecture tests cover every new endpoint and service, including segment add/update/deactivate happy and unhappy paths and the `IX_TimeEntrySegments_TimeEntryId_OpenShift` open-segment conflict mapping
+  Note: Coverage audit found all required test classes present (Holiday + TimeEntry validators, use cases, WebApi happy/unhappy paths, segment Add/Update/Deactivate happy/unhappy, `PostgresExceptionHandlerTest` case for the open-shift constraint mapping, and `TimeEntrySegmentOpenShiftConstraintTest` for the filtered unique race). The two Phase 6 catch-up tests from 6.1 are the only additions.
+- [x] **6.4** Run `dotnet test tests/Validators.Test`
+- [x] **6.5** Run `dotnet test tests/UseCases.Test`
+- [x] **6.6** Run `dotnet test tests/WebApi.Test`
+- [x] **6.7** Run `bash docs/check-loto-doc-sync.sh`
+- [x] **6.8** Update this milestone checklist with completion notes where implementation intentionally differs from the original plan
 
 ### Done criteria
 
@@ -1209,7 +1215,7 @@ Close the milestone with the same discipline used in M3 and M4.
 - Holiday dates are immutable after creation; moving a holiday is handled by deactivate + create
 - Holiday-aware due-date calculation is live for transaction create and auto-generated installment rows, skipping weekends and active branch holidays
 - Manual cheque due dates remain explicit operator input and are not auto-adjusted by the holiday calendar
-- Spec sync covers TimeEntry / TimeEntrySegment audit fields, Holiday constraints, the unified Calculate signature with top-up lunch and DateTime overnight semantics, the dual-shape PUT contract, the admin granular segment endpoints, Holiday contract, and holiday-aware due-date behavior; shared revision metadata is at `v19` and `check-loto-doc-sync.sh` passes
+- Spec sync covers TimeEntry / TimeEntrySegment audit fields, Holiday constraints, the unified Calculate signature with top-up lunch and DateTime overnight semantics, the dual-shape PUT contract, the admin granular segment endpoints, Holiday contract, and holiday-aware due-date behavior; shared revision metadata is at `v20` and `check-loto-doc-sync.sh` passes
 - Validator, use-case, Web API, and architecture tests pass with the new TimeEntry, TimeEntrySegment, Holiday, and due-date behavior
 
 ---

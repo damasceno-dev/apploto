@@ -99,6 +99,34 @@ public class TimeEntrySegmentControllerDeactivateUnhappyPathTest(ServerWebApplic
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED);
     }
 
+    // Phase 6 catch-up: exercise the 400 path declared on DELETE /timeentry/segment/{id}.
+    // The DeactivateTimeEntrySegmentUseCase runs EnsureParentAcceptsSegments as defense-
+    // in-depth. The normal upsert flow blocks status changes when active segments exist,
+    // so this state is only reachable via direct DB seeding — which is exactly what
+    // SeedTimeEntryWithSegmentsAsync does, bypassing the upsert use case.
+    [Fact]
+    public async Task DeactivateSegment_ShouldReturn400_WhenParentStatusIsNotPresent()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TESegmentDelete400NonPresent", Role.Admin);
+        await factory.SeedSettingAsync(branch.Id);
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var date = TimeEntrySegmentTestHelpers.FixedDate();
+        var entry = await TimeEntrySegmentTestHelpers.SeedTimeEntryWithSegmentsAsync(
+            factory,
+            branch.Id,
+            op.Id,
+            date,
+            TimeEntryStatus.Vacation,
+            (date.AddHours(8), date.AddHours(17), true));
+        var segmentId = (await TimeEntrySegmentTestHelpers.ReloadTimeEntryWithSegmentsAsync(factory, entry.Id)).Segments.Single().Id;
+
+        var httpResponse = await _client.DeleteAuthAsync($"/timeentry/segment/{segmentId}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS);
+    }
+
     private async Task<(server.Domain.Entities.TimeEntry Entry, DateTime Date)> SeedPresentEntryAsync(
         Guid branchId,
         Guid operatorId)
