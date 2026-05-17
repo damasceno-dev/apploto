@@ -1168,14 +1168,14 @@ Implement get/list with role-aware operator scope, pagination, and the Phase 3.5
 
 Apply the branch holiday calendar to the existing transaction due-date behavior.
 
-- [ ] **5.1** Update `CreateTransactionUseCase` / transaction create preamble to load active branch holidays once and pass them into due-date calculation
-- [ ] **5.2** Update `CreateTransactionInstallmentUseCase` / `InstallmentPlanBuilder` to load active branch holidays once and pass them into generated installment due-date adjustment
-- [ ] **5.3** Preserve manual `OperatorEnteredCheque` due-date behavior: explicit manual due dates are validated but not auto-moved
-- [ ] **5.4** Mechanically update existing M3 due-date tests that assumed weekend-only behavior to pass an empty holiday set; this is test plumbing, not a redesign of those cases
-- [ ] **5.5** Add tests proving `NextBusinessDay` skips a branch holiday
-- [ ] **5.6** Add tests proving `TwoBusinessDays` skips one or more branch holidays
-- [ ] **5.7** Add tests proving auto-generated installment due dates that land on holidays move to the next non-weekend, non-holiday business day
-- [ ] **5.8** Add Web API integration coverage proving holiday-aware due dates persist through transaction create and installment create endpoints
+- [x] **5.1** Update `CreateTransactionUseCase` / transaction create preamble to load active branch holidays once and pass them into due-date calculation
+- [x] **5.2** Update `CreateTransactionInstallmentUseCase` / `InstallmentPlanBuilder` to load active branch holidays once and pass them into generated installment due-date adjustment
+- [x] **5.3** Preserve manual `OperatorEnteredCheque` due-date behavior: explicit manual due dates are validated but not auto-moved
+- [x] **5.4** Mechanically update existing M3 due-date tests that assumed weekend-only behavior to pass an empty holiday set; this is test plumbing, not a redesign of those cases
+- [x] **5.5** Add tests proving `NextBusinessDay` skips a branch holiday
+- [x] **5.6** Add tests proving `TwoBusinessDays` skips one or more branch holidays
+- [x] **5.7** Add tests proving auto-generated installment due dates that land on holidays move to the next non-weekend, non-holiday business day
+- [x] **5.8** Add Web API integration coverage proving holiday-aware due dates persist through transaction create and installment create endpoints
 
 ### Phase 6 — Hardening + Spec Close-Out
 

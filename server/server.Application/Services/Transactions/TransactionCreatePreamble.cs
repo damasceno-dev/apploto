@@ -1,3 +1,4 @@
+using server.Application.Services.Holidays;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Communication.Requests;
@@ -14,7 +15,8 @@ public sealed record TransactionCreateContext(
     Operator? CallerOperator,
     Guid RecordedByOperatorId,
     TransactionType TransactionType,
-    DateTime? DueDate = null);
+    DateTime? DueDate = null,
+    IReadOnlySet<DateOnly>? BranchHolidays = null);
 
 public class TransactionCreatePreamble(
     IAuthenticationService authenticationService,
@@ -22,7 +24,8 @@ public class TransactionCreatePreamble(
     TransactionRecordedByOperatorResolver recordedByOperatorResolver,
     TransactionBranchConsistencyService transactionBranchConsistencyService,
     MemberAccountScopeGuard memberAccountScopeGuard,
-    LockDateGuard lockDateGuard)
+    LockDateGuard lockDateGuard,
+    IBranchHolidaySource branchHolidaySource)
 {
     public async Task<TransactionCreateContext> Resolve(RequestCreateTransactionJson request)
     {
@@ -39,17 +42,20 @@ public class TransactionCreatePreamble(
             throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_CHEQUE_REQUIRES_DUE_DATE]);
         }
 
+        var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId);
+
         var dueDate = DueDateCalculator.Compute(
             context.TransactionType.SettlementRule,
             request.Date,
-            request.DueDate);
+            request.DueDate,
+            holidayDates);
 
         await lockDateGuard.EnsureNotLocked(
             context.BranchUser.BranchId,
             request.Date,
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
 
-        return context with { DueDate = dueDate };
+        return context with { DueDate = dueDate, BranchHolidays = holidayDates };
     }
 
     public async Task<TransactionCreateContext> Resolve(RequestCreateTransactionInstallmentJson request)
@@ -66,7 +72,9 @@ public class TransactionCreatePreamble(
             request.Date,
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
 
-        return context;
+        var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId);
+
+        return context with { BranchHolidays = holidayDates };
     }
 
     private async Task<TransactionCreateContext> ResolveCommon(

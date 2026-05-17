@@ -25,7 +25,11 @@ public class CreateTransactionInstallmentUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_INSTALLMENT_REQUIRES_CHEQUE);
         }
 
-        var installmentPlan = installmentPlanBuilder.Build(request, createContext.BranchUser.BranchId, Guid.NewGuid());
+        var installmentPlan = installmentPlanBuilder.Build(
+            request,
+            createContext.BranchUser.BranchId,
+            Guid.NewGuid(),
+            createContext.BranchHolidays);
         var transactions = installmentPlan
             .Select(row => row.ToTransaction(
                 request,

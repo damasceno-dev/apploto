@@ -3,6 +3,7 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Holidays;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
@@ -136,6 +137,77 @@ public class CreateTransactionUseCaseTest
         var response = await useCase.Execute(ctx.Request);
 
         response.DueDate.ShouldBe(new DateTime(2025, 3, 10)); // Friday -> Monday is skipped nothing, so Thu + 2 biz = Mon
+    }
+
+    [Fact]
+    public async Task Execute_ShouldComputeDueDate_NextBusinessDay_SkipBranchHoliday()
+    {
+        // Friday + 1 business day would normally land on Monday, but Monday is a branch
+        // holiday so the due date moves to Tuesday.
+        var friday = new DateTime(2025, 3, 7);
+        var holidayMonday = new DateTime(2025, 3, 10);
+        var ctx = BuildHappyPathContext(Role.Manager, SettlementRule.NextBusinessDay, Direction.In);
+        ctx.BranchHolidaySource.GetHolidayDatesAsync(ctx.BranchUser.BranchId)
+            .Returns(new HashSet<DateOnly> { DateOnly.FromDateTime(holidayMonday) });
+        ctx.Request = new RequestCreateTransactionJsonBuilder()
+            .WithDate(friday)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .Build();
+
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Request);
+
+        response.DueDate.ShouldBe(new DateTime(2025, 3, 11)); // Tuesday
+    }
+
+    [Fact]
+    public async Task Execute_ShouldComputeDueDate_TwoBusinessDays_SkipBranchHoliday()
+    {
+        // Wednesday + 2 business days would normally land on Friday. Thursday is a branch
+        // holiday so Thursday is skipped: gross days walked are Thu (holiday), Fri (1st
+        // business day), Mon (2nd business day, weekend skipped).
+        var wednesday = new DateTime(2025, 3, 5);
+        var holidayThursday = new DateTime(2025, 3, 6);
+        var ctx = BuildHappyPathContext(Role.Manager, SettlementRule.TwoBusinessDays, Direction.In);
+        ctx.BranchHolidaySource.GetHolidayDatesAsync(ctx.BranchUser.BranchId)
+            .Returns(new HashSet<DateOnly> { DateOnly.FromDateTime(holidayThursday) });
+        ctx.Request = new RequestCreateTransactionJsonBuilder()
+            .WithDate(wednesday)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .Build();
+
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Request);
+
+        response.DueDate.ShouldBe(new DateTime(2025, 3, 10)); // Monday
+    }
+
+    [Fact]
+    public async Task Execute_ShouldNotMoveOperatorEnteredCheque_EvenWhenDueDateLandsOnHoliday()
+    {
+        // OperatorEnteredCheque preserves the explicit manual date even if it falls on a
+        // branch holiday. The calculator returns the input verbatim for this rule.
+        var date = new DateTime(2025, 3, 1);
+        var manualDueDate = new DateTime(2025, 4, 21);
+        var ctx = BuildHappyPathContext(Role.Manager, SettlementRule.OperatorEnteredCheque, Direction.Out);
+        ctx.BranchHolidaySource.GetHolidayDatesAsync(ctx.BranchUser.BranchId)
+            .Returns(new HashSet<DateOnly> { DateOnly.FromDateTime(manualDueDate) });
+        ctx.Request = new RequestCreateTransactionJsonBuilder()
+            .WithDate(date)
+            .WithDueDate(manualDueDate)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .Build();
+
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Request);
+
+        response.DueDate.ShouldBe(manualDueDate);
     }
 
     [Fact]
@@ -478,7 +550,8 @@ public class CreateTransactionUseCaseTest
             recordedByOperatorResolver,
             branchConsistencyService,
             memberAccountScopeGuard,
-            lockDateGuard);
+            lockDateGuard,
+            ctx.BranchHolidaySource);
 
         return new CreateTransactionUseCase(
             transactionCreatePreamble,
@@ -550,6 +623,8 @@ public class CreateTransactionUseCaseTest
             .Build();
         var transactionsRepository = new TransactionsRepositoryBuilder().Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
+        var branchHolidaySource = Substitute.For<IBranchHolidaySource>();
+        branchHolidaySource.GetHolidayDatesAsync(branchUser.BranchId).Returns(new HashSet<DateOnly>());
 
         return new HappyPathContext
         {
@@ -566,7 +641,8 @@ public class CreateTransactionUseCaseTest
             SettingsRepository = settingsRepository,
             OperatorAccountsRepository = operatorAccountsRepository,
             TransactionsRepository = transactionsRepository,
-            UnitOfWork = unitOfWork
+            UnitOfWork = unitOfWork,
+            BranchHolidaySource = branchHolidaySource
         };
     }
 
@@ -586,5 +662,6 @@ public class CreateTransactionUseCaseTest
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
         public required ITransactionsRepository TransactionsRepository { get; set; }
         public required IUnitOfWork UnitOfWork { get; set; }
+        public required IBranchHolidaySource BranchHolidaySource { get; set; }
     }
 }
