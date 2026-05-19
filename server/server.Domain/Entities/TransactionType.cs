@@ -4,7 +4,7 @@ namespace server.Domain.Entities;
 
 public class TransactionType : EntityBase
 {
-    public string Name { get; init; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
     public SettlementRule SettlementRule { get; set; }
     public bool RequiresTabAccountAndClient { get; set; }
 

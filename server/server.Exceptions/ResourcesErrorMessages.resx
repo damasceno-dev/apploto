@@ -525,6 +525,18 @@
     <data name="CATEGORY_NAME_CONFLICT" xml:space="preserve">
         <value>Já existe uma categoria ativa com este nome nesta filial</value>
     </data>
+    <data name="TRANSACTION_TYPE_NAME_REQUIRED" xml:space="preserve">
+        <value>O nome do tipo de transação não pode ser nulo ou vazio</value>
+    </data>
+    <data name="TRANSACTION_TYPE_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome do tipo de transação deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="TRANSACTION_TYPE_CATEGORY_ID_EMPTY" xml:space="preserve">
+        <value>O identificador da categoria deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_TYPE_SETTLEMENT_RULE_INVALID" xml:space="preserve">
+        <value>Regra de liquidação inválida</value>
+    </data>
     <data name="TRANSACTION_TYPE_NAME_CONFLICT" xml:space="preserve">
         <value>Já existe um tipo de transação ativo com este nome nesta categoria</value>
     </data>

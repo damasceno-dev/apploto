@@ -15,6 +15,9 @@ public class UpdateCategoryUseCase(
 {
     public async Task<ResponseCategoryJson> Execute(Guid categoryId, RequestUpdateCategoryJson request)
     {
+        if (categoryId == Guid.Empty)
+            throw new OnValidationException([ResourcesErrorMessages.CATEGORY_ID_EMPTY]);
+
         Validate(request);
 
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();

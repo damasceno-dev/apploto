@@ -1059,6 +1059,30 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TRANSACTION_TYPE_NAME_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_NAME_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_CATEGORY_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_CATEGORY_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_SETTLEMENT_RULE_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_SETTLEMENT_RULE_INVALID", resourceCulture);
+            }
+        }
+
         public static string TRANSACTION_TYPE_NAME_CONFLICT {
             get {
                 return ResourceManager.GetString("TRANSACTION_TYPE_NAME_CONFLICT", resourceCulture);
