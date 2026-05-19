@@ -15,6 +15,9 @@ internal class TransactionTypeConfiguration : IEntityTypeConfiguration<Transacti
         builder.Property(transactionType => transactionType.SettlementRule).HasConversion<short>().IsRequired();
         builder.Property(transactionType => transactionType.RequiresTabAccountAndClient).IsRequired();
 
-        builder.HasIndex(transactionType => new { transactionType.CategoryId, transactionType.Name }).IsUnique();
+        builder.HasIndex(transactionType => new { transactionType.CategoryId, transactionType.Name })
+            .IsUnique()
+            .HasDatabaseName("IX_TransactionTypes_CategoryId_Name")
+            .HasFilter("\"Active\" = true");
     }
 }

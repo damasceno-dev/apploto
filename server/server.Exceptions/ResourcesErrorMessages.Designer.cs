@@ -1022,5 +1022,23 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("HOLIDAY_LIST_DATE_RANGE_INVALID", resourceCulture);
             }
         }
+
+        public static string CATEGORY_NAME_CONFLICT {
+            get {
+                return ResourceManager.GetString("CATEGORY_NAME_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_NAME_CONFLICT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_NAME_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string PRODUCT_NAME_CONFLICT {
+            get {
+                return ResourceManager.GetString("PRODUCT_NAME_CONFLICT", resourceCulture);
+            }
+        }
     }
 }

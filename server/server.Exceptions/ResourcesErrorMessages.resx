@@ -507,4 +507,13 @@
     <data name="HOLIDAY_LIST_DATE_RANGE_INVALID" xml:space="preserve">
         <value>A data inicial deve ser menor ou igual à data final</value>
     </data>
+    <data name="CATEGORY_NAME_CONFLICT" xml:space="preserve">
+        <value>Já existe uma categoria ativa com este nome nesta filial</value>
+    </data>
+    <data name="TRANSACTION_TYPE_NAME_CONFLICT" xml:space="preserve">
+        <value>Já existe um tipo de transação ativo com este nome nesta categoria</value>
+    </data>
+    <data name="PRODUCT_NAME_CONFLICT" xml:space="preserve">
+        <value>Já existe um produto ativo com este nome nesta filial</value>
+    </data>
 </root>

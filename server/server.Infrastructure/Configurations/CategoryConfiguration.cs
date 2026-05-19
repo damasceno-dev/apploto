@@ -13,7 +13,10 @@ internal class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.Property(category => category.Name).HasMaxLength(255);
 
-        builder.HasIndex(category => new { category.BranchId, category.Name }).IsUnique();
+        builder.HasIndex(category => new { category.BranchId, category.Name })
+            .IsUnique()
+            .HasDatabaseName("IX_Categories_BranchId_Name")
+            .HasFilter("\"Active\" = true");
 
         builder.HasMany(category => category.TransactionTypes)
             .WithOne(transactionType => transactionType.Category)

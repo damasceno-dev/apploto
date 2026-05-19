@@ -33,7 +33,10 @@ public class PostgresExceptionHandlerTest
             { "IX_DailyCloseItems_DailyCloseId_ProductId", ResourcesErrorMessages.DAILYCLOSE_ITEM_DUPLICATE },
             { "IX_TimeEntries_BranchId_OperatorId_Date", ResourcesErrorMessages.TIMEENTRY_DATE_CONFLICT },
             { "IX_TimeEntrySegments_TimeEntryId_OpenShift", ResourcesErrorMessages.TIMEENTRY_OPEN_SEGMENT_CONFLICT },
-            { "IX_Holidays_BranchId_Date", ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT }
+            { "IX_Holidays_BranchId_Date", ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT },
+            { "IX_Categories_BranchId_Name", ResourcesErrorMessages.CATEGORY_NAME_CONFLICT },
+            { "IX_TransactionTypes_CategoryId_Name", ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT },
+            { "IX_Products_BranchId_Name", ResourcesErrorMessages.PRODUCT_NAME_CONFLICT }
         };
 
     [Fact]

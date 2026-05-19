@@ -13,6 +13,9 @@ internal class ProductConfiguration : IEntityTypeConfiguration<Product>
 
         builder.Property(product => product.Name).HasMaxLength(255);
 
-        builder.HasIndex(product => new { product.BranchId, product.Name }).IsUnique();
+        builder.HasIndex(product => new { product.BranchId, product.Name })
+            .IsUnique()
+            .HasDatabaseName("IX_Products_BranchId_Name")
+            .HasFilter("\"Active\" = true");
     }
 }
