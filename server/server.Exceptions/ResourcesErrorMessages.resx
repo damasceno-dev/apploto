@@ -507,6 +507,21 @@
     <data name="HOLIDAY_LIST_DATE_RANGE_INVALID" xml:space="preserve">
         <value>A data inicial deve ser menor ou igual à data final</value>
     </data>
+    <data name="CATEGORY_NOT_FOUND" xml:space="preserve">
+        <value>Categoria não encontrada</value>
+    </data>
+    <data name="CATEGORY_ID_EMPTY" xml:space="preserve">
+        <value>O identificador da categoria deve ser informado</value>
+    </data>
+    <data name="CATEGORY_NAME_REQUIRED" xml:space="preserve">
+        <value>O nome da categoria não pode ser nulo ou vazio</value>
+    </data>
+    <data name="CATEGORY_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome da categoria deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="CATEGORY_DEFAULT_DIRECTION_INVALID" xml:space="preserve">
+        <value>Direção padrão inválida</value>
+    </data>
     <data name="CATEGORY_NAME_CONFLICT" xml:space="preserve">
         <value>Já existe uma categoria ativa com este nome nesta filial</value>
     </data>

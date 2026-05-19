@@ -1023,6 +1023,36 @@ namespace server.Exceptions {
             }
         }
 
+        public static string CATEGORY_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("CATEGORY_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string CATEGORY_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("CATEGORY_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string CATEGORY_NAME_REQUIRED {
+            get {
+                return ResourceManager.GetString("CATEGORY_NAME_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CATEGORY_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("CATEGORY_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string CATEGORY_DEFAULT_DIRECTION_INVALID {
+            get {
+                return ResourceManager.GetString("CATEGORY_DEFAULT_DIRECTION_INVALID", resourceCulture);
+            }
+        }
+
         public static string CATEGORY_NAME_CONFLICT {
             get {
                 return ResourceManager.GetString("CATEGORY_NAME_CONFLICT", resourceCulture);
