@@ -6,6 +6,9 @@
 # dotenv files
 .env
 
+# Claude Code local plugin settings (machine-specific)
+.claude/settings.json
+
 # Generated hosted appsettings
 server/server.API/appsettings.Staging.json
 server/server.API/appsettings.Production.json
