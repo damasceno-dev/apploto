@@ -543,4 +543,22 @@
     <data name="PRODUCT_NAME_CONFLICT" xml:space="preserve">
         <value>Já existe um produto ativo com este nome nesta filial</value>
     </data>
+    <data name="PRODUCT_NOT_FOUND" xml:space="preserve">
+        <value>Produto não encontrado</value>
+    </data>
+    <data name="PRODUCT_ID_EMPTY" xml:space="preserve">
+        <value>O identificador do produto deve ser informado</value>
+    </data>
+    <data name="PRODUCT_NAME_REQUIRED" xml:space="preserve">
+        <value>O nome do produto não pode ser nulo ou vazio</value>
+    </data>
+    <data name="PRODUCT_NAME_MAX_LENGTH" xml:space="preserve">
+        <value>O nome do produto deve conter no máximo {0} caracteres</value>
+    </data>
+    <data name="PRODUCT_DISPLAY_ORDER_INVALID" xml:space="preserve">
+        <value>A ordem de exibição deve ser maior ou igual a zero</value>
+    </data>
+    <data name="PRODUCT_SYSTEM_PROTECTED" xml:space="preserve">
+        <value>Este produto é gerenciado pelo sistema e não pode ser renomeado ou desativado</value>
+    </data>
 </root>

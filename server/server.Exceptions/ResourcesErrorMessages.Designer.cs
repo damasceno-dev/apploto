@@ -1094,5 +1094,41 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("PRODUCT_NAME_CONFLICT", resourceCulture);
             }
         }
+
+        public static string PRODUCT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("PRODUCT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string PRODUCT_ID_EMPTY {
+            get {
+                return ResourceManager.GetString("PRODUCT_ID_EMPTY", resourceCulture);
+            }
+        }
+
+        public static string PRODUCT_NAME_REQUIRED {
+            get {
+                return ResourceManager.GetString("PRODUCT_NAME_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string PRODUCT_NAME_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("PRODUCT_NAME_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string PRODUCT_DISPLAY_ORDER_INVALID {
+            get {
+                return ResourceManager.GetString("PRODUCT_DISPLAY_ORDER_INVALID", resourceCulture);
+            }
+        }
+
+        public static string PRODUCT_SYSTEM_PROTECTED {
+            get {
+                return ResourceManager.GetString("PRODUCT_SYSTEM_PROTECTED", resourceCulture);
+            }
+        }
     }
 }

@@ -404,7 +404,7 @@ public class Category : EntityBase
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | |
 
-**Unique constraint:** `(BranchId, Name)`
+**Unique constraint:** `(BranchId, Name) WHERE Active = true`
 
 ### 3.10 TransactionType
 
@@ -437,7 +437,7 @@ public class TransactionType : EntityBase
 
 **Note:** TransactionType inherits BranchId through its Category. No direct BranchId column needed.
 
-**Unique constraint:** `(CategoryId, Name)`
+**Unique constraint:** `(CategoryId, Name) WHERE Active = true`
 
 **Important:** The same name can exist under different categories. "Cliente" exists under both "Entradas" (In) and "Saídas" (Out) — this is how the Fiado system distinguishes credit sales from client payments.
 
@@ -616,7 +616,7 @@ public class Product : EntityBase
 | CreatedAt | timestamptz | NOT NULL | |
 | Active | boolean | NOT NULL | |
 
-**Unique constraint:** `(BranchId, Name)`
+**Unique constraint:** `(BranchId, Name) WHERE Active = true`
 
 ### 3.14 DailyClose
 

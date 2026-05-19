@@ -5,6 +5,12 @@ namespace server.Domain.Interfaces;
 public interface IProductsRepository
 {
     Task AddRange(IEnumerable<Product> products);
+    Task Add(Product product);
+
+    Task<Product?> GetActiveByIdAndBranchId(Guid id, Guid branchId);
+    Task<Product?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId);
+
+    Task<IReadOnlyList<Product>> ListActiveByBranchIdAsNoTracking(Guid branchId);
 
     /// <summary>
     /// Returns all active products whose ids are in <paramref name="productIds"/> and
@@ -20,4 +26,6 @@ public interface IProductsRepository
     /// Returns <c>null</c> when no match exists (bootstrap defect; seed was not run).
     /// </summary>
     Task<Product?> GetActiveByBranchIdAndNameAsNoTracking(Guid branchId, string name);
+
+    Task<bool> ExistsActiveByBranchIdAndName(Guid branchId, string name, Guid? exceptId = null);
 }

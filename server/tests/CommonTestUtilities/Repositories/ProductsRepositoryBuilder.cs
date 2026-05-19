@@ -33,6 +33,30 @@ public class ProductsRepositoryBuilder
         return this;
     }
 
+    public ProductsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Product? result)
+    {
+        _repository.GetActiveByIdAndBranchId(id, branchId).Returns(result);
+        return this;
+    }
+
+    public ProductsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Product? result)
+    {
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId).Returns(result);
+        return this;
+    }
+
+    public ProductsRepositoryBuilder ListActiveByBranchIdAsNoTracking(Guid branchId, IReadOnlyList<Product> result)
+    {
+        _repository.ListActiveByBranchIdAsNoTracking(branchId).Returns(result);
+        return this;
+    }
+
+    public ProductsRepositoryBuilder ExistsActiveByBranchIdAndName(Guid branchId, string name, bool result, Guid? exceptId = null)
+    {
+        _repository.ExistsActiveByBranchIdAndName(branchId, name, exceptId).Returns(result);
+        return this;
+    }
+
     public IProductsRepository Build()
     {
         return _repository;
