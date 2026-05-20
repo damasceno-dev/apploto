@@ -365,7 +365,12 @@ internal static class TestSeeder
             return transaction;
         }
 
-        public async Task<Setting> SeedSettingAsync(Guid branchId, DateTime? lockDate = null)
+        public async Task<Setting> SeedSettingAsync(
+            Guid branchId,
+            DateTime? lockDate = null,
+            decimal dailyTargetHours = 7.33m,
+            decimal lunchDeductionOver6H = 1.0m,
+            decimal lunchDeductionOver4H = 0.25m)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -374,7 +379,10 @@ internal static class TestSeeder
             {
                 Id = Guid.NewGuid(),
                 BranchId = branchId,
-                LockDate = lockDate ?? DateTime.MinValue
+                LockDate = lockDate ?? DateTime.MinValue,
+                DailyTargetHours = dailyTargetHours,
+                LunchDeductionOver6H = lunchDeductionOver6H,
+                LunchDeductionOver4H = lunchDeductionOver4H
             };
             dbContext.Settings.Add(setting);
             await dbContext.SaveChangesAsync();

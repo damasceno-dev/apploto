@@ -1130,5 +1130,23 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("PRODUCT_SYSTEM_PROTECTED", resourceCulture);
             }
         }
+
+        public static string SETTING_LOCK_DATE_RETREAT {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_DATE_RETREAT", resourceCulture);
+            }
+        }
+
+        public static string SETTING_DAILY_TARGET_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("SETTING_DAILY_TARGET_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE", resourceCulture);
+            }
+        }
     }
 }

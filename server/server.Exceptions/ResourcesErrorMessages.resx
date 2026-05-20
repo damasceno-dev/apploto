@@ -561,4 +561,13 @@
     <data name="PRODUCT_SYSTEM_PROTECTED" xml:space="preserve">
         <value>Este produto é gerenciado pelo sistema e não pode ser renomeado ou desativado</value>
     </data>
+    <data name="SETTING_LOCK_DATE_RETREAT" xml:space="preserve">
+        <value>A data de bloqueio só pode avançar no tempo</value>
+    </data>
+    <data name="SETTING_DAILY_TARGET_OUT_OF_RANGE" xml:space="preserve">
+        <value>A meta diária de horas deve ser maior que zero, menor ou igual a 24 horas e ter no máximo 2 casas decimais</value>
+    </data>
+    <data name="SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE" xml:space="preserve">
+        <value>O tempo de dedução deve ser maior ou igual a zero, menor ou igual a 8 horas e ter no máximo 2 casas decimais</value>
+    </data>
 </root>

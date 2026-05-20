@@ -8,6 +8,13 @@ public class SettingsRepositoryBuilder
 {
     private readonly ISettingsRepository _repository = Substitute.For<ISettingsRepository>();
 
+    public SettingsRepositoryBuilder GetByBranchIdReturns(Guid branchId, Setting? result)
+    {
+        _repository.GetByBranchId(Arg.Is<Guid>(value => value == branchId))
+            .Returns(result);
+        return this;
+    }
+
     public SettingsRepositoryBuilder GetByBranchIdAsNoTrackingReturns(Guid branchId, Setting? result)
     {
         _repository.GetByBranchIdAsNoTracking(Arg.Is<Guid>(value => value == branchId))

@@ -72,6 +72,8 @@ using server.Application.UseCases.Products.Deactivate;
 using server.Application.UseCases.Products.Get;
 using server.Application.UseCases.Products.List;
 using server.Application.UseCases.Products.Update;
+using server.Application.UseCases.Settings.Get;
+using server.Application.UseCases.Settings.Update;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.List;
@@ -133,6 +135,8 @@ public static class AppDependencyInjection
         services.AddScoped<GetProductUseCase>();
         services.AddScoped<UpdateProductUseCase>();
         services.AddScoped<DeactivateProductUseCase>();
+        services.AddScoped<GetSettingUseCase>();
+        services.AddScoped<UpdateSettingUseCase>();
         services.AddScoped<CreateClientUseCase>();
         services.AddScoped<ListClientsUseCase>();
         services.AddScoped<GetClientUseCase>();

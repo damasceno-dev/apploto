@@ -1,0 +1,312 @@
+using CommonTestUtilities.Entities;
+using CommonTestUtilities.Repositories;
+using CommonTestUtilities.Requests;
+using CommonTestUtilities.Services;
+using NSubstitute;
+using server.Application.UseCases.Settings.Update;
+using server.Domain.Entities.Enums;
+using server.Domain.Interfaces;
+using server.Exceptions;
+using server.Exceptions.Exceptions;
+using Shouldly;
+using Xunit;
+
+namespace UseCases.Test.UseCases.Settings.Update;
+
+public class UpdateSettingUseCaseTest
+{
+    [Fact]
+    public async Task Execute_ShouldUpdateAllFields_WhenAdminUpdates()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder().WithBranchId(branchUser.BranchId).Build();
+        var lockDate = new DateTime(2026, 12, 31);
+        var request = new RequestUpdateSettingJsonBuilder()
+            .WithLockDate(lockDate)
+            .WithDailyTargetHours(8.0m)
+            .WithLunchDeductionOver6H(1.5m)
+            .WithLunchDeductionOver4H(0.5m)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.LockDate.ShouldBe(lockDate);
+        response.DailyTargetHours.ShouldBe(8.0m);
+        response.LunchDeductionOver6H.ShouldBe(1.5m);
+        response.LunchDeductionOver4H.ShouldBe(0.5m);
+        response.BranchId.ShouldBe(branchUser.BranchId);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldUpdateOnlyDailyTargetHours_WhenOnlyThatFieldProvided()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDailyTargetHours(7.33m)
+            .WithLunchDeductionOver6H(1.0m)
+            .WithLunchDeductionOver4H(0.25m)
+            .WithLockDate(DateTime.MinValue)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(9.0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.DailyTargetHours.ShouldBe(9.0m);
+        response.LunchDeductionOver6H.ShouldBe(1.0m);
+        response.LunchDeductionOver4H.ShouldBe(0.25m);
+        response.LockDate.ShouldBe(DateTime.MinValue);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldUpdateOnlyLunchDeductionOver6H_WhenOnlyThatFieldProvided()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithLunchDeductionOver6H(1.0m)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithLunchDeductionOver6H(2.0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.LunchDeductionOver6H.ShouldBe(2.0m);
+        response.DailyTargetHours.ShouldBe(setting.DailyTargetHours);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldUpdateOnlyLunchDeductionOver4H_WhenOnlyThatFieldProvided()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithLunchDeductionOver4H(0.25m)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithLunchDeductionOver4H(0.5m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.LunchDeductionOver4H.ShouldBe(0.5m);
+        response.LunchDeductionOver6H.ShouldBe(setting.LunchDeductionOver6H);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldUpdate_WhenManagerRole()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var setting = new SettingBuilder().WithBranchId(branchUser.BranchId).Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.DailyTargetHours.ShouldBe(8.0m);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowTokenWithoutPermissionException_WhenCallerIsMember()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(request));
+
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowOnValidationException_WhenLockDateMovesBackward()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var lockDate = new DateTime(2026, 6, 1);
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithLockDate(lockDate)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder()
+            .WithLockDate(lockDate.AddDays(-1))
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
+
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_RETREAT);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldAccept_WhenLockDateEqualsCurrentLockDate()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var lockDate = new DateTime(2026, 6, 1);
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithLockDate(lockDate)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithLockDate(lockDate).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.LockDate.ShouldBe(lockDate);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldAccept_WhenLockDateMovesForward()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var lockDate = new DateTime(2026, 6, 1);
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithLockDate(lockDate)
+            .Build();
+        var newLockDate = lockDate.AddDays(30);
+        var request = new RequestUpdateSettingJsonBuilder().WithLockDate(newLockDate).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.LockDate.ShouldBe(newLockDate);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowOnValidationException_WhenDailyTargetHoursIsInvalid()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
+
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_DAILY_TARGET_OUT_OF_RANGE);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowInvalidOperationException_WhenSettingRowMissing()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, null)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
+
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => useCase.Execute(request));
+
+        exception.Message.ShouldContain(branchUser.BranchId.ToString());
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
+    private static UpdateSettingUseCase CreateUseCase(
+        IAuthenticationService authenticationService,
+        ISettingsRepository settingsRepository,
+        IUnitOfWork unitOfWork)
+    {
+        return new UpdateSettingUseCase(authenticationService, settingsRepository, unitOfWork);
+    }
+}
