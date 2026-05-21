@@ -449,6 +449,25 @@ internal static class TestSeeder
             return holiday;
         }
 
+        public async Task<List<Holiday>> ListActiveHolidaysByBranchIdAndYearAsync(Guid branchId, int year)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+            var start = new DateTime(year, 1, 1);
+            var end = start.AddYears(1);
+
+            return await dbContext.Holidays
+                .AsNoTracking()
+                .Where(holiday =>
+                    holiday.BranchId == branchId &&
+                    holiday.Active &&
+                    holiday.Date >= start &&
+                    holiday.Date < end)
+                .OrderBy(holiday => holiday.Date)
+                .ThenBy(holiday => holiday.Id)
+                .ToListAsync();
+        }
+
         public async Task<List<DailyCloseItem>> ListDailyCloseItemsByDailyCloseIdAsync(Guid dailyCloseId)
         {
             using var scope = factory.Services.CreateScope();

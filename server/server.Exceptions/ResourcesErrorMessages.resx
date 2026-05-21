@@ -507,6 +507,9 @@
     <data name="HOLIDAY_LIST_DATE_RANGE_INVALID" xml:space="preserve">
         <value>A data inicial deve ser menor ou igual à data final</value>
     </data>
+    <data name="HOLIDAY_IMPORT_YEAR_OUT_OF_RANGE" xml:space="preserve">
+        <value>O ano informado deve estar entre 1900 e 2200</value>
+    </data>
     <data name="CATEGORY_NOT_FOUND" xml:space="preserve">
         <value>Categoria não encontrada</value>
     </data>

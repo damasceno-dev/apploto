@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v20
+Spec revision: v21
 -->
 
-> **Status:** Revised spec (v20) — Milestone 5 Phase 3.6 multi-segment TimeEntry & admin edits
+> **Status:** Revised spec (v21) — Milestone 6 Phase 6 Brazilian Holiday Calendar source
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -29,6 +29,7 @@ Spec revision: v20
 > v18: Milestone 5 Phase 3.5 foundational live-running — §6.7 updated with partial-Present semantics (ClockIn required, ClockOut optional), live-running rule with synthetic effectiveClockOut on same branch-local day, forgotten-clock-out path returns (0, 0), ClockOut-without-ClockIn always invalid (TIMEENTRY_CLOCK_OUT_REQUIRES_CLOCK_IN); CalculateLiveRunning method signature and contract added.
 > v19: Milestone 5 Phase 3.6 multi-segment TimeEntry — §3.16 TimeEntry updated to drop ClockIn/ClockOut and add Segments navigation; §3.16a TimeEntrySegment added with full DateTime clock fields, FK, filtered unique open-segment constraint, day-bounds invariant, and audit fields; §6.7 fully rewritten for the segment-list contract using DateTime semantics, top-up gap-aware lunch rule, dual-shape PUT (Member Action vs Admin Segments), idempotent no-ops, status-transition rule, day-bounds rule, and worked examples (overnight, live-running gap, forgotten open).
 > v20: Clarified §6.7 Member tap routing for overnight vs forgotten-close cases: prior-day open segments are resolved by the next submitted Action and Date, not by server reinterpretation.
+> v21: Added §5.1 Brazilian Holiday Calendar appendix documenting the M6 pure-function import source: 10 mandatory national holidays, 3 curated optional federal Easter-anchored entries, Law 9.093/1995 for Sexta-feira Santa, Law 14.759/2023 for Consciência Negra, and the Anonymous Gregorian / Meeus/Jones/Butcher Easter algorithm reference.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -980,6 +981,39 @@ Note: "Cliente" appears twice — under Saídas (credit sale, money leaves) and 
 
 Note: **Fiado is NOT a DailyClose product** — it is calculated at query time from Tab account transactions (sum of Out minus sum of In). The Access FrmCaixa form displays a calculated Fiado balance but does NOT persist it to TblEstoque. Access prod_id 1 (Fiado), 8 (Total Caixa), 9 (HorasTrabalhadas), 10 (Ausente), 12 (Operador) are NOT migrated — these were computed values or metadata shoehorned into the product/estoque pattern.
 
+### 5.1 Brazilian Holiday Calendar
+
+Milestone 6 adds a deterministic Brazilian calendar source used by `GET /holiday/import-br/{year}/preview` and `POST /holiday/import-br/{year}`. This source is branch-agnostic and has no external network dependency: fixed-date national holidays are emitted directly, and Easter-relative dates are computed with the Anonymous Gregorian algorithm, also known as the Meeus/Jones/Butcher algorithm. The supported tested range is 1900-2200.
+
+When `includeOptionalFederal = false`, the API returns/imports only the 10 `National` entries. When `includeOptionalFederal = true`, it appends the 3 `OptionalFederal` entries below and returns all 13 rows in date order.
+
+#### National holidays
+
+| Date rule       | Description                | Type     | Basis                                                                                  |
+|-----------------|----------------------------|----------|----------------------------------------------------------------------------------------|
+| 1 Jan           | Confraternização Universal | National | Mandatory federal holiday                                                              |
+| Easter - 2 days | Sexta-feira Santa          | National | Law 9.093/1995 religious-holiday basis; included in the mandatory operational baseline |
+| 21 Apr          | Tiradentes                 | National | Mandatory federal holiday                                                              |
+| 1 May           | Dia do Trabalho            | National | Mandatory federal holiday                                                              |
+| 7 Sep           | Independência              | National | Mandatory federal holiday                                                              |
+| 12 Oct          | Nossa Senhora Aparecida    | National | Mandatory federal holiday                                                              |
+| 2 Nov           | Finados                    | National | Mandatory federal holiday                                                              |
+| 15 Nov          | Proclamação da República   | National | Mandatory federal holiday                                                              |
+| 20 Nov          | Consciência Negra          | National | Law 14.759/2023 declared the date a national holiday                                   |
+| 25 Dec          | Natal                      | National | Mandatory federal holiday                                                              |
+
+#### Optional federal operational subset
+
+These rows are the curated M6 operational subset of MGI annual optional federal `pontos facultativos`. They are not mandatory national holidays by federal law. State or municipal law, banking practice, or branch policy may make any of them operationally closed for a specific branch.
+
+| Date rule        | Description                      | Type            | Basis                                                                      |
+|------------------|----------------------------------|-----------------|----------------------------------------------------------------------------|
+| Easter - 47 days | Carnaval (terça)                 | OptionalFederal | MGI annual optional federal calendar; deterministic Easter-anchored subset |
+| Easter - 46 days | Quarta-feira de Cinzas (até 14h) | OptionalFederal | MGI annual optional federal calendar; deterministic Easter-anchored subset |
+| Easter + 60 days | Corpus Christi                   | OptionalFederal | MGI annual optional federal calendar; deterministic Easter-anchored subset |
+
+The MGI annual optional calendar is broader than this subset and can include Carnival Monday, the Corpus Christi bridge Friday, Christmas Eve and New Year's Eve afternoons, Dia do Servidor Público, and other bridge days that vary by annual decree. Those are intentionally not bulk-imported by the M6 default because they are not fixed by federal law and are not all Easter-derived. Branch admins can add any additional local or annually declared optional day through the existing `POST /holiday` endpoint.
+
 ---
 
 ## 6. Business Rules
@@ -1471,59 +1505,59 @@ All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`,
 
 ### Tables
 
-| Access Table | LottoGest Entity | Notes |
-|---|---|---|
-| TblUsuario | User + BranchUser + Operator | Split into 3 concerns |
-| TblContas | Account | Added Tab type, self-referencing FK |
-| TblCategoria | Category | Data table, not enum |
-| TblTipoCategoria | TransactionType | Child of Category |
-| TblLancamentos | Transaction | Added Status, CancelledAt, TransactionTime, OriginTransactionId, RecordedByOperatorId, CreatedByUserId |
-| TblClientes | Client | Absorbed TblTelefones |
-| TblProduto | Product | Only daily-close products, not workarounds |
-| TblEstoque | DailyClose + DailyCloseItem | Split into session + items |
-| TblRegistroPonto | TimeEntry | Linked to Operator, not Account |
-| TblFeriados | Holiday | Per-branch |
-| TblConfiguracao | Setting | Expanded with time-tracking config |
-| TblLogExclusao | *(absorbed)* | Replaced by soft delete fields on Transaction |
-| TblTelefones | *(absorbed)* | Merged into Client |
-| — | Branch | NEW: multi-tenant |
-| — | BranchUser | NEW: role per branch |
-| — | Operator | NEW: employee concept |
-| — | OperatorAccount | NEW: account assignment |
-| — | RefreshToken | Existing: auth |
+| Access Table     | LottoGest Entity             | Notes                                                                                                  |
+|------------------|------------------------------|--------------------------------------------------------------------------------------------------------|
+| TblUsuario       | User + BranchUser + Operator | Split into 3 concerns                                                                                  |
+| TblContas        | Account                      | Added Tab type, self-referencing FK                                                                    |
+| TblCategoria     | Category                     | Data table, not enum                                                                                   |
+| TblTipoCategoria | TransactionType              | Child of Category                                                                                      |
+| TblLancamentos   | Transaction                  | Added Status, CancelledAt, TransactionTime, OriginTransactionId, RecordedByOperatorId, CreatedByUserId |
+| TblClientes      | Client                       | Absorbed TblTelefones                                                                                  |
+| TblProduto       | Product                      | Only daily-close products, not workarounds                                                             |
+| TblEstoque       | DailyClose + DailyCloseItem  | Split into session + items                                                                             |
+| TblRegistroPonto | TimeEntry                    | Linked to Operator, not Account                                                                        |
+| TblFeriados      | Holiday                      | Per-branch                                                                                             |
+| TblConfiguracao  | Setting                      | Expanded with time-tracking config                                                                     |
+| TblLogExclusao   | *(absorbed)*                 | Replaced by soft delete fields on Transaction                                                          |
+| TblTelefones     | *(absorbed)*                 | Merged into Client                                                                                     |
+| —                | Branch                       | NEW: multi-tenant                                                                                      |
+| —                | BranchUser                   | NEW: role per branch                                                                                   |
+| —                | Operator                     | NEW: employee concept                                                                                  |
+| —                | OperatorAccount              | NEW: account assignment                                                                                |
+| —                | RefreshToken                 | Existing: auth                                                                                         |
 
 ### Access columns → Transaction columns
 
-| Access (TblLancamentos) | LottoGest (Transaction) | Notes |
-|---|---|---|
-| lco_id | Id | Auto-increment → Guid |
-| lco_data | Date | |
-| lco_valor | Value | Access decimal → Postgres numeric(14,2) |
-| id_categoria | CategoryId | Integer FK → Guid FK |
-| id_tipo | TransactionTypeId | Integer FK → Guid FK |
-| lco_descricao | Description + TransactionTime | Time values split out to dedicated field |
-| id_cliente | ClientId | |
-| lco_vencimento | DueDate | |
-| lco_data_pagamento | PaidAt | |
-| id_conta | AccountId | |
-| lco_sinal | Direction | "Positivo"/"Negativo" string → In/Out enum |
-| lco_condicao | *(removed)* | Overloaded in Access (payment condition + authorization flag). Not needed with proper TransactionType and Description |
-| lco_forma_pagamento | *(removed)* | Redundant with TransactionType |
-| lco_origem | OriginTransactionId | Integer ID → Guid self-referencing FK. First installment references itself. |
-| lco_status | *(unused in Access)* | Always empty in production data. LottoGest `Status` (Draft/Active/Cancelled) is new functionality, not a migration of this column |
-| lco_dataRegistro | CreatedAt | From EntityBase |
-| *(none)* | BranchId | NEW: multi-tenant |
-| *(none)* | RecordedByOperatorId | NEW: which operator's context |
-| *(none)* | CreatedByUserId | NEW: who actually created the record |
-| *(none)* | CancelledAt | NEW: audit trail |
-| *(none)* | CancelledByUserId | NEW: audit trail |
-| *(none)* | CancellationReason | NEW: audit trail |
-| *(none)* | TransactionTime | NEW: extracted from Description |
+| Access (TblLancamentos) | LottoGest (Transaction)       | Notes                                                                                                                             |
+|-------------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| lco_id                  | Id                            | Auto-increment → Guid                                                                                                             |
+| lco_data                | Date                          |                                                                                                                                   |
+| lco_valor               | Value                         | Access decimal → Postgres numeric(14,2)                                                                                           |
+| id_categoria            | CategoryId                    | Integer FK → Guid FK                                                                                                              |
+| id_tipo                 | TransactionTypeId             | Integer FK → Guid FK                                                                                                              |
+| lco_descricao           | Description + TransactionTime | Time values split out to dedicated field                                                                                          |
+| id_cliente              | ClientId                      |                                                                                                                                   |
+| lco_vencimento          | DueDate                       |                                                                                                                                   |
+| lco_data_pagamento      | PaidAt                        |                                                                                                                                   |
+| id_conta                | AccountId                     |                                                                                                                                   |
+| lco_sinal               | Direction                     | "Positivo"/"Negativo" string → In/Out enum                                                                                        |
+| lco_condicao            | *(removed)*                   | Overloaded in Access (payment condition + authorization flag). Not needed with proper TransactionType and Description             |
+| lco_forma_pagamento     | *(removed)*                   | Redundant with TransactionType                                                                                                    |
+| lco_origem              | OriginTransactionId           | Integer ID → Guid self-referencing FK. First installment references itself.                                                       |
+| lco_status              | *(unused in Access)*          | Always empty in production data. LottoGest `Status` (Draft/Active/Cancelled) is new functionality, not a migration of this column |
+| lco_dataRegistro        | CreatedAt                     | From EntityBase                                                                                                                   |
+| *(none)*                | BranchId                      | NEW: multi-tenant                                                                                                                 |
+| *(none)*                | RecordedByOperatorId          | NEW: which operator's context                                                                                                     |
+| *(none)*                | CreatedByUserId               | NEW: who actually created the record                                                                                              |
+| *(none)*                | CancelledAt                   | NEW: audit trail                                                                                                                  |
+| *(none)*                | CancelledByUserId             | NEW: audit trail                                                                                                                  |
+| *(none)*                | CancellationReason            | NEW: audit trail                                                                                                                  |
+| *(none)*                | TransactionTime               | NEW: extracted from Description                                                                                                   |
 
 ### Entity count
 
-| | Access | LottoGest |
-|---|---|---|
-| Tables | 13 | 18 |
-| New entities | — | Branch, BranchUser, Operator, OperatorAccount, DailyClose (session) |
-| Absorbed | — | TblLogExclusao (→ Transaction soft delete), TblTelefones (→ Client) |
+|              | Access | LottoGest                                                           |
+|--------------|--------|---------------------------------------------------------------------|
+| Tables       | 13     | 18                                                                  |
+| New entities | —      | Branch, BranchUser, Operator, OperatorAccount, DailyClose (session) |
+| Absorbed     | —      | TblLogExclusao (→ Transaction soft delete), TblTelefones (→ Client) |

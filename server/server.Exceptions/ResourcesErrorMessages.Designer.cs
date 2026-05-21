@@ -1023,6 +1023,12 @@ namespace server.Exceptions {
             }
         }
 
+        public static string HOLIDAY_IMPORT_YEAR_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("HOLIDAY_IMPORT_YEAR_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
         public static string CATEGORY_NOT_FOUND {
             get {
                 return ResourceManager.GetString("CATEGORY_NOT_FOUND", resourceCulture);

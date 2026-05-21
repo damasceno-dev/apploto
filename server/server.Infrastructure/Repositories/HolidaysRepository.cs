@@ -73,6 +73,24 @@ internal class HolidaysRepository(ServerDbContext dbContext) : IHolidaysReposito
         return dates.Select(DateOnly.FromDateTime).ToList();
     }
 
+    public async Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAndYearAsNoTracking(Guid branchId, int year)
+    {
+        var start = new DateTime(year, 1, 1);
+        var end = start.AddYears(1);
+
+        var dates = await dbContext.Holidays
+            .AsNoTracking()
+            .Where(h =>
+                h.BranchId == branchId &&
+                h.Active &&
+                h.Date >= start &&
+                h.Date < end)
+            .Select(h => h.Date)
+            .ToListAsync();
+
+        return dates.Select(DateOnly.FromDateTime).ToList();
+    }
+
     private static IQueryable<Holiday> ApplyFilter(
         IQueryable<Holiday> source,
         Guid branchId,

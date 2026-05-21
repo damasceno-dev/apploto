@@ -48,7 +48,9 @@ using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
 using server.Application.UseCases.Holidays.Create;
 using server.Application.UseCases.Holidays.Deactivate;
+using server.Application.UseCases.Holidays.ImportBrazilian;
 using server.Application.UseCases.Holidays.List;
+using server.Application.UseCases.Holidays.PreviewBrazilianImport;
 using server.Application.UseCases.Holidays.Update;
 using server.Application.UseCases.TimeEntries.AddSegment;
 using server.Application.UseCases.TimeEntries.DeactivateSegment;
@@ -155,6 +157,7 @@ public static class AppDependencyInjection
         services.AddScoped<TimeEntrySegmentMutationService>();
         services.AddScoped<ITimeEntryWritePermissionGuard, TimeEntryWritePermissionGuard>();
         services.AddScoped<IBranchHolidaySource, BranchHolidaySource>();
+        services.AddSingleton<IBrazilianHolidayCalendar, BrazilianHolidayCalendar>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
         services.AddScoped<ICashVarianceProductResolver, CashVarianceProductResolver>();
@@ -170,6 +173,8 @@ public static class AppDependencyInjection
         services.AddScoped<ListHolidaysUseCase>();
         services.AddScoped<UpdateHolidayUseCase>();
         services.AddScoped<DeactivateHolidayUseCase>();
+        services.AddScoped<PreviewBrazilianHolidayImportUseCase>();
+        services.AddScoped<ImportBrazilianHolidaysUseCase>();
         services.AddScoped<UpsertTimeEntryUseCase>();
         services.AddScoped<DeactivateTimeEntryUseCase>();
         services.AddScoped<AddTimeEntrySegmentUseCase>();

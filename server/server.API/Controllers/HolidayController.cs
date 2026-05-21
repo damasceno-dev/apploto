@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Holidays.Create;
 using server.Application.UseCases.Holidays.Deactivate;
+using server.Application.UseCases.Holidays.ImportBrazilian;
 using server.Application.UseCases.Holidays.List;
+using server.Application.UseCases.Holidays.PreviewBrazilianImport;
 using server.Application.UseCases.Holidays.Update;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities.Enums;
 using server.Filters;
 
 namespace server.Controllers;
@@ -40,6 +43,38 @@ public class HolidayController : ControllerBase
         [FromQuery] RequestListHolidaysJson request)
     {
         var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("import-br/{year:int:min(1900):max(2200)}/preview")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseBrazilianHolidayPreviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> PreviewBrazilianImport(
+        [FromServices] PreviewBrazilianHolidayImportUseCase useCase,
+        [FromRoute] int year,
+        [FromQuery] bool includeOptionalFederal = false)
+    {
+        var response = await useCase.Execute(year, includeOptionalFederal);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("import-br/{year:int:min(1900):max(2200)}")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseBrazilianHolidayImportJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ImportBrazilian(
+        [FromServices] ImportBrazilianHolidaysUseCase useCase,
+        [FromRoute] int year,
+        [FromQuery] bool includeOptionalFederal = false)
+    {
+        var response = await useCase.Execute(year, includeOptionalFederal);
         return Ok(response);
     }
 

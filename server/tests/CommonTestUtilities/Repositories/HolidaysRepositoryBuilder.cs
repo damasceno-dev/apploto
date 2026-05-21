@@ -79,6 +79,18 @@ public class HolidaysRepositoryBuilder
         return this;
     }
 
+    public HolidaysRepositoryBuilder ListActiveDatesByBranchIdAndYearAsNoTrackingReturns(
+        Guid branchId,
+        int year,
+        IReadOnlyList<DateOnly> result)
+    {
+        _repository.ListActiveDatesByBranchIdAndYearAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<int>(value => value == year))
+            .Returns(result);
+        return this;
+    }
+
     public IHolidaysRepository Build()
     {
         return _repository;
