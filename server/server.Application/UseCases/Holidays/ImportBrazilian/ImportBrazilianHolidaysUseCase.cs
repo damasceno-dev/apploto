@@ -42,7 +42,8 @@ public class ImportBrazilianHolidaysUseCase(
                 Id = Guid.NewGuid(),
                 Date = entry.Date.ToDateTime(TimeOnly.MinValue),
                 Description = entry.Description,
-                BranchId = branchUser.BranchId
+                BranchId = branchUser.BranchId,
+                Source = HolidaySource.Canonical
             });
 
             importedCount++;

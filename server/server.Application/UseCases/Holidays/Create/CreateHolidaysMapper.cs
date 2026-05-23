@@ -1,5 +1,6 @@
 using server.Communication.Requests;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 
 namespace server.Application.UseCases.Holidays.Create;
 
@@ -12,7 +13,8 @@ public static class CreateHolidaysMapper
             Id = Guid.NewGuid(),
             Date = row.Date,
             Description = string.IsNullOrWhiteSpace(row.Description) ? null : row.Description.Trim(),
-            BranchId = branchId
+            BranchId = branchId,
+            Source = HolidaySource.Manual
         };
     }
 }
