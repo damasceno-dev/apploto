@@ -52,12 +52,15 @@ public class HolidayController : ControllerBase
     [ProducesResponseType(typeof(ResponseBrazilianHolidayPreviewJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> PreviewBrazilianImport(
         [FromServices] PreviewBrazilianHolidayImportUseCase useCase,
         [FromRoute] int year,
-        [FromQuery] bool includeOptionalFederal = false)
+        [FromQuery] bool includeOptionalFederal = false,
+        [FromQuery] BrazilianHolidayCalendarSource source = BrazilianHolidayCalendarSource.Composite,
+        CancellationToken cancellationToken = default)
     {
-        var response = await useCase.Execute(year, includeOptionalFederal);
+        var response = await useCase.Execute(year, includeOptionalFederal, source, cancellationToken);
         return Ok(response);
     }
 
@@ -69,12 +72,15 @@ public class HolidayController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> ImportBrazilian(
         [FromServices] ImportBrazilianHolidaysUseCase useCase,
         [FromRoute] int year,
-        [FromQuery] bool includeOptionalFederal = false)
+        [FromQuery] bool includeOptionalFederal = false,
+        [FromQuery] BrazilianHolidayCalendarSource source = BrazilianHolidayCalendarSource.Composite,
+        CancellationToken cancellationToken = default)
     {
-        var response = await useCase.Execute(year, includeOptionalFederal);
+        var response = await useCase.Execute(year, includeOptionalFederal, source, cancellationToken);
         return Ok(response);
     }
 

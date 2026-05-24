@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using server.Domain.Interfaces;
+using server.Domain.Interfaces.Holidays;
+using server.Infrastructure.Holidays.External;
 using server.Infrastructure.Repositories;
 using server.Infrastructure.Services;
 
@@ -9,12 +11,49 @@ namespace server.Infrastructure;
 
 public static class InfraDependencyInjection
 {
+    private const string BrasilApiDefaultBaseUrl = "https://brasilapi.com.br";
+    private const string NagerDateDefaultBaseUrl = "https://date.nager.at";
+    private const int DefaultExternalHolidayTimeoutSeconds = 5;
+
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         AddDbContext(services, configuration);
         AddToken(services, configuration);
         AddRepositories(services);
+        AddExternalHolidayProviders(services, configuration);
     }
+
+    private static void AddExternalHolidayProviders(IServiceCollection services, IConfiguration configuration)
+    {
+        var brasilApiBaseUrl = configuration.GetValue<string>("ExternalHolidaySources:BrasilApi:BaseUrl");
+        var brasilApiTimeoutSeconds = configuration.GetValue<int?>("ExternalHolidaySources:BrasilApi:TimeoutSeconds")
+            ?? DefaultExternalHolidayTimeoutSeconds;
+
+        var nagerBaseUrl = configuration.GetValue<string>("ExternalHolidaySources:NagerDate:BaseUrl");
+        var nagerTimeoutSeconds = configuration.GetValue<int?>("ExternalHolidaySources:NagerDate:TimeoutSeconds")
+            ?? DefaultExternalHolidayTimeoutSeconds;
+
+        services.AddHttpClient<IBrasilApiHolidayProvider, BrasilApiHolidayProvider>(client =>
+        {
+            var baseUrl = string.IsNullOrWhiteSpace(brasilApiBaseUrl)
+                ? BrasilApiDefaultBaseUrl
+                : brasilApiBaseUrl;
+            client.BaseAddress = new Uri(EnsureTrailingSlash(baseUrl));
+            client.Timeout = TimeSpan.FromSeconds(brasilApiTimeoutSeconds);
+        });
+
+        services.AddHttpClient<INagerDateHolidayProvider, NagerDateHolidayProvider>(client =>
+        {
+            var baseUrl = string.IsNullOrWhiteSpace(nagerBaseUrl)
+                ? NagerDateDefaultBaseUrl
+                : nagerBaseUrl;
+            client.BaseAddress = new Uri(EnsureTrailingSlash(baseUrl));
+            client.Timeout = TimeSpan.FromSeconds(nagerTimeoutSeconds);
+        });
+    }
+
+    private static string EnsureTrailingSlash(string baseUrl) =>
+        baseUrl.EndsWith('/') ? baseUrl : baseUrl + "/";
 
     private static void AddToken(IServiceCollection services, IConfiguration configuration)
     {

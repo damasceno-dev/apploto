@@ -510,6 +510,9 @@
     <data name="HOLIDAY_IMPORT_YEAR_OUT_OF_RANGE" xml:space="preserve">
         <value>O ano informado deve estar entre 1900 e 2200</value>
     </data>
+    <data name="HOLIDAY_SOURCE_UNAVAILABLE" xml:space="preserve">
+        <value>Não foi possível consultar a fonte externa de feriados</value>
+    </data>
     <data name="CATEGORY_NOT_FOUND" xml:space="preserve">
         <value>Categoria não encontrada</value>
     </data>

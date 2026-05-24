@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using server.Domain.Interfaces.Holidays;
 using server.Infrastructure;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -57,5 +59,17 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureServices(services =>
+        {
+            // Replace the typed-HttpClient external holiday providers with stubbed
+            // unavailable instances so the test suite never reaches BrasilAPI or
+            // Nager.Date over the network. The composite resolver swallows these
+            // failures and backfills every concept from the canonical calendar.
+            services.RemoveAll<IBrasilApiHolidayProvider>();
+            services.RemoveAll<INagerDateHolidayProvider>();
+            services.AddSingleton<IBrasilApiHolidayProvider, UnavailableBrasilApiHolidayProvider>();
+            services.AddSingleton<INagerDateHolidayProvider, UnavailableNagerDateHolidayProvider>();
+        });
     }
 }

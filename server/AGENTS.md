@@ -79,6 +79,7 @@ If `server.API` needs direct compile-time access to `ServerException` or excepti
 
 - Use file-scoped namespaces.
 - Prefer primary constructors for services, use cases, repositories, and filters.
+- Keep record constructors, primary constructors, and method signatures on one line when they have four or fewer parameters and fit comfortably. Split across multiple lines at five or more parameters, or earlier when the line would be hard to read.
 - Use `Guid` as the primary key for all entities.
 - Use `Active` as the default soft-delete flag when soft deletion is needed.
 - Keep backend-only concerns inside the backend. Do not expose `server.Exceptions` to web or mobile.

@@ -8,4 +8,5 @@ public class ResponseBrazilianHolidayImportItemJson
     public string Description { get; init; } = string.Empty;
     public BrazilianHolidayType Type { get; init; }
     public BrazilianHolidayImportStatus Status { get; init; }
+    public HolidaySource Source { get; init; }
 }

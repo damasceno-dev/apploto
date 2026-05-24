@@ -1,5 +1,6 @@
 using server.Application.Services.Holidays;
 using server.Communication.Responses;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -9,12 +10,16 @@ namespace server.Application.UseCases.Holidays.PreviewBrazilianImport;
 public class PreviewBrazilianHolidayImportUseCase(
     IAuthenticationService authenticationService,
     IHolidaysRepository holidaysRepository,
-    IBrazilianHolidayCalendar brazilianHolidayCalendar)
+    IBrazilianHolidayCalendarResolver brazilianHolidayCalendarResolver)
 {
-    public async Task<ResponseBrazilianHolidayPreviewJson> Execute(int year, bool includeOptionalFederal)
+    public async Task<ResponseBrazilianHolidayPreviewJson> Execute(
+        int year,
+        bool includeOptionalFederal,
+        BrazilianHolidayCalendarSource source = BrazilianHolidayCalendarSource.Composite,
+        CancellationToken cancellationToken = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
-        var entries = GetCalendarEntries(year, includeOptionalFederal);
+        var entries = await GetCalendarEntries(year, includeOptionalFederal, source, cancellationToken);
         var existingDates = (await holidaysRepository.ListActiveDatesByBranchIdAndYearAsNoTracking(
                 branchUser.BranchId,
                 year))
@@ -24,23 +29,33 @@ public class PreviewBrazilianHolidayImportUseCase(
         {
             Year = year,
             IncludesOptionalFederal = includeOptionalFederal,
+            Source = source,
             Items = entries
                 .Select(entry => new ResponseBrazilianHolidayPreviewItemJson
                 {
                     Date = entry.Date,
                     Description = entry.Description,
                     Type = entry.Type,
-                    AlreadyExists = existingDates.Contains(entry.Date)
+                    AlreadyExists = existingDates.Contains(entry.Date),
+                    Source = entry.Source
                 })
                 .ToList()
         };
     }
 
-    private IReadOnlyList<BrazilianHolidayEntry> GetCalendarEntries(int year, bool includeOptionalFederal)
+    private async Task<IReadOnlyList<SourcedBrazilianHolidayEntry>> GetCalendarEntries(
+        int year,
+        bool includeOptionalFederal,
+        BrazilianHolidayCalendarSource source,
+        CancellationToken cancellationToken)
     {
         try
         {
-            return brazilianHolidayCalendar.GetForYear(year, includeOptionalFederal);
+            return await brazilianHolidayCalendarResolver.GetForYear(
+                year,
+                includeOptionalFederal,
+                source,
+                cancellationToken);
         }
         catch (ArgumentOutOfRangeException)
         {

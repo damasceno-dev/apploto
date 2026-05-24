@@ -1029,6 +1029,12 @@ namespace server.Exceptions {
             }
         }
 
+        public static string HOLIDAY_SOURCE_UNAVAILABLE {
+            get {
+                return ResourceManager.GetString("HOLIDAY_SOURCE_UNAVAILABLE", resourceCulture);
+            }
+        }
+
         public static string CATEGORY_NOT_FOUND {
             get {
                 return ResourceManager.GetString("CATEGORY_NOT_FOUND", resourceCulture);

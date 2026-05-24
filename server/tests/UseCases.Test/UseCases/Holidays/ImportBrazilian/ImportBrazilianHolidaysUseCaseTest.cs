@@ -179,7 +179,7 @@ public class ImportBrazilianHolidaysUseCaseTest
         return new ImportBrazilianHolidaysUseCase(
             authenticationService,
             holidaysRepository,
-            new BrazilianHolidayCalendar(),
+            new BrazilianHolidayCalendarResolverBuilder().Build(),
             unitOfWork);
     }
 }

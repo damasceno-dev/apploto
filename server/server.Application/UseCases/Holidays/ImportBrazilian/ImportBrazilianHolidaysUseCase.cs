@@ -11,17 +11,21 @@ namespace server.Application.UseCases.Holidays.ImportBrazilian;
 public class ImportBrazilianHolidaysUseCase(
     IAuthenticationService authenticationService,
     IHolidaysRepository holidaysRepository,
-    IBrazilianHolidayCalendar brazilianHolidayCalendar,
+    IBrazilianHolidayCalendarResolver brazilianHolidayCalendarResolver,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseBrazilianHolidayImportJson> Execute(int year, bool includeOptionalFederal)
+    public async Task<ResponseBrazilianHolidayImportJson> Execute(
+        int year,
+        bool includeOptionalFederal,
+        BrazilianHolidayCalendarSource source = BrazilianHolidayCalendarSource.Composite,
+        CancellationToken cancellationToken = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         if (branchUser.Role is not Role.Admin and not Role.Manager)
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
 
-        var entries = GetCalendarEntries(year, includeOptionalFederal);
+        var entries = await GetCalendarEntries(year, includeOptionalFederal, source, cancellationToken);
         var existingDates = (await holidaysRepository.ListActiveDatesByBranchIdAndYearAsNoTracking(
                 branchUser.BranchId,
                 year))
@@ -43,7 +47,7 @@ public class ImportBrazilianHolidaysUseCase(
                 Date = entry.Date.ToDateTime(TimeOnly.MinValue),
                 Description = entry.Description,
                 BranchId = branchUser.BranchId,
-                Source = HolidaySource.Canonical
+                Source = entry.Source
             });
 
             importedCount++;
@@ -57,17 +61,22 @@ public class ImportBrazilianHolidaysUseCase(
         {
             Year = year,
             IncludesOptionalFederal = includeOptionalFederal,
+            Source = source,
             Items = items,
             ImportedCount = importedCount,
             SkippedCount = items.Count - importedCount
         };
     }
 
-    private IReadOnlyList<BrazilianHolidayEntry> GetCalendarEntries(int year, bool includeOptionalFederal)
+    private async Task<IReadOnlyList<SourcedBrazilianHolidayEntry>> GetCalendarEntries(
+        int year,
+        bool includeOptionalFederal,
+        BrazilianHolidayCalendarSource source,
+        CancellationToken cancellationToken)
     {
         try
         {
-            return brazilianHolidayCalendar.GetForYear(year, includeOptionalFederal);
+            return await brazilianHolidayCalendarResolver.GetForYear(year,includeOptionalFederal,source,cancellationToken);
         }
         catch (ArgumentOutOfRangeException)
         {
@@ -76,7 +85,7 @@ public class ImportBrazilianHolidaysUseCase(
     }
 
     private static ResponseBrazilianHolidayImportItemJson ToImportItem(
-        BrazilianHolidayEntry entry,
+        SourcedBrazilianHolidayEntry entry,
         BrazilianHolidayImportStatus status)
     {
         return new ResponseBrazilianHolidayImportItemJson
@@ -84,7 +93,8 @@ public class ImportBrazilianHolidaysUseCase(
             Date = entry.Date,
             Description = entry.Description,
             Type = entry.Type,
-            Status = status
+            Status = status,
+            Source = entry.Source
         };
     }
 }

@@ -88,6 +88,6 @@ public class PreviewBrazilianHolidayImportUseCaseTest
         return new PreviewBrazilianHolidayImportUseCase(
             authenticationService,
             holidaysRepository,
-            new BrazilianHolidayCalendar());
+            new BrazilianHolidayCalendarResolverBuilder().Build());
     }
 }

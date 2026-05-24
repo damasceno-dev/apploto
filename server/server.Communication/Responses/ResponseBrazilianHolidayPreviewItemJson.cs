@@ -8,4 +8,5 @@ public class ResponseBrazilianHolidayPreviewItemJson
     public string Description { get; init; } = string.Empty;
     public BrazilianHolidayType Type { get; init; }
     public bool AlreadyExists { get; init; }
+    public HolidaySource Source { get; init; }
 }

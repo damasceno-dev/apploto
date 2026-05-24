@@ -158,6 +158,7 @@ public static class AppDependencyInjection
         services.AddScoped<ITimeEntryWritePermissionGuard, TimeEntryWritePermissionGuard>();
         services.AddScoped<IBranchHolidaySource, BranchHolidaySource>();
         services.AddSingleton<IBrazilianHolidayCalendar, BrazilianHolidayCalendar>();
+        services.AddSingleton<IBrazilianHolidayCalendarResolver, BrazilianHolidayCalendarResolver>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
         services.AddScoped<ICashVarianceProductResolver, CashVarianceProductResolver>();
