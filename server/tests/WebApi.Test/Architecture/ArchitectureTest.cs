@@ -11,6 +11,7 @@ using server.Application.UseCases.TimeEntries.DeactivateSegment;
 using server.Application.UseCases.TimeEntries.UpdateSegment;
 using server.Controllers;
 using server.Domain.Interfaces;
+using server.Domain.Interfaces.Holidays;
 using server.ExceptionHandling;
 using server.Filters;
 using server.Infrastructure;
@@ -127,6 +128,30 @@ public class ArchitectureTest
             "The following public services or exception handlers could not be resolved from the configured container: "
             + string.Join(" | ", failures)
         );
+    }
+
+    [Fact]
+    public void ExternalBrazilianHolidayProviders_AreResolvableFromConfiguredRootContainer()
+    {
+        // Phase 7 catch-up: IBrasilApiHolidayProvider and INagerDateHolidayProvider live
+        // under server.Domain.Interfaces.Holidays — outside the namespace prefixes scanned
+        // by AllPublicServicesAndExceptionHandlers_AreResolvableFromConfiguredRootContainer.
+        // Add explicit resolution so a missing AddHttpClient<...> registration in
+        // InfraDependencyInjection.AddExternalHolidayProviders breaks the build, not
+        // a runtime composite-import call.
+        var services = new ServiceCollection();
+        services.AddApi();
+        services.AddApplication();
+        services.AddInfrastructure(BuildArchitectureConfiguration());
+
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = true
+        });
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<IBrasilApiHolidayProvider>().ShouldNotBeNull();
+        scope.ServiceProvider.GetRequiredService<INagerDateHolidayProvider>().ShouldNotBeNull();
     }
 
     [Fact]

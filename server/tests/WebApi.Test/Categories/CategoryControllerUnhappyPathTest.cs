@@ -148,6 +148,18 @@ public class CategoryControllerUnhappyPathTest(ServerWebApplicationFactory facto
     }
 
     [Fact]
+    public async Task Deactivate_ShouldReturn400_WhenCategoryIdIsEmpty()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("CatDeactivate400EmptyId");
+
+        var httpResponse = await _client.DeleteAuthAsync($"/category/{Guid.Empty}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.CATEGORY_ID_EMPTY);
+    }
+
+    [Fact]
     public async Task Update_ShouldReturn400_WhenNameIsEmpty()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("CatUpdateInvalidName");

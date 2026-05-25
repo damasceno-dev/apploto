@@ -38,6 +38,7 @@ public class HolidayController : ControllerBase
     [ProducesResponseType(typeof(ResponseListHolidaysJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(
         [FromServices] ListHolidaysUseCase useCase,
         [FromQuery] RequestListHolidaysJson request)
@@ -52,6 +53,7 @@ public class HolidayController : ControllerBase
     [ProducesResponseType(typeof(ResponseBrazilianHolidayPreviewJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status502BadGateway)]
     public async Task<IActionResult> PreviewBrazilianImport(
         [FromServices] PreviewBrazilianHolidayImportUseCase useCase,

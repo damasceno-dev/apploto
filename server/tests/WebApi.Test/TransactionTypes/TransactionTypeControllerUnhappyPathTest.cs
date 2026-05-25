@@ -287,4 +287,16 @@ public class TransactionTypeControllerUnhappyPathTest(ServerWebApplicationFactor
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_TYPE_NAME_REQUIRED);
     }
+
+    [Fact]
+    public async Task Deactivate_ShouldReturn400_WhenTransactionTypeIdIsEmpty()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("TtDeactivate400EmptyId");
+
+        var httpResponse = await _client.DeleteAuthAsync($"/transaction-type/{Guid.Empty}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_TYPE_ID_EMPTY);
+    }
 }

@@ -36,6 +36,7 @@ public class CategoryController : ControllerBase
     [TokenAuthenticateBranch]
     [ProducesResponseType(typeof(ResponseListCategoriesJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> List(
         [FromServices] ListCategoriesUseCase useCase)
     {
@@ -48,6 +49,7 @@ public class CategoryController : ControllerBase
     [TokenAuthenticateBranch]
     [ProducesResponseType(typeof(ResponseCategoryJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(
         [FromServices] GetCategoryUseCase useCase,

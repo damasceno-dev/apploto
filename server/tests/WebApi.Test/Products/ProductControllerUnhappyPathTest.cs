@@ -4,6 +4,7 @@ using CommonTestUtilities.Requests;
 using server.Application.Services.DailyCloses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
+using server.Exceptions;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -36,6 +37,50 @@ public class ProductControllerUnhappyPathTest(ServerWebApplicationFactory factor
         var httpResponse = await _client.PostAsync("/product", JsonContent.Create(request));
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task List_ShouldReturn401_WhenTokenIsMissing()
+    {
+        var httpResponse = await _client.GetAsync("/product");
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_EMPTY);
+    }
+
+    [Fact]
+    public async Task Get_ShouldReturn401_WhenTokenIsMissing()
+    {
+        var httpResponse = await _client.GetAsync($"/product/{Guid.NewGuid()}");
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_EMPTY);
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturn401_WhenTokenIsMissing()
+    {
+        var request = new RequestUpdateProductJsonBuilder().Build();
+
+        var httpResponse = await _client.PutAsync(
+            $"/product/{Guid.NewGuid()}",
+            JsonContent.Create(request));
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_EMPTY);
+    }
+
+    [Fact]
+    public async Task Deactivate_ShouldReturn401_WhenTokenIsMissing()
+    {
+        var httpResponse = await _client.DeleteAsync($"/product/{Guid.NewGuid()}");
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_EMPTY);
     }
 
     [Fact]
@@ -219,6 +264,44 @@ public class ProductControllerUnhappyPathTest(ServerWebApplicationFactory factor
         persisted.ShouldNotBeNull();
         persisted.Name.ShouldBe("Soda");
         persisted.Active.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturn409_WhenRenamingToExistingProductName()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("ProdUpdate409Conflict");
+        // The update use case calls ICashVarianceProductResolver.GetIdAsync,
+        // which requires the system "Diferença Caixa" product to exist.
+        await factory.SeedProductAsync(
+            branch.Id,
+            name: CashVarianceProductResolver.CashVarianceProductName);
+        await factory.SeedProductAsync(branch.Id, name: "Taken Name");
+        var target = await factory.SeedProductAsync(branch.Id, name: "Target Product");
+        var request = new RequestUpdateProductJsonBuilder()
+            .WithName("Taken Name")
+            .Build();
+
+        var httpResponse = await _client.PutAuthAsync($"/product/{target.Id}", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.PRODUCT_NAME_CONFLICT);
+
+        var persisted = await factory.ReloadAsync<Product>(target.Id);
+        persisted.ShouldNotBeNull();
+        persisted.Name.ShouldBe("Target Product");
+    }
+
+    [Fact]
+    public async Task Deactivate_ShouldReturn400_WhenProductIdIsEmpty()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("ProdDeactivate400EmptyId");
+
+        var httpResponse = await _client.DeleteAuthAsync($"/product/{Guid.Empty}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.PRODUCT_ID_EMPTY);
     }
 
     [Fact]
