@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v21
+Spec revision: v22
 -->
 
-> **Status:** Revised spec (v21) — Milestone 6 Phase 6 Brazilian Holiday Calendar source
+> **Status:** Revised spec (v22) — Milestone 6 Phase 6.5 multi-source Brazilian Holiday providers + `Holiday.Source` provenance
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -30,6 +30,7 @@ Spec revision: v21
 > v19: Milestone 5 Phase 3.6 multi-segment TimeEntry — §3.16 TimeEntry updated to drop ClockIn/ClockOut and add Segments navigation; §3.16a TimeEntrySegment added with full DateTime clock fields, FK, filtered unique open-segment constraint, day-bounds invariant, and audit fields; §6.7 fully rewritten for the segment-list contract using DateTime semantics, top-up gap-aware lunch rule, dual-shape PUT (Member Action vs Admin Segments), idempotent no-ops, status-transition rule, day-bounds rule, and worked examples (overnight, live-running gap, forgotten open).
 > v20: Clarified §6.7 Member tap routing for overnight vs forgotten-close cases: prior-day open segments are resolved by the next submitted Action and Date, not by server reinterpretation.
 > v21: Added §5.1 Brazilian Holiday Calendar appendix documenting the M6 pure-function import source: 10 mandatory national holidays, 3 curated optional federal Easter-anchored entries, Law 9.093/1995 for Sexta-feira Santa, Law 14.759/2023 for Consciência Negra, and the Anonymous Gregorian / Meeus/Jones/Butcher Easter algorithm reference.
+> v22: Milestone 6 Phase 6.5 multi-source Brazilian Holiday providers — §3.17 Holiday gains the `Source` column (`HolidaySource` enum: Manual=0, Canonical=1, BrasilApi=2, Nager=3) with a default of `Manual` and a Phase 6.5 migration backfilling existing rows. §5.1 grows a "Sources" subsection covering composite ordering (Nager → BrasilAPI → Canonical), the 13-concept identity catalog with name-match + ±3-day date proximity tiebreaker, the documented provider quirks (BrasilAPI's "Confraternização mundial" / "Dia da consciência negra" / "Independência do Brasil" renames; Nager's regional `global: false` rows being dropped; both providers missing Quarta-feira de Cinzas → always canonical backfill), and the 502 `HOLIDAY_SOURCE_UNAVAILABLE` contract for explicit single-source failures (Composite never 502s because canonical always backfills).
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -792,22 +793,26 @@ public class Holiday : EntityBase
 {
     public DateTime Date { get; init; }
     public string? Description { get; set; }
+    public HolidaySource Source { get; set; } = HolidaySource.Manual;
 
     public Guid BranchId { get; init; }
     public Branch Branch { get; init; } = null!;
 }
 ```
 
-| Column      | Type         | Null     | Notes                               |
-|-------------|--------------|----------|-------------------------------------|
-| Id          | uuid         | PK       |                                     |
-| Date        | date         | NOT NULL |                                     |
-| Description | varchar(500) | NULL     | Human-readable label (e.g. "Natal") |
-| BranchId    | uuid         | NOT NULL | FK → Branch                         |
-| CreatedAt   | timestamptz  | NOT NULL |                                     |
-| Active      | boolean      | NOT NULL |                                     |
+| Column      | Type         | Null     | Notes                                                                                                    |
+|-------------|--------------|----------|----------------------------------------------------------------------------------------------------------|
+| Id          | uuid         | PK       |                                                                                                          |
+| Date        | date         | NOT NULL |                                                                                                          |
+| Description | varchar(500) | NULL     | Human-readable label (e.g. "Natal")                                                                      |
+| Source      | smallint     | NOT NULL | `HolidaySource` enum (Manual=0, Canonical=1, BrasilApi=2, Nager=3); default `Manual`; informational only |
+| BranchId    | uuid         | NOT NULL | FK → Branch                                                                                              |
+| CreatedAt   | timestamptz  | NOT NULL |                                                                                                          |
+| Active      | boolean      | NOT NULL |                                                                                                          |
 
 **Filtered unique constraint:** `(BranchId, Date) WHERE Active = true` — one active holiday per date per branch.
+
+**`Source` provenance.** `HolidaySource` records where each row came from. Manual entries from `POST /holiday` set `Manual`; the canonical-only import path sets `Canonical`; the multi-source composite path sets the per-concept claim (`BrasilApi`, `Nager`, or `Canonical` for backfilled concepts). The column is informational — no business rule reads it. The Phase 6.5 migration adds it with default `0` (Manual) and backfills every existing row to `Manual` (correct for any row predating Phase 6 imports and indistinguishable from a hand-entry).
 
 ### 3.18 Setting
 
@@ -826,16 +831,16 @@ public class Setting : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| LockDate | date | NOT NULL | Transactions on or before this date cannot be edited. Access: `conf_dtfechamento` |
-| DailyTargetHours | numeric(6,2) | NOT NULL | Default 7.33 (7h20m). Used in TimeEntry balance calculation |
-| LunchDeductionOver6H | numeric(4,2) | NOT NULL | Default 1.00. Hours deducted for lunch when worked >6h |
-| LunchDeductionOver4H | numeric(4,2) | NOT NULL | Default 0.25. Hours deducted for break when worked >4h but ≤6h |
-| BranchId | uuid | NOT NULL | FK → Branch. UNIQUE — one setting row per branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column               | Type         | Null     | Notes                                                                             |
+|----------------------|--------------|----------|-----------------------------------------------------------------------------------|
+| Id                   | uuid         | PK       |                                                                                   |
+| LockDate             | date         | NOT NULL | Transactions on or before this date cannot be edited. Access: `conf_dtfechamento` |
+| DailyTargetHours     | numeric(6,2) | NOT NULL | Default 7.33 (7h20m). Used in TimeEntry balance calculation                       |
+| LunchDeductionOver6H | numeric(4,2) | NOT NULL | Default 1.00. Hours deducted for lunch when worked >6h                            |
+| LunchDeductionOver4H | numeric(4,2) | NOT NULL | Default 0.25. Hours deducted for break when worked >4h but ≤6h                    |
+| BranchId             | uuid         | NOT NULL | FK → Branch. UNIQUE — one setting row per branch                                  |
+| CreatedAt            | timestamptz  | NOT NULL |                                                                                   |
+| Active               | boolean      | NOT NULL |                                                                                   |
 
 ---
 
@@ -902,13 +907,13 @@ public enum TimeEntryStatus
 
 **SettlementRule due-date semantics:**
 
-| Value | DueDate behavior |
-|---|---|
-| SameDay | DueDate equals `Date` |
-| NextCalendarDay | DueDate equals `Date.AddDays(1)` |
-| NextBusinessDay | DueDate is the next business day after `Date`; weekends and branch holidays are skipped |
-| TwoBusinessDays | DueDate is the second business day after `Date`; weekends and branch holidays are skipped |
-| OperatorEnteredCheque | DueDate must be explicitly entered by the operator and must be on or after `Date` |
+| Value                 | DueDate behavior                                                                          |
+|-----------------------|-------------------------------------------------------------------------------------------|
+| SameDay               | DueDate equals `Date`                                                                     |
+| NextCalendarDay       | DueDate equals `Date.AddDays(1)`                                                          |
+| NextBusinessDay       | DueDate is the next business day after `Date`; weekends and branch holidays are skipped   |
+| TwoBusinessDays       | DueDate is the second business day after `Date`; weekends and branch holidays are skipped |
+| OperatorEnteredCheque | DueDate must be explicitly entered by the operator and must be on or after `Date`         |
 
 ### What is NOT an enum
 
@@ -928,56 +933,56 @@ These are the minimum default seeds for the new operational flow, not a complete
 
 ### Categories
 
-| Name | DefaultDirection | Access cat_id |
-|---|---|---|
-| Receita | In | 1 |
-| Crédito Banco | In | 2 |
-| Entradas | In | 3 |
-| Despesas Administrativas | Out | 4 |
-| Despesas Comerciais | Out | 5 |
-| Despesas Pessoal | Out | 6 |
-| Despesas Financeiras | Out | 7 |
-| Débito Banco | Out | 8 |
-| Saídas | Out | 9 |
+| Name                     | DefaultDirection | Access cat_id |
+|--------------------------|------------------|---------------|
+| Receita                  | In               | 1             |
+| Crédito Banco            | In               | 2             |
+| Entradas                 | In               | 3             |
+| Despesas Administrativas | Out              | 4             |
+| Despesas Comerciais      | Out              | 5             |
+| Despesas Pessoal         | Out              | 6             |
+| Despesas Financeiras     | Out              | 7             |
+| Débito Banco             | Out              | 8             |
+| Saídas                   | Out              | 9             |
 
 ### TransactionTypes
 
-| Name | Parent Category | SettlementRule | RequiresTabAccountAndClient | Access tipo_id |
-|---|---|---|---|---|
-| Cliente | Saídas | SameDay | true | 2 |
-| Depósito Dinheiro | Saídas | NextCalendarDay | false | 3 |
-| Cartão de Crédito | Saídas | TwoBusinessDays | false | 4 |
-| MarketPlace | Saídas | SameDay | false | 5 |
-| Sobra de Bolão | Despesas Comerciais | SameDay | false | 6 |
-| Sobra de Federal | Despesas Comerciais | SameDay | false | 9 |
-| Depósito Cheque | Saídas | OperatorEnteredCheque | false | 15 |
-| PIX | Saídas | SameDay | false | 16 |
-| Cartão de Débito | Saídas | NextBusinessDay | false | 17 |
-| Telesena | Saídas | SameDay | false | 18 |
-| Troca de Telesena | Saídas | SameDay | false | 19 |
-| Raspadinha | Saídas | SameDay | false | 20 |
-| Encalhe Federal | Saídas | SameDay | false | 22 |
-| Cliente | Entradas | SameDay | true | 23 |
-| Pgto Prêmio | Saídas | SameDay | false | 24 |
-| Desconto | Despesas Comerciais | SameDay | false | 25 |
-| Volante rejeitado | Despesas Comerciais | SameDay | false | 26 |
-| Tarifa cartão | Despesas Comerciais | SameDay | false | 27 |
-| Outras Despesas | Despesas Comerciais | SameDay | false | 28 |
+| Name              | Parent Category     | SettlementRule        | RequiresTabAccountAndClient | Access tipo_id |
+|-------------------|---------------------|-----------------------|-----------------------------|----------------|
+| Cliente           | Saídas              | SameDay               | true                        | 2              |
+| Depósito Dinheiro | Saídas              | NextCalendarDay       | false                       | 3              |
+| Cartão de Crédito | Saídas              | TwoBusinessDays       | false                       | 4              |
+| MarketPlace       | Saídas              | SameDay               | false                       | 5              |
+| Sobra de Bolão    | Despesas Comerciais | SameDay               | false                       | 6              |
+| Sobra de Federal  | Despesas Comerciais | SameDay               | false                       | 9              |
+| Depósito Cheque   | Saídas              | OperatorEnteredCheque | false                       | 15             |
+| PIX               | Saídas              | SameDay               | false                       | 16             |
+| Cartão de Débito  | Saídas              | NextBusinessDay       | false                       | 17             |
+| Telesena          | Saídas              | SameDay               | false                       | 18             |
+| Troca de Telesena | Saídas              | SameDay               | false                       | 19             |
+| Raspadinha        | Saídas              | SameDay               | false                       | 20             |
+| Encalhe Federal   | Saídas              | SameDay               | false                       | 22             |
+| Cliente           | Entradas            | SameDay               | true                        | 23             |
+| Pgto Prêmio       | Saídas              | SameDay               | false                       | 24             |
+| Desconto          | Despesas Comerciais | SameDay               | false                       | 25             |
+| Volante rejeitado | Despesas Comerciais | SameDay               | false                       | 26             |
+| Tarifa cartão     | Despesas Comerciais | SameDay               | false                       | 27             |
+| Outras Despesas   | Despesas Comerciais | SameDay               | false                       | 28             |
 
 Note: "Cliente" appears twice — under Saídas (credit sale, money leaves) and Entradas (client payment, money enters). This is the Fiado in/out mechanism.
 
 ### Products (DailyClose items)
 
-| Name | DisplayOrder | Access prod_id |
-|---|---|---|
-| Telesena | 1 | 2 |
-| Raspadinha | 2 | 3 |
-| Jogos | 3 | 4 |
-| Loteria Especial | 4 | 5 |
-| Dinheiro | 5 | 6 |
-| Tarifa Bolão | 6 | 7 |
-| Federal | 7 | 11 |
-| Diferença Caixa | 8 | 13 |
+| Name             | DisplayOrder | Access prod_id |
+|------------------|--------------|----------------|
+| Telesena         | 1            | 2              |
+| Raspadinha       | 2            | 3              |
+| Jogos            | 3            | 4              |
+| Loteria Especial | 4            | 5              |
+| Dinheiro         | 5            | 6              |
+| Tarifa Bolão     | 6            | 7              |
+| Federal          | 7            | 11             |
+| Diferença Caixa  | 8            | 13             |
 
 Note: **Fiado is NOT a DailyClose product** — it is calculated at query time from Tab account transactions (sum of Out minus sum of In). The Access FrmCaixa form displays a calculated Fiado balance but does NOT persist it to TblEstoque. Access prod_id 1 (Fiado), 8 (Total Caixa), 9 (HorasTrabalhadas), 10 (Ausente), 12 (Operador) are NOT migrated — these were computed values or metadata shoehorned into the product/estoque pattern.
 
@@ -1013,6 +1018,26 @@ These rows are the curated M6 operational subset of MGI annual optional federal 
 | Easter + 60 days | Corpus Christi                   | OptionalFederal | MGI annual optional federal calendar; deterministic Easter-anchored subset |
 
 The MGI annual optional calendar is broader than this subset and can include Carnival Monday, the Corpus Christi bridge Friday, Christmas Eve and New Year's Eve afternoons, Dia do Servidor Público, and other bridge days that vary by annual decree. Those are intentionally not bulk-imported by the M6 default because they are not fixed by federal law and are not all Easter-derived. Branch admins can add any additional local or annually declared optional day through the existing `POST /holiday` endpoint.
+
+#### Sources
+
+Both import endpoints accept a `source` query parameter (`Composite | Canonical | BrasilApi | Nager`) that selects which source the resolver uses. `source = Composite` is the default and is what existing M6 Phase 6 callers continue to get when they omit the parameter.
+
+**Composite ordering.** When `source = Composite`, the resolver walks providers in priority order `Nager → BrasilAPI → Canonical`. For each of the 13 canonical concepts the highest-priority provider that returns a name-matching row claims it (with that provider's date and description); any concept still unclaimed after both providers run is backfilled from the canonical calendar. Composite **never** surfaces 502 because the canonical backfill always provides a value — failed provider results are logged as warnings and skipped.
+
+**Concept catalog identity.** The 13 canonical concepts each have a stable `ConceptId` (`CONFRATERNIZACAO_UNIVERSAL`, `CARNAVAL_TERCA`, `QUARTA_FEIRA_CINZAS`, `SEXTA_FEIRA_SANTA`, `TIRADENTES`, `DIA_DO_TRABALHO`, `CORPUS_CHRISTI`, `INDEPENDENCIA`, `NOSSA_SENHORA_APARECIDA`, `FINADOS`, `PROCLAMACAO_REPUBLICA`, `CONSCIENCIA_NEGRA`, `NATAL`), a canonical description, a `BrazilianHolidayType`, an Easter-aware `ExpectedDateForYear` function (Easter is computed once via the Meeus/Jones/Butcher algorithm), and a list of accent-stripped lowercased name-match keywords. Provider rows are matched to concepts by **name pattern first, then ±3-day date proximity tiebreaker** among same-name candidates (Nager returns two "Carnaval" rows for Mon+Tue — the one nearer Easter−47 wins). Provider rows that match no concept are dropped silently. Provider rows that match by name but fall further than ±3 days from the expected date still match — the winning source's date overrides expected, so a future provider update or a leap-year corner case never silently drops a real holiday.
+
+**Provider quirks.**
+
+- **BrasilAPI** (`https://brasilapi.com.br/api/feriados/v1/{year}`) renames a few concepts versus the federal-law text: "Confraternização mundial" instead of "Confraternização Universal", "Dia da consciência negra" instead of "Consciência Negra", "Independência do Brasil" instead of "Independência". The catalog's name matchers normalize over these differences so the same concept still gets claimed. BrasilAPI also returns "Páscoa" (Easter Sunday) which matches no concept and is dropped.
+- **Nager.Date** (`https://date.nager.at/api/v3/PublicHolidays/{year}/BR`) returns regional rows with `global: false` and a populated `counties` array (e.g. "Revolução Constitucionalista de 1932" for `BR-SP`). All `global: false` rows are dropped — the calendar tracks only national entries. Nager's English `name` field is concatenated with `localName` before normalization so English-keyword matchers (e.g. "good friday", "ash wednesday", "labour day") can also hit.
+- **Quarta-feira de Cinzas** is missing from both providers in practice. With `source = Composite | BrasilApi | Nager`, the catalog's canonical Easter-46 date always backfills this concept, and the persisted `Holiday.Source` for that row is `Canonical` even when the rest of the import came from a provider.
+
+**Per-row provenance.** Both `ResponseBrazilianHolidayPreviewItemJson` and `ResponseBrazilianHolidayImportItemJson` carry a `Source` field tagging the actual provenance per row (`Canonical | BrasilApi | Nager`). The top-level response envelopes (`ResponseBrazilianHolidayPreviewJson`, `ResponseBrazilianHolidayImportJson`) echo the requested `Source` so a UI can label the result. On `POST /holiday/import-br/{year}`, each persisted `Holiday.Source` column receives the per-concept tag from the resolver — so a row that BrasilAPI claimed during a composite run is persisted with `Holiday.Source = BrasilApi`, while a row that fell through to canonical backfill is persisted with `Holiday.Source = Canonical`.
+
+**Failure contract.** Explicit single-source calls (`source = BrasilApi` or `source = Nager`) return **502 Bad Gateway** with the `HOLIDAY_SOURCE_UNAVAILABLE` error key when the provider HTTP call times out, returns a non-2xx status, or returns malformed JSON. The Infrastructure provider clients themselves never throw `server.Exceptions` types — they return a domain `BrazilianHolidayProviderResult<T>` with `Success = false`, and the Application-layer resolver is the single place that translates a failed result into `ExternalProviderUnavailableException`. `source = Composite` is unreachable for this error path because Canonical never fails.
+
+**Operational pattern.** The route range stays `min(1900):max(2200)` — admins can preview/import any year inside that range. The recommended cron pattern (external to this repo, not shipped by Phase 6.5) is a single annual run in late December that imports `currentYear + 1`, so day one of the next year already has its calendar populated. Re-running the same year is all-Skipped because the `(BranchId, Date) WHERE Active = true` filtered unique index makes the import idempotent.
 
 ---
 

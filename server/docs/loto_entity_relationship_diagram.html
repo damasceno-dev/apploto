@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v21
+Spec revision: v22
 -->
 <html lang="en">
 <head>
@@ -419,6 +419,7 @@ Spec revision: v21
     '    uuid id PK\n' +
     '    date date\n' +
     '    string description\n' +
+    '    smallint source "HolidaySource enum: Manual=0, Canonical=1, BrasilApi=2, Nager=3"\n' +
     '    uuid branchId FK\n' +
     '  }\n' +
     '\n' +

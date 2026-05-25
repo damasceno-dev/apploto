@@ -171,6 +171,139 @@ public class ImportBrazilianHolidaysUseCaseTest
         await holidaysRepository.DidNotReceive().Add(Arg.Is<Holiday>(holiday => holiday.BranchId == otherBranchId));
     }
 
+    [Fact]
+    public async Task Execute_Composite_ShouldProduceTenRowsByDefault_AndStampTopLevelSource()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var holidaysRepository = new HolidaysRepositoryBuilder()
+            .ListActiveDatesByBranchIdAndYearAsNoTrackingReturns(branchUser.BranchId, 2026, [])
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, holidaysRepository, unitOfWork);
+
+        // Default source param = Composite — exercises the default explicitly.
+        var response = await useCase.Execute(2026, includeOptionalFederal: false);
+
+        response.Source.ShouldBe(BrazilianHolidayCalendarSource.Composite);
+        response.Items.Count.ShouldBe(10);
+        response.ImportedCount.ShouldBe(10);
+    }
+
+    [Theory]
+    [InlineData(BrazilianHolidayCalendarSource.Composite)]
+    [InlineData(BrazilianHolidayCalendarSource.Canonical)]
+    [InlineData(BrazilianHolidayCalendarSource.BrasilApi)]
+    [InlineData(BrazilianHolidayCalendarSource.Nager)]
+    public async Task Execute_ShouldEchoTopLevelSource_ForEverySupportedSource(BrazilianHolidayCalendarSource source)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var holidaysRepository = new HolidaysRepositoryBuilder()
+            .ListActiveDatesByBranchIdAndYearAsNoTrackingReturns(branchUser.BranchId, 2026, [])
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, holidaysRepository, unitOfWork);
+
+        var response = await useCase.Execute(2026, includeOptionalFederal: false, source, CancellationToken.None);
+
+        response.Source.ShouldBe(source);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldPersistPerRowSource_FromResolverEntries()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var holidaysRepository = new HolidaysRepositoryBuilder()
+            .ListActiveDatesByBranchIdAndYearAsNoTrackingReturns(branchUser.BranchId, 2026, [])
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        // Resolver returns three entries with mixed Source tags — the use case must
+        // propagate those tags both onto the persisted Holiday rows and onto the
+        // response item Source field.
+        var mixedEntries = new List<SourcedBrazilianHolidayEntry>
+        {
+            new(new DateOnly(2026, 1, 1), "Confraternização Universal", BrazilianHolidayType.National, HolidaySource.Nager),
+            new(new DateOnly(2026, 4, 21), "Tiradentes", BrazilianHolidayType.National, HolidaySource.BrasilApi),
+            new(new DateOnly(2026, 12, 25), "Natal", BrazilianHolidayType.National, HolidaySource.Canonical)
+        };
+        var resolver = new BrazilianHolidayCalendarResolverBuilder()
+            .Returns(2026, includeOptionalFederal: false, BrazilianHolidayCalendarSource.Composite, mixedEntries)
+            .Build();
+
+        var useCase = new ImportBrazilianHolidaysUseCase(
+            authenticationService,
+            holidaysRepository,
+            resolver,
+            unitOfWork);
+
+        var response = await useCase.Execute(2026, includeOptionalFederal: false, BrazilianHolidayCalendarSource.Composite, CancellationToken.None);
+
+        response.Items.Count.ShouldBe(3);
+        response.Items.Single(i => i.Date == new DateOnly(2026, 1, 1)).Source.ShouldBe(HolidaySource.Nager);
+        response.Items.Single(i => i.Date == new DateOnly(2026, 4, 21)).Source.ShouldBe(HolidaySource.BrasilApi);
+        response.Items.Single(i => i.Date == new DateOnly(2026, 12, 25)).Source.ShouldBe(HolidaySource.Canonical);
+
+        await holidaysRepository.Received(1).Add(Arg.Is<Holiday>(h => h.Date == new DateTime(2026, 1, 1) && h.Source == HolidaySource.Nager));
+        await holidaysRepository.Received(1).Add(Arg.Is<Holiday>(h => h.Date == new DateTime(2026, 4, 21) && h.Source == HolidaySource.BrasilApi));
+        await holidaysRepository.Received(1).Add(Arg.Is<Holiday>(h => h.Date == new DateTime(2026, 12, 25) && h.Source == HolidaySource.Canonical));
+    }
+
+    [Fact]
+    public async Task Execute_Canonical_ShouldStampEveryItemAndRowSourceAsCanonical()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var holidaysRepository = new HolidaysRepositoryBuilder()
+            .ListActiveDatesByBranchIdAndYearAsNoTrackingReturns(branchUser.BranchId, 2027, [])
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authenticationService, holidaysRepository, unitOfWork);
+
+        var response = await useCase.Execute(2027, includeOptionalFederal: true, BrazilianHolidayCalendarSource.Canonical, CancellationToken.None);
+
+        response.Items.Count.ShouldBe(13);
+        response.Items.ShouldAllBe(i => i.Source == HolidaySource.Canonical);
+        await holidaysRepository.Received(13).Add(Arg.Is<Holiday>(h => h.Source == HolidaySource.Canonical));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowOnValidationException_WhenYearIsOutsideRange()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        // Use a real resolver here so we exercise the actual ArgumentOutOfRangeException path.
+        var resolver = new server.Application.Services.Holidays.BrazilianHolidayCalendarResolver(
+            new BrazilianHolidayCalendar(),
+            new BrasilApiHolidayProviderBuilder().Build(),
+            new NagerDateHolidayProviderBuilder().Build(),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<server.Application.Services.Holidays.BrazilianHolidayCalendarResolver>.Instance);
+        var holidaysRepository = new HolidaysRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = new ImportBrazilianHolidaysUseCase(authenticationService, holidaysRepository, resolver, unitOfWork);
+
+        var exception = await Should.ThrowAsync<OnValidationException>(() =>
+            useCase.Execute(1800, includeOptionalFederal: false, BrazilianHolidayCalendarSource.Canonical, CancellationToken.None));
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.HOLIDAY_IMPORT_YEAR_OUT_OF_RANGE);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
     private static ImportBrazilianHolidaysUseCase CreateUseCase(
         IAuthenticationService authenticationService,
         IHolidaysRepository holidaysRepository,

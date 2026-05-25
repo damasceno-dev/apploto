@@ -136,7 +136,7 @@ internal sealed class BrazilianHolidayCalendarResolver(
             throw new ExternalProviderUnavailableException(ResourcesErrorMessages.HOLIDAY_SOURCE_UNAVAILABLE);
 
         var rows = NormalizeBrasilApiRows(result.Data);
-        return BuildFromClaims(year, includeOptionalFederal, MatchToCatalog(rows, year, includeOptionalFederal));
+        return BuildFromClaims(year, includeOptionalFederal, MatchToCatalog(rows, HolidaySource.BrasilApi, year, includeOptionalFederal));
     }
 
     /// <summary>
@@ -165,7 +165,7 @@ internal sealed class BrazilianHolidayCalendarResolver(
             throw new ExternalProviderUnavailableException(ResourcesErrorMessages.HOLIDAY_SOURCE_UNAVAILABLE);
 
         var rows = NormalizeNagerRows(result.Data);
-        return BuildFromClaims(year, includeOptionalFederal, MatchToCatalog(rows, year, includeOptionalFederal));
+        return BuildFromClaims(year, includeOptionalFederal, MatchToCatalog(rows, HolidaySource.Nager, year, includeOptionalFederal));
     }
 
     /// <summary>
@@ -190,7 +190,7 @@ internal sealed class BrazilianHolidayCalendarResolver(
         var nagerResult = await nagerProvider.GetHolidaysForYear(year, cancellationToken);
         if (nagerResult is { Success: true, Data: not null })
         {
-            var nagerClaims = MatchToCatalog(NormalizeNagerRows(nagerResult.Data), year, includeOptionalFederal);
+            var nagerClaims = MatchToCatalog(NormalizeNagerRows(nagerResult.Data), HolidaySource.Nager, year, includeOptionalFederal);
             MergeClaims(claims, nagerClaims);
         }
         else
@@ -201,7 +201,7 @@ internal sealed class BrazilianHolidayCalendarResolver(
         var brasilApiResult = await brasilApiProvider.GetHolidaysForYear(year, cancellationToken);
         if (brasilApiResult is { Success: true, Data: not null })
         {
-            var brasilApiClaims = MatchToCatalog(NormalizeBrasilApiRows(brasilApiResult.Data), year, includeOptionalFederal);
+            var brasilApiClaims = MatchToCatalog(NormalizeBrasilApiRows(brasilApiResult.Data), HolidaySource.BrasilApi, year, includeOptionalFederal);
             MergeClaims(claims, brasilApiClaims);
         }
         else
@@ -229,16 +229,19 @@ internal sealed class BrazilianHolidayCalendarResolver(
     }
 
     /// <summary>
-    /// Normalizes BrasilAPI DTOs into the shared <see cref="ProviderRow"/> shape used by
-    /// the catalog matcher. Rows are dropped silently when they lack a parseable date or
-    /// a non-empty name. <c>SearchText</c> is the accent-stripped lowercased
-    /// <see cref="BrasilApiHolidayDto.Name"/>.
+    /// Normalizes BrasilAPI DTOs into the shared
+    /// <see cref="BrazilianHolidayProviderRow"/> shape consumed by
+    /// <see cref="BrazilianHolidayConceptMatcher"/>. Rows are dropped silently when
+    /// they lack a parseable date or a non-empty name. <c>SearchText</c> is the
+    /// accent-stripped lowercased <see cref="BrasilApiHolidayDto.Name"/>. The
+    /// resulting rows carry no <c>Source</c> tag — that's stamped onto the
+    /// downstream <see cref="ProviderClaim"/> by <see cref="MatchToCatalog"/>.
     /// </summary>
     /// <param name="dtos">BrasilAPI response DTOs.</param>
-    /// <returns>A list of normalized provider rows tagged <see cref="HolidaySource.BrasilApi"/>.</returns>
-    private static List<ProviderRow> NormalizeBrasilApiRows(IReadOnlyList<BrasilApiHolidayDto> dtos)
+    /// <returns>A list of normalized provider rows ready for the matcher.</returns>
+    private static List<BrazilianHolidayProviderRow> NormalizeBrasilApiRows(IReadOnlyList<BrasilApiHolidayDto> dtos)
     {
-        var rows = new List<ProviderRow>(dtos.Count);
+        var rows = new List<BrazilianHolidayProviderRow>(dtos.Count);
 
         foreach (var dto in dtos)
         {
@@ -248,15 +251,19 @@ internal sealed class BrazilianHolidayCalendarResolver(
             if (DateOnly.TryParse(dto.Date, out var date) is false)
                 continue;
 
-            rows.Add(new ProviderRow(date,dto.Name,HolidaySource.BrasilApi,BrazilianHolidayTextNormalizer.Normalize(dto.Name)));
+            rows.Add(new BrazilianHolidayProviderRow(
+                date,
+                dto.Name,
+                BrazilianHolidayTextNormalizer.Normalize(dto.Name)));
         }
 
         return rows;
     }
 
     /// <summary>
-    /// Normalizes Nager.Date DTOs into the shared <see cref="ProviderRow"/> shape used by
-    /// the catalog matcher. Regional rows (<c>Global = false</c>) are dropped per the
+    /// Normalizes Nager.Date DTOs into the shared
+    /// <see cref="BrazilianHolidayProviderRow"/> shape consumed by
+    /// <see cref="BrazilianHolidayConceptMatcher"/>. Regional rows (<c>Global = false</c>) are dropped per the
     /// Phase 6.5 contract — only national entries participate in the calendar. The
     /// display description prefers <c>LocalName</c> (Portuguese) and falls back to
     /// <c>Name</c> (English). <c>SearchText</c> normalizes both fields concatenated so
@@ -264,12 +271,12 @@ internal sealed class BrazilianHolidayCalendarResolver(
     /// </summary>
     /// <param name="dtos">Nager.Date response DTOs.</param>
     /// <returns>
-    /// A list of normalized provider rows tagged <see cref="HolidaySource.Nager"/>,
-    /// with regional rows already filtered out.
+    /// A list of normalized provider rows ready for the matcher, with regional rows
+    /// already filtered out.
     /// </returns>
-    private static List<ProviderRow> NormalizeNagerRows(IReadOnlyList<NagerDateHolidayDto> dtos)
+    private static List<BrazilianHolidayProviderRow> NormalizeNagerRows(IReadOnlyList<NagerDateHolidayDto> dtos)
     {
-        var rows = new List<ProviderRow>(dtos.Count);
+        var rows = new List<BrazilianHolidayProviderRow>(dtos.Count);
 
         foreach (var dto in dtos)
         {
@@ -293,23 +300,22 @@ internal sealed class BrazilianHolidayCalendarResolver(
             // Match against both localName and English name so matchers like "good friday" can hit.
             var searchText = BrazilianHolidayTextNormalizer.Normalize($"{dto.LocalName} {dto.Name}");
 
-            rows.Add(new ProviderRow(date, displayName, HolidaySource.Nager, searchText));
+            rows.Add(new BrazilianHolidayProviderRow(date, displayName, searchText));
         }
 
         return rows;
     }
 
     /// <summary>
-    /// Walks the concept catalog and, for each concept, picks the best provider row
-    /// whose <c>SearchText</c> contains any of the concept's name matchers. When more
-    /// than one row matches a concept (e.g., Nager returns "Carnaval" rows for both
-    /// Monday and Tuesday), the row whose date is closest to the concept's
-    /// <c>ExpectedDateForYear</c> wins. Rows that don't match any concept are dropped
-    /// silently. Rows that match by name but are further than ±3 days from the expected
-    /// date still match — the closest-date tiebreaker doesn't apply a hard cap, so a
-    /// provider's authoritative date overrides the expected one.
+    /// Delegates the name-pattern + date-proximity matching algorithm to
+    /// <see cref="BrazilianHolidayConceptMatcher.ClaimsByConcept"/> and stamps the
+    /// caller-supplied <paramref name="source"/> onto every resulting claim. The
+    /// matcher is shared with <c>BrazilianHolidayConceptCatalogTest</c> so the
+    /// tiebreaker, off-date, and unmatched-row behaviors can be exercised directly
+    /// at the catalog level.
     /// </summary>
     /// <param name="rows">Normalized provider rows from a single source.</param>
+    /// <param name="source">The provenance tag stamped onto every winning claim.</param>
     /// <param name="year">Gregorian year used to compute each concept's expected date.</param>
     /// <param name="includeOptionalFederal">
     /// When <c>false</c>, optional-federal concepts are skipped entirely; provider rows
@@ -317,38 +323,22 @@ internal sealed class BrazilianHolidayCalendarResolver(
     /// </param>
     /// <returns>
     /// A dictionary keyed by <c>ConceptId</c> with the winning row's date, description,
-    /// catalog-derived type, and provider source for each claimed concept.
+    /// catalog-derived type, and the supplied source for each claimed concept.
     /// </returns>
-    private static Dictionary<string, ProviderClaim> MatchToCatalog(IReadOnlyList<ProviderRow> rows,int year,bool includeOptionalFederal)
+    private static Dictionary<string, ProviderClaim> MatchToCatalog(
+        IReadOnlyList<BrazilianHolidayProviderRow> rows,
+        HolidaySource source,
+        int year,
+        bool includeOptionalFederal)
     {
-        var claims = new Dictionary<string, ProviderClaim>();
+        var matcherClaims = BrazilianHolidayConceptMatcher.ClaimsByConcept(rows, year, includeOptionalFederal);
+        var claims = new Dictionary<string, ProviderClaim>(matcherClaims.Count);
 
         foreach (var concept in BrazilianHolidayConceptCatalog.All)
         {
-            if (!includeOptionalFederal && concept.Type != BrazilianHolidayType.National)
-                continue;
-
-            var expected = concept.ExpectedDateForYear(year);
-
-            ProviderRow? best = null;
-            var bestDistance = int.MaxValue;
-
-            foreach (var row in rows)
+            if (matcherClaims.TryGetValue(concept.ConceptId, out var row))
             {
-                if (concept.NameMatchers.Any(matcher => row.SearchText.Contains(matcher)) is false)
-                    continue;
-
-                var distance = Math.Abs(row.Date.DayNumber - expected.DayNumber);
-                if (distance < bestDistance)
-                {
-                    bestDistance = distance;
-                    best = row;
-                }
-            }
-
-            if (best is not null)
-            {
-                claims[concept.ConceptId] = new ProviderClaim(best.Date,best.Description,concept.Type,best.Source);
+                claims[concept.ConceptId] = new ProviderClaim(row.Date, row.Description, concept.Type, source);
             }
         }
 
@@ -390,17 +380,10 @@ internal sealed class BrazilianHolidayCalendarResolver(
     }
 
     /// <summary>
-    /// Internal projection of a single provider DTO into the shape the catalog matcher
-    /// consumes. <c>SearchText</c> is the accent-stripped lowercased name (or
-    /// localName + name, for Nager) used for substring matching against the concept's
-    /// <c>NameMatchers</c>; <c>Description</c> is the human-readable label that survives
-    /// onto the final response item.
-    /// </summary>
-    private sealed record ProviderRow(DateOnly Date,string Description,HolidaySource Source,string SearchText);
-
-    /// <summary>
     /// A concept's winning claim, after name and date-proximity matching collapses
-    /// candidate provider rows down to a single entry per <c>ConceptId</c>.
+    /// candidate provider rows down to a single entry per <c>ConceptId</c>. The
+    /// <c>Source</c> is stamped from the caller, not the matcher: provider rows
+    /// feeding the matcher are source-agnostic so the matcher contract stays clean.
     /// </summary>
     private sealed record ProviderClaim(DateOnly Date,string Description,BrazilianHolidayType Type,HolidaySource Source);
 }
