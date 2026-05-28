@@ -307,6 +307,106 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         return query;
     }
 
+    public async Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize)
+    {
+        var baseQuery = BuildOpenChequeBaseQuery(branchId, accountId, clientId);
+
+        var rawGroups = await baseQuery
+            .GroupBy(t => t.OriginTransactionId!.Value)
+            .Where(g => g.Any(t => t.PaidAt == null))
+            .Select(g => new
+            {
+                OriginTransactionId = g.Key,
+                OutstandingTotal = g.Where(t => t.PaidAt == null).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                OldestOpenDueDate = g.Where(t => t.PaidAt == null).Min(t => t.DueDate),
+                OpenRowCount = g.Count(t => t.PaidAt == null),
+                TotalRowCount = g.Count()
+            })
+            .OrderBy(g => g.OldestOpenDueDate)
+            .ThenBy(g => g.OriginTransactionId)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        if (rawGroups.Count == 0)
+            return [];
+
+        var originIds = rawGroups.Select(g => g.OriginTransactionId).ToList();
+        var originRows = await dbContext.Transactions
+            .AsNoTracking()
+            .Include(t => t.Account)
+            .Include(t => t.Client)
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                originIds.Contains(t.Id))
+            .ToListAsync();
+
+        var originDict = originRows.ToDictionary(t => t.Id);
+
+        return rawGroups.Select(g =>
+        {
+            var origin = originDict.GetValueOrDefault(g.OriginTransactionId);
+            return new OpenChequeGroupRow(
+                g.OriginTransactionId,
+                g.OutstandingTotal,
+                g.OldestOpenDueDate,
+                g.OpenRowCount,
+                g.TotalRowCount,
+                origin?.AccountId ?? Guid.Empty,
+                origin?.Account?.Name ?? string.Empty,
+                origin?.ClientId,
+                origin?.Client?.Name,
+                origin?.Description);
+        }).ToList();
+    }
+
+    public async Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId)
+    {
+        return await BuildOpenChequeBaseQuery(branchId, accountId, clientId)
+            .GroupBy(t => t.OriginTransactionId!.Value)
+            .Where(g => g.Any(t => t.PaidAt == null))
+            .CountAsync();
+    }
+
+    public async Task<IReadOnlyList<Transaction>> ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
+        Guid originId, Guid branchId)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.OriginTransactionId == originId &&
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active)
+            .OrderBy(t => t.DueDate)
+            .ThenBy(t => t.Id)
+            .ToListAsync();
+    }
+
+    private IQueryable<Transaction> BuildOpenChequeBaseQuery(
+        Guid branchId, Guid? accountId, Guid? clientId)
+    {
+        var query = dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.OriginTransactionId != null);
+
+        if (accountId is { } selectedAccountId)
+            query = query.Where(t => t.AccountId == selectedAccountId);
+
+        if (clientId is { } selectedClientId)
+            query = query.Where(t => t.ClientId == selectedClientId);
+
+        return query;
+    }
+
     private static IQueryable<Transaction> ApplyFilter(
         IQueryable<Transaction> source,
         Guid branchId,

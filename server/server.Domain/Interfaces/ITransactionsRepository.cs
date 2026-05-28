@@ -27,4 +27,11 @@ public interface ITransactionsRepository
         Guid branchId, Guid? accountId, Guid? clientId, DateTime asOfDate, int page, int pageSize, AccountType? accountType = null);
     Task<int> CountOpenReceivablesByBranchIdAsNoTracking(
         Guid branchId, Guid? accountId, Guid? clientId, DateTime asOfDate, AccountType? accountType = null);
+
+    Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize);
+    Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId);
+    Task<IReadOnlyList<Transaction>> ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
+        Guid originId, Guid branchId);
 }

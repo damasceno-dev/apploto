@@ -5,6 +5,7 @@ using server.Domain.Interfaces;
 using server.Domain.Models;
 using server.Domain.Models.Projections;
 using DailyLedgerListFilter = server.Domain.Models.DailyLedgerListFilter;
+using OpenChequeGroupRow = server.Domain.Models.Projections.OpenChequeGroupRow;
 using AccountType = server.Domain.Entities.Enums.AccountType;
 
 namespace CommonTestUtilities.Repositories;
@@ -195,6 +196,50 @@ public class TransactionsRepositoryBuilder
                 Arg.Is<DateTime>(value => value == asOfDate),
                 Arg.Is<AccountType?>(value => value == accountType))
             .Returns(count);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListOpenChequeGroupsByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        int page,
+        int pageSize,
+        IReadOnlyList<OpenChequeGroupRow> result)
+    {
+        _repository.ListOpenChequeGroupsByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid?>(value => value == accountId),
+                Arg.Is<Guid?>(value => value == clientId),
+                Arg.Is<int>(value => value == page),
+                Arg.Is<int>(value => value == pageSize))
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder CountOpenChequeGroupsByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        int count)
+    {
+        _repository.CountOpenChequeGroupsByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid?>(value => value == accountId),
+                Arg.Is<Guid?>(value => value == clientId))
+            .Returns(count);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListActiveByOriginTransactionIdAndBranchIdAsNoTrackingReturns(
+        Guid originId,
+        Guid branchId,
+        IReadOnlyList<Transaction> result)
+    {
+        _repository.ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == originId),
+                Arg.Is<Guid>(value => value == branchId))
+            .Returns(result);
         return this;
     }
 

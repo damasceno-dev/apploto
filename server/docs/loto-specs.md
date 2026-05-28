@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v24
+Spec revision: v25
 -->
 
-> **Status:** Revised spec (v24) — Milestone 7 Phase 4 Fiado Aging Report — §6.14 "Fiado aging report" subsection added covering per-row contract, `DaysOutstanding` formula, bucket assignment via `ReportAgingBucketizer`
+> **Status:** Revised spec (v25) — Milestone 7 Slice 5 Open-Cheque Aging Report — §6.14 "Open-cheque aging report" subsection added covering per-origin-group rollup contract, sibling-row inclusion semantics, `OldestOpenBucket` rule, and `OriginTransactionId IS NOT NULL` precondition
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -33,6 +33,7 @@ Spec revision: v24
 > v22: Milestone 6 Phase 6.5 multi-source Brazilian Holiday providers — §3.17 Holiday gains the `Source` column (`HolidaySource` enum: Manual=0, Canonical=1, BrasilApi=2, Nager=3) with a default of `Manual` and a Phase 6.5 migration backfilling existing rows. §5.1 grows a "Sources" subsection covering composite ordering (Nager → BrasilAPI → Canonical), the 13-concept identity catalog with name-match + ±3-day date proximity tiebreaker, the documented provider quirks (BrasilAPI's "Confraternização mundial" / "Dia da consciência negra" / "Independência do Brasil" renames; Nager's regional `global: false` rows being dropped; both providers missing Quarta-feira de Cinzas → always canonical backfill), and the 502 `HOLIDAY_SOURCE_UNAVAILABLE` contract for explicit single-source failures (Composite never 502s because canonical always backfills).
 > v23: Milestone 7 Phase 1 Reporting Surface foundation — §6.14 added covering the read-only reporting contract, three permission buckets (Manager/Admin whole-branch views, operator-self with empty-scope short-circuit, write-twin scope for preview endpoints), `AgingBucket` enum definition with exact boundary semantics (day 30 → `Days0To30`, day 31 → `Days31To60`, day 90 → `Days61To90`, day 91+ → `Days91Plus`), date-range guardrails (closed window, span ≤ 366 days, `AsOfDate` defaults to branch-local today via `IBranchClock`), `Status = Active AND Active = true` filter on financial totals, and the preview-never-commits invariant pinned by reload assertions.
 > v24: Milestone 7 Phase 4 Fiado Aging Report — §6.14 extended with "Fiado aging report" subsection documenting `GET /report/fiado/aging` per-row contract (`ResponseFiadoAgingItemJson` fields: `TransactionId`, `Date`, `DueDate`, `Value`, `DaysOutstanding`, `Bucket`, `ClientId`, `ClientName`, `AccountId`, `AccountName`, `Description`), `DaysOutstanding = max(0, (asOfDate.Date − dueDate.Date).Days)` formula, bucket assignment via `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)`, future-due rows included in `Current` bucket, filter semantics (Tab-only, `PaidAt IS NULL`, optional `clientId`/`accountId`), deterministic ordering `DueDate ASC, Date ASC, Id ASC`, and `ResponseFiadoAgingJson` envelope shape.
+> v25: Milestone 7 Slice 5 Open-Cheque Aging Report — §6.14 extended with "Open-cheque aging report" subsection documenting `GET /report/cheques/open-aging` per-origin-group rollup contract. Groups are built from rows with `OriginTransactionId IS NOT NULL AND Status = Active AND Active = true`; a group appears only when it has at least one row with `PaidAt IS NULL`. Group fields: `OriginTransactionId`, `OutstandingTotal` (sum of unpaid row values), `OldestOpenDueDate` (earliest unpaid DueDate), `OldestOpenBucket` (bucket for `OldestOpenDueDate`), `OpenRowCount`, `TotalRowCount`, `AccountId`, `AccountName`, `ClientId`, `ClientName`, `Description` (from origin row). Sibling rows within each group: unpaid installment rows loaded by `OriginTransactionId`; per-row fields: `TransactionId`, `DueDate`, `Value`, `DaysOutstanding`, `Bucket`. `AsOfDate` optional, defaults to `IBranchClock.LocalBusinessDate(UtcNow())`. Optional `accountId` and `clientId` filters. Ordering: `OldestOpenDueDate ASC, OriginTransactionId ASC`.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -1530,6 +1531,50 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 *Bucket assignment:* `DaysOutstanding` is computed as `max(0, (asOfDate.Date − dueDate.Date).Days)`. The bucket is then assigned by `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)` per the table in §6.14: future-due → `Current`; 0–30 → `Days0To30`; 31–60 → `Days31To60`; 61–90 → `Days61To90`; > 90 → `Days91Plus`. Boundary: day 30 → `Days0To30`, day 31 → `Days31To60`, day 90 → `Days61To90`, day 91 → `Days91Plus`.
 
 *Ordering:* `DueDate ASC, Date ASC, Id ASC` (deterministic, index-backed via `(BranchId, DueDate) WHERE PaidAt IS NULL`).
+
+**Open-cheque aging report.** `GET /report/cheques/open-aging` — Manager/Admin. Returns a paginated list of cheque installment plans grouped by origin transaction, showing only plans that have at least one unpaid installment row.
+
+*Endpoint:* `GET /report/cheques/open-aging?accountId?&clientId?&asOfDate?&page&pageSize`
+
+*Precondition:* Only rows with `OriginTransactionId IS NOT NULL AND Status = Active AND Active = true` participate in the grouping. A group is included in results only when it has at least one row with `PaidAt IS NULL` (SQL HAVING equivalent).
+
+*Filter semantics:*
+- `accountId` (optional) — narrows to groups whose installment rows belong to a specific account.
+- `clientId` (optional) — narrows to groups whose installment rows belong to a specific client.
+- `asOfDate` (optional) — defaults to branch-local today via `IBranchClock.LocalBusinessDate(UtcNow())` when omitted. Used for `DaysOutstanding` and bucket computation only; it does not filter which rows are "open" (that is determined by `PaidAt IS NULL`).
+
+*Per-group contract (`ResponseOpenChequeAgingGroupJson`):*
+
+| Field               | Description                                                                    |
+|---------------------|--------------------------------------------------------------------------------|
+| `OriginTransactionId` | Shared `OriginTransactionId` for all sibling installment rows               |
+| `OutstandingTotal`  | Sum of `Value` for unpaid (`PaidAt IS NULL`) sibling rows                      |
+| `OldestOpenDueDate` | Earliest `DueDate` among unpaid sibling rows                                   |
+| `OldestOpenBucket`  | `AgingBucket` for `OldestOpenDueDate` computed via `ReportAgingBucketizer`     |
+| `OpenRowCount`      | Count of unpaid sibling rows                                                   |
+| `TotalRowCount`     | Count of all active sibling rows (paid + unpaid)                               |
+| `AccountId`         | Account id (from origin row)                                                   |
+| `AccountName`       | Account name (joined from origin row)                                          |
+| `ClientId`          | Optional client id (from origin row)                                           |
+| `ClientName`        | Optional client name (joined from origin row)                                  |
+| `Description`       | Optional description (from origin row)                                         |
+| `Rows`              | Unpaid sibling installment rows (see per-row contract below)                   |
+
+*Per-row contract (`ResponseOpenChequeAgingRowJson`):*
+
+| Field             | Description                                                                    |
+|-------------------|--------------------------------------------------------------------------------|
+| `TransactionId`   | Installment row `Id`                                                           |
+| `DueDate`         | Installment payment due date                                                   |
+| `Value`           | Installment value                                                              |
+| `DaysOutstanding` | `max(0, (asOfDate.Date − dueDate.Date).Days)` — zero for future-due rows       |
+| `Bucket`          | `AgingBucket` assigned by `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)` |
+
+*Sibling inclusion:* Within each group the `Rows` list contains only unpaid sibling installment rows (those with `PaidAt IS NULL`), loaded by `OriginTransactionId`. The `TotalRowCount` covers all active siblings regardless of payment status.
+
+*Envelope (`ResponseOpenChequeAgingJson`):* `Items`, `TotalCount`, `TotalPages`, `HasNext`, `HasPrevious`, `AsOfDate`.
+
+*Ordering:* `OldestOpenDueDate ASC, OriginTransactionId ASC` (deterministic, oldest open installment plan first).
 
 ---
 
