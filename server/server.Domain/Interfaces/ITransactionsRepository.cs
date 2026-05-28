@@ -14,4 +14,9 @@ public interface ITransactionsRepository
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<IReadOnlyList<Transaction>> ListByOriginTransactionIdAndBranchIdAsNoTracking(Guid originId, Guid branchId);
     Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(Guid branchId, Guid accountId, DateTime date, Direction? direction = null);
+
+    Task<IReadOnlyList<Transaction>> ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
+    Task<int> CountByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
+    Task<decimal> SumActiveByAccountAndDateBeforeAsNoTracking(Guid branchId, Guid accountId, DateTime dateExclusive);
+    Task<(decimal totalIn, decimal totalOut)> SumActiveByAccountAndDateRangeAsNoTracking(Guid branchId, Guid accountId, DateTime dateFrom, DateTime dateTo);
 }

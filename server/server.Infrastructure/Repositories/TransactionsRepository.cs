@@ -100,6 +100,90 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         return await query.Select(transaction => (decimal?)transaction.Value).SumAsync() ?? 0m;
     }
 
+    public async Task<IReadOnlyList<Transaction>> ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        DailyLedgerListFilter filter)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.AccountId == filter.AccountId &&
+                t.Date >= filter.DateFrom &&
+                t.Date <= filter.DateTo &&
+                t.Active &&
+                t.Status == TransactionStatus.Active)
+            .Include(t => t.Account)
+            .Include(t => t.Client)
+            .Include(t => t.TransactionType)
+            .Include(t => t.Category)
+            .Include(t => t.RecordedByOperator)
+            .OrderBy(t => t.Date)
+            .ThenBy(t => t.CreatedAt)
+            .ThenBy(t => t.Id)
+            .Skip((filter.Page - 1) * filter.PageSize)
+            .Take(filter.PageSize)
+            .ToListAsync();
+    }
+
+    public async Task<int> CountByBranchIdAndAccountIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        DailyLedgerListFilter filter)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .CountAsync(t =>
+                t.BranchId == branchId &&
+                t.AccountId == filter.AccountId &&
+                t.Date >= filter.DateFrom &&
+                t.Date <= filter.DateTo &&
+                t.Active &&
+                t.Status == TransactionStatus.Active);
+    }
+
+    public async Task<decimal> SumActiveByAccountAndDateBeforeAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime dateExclusive)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.AccountId == accountId &&
+                t.Date < dateExclusive &&
+                t.Active &&
+                t.Status == TransactionStatus.Active)
+            .Select(t => t.Direction == Direction.In ? t.Value : -(decimal?)t.Value)
+            .SumAsync() ?? 0m;
+    }
+
+    public async Task<(decimal totalIn, decimal totalOut)> SumActiveByAccountAndDateRangeAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime dateFrom,
+        DateTime dateTo)
+    {
+        var sums = await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.AccountId == accountId &&
+                t.Date >= dateFrom &&
+                t.Date <= dateTo &&
+                t.Active &&
+                t.Status == TransactionStatus.Active)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                TotalIn = g.Where(t => t.Direction == Direction.In).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                TotalOut = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m
+            })
+            .FirstOrDefaultAsync();
+
+        return sums is null ? (0m, 0m) : (sums.TotalIn, sums.TotalOut);
+    }
+
     private static IQueryable<Transaction> ApplyFilter(
         IQueryable<Transaction> source,
         Guid branchId,

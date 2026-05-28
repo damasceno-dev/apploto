@@ -7,6 +7,7 @@ using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Application.Services.TimeEntries;
 using server.Application.Services.Transactions;
+using server.Application.UseCases.Reports.DailyLedger;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
 using server.Application.UseCases.BranchUsers.Remove;
@@ -190,6 +191,7 @@ public static class AppDependencyInjection
         services.AddScoped<SubmitDailyCloseUseCase>();
         services.AddScoped<ApproveDailyCloseUseCase>();
         services.AddScoped<RejectDailyCloseUseCase>();
+        services.AddScoped<GetDailyLedgerUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

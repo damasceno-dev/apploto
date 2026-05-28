@@ -3,6 +3,7 @@ using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using DailyLedgerListFilter = server.Domain.Models.DailyLedgerListFilter;
 
 namespace CommonTestUtilities.Repositories;
 
@@ -74,6 +75,61 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
+    public TransactionsRepositoryBuilder ListByBranchIdAndAccountIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DailyLedgerListFilter filter,
+        IReadOnlyList<Transaction> result)
+    {
+        _repository.ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DailyLedgerListFilter>(actual => MatchesDailyLedgerFilter(filter, actual)))
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder CountByBranchIdAndAccountIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DailyLedgerListFilter filter,
+        int count)
+    {
+        _repository.CountByBranchIdAndAccountIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DailyLedgerListFilter>(actual => MatchesDailyLedgerFilter(filter, actual)))
+            .Returns(count);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder SumActiveByAccountAndDateBeforeAsNoTrackingReturns(
+        Guid branchId,
+        Guid accountId,
+        DateTime dateExclusive,
+        decimal result)
+    {
+        _repository.SumActiveByAccountAndDateBeforeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == accountId),
+                Arg.Is<DateTime>(value => value == dateExclusive))
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder SumActiveByAccountAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        Guid accountId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        decimal totalIn,
+        decimal totalOut)
+    {
+        _repository.SumActiveByAccountAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == accountId),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo))
+            .Returns((totalIn, totalOut));
+        return this;
+    }
+
     public TransactionsRepositoryBuilder ListByOriginTransactionIdAndBranchIdAsNoTrackingReturns(
         Guid originId,
         Guid branchId,
@@ -109,5 +165,14 @@ public class TransactionsRepositoryBuilder
         return expected is null
             ? actual is null
             : actual is not null && expected.SequenceEqual(actual);
+    }
+
+    private static bool MatchesDailyLedgerFilter(DailyLedgerListFilter expected, DailyLedgerListFilter actual)
+    {
+        return expected.AccountId == actual.AccountId &&
+               expected.DateFrom == actual.DateFrom &&
+               expected.DateTo == actual.DateTo &&
+               expected.Page == actual.Page &&
+               expected.PageSize == actual.PageSize;
     }
 }
