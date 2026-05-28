@@ -1,4 +1,5 @@
 using CommonTestUtilities.Requests;
+using server.Application.UseCases.Reports;
 using server.Application.UseCases.Reports.DailyLedger;
 using server.Exceptions;
 using Shouldly;
@@ -78,12 +79,12 @@ public class DailyLedgerFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldFail_WhenDateRangeExceeds366Days()
+    public void Validate_ShouldFail_WhenDateRangeExceedsMaxDays()
     {
         var dateFrom = new DateTime(2025, 1, 1);
         var request = new RequestDailyLedgerJsonBuilder()
             .WithDateFrom(dateFrom)
-            .WithDateTo(dateFrom.AddDays(367))
+            .WithDateTo(dateFrom.AddDays(ReportValidationExtensions.DateRangeMaxDays + 1))
             .Build();
 
         var result = _validator.Validate(request);
@@ -122,10 +123,10 @@ public class DailyLedgerFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldFail_WhenPageSizeExceeds200()
+    public void Validate_ShouldFail_WhenPageSizeExceedsMax()
     {
         var request = new RequestDailyLedgerJsonBuilder()
-            .WithPageSize(201)
+            .WithPageSize(ReportValidationExtensions.PageSizeMax + 1)
             .Build();
 
         var result = _validator.Validate(request);

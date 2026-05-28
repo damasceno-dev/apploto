@@ -1556,19 +1556,19 @@ Add the small set of primitives more than one later phase consumes. No endpoints
 
 `GET /report/fiado/aging?clientId?&accountId?&asOfDate?&page&pageSize` — Manager/Admin. Per-row breakdown of unpaid Tab-account receivables with `AgingBucket` per row. Pairs with Phase 3's balance: balance answers "how much does each client owe?", aging answers "of that, which specific rows are how late?". Bumps spec to `v24`.
 
-- [ ] **4.1** Add `FiadoAgingListFilter` (`ClientId?`, `AccountId?`, `AsOfDate`, `Page`, `PageSize`).
-- [ ] **4.2** Add `TransactionOpenReceivableRow` projection record (`Id`, `Date`, `DueDate`, `Value`, `ClientId?`, `ClientName?`, `AccountId`, `AccountName`, `OriginTransactionId?`, `Description?`).
-- [ ] **4.3** Extend `ITransactionsRepository` with `Task<IReadOnlyList<TransactionOpenReceivableRow>> ListOpenReceivablesByBranchIdAsNoTracking(branchId, accountId?, clientId?, asOfDate, page, pageSize, accountType?)` and matching `CountOpenReceivablesByBranchIdAsNoTracking`. Filter to `Status = Active AND Active = true AND PaidAt IS NULL`; do NOT filter on `DueDate <= asOfDate` (future-due rows belong in the `Current` bucket and must be reachable). Optional `accountType?` parameter so Phase 4 can request `Tab` only; Phase 5 will request `null` (all account types) for cheque aging. Uses the `(BranchId, DueDate) WHERE PaidAt IS NULL` index from §3.12. Eager-include `Account`, `Client`.
-- [ ] **4.4** Add the Infrastructure implementation; deterministic ordering `DueDate ASC, Date ASC, Id ASC`.
-- [ ] **4.5** Extend `TransactionsRepositoryBuilder` and add `FiadoAgingListFilterBuilder`.
-- [ ] **4.6** Add DTOs: `RequestFiadoAgingJson { Guid? ClientId, Guid? AccountId, DateTime? AsOfDate, int Page, int PageSize }`; `ResponseFiadoAgingJson` envelope with `Items, TotalCount, TotalPages, HasNext, HasPrevious, AsOfDate`; `ResponseFiadoAgingItemJson { TransactionId, Date, DueDate, Value, DaysOutstanding (= max(0, (asOfDate − dueDate).Days)), Bucket (AgingBucket), ClientId?, ClientName?, AccountId, AccountName, Description? }`. Add `RequestFiadoAgingJsonBuilder`.
-- [ ] **4.7** Add `FiadoAgingFluentValidation`: pagination bounds, optional `AsOfDate`.
-- [ ] **4.8** Implement `GetFiadoAgingUseCase`: Manager/Admin → validate inline → resolve `asOfDate` → call repo with `accountType = Tab` → for each row compute `DaysOutstanding` and `Bucket = ReportAgingBucketizer.BucketFor(row.DueDate, asOfDate)` → map to envelope with pagination metadata.
-- [ ] **4.9** Register in DI.
-- [ ] **4.10** Add `GET /report/fiado/aging` to `ReportController` (Manager/Admin). Full `[ProducesResponseType]` for 200/400/401/403.
-- [ ] **4.11** Add `Validators.Test` and `UseCases.Test`: bucket boundary 30/31 and 90/91; future-due row → `Current`; branch isolation; paid rows excluded; Cancelled/Draft excluded; non-Tab account rows excluded; pagination metadata.
-- [ ] **4.12** Add `WebApi.Test` happy + unhappy with bucket-boundary reload assertion: seed two rows due exactly 30 and 31 days before `asOfDate`, plus one row due 7 days in the future, and assert each lands in the expected bucket.
-- [ ] **4.13** Extend §6.14 with a "Fiado aging report" subsection covering: per-row contract, `DaysOutstanding` formula, bucket assignment rule. Bump shared `Spec revision` to `v24` across the sync group with a v24 revision note. Run `check-loto-doc-sync.sh`.
+- [x] **4.1** Add `FiadoAgingListFilter` (`ClientId?`, `AccountId?`, `AsOfDate`, `Page`, `PageSize`).
+- [x] **4.2** Add `TransactionOpenReceivableRow` projection record (`Id`, `Date`, `DueDate`, `Value`, `ClientId?`, `ClientName?`, `AccountId`, `AccountName`, `OriginTransactionId?`, `Description?`).
+- [x] **4.3** Extend `ITransactionsRepository` with `Task<IReadOnlyList<TransactionOpenReceivableRow>> ListOpenReceivablesByBranchIdAsNoTracking(branchId, accountId?, clientId?, asOfDate, page, pageSize, accountType?)` and matching `CountOpenReceivablesByBranchIdAsNoTracking`. Filter to `Status = Active AND Active = true AND PaidAt IS NULL`; do NOT filter on `DueDate <= asOfDate` (future-due rows belong in the `Current` bucket and must be reachable). Optional `accountType?` parameter so Phase 4 can request `Tab` only; Phase 5 will request `null` (all account types) for cheque aging. Uses the `(BranchId, DueDate) WHERE PaidAt IS NULL` index from §3.12. Eager-include `Account`, `Client`.
+- [x] **4.4** Add the Infrastructure implementation; deterministic ordering `DueDate ASC, Date ASC, Id ASC`.
+- [x] **4.5** Extend `TransactionsRepositoryBuilder` and add `FiadoAgingListFilterBuilder`.
+- [x] **4.6** Add DTOs: `RequestFiadoAgingJson { Guid? ClientId, Guid? AccountId, DateTime? AsOfDate, int Page, int PageSize }`; `ResponseFiadoAgingJson` envelope with `Items, TotalCount, TotalPages, HasNext, HasPrevious, AsOfDate`; `ResponseFiadoAgingItemJson { TransactionId, Date, DueDate, Value, DaysOutstanding (= max(0, (asOfDate − dueDate).Days)), Bucket (AgingBucket), ClientId?, ClientName?, AccountId, AccountName, Description? }`. Add `RequestFiadoAgingJsonBuilder`.
+- [x] **4.7** Add `FiadoAgingFluentValidation`: pagination bounds, optional `AsOfDate`.
+- [x] **4.8** Implement `GetFiadoAgingUseCase`: Manager/Admin → validate inline → resolve `asOfDate` → call repo with `accountType = Tab` → for each row compute `DaysOutstanding` and `Bucket = ReportAgingBucketizer.BucketFor(row.DueDate, asOfDate)` → map to envelope with pagination metadata.
+- [x] **4.9** Register in DI.
+- [x] **4.10** Add `GET /report/fiado/aging` to `ReportController` (Manager/Admin). Full `[ProducesResponseType]` for 200/400/401/403.
+- [x] **4.11** Add `Validators.Test` and `UseCases.Test`: bucket boundary 30/31 and 90/91; future-due row → `Current`; branch isolation; paid rows excluded; Cancelled/Draft excluded; non-Tab account rows excluded; pagination metadata.
+- [x] **4.12** Add `WebApi.Test` happy + unhappy with bucket-boundary reload assertion: seed two rows due exactly 30 and 31 days before `asOfDate`, plus one row due 7 days in the future, and assert each lands in the expected bucket.
+- [x] **4.13** Extend §6.14 with a "Fiado aging report" subsection covering: per-row contract, `DaysOutstanding` formula, bucket assignment rule. Bump shared `Spec revision` to `v24` across the sync group with a v24 revision note. Run `check-loto-doc-sync.sh`.
 
 ### Phase 5 — Open-Cheque Aging Report
 

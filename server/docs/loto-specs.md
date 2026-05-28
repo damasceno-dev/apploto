@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v23
+Spec revision: v24
 -->
 
-> **Status:** Revised spec (v23) — Milestone 7 Phase 1 Reporting Surface foundation — §6.14 base drop + `AgingBucket` enum + `ReportAgingBucketizer` + shared resource keys + `ReportValidationExtensions`
+> **Status:** Revised spec (v24) — Milestone 7 Phase 4 Fiado Aging Report — §6.14 "Fiado aging report" subsection added covering per-row contract, `DaysOutstanding` formula, bucket assignment via `ReportAgingBucketizer`
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -32,6 +32,7 @@ Spec revision: v23
 > v21: Added §5.1 Brazilian Holiday Calendar appendix documenting the M6 pure-function import source: 10 mandatory national holidays, 3 curated optional federal Easter-anchored entries, Law 9.093/1995 for Sexta-feira Santa, Law 14.759/2023 for Consciência Negra, and the Anonymous Gregorian / Meeus/Jones/Butcher Easter algorithm reference.
 > v22: Milestone 6 Phase 6.5 multi-source Brazilian Holiday providers — §3.17 Holiday gains the `Source` column (`HolidaySource` enum: Manual=0, Canonical=1, BrasilApi=2, Nager=3) with a default of `Manual` and a Phase 6.5 migration backfilling existing rows. §5.1 grows a "Sources" subsection covering composite ordering (Nager → BrasilAPI → Canonical), the 13-concept identity catalog with name-match + ±3-day date proximity tiebreaker, the documented provider quirks (BrasilAPI's "Confraternização mundial" / "Dia da consciência negra" / "Independência do Brasil" renames; Nager's regional `global: false` rows being dropped; both providers missing Quarta-feira de Cinzas → always canonical backfill), and the 502 `HOLIDAY_SOURCE_UNAVAILABLE` contract for explicit single-source failures (Composite never 502s because canonical always backfills).
 > v23: Milestone 7 Phase 1 Reporting Surface foundation — §6.14 added covering the read-only reporting contract, three permission buckets (Manager/Admin whole-branch views, operator-self with empty-scope short-circuit, write-twin scope for preview endpoints), `AgingBucket` enum definition with exact boundary semantics (day 30 → `Days0To30`, day 31 → `Days31To60`, day 90 → `Days61To90`, day 91+ → `Days91Plus`), date-range guardrails (closed window, span ≤ 366 days, `AsOfDate` defaults to branch-local today via `IBranchClock`), `Status = Active AND Active = true` filter on financial totals, and the preview-never-commits invariant pinned by reload assertions.
+> v24: Milestone 7 Phase 4 Fiado Aging Report — §6.14 extended with "Fiado aging report" subsection documenting `GET /report/fiado/aging` per-row contract (`ResponseFiadoAgingItemJson` fields: `TransactionId`, `Date`, `DueDate`, `Value`, `DaysOutstanding`, `Bucket`, `ClientId`, `ClientName`, `AccountId`, `AccountName`, `Description`), `DaysOutstanding = max(0, (asOfDate.Date − dueDate.Date).Days)` formula, bucket assignment via `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)`, future-due rows included in `Current` bucket, filter semantics (Tab-only, `PaidAt IS NULL`, optional `clientId`/`accountId`), deterministic ordering `DueDate ASC, Date ASC, Id ASC`, and `ResponseFiadoAgingJson` envelope shape.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -1496,6 +1497,39 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 **Financial total filters.** All financial aggregates filter on `Status = Active AND Active = true` (entity-base soft-delete). `Draft` and `Cancelled` rows are excluded from sums, balances, and totals. This applies to daily ledger balances, fiado balances, aging rows, cash-variance inputs, and monthly reconciliation totals.
 
 **Aggregation.** Aggregate queries (`SumActiveByX`, `ListOpenReceivables`, `ListVarianceTimeSeries`) live in repositories. Use cases never materialize whole tables into memory and aggregate in C#.
+
+**Fiado aging report.** `GET /report/fiado/aging` — Manager/Admin. Returns a paginated list of individual unpaid Tab-account receivable rows with per-row aging metadata.
+
+*Endpoint:* `GET /report/fiado/aging?clientId?&accountId?&asOfDate?&page&pageSize`
+
+*Filter semantics:*
+- `clientId` (optional) — narrows to rows for a specific client.
+- `accountId` (optional) — narrows to rows on a specific Tab account.
+- `asOfDate` (optional) — defaults to branch-local today via `IBranchClock.LocalBusinessDate(UtcNow())` when omitted.
+- Only rows with `Status = Active AND Active = true AND PaidAt IS NULL` and `Account.Type = Tab` are returned.
+- `DueDate > asOfDate` rows are included (they belong to the `Current` bucket).
+
+*Per-row contract (`ResponseFiadoAgingItemJson`):*
+
+| Field             | Description                                                                    |
+|-------------------|--------------------------------------------------------------------------------|
+| `TransactionId`   | Transaction `Id`                                                               |
+| `Date`            | Transaction event date                                                         |
+| `DueDate`         | Payment due date                                                               |
+| `Value`           | Transaction value                                                              |
+| `DaysOutstanding` | `max(0, (asOfDate.Date − dueDate.Date).Days)` — zero for future-due rows       |
+| `Bucket`          | `AgingBucket` assigned by `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)` |
+| `ClientId`        | Optional client id                                                             |
+| `ClientName`      | Optional client name (joined)                                                  |
+| `AccountId`       | Tab account id                                                                 |
+| `AccountName`     | Tab account name (joined)                                                      |
+| `Description`     | Optional transaction description                                               |
+
+*Envelope (`ResponseFiadoAgingJson`):* `Items`, `TotalCount`, `TotalPages`, `HasNext`, `HasPrevious`, `AsOfDate`.
+
+*Bucket assignment:* `DaysOutstanding` is computed as `max(0, (asOfDate.Date − dueDate.Date).Days)`. The bucket is then assigned by `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)` per the table in §6.14: future-due → `Current`; 0–30 → `Days0To30`; 31–60 → `Days31To60`; 61–90 → `Days61To90`; > 90 → `Days91Plus`. Boundary: day 30 → `Days0To30`, day 31 → `Days31To60`, day 90 → `Days61To90`, day 91 → `Days91Plus`.
+
+*Ordering:* `DueDate ASC, Date ASC, Id ASC` (deterministic, index-backed via `(BranchId, DueDate) WHERE PaidAt IS NULL`).
 
 ---
 

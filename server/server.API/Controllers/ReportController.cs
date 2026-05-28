@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Reports.DailyLedger;
+using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -38,6 +39,21 @@ public class ReportController : ControllerBase
     public async Task<IActionResult> FiadoBalance(
         [FromServices] GetFiadoBalancesUseCase useCase,
         [FromQuery] RequestFiadoBalanceJson request)
+    {
+        var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("fiado/aging")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseFiadoAgingJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> FiadoAging(
+        [FromServices] GetFiadoAgingUseCase useCase,
+        [FromQuery] RequestFiadoAgingJson request)
     {
         var response = await useCase.Execute(request);
         return Ok(response);

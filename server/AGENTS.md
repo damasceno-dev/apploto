@@ -232,6 +232,7 @@ Validation rules:
 - Validation checks raw input shape only. Normalization and canonicalization (e.g. stripping non-digit characters, trimming) happen in the slice-shared mapper or normalizer helpers before persistence — never inside the validator.
 - If optional input is treated as absent when `string.IsNullOrWhiteSpace` is true, the normalization helper must return `null` for whitespace-only values, not `""`. Returning `""` would bypass nullable column semantics and filtered unique indexes.
 - Business rule checks that require repository access should happen before or around validator execution inside the use case flow, not inside DTO classes.
+- When a shared validation extension method has configurable bounds (e.g. `PageSizeBounds(int min = 1, int max = 200)`, `DateRangeWithinCap(int maxDays = 366)`), declare the defaults as `internal const` fields directly inside the same `internal static class` that holds the extension methods — do not create a separate companion class. Follow the same pattern as `AccountValidationExtensions`, which keeps its `NameMaxLength`, `InstitutionMaxLength`, and `NumberMaxLength` constants alongside the extension methods in the same file. Test projects can reference these `internal` constants because `server.Application.csproj` already grants all three test assemblies friend access via `<InternalsVisibleTo>`. Tests must reference the constants by name — never duplicate the literal value.
 
 Mapping rules:
 

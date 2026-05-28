@@ -22,4 +22,9 @@ public interface ITransactionsRepository
     Task<(decimal totalIn, decimal totalOut)> SumActiveByAccountAndDateRangeAsNoTracking(Guid branchId, Guid accountId, DateTime dateFrom, DateTime dateTo);
 
     Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(Guid branchId, Guid? clientId, DateTime asOfDate);
+
+    Task<IReadOnlyList<TransactionOpenReceivableRow>> ListOpenReceivablesByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, DateTime asOfDate, int page, int pageSize, AccountType? accountType = null);
+    Task<int> CountOpenReceivablesByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, DateTime asOfDate, AccountType? accountType = null);
 }

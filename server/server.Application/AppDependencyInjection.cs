@@ -8,6 +8,7 @@ using server.Application.Services.Settings;
 using server.Application.Services.TimeEntries;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Reports.DailyLedger;
+using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
@@ -194,6 +195,7 @@ public static class AppDependencyInjection
         services.AddScoped<RejectDailyCloseUseCase>();
         services.AddScoped<GetDailyLedgerUseCase>();
         services.AddScoped<GetFiadoBalancesUseCase>();
+        services.AddScoped<GetFiadoAgingUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

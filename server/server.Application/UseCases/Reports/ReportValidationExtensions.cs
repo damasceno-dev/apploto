@@ -5,6 +5,11 @@ namespace server.Application.UseCases.Reports;
 
 internal static class ReportValidationExtensions
 {
+    internal const int PageMin = 1;
+    internal const int PageSizeMin = 1;
+    internal const int PageSizeMax = 200;
+    internal const int DateRangeMaxDays = 366;
+
     extension<T>(IRuleBuilder<T, DateTime> rule)
     {
         public void DateRangeRequired()
@@ -21,7 +26,7 @@ internal static class ReportValidationExtensions
                 .WithMessage(ResourcesErrorMessages.REPORT_DATE_RANGE_INVERTED);
         }
 
-        public void DateRangeWithinCap(Func<T, DateTime> dateToSelector, int maxDays = 366)
+        public void DateRangeWithinCap(Func<T, DateTime> dateToSelector, int maxDays = DateRangeMaxDays)
         {
             rule
                 .Must((instance, dateFrom) => (dateToSelector(instance) - dateFrom).TotalDays <= maxDays)
@@ -34,11 +39,11 @@ internal static class ReportValidationExtensions
         public void PageBounds()
         {
             rule
-                .GreaterThanOrEqualTo(1)
+                .GreaterThanOrEqualTo(PageMin)
                 .WithMessage(ResourcesErrorMessages.REPORT_PAGE_INVALID);
         }
 
-        public void PageSizeBounds(int min = 1, int max = 200)
+        public void PageSizeBounds(int min = PageSizeMin, int max = PageSizeMax)
         {
             rule
                 .InclusiveBetween(min, max)

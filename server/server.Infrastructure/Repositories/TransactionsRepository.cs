@@ -234,6 +234,79 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToList();
     }
 
+    public async Task<IReadOnlyList<TransactionOpenReceivableRow>> ListOpenReceivablesByBranchIdAsNoTracking(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        DateTime asOfDate,
+        int page,
+        int pageSize,
+        AccountType? accountType = null)
+    {
+        var query = BuildOpenReceivablesQuery(branchId, accountId, clientId, asOfDate, accountType);
+
+        var rows = await query
+            .OrderBy(t => t.DueDate)
+            .ThenBy(t => t.Date)
+            .ThenBy(t => t.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(t => new TransactionOpenReceivableRow(
+                t.Id,
+                t.Date,
+                t.DueDate,
+                t.Value,
+                t.ClientId,
+                t.Client != null ? t.Client.Name : null,
+                t.AccountId,
+                t.Account.Name,
+                t.OriginTransactionId,
+                t.Description))
+            .ToListAsync();
+
+        return rows;
+    }
+
+    public async Task<int> CountOpenReceivablesByBranchIdAsNoTracking(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        DateTime asOfDate,
+        AccountType? accountType = null)
+    {
+        return await BuildOpenReceivablesQuery(branchId, accountId, clientId, asOfDate, accountType)
+            .CountAsync();
+    }
+
+    private IQueryable<Transaction> BuildOpenReceivablesQuery(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        DateTime asOfDate,
+        AccountType? accountType)
+    {
+        var query = dbContext.Transactions
+            .AsNoTracking()
+            .Include(t => t.Account)
+            .Include(t => t.Client)
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.PaidAt == null);
+
+        if (accountType is { } selectedAccountType)
+            query = query.Where(t => t.Account.Type == selectedAccountType);
+
+        if (accountId is { } selectedAccountId)
+            query = query.Where(t => t.AccountId == selectedAccountId);
+
+        if (clientId is { } selectedClientId)
+            query = query.Where(t => t.ClientId == selectedClientId);
+
+        return query;
+    }
+
     private static IQueryable<Transaction> ApplyFilter(
         IQueryable<Transaction> source,
         Guid branchId,

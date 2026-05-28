@@ -5,6 +5,7 @@ using server.Domain.Interfaces;
 using server.Domain.Models;
 using server.Domain.Models.Projections;
 using DailyLedgerListFilter = server.Domain.Models.DailyLedgerListFilter;
+using AccountType = server.Domain.Entities.Enums.AccountType;
 
 namespace CommonTestUtilities.Repositories;
 
@@ -154,6 +155,46 @@ public class TransactionsRepositoryBuilder
                 Arg.Is<Guid?>(value => value == clientId),
                 Arg.Is<DateTime>(value => value == asOfDate))
             .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListOpenReceivablesByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        DateTime asOfDate,
+        int page,
+        int pageSize,
+        AccountType? accountType,
+        IReadOnlyList<TransactionOpenReceivableRow> result)
+    {
+        _repository.ListOpenReceivablesByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid?>(value => value == accountId),
+                Arg.Is<Guid?>(value => value == clientId),
+                Arg.Is<DateTime>(value => value == asOfDate),
+                Arg.Is<int>(value => value == page),
+                Arg.Is<int>(value => value == pageSize),
+                Arg.Is<AccountType?>(value => value == accountType))
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder CountOpenReceivablesByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        DateTime asOfDate,
+        AccountType? accountType,
+        int count)
+    {
+        _repository.CountOpenReceivablesByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid?>(value => value == accountId),
+                Arg.Is<Guid?>(value => value == clientId),
+                Arg.Is<DateTime>(value => value == asOfDate),
+                Arg.Is<AccountType?>(value => value == accountType))
+            .Returns(count);
         return this;
     }
 

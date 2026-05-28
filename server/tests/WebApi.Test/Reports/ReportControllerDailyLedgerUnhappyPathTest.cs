@@ -1,4 +1,5 @@
 using System.Net;
+using server.Application.UseCases.Reports;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
 using Shouldly;
@@ -83,11 +84,13 @@ public class ReportControllerDailyLedgerUnhappyPathTest(ServerWebApplicationFact
     }
 
     [Fact]
-    public async Task DailyLedger_ShouldReturn400_WhenDateRangeExceeds366Days()
+    public async Task DailyLedger_ShouldReturn400_WhenDateRangeExceedsMaxDays()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DLUnhappy400b");
         var account = await factory.SeedAccountAsync(branch.Id);
-        var url = $"/report/daily-ledger?accountId={account.Id}&dateFrom=2024-01-01&dateTo=2025-02-02";
+        var dateFrom = new DateTime(2025, 1, 1);
+        var dateTo = dateFrom.AddDays(ReportValidationExtensions.DateRangeMaxDays + 1);
+        var url = $"/report/daily-ledger?accountId={account.Id}&dateFrom={dateFrom:yyyy-MM-dd}&dateTo={dateTo:yyyy-MM-dd}";
 
         var httpResponse = await _client.GetAuthAsync(url, token);
 
@@ -110,11 +113,11 @@ public class ReportControllerDailyLedgerUnhappyPathTest(ServerWebApplicationFact
     }
 
     [Fact]
-    public async Task DailyLedger_ShouldReturn400_WhenPageSizeExceeds200()
+    public async Task DailyLedger_ShouldReturn400_WhenPageSizeExceedsMax()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DLUnhappy400d");
         var account = await factory.SeedAccountAsync(branch.Id);
-        var url = $"/report/daily-ledger?accountId={account.Id}&dateFrom=2025-01-01&dateTo=2025-01-31&pageSize=201";
+        var url = $"/report/daily-ledger?accountId={account.Id}&dateFrom=2025-01-01&dateTo=2025-01-31&pageSize={ReportValidationExtensions.PageSizeMax + 1}";
 
         var httpResponse = await _client.GetAuthAsync(url, token);
 
