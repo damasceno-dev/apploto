@@ -576,4 +576,37 @@
     <data name="SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE" xml:space="preserve">
         <value>O tempo de dedução deve ser maior ou igual a zero, menor ou igual a 8 horas e ter no máximo 2 casas decimais</value>
     </data>
+    <data name="REPORT_DATE_RANGE_REQUIRED" xml:space="preserve">
+        <value>O intervalo de datas é obrigatório</value>
+    </data>
+    <data name="REPORT_DATE_RANGE_INVERTED" xml:space="preserve">
+        <value>A data inicial deve ser anterior ou igual à data final</value>
+    </data>
+    <data name="REPORT_DATE_RANGE_TOO_WIDE" xml:space="preserve">
+        <value>O intervalo de datas deve ter no máximo 366 dias</value>
+    </data>
+    <data name="REPORT_AS_OF_DATE_INVALID" xml:space="preserve">
+        <value>A data de referência é inválida</value>
+    </data>
+    <data name="REPORT_YEAR_OUT_OF_RANGE" xml:space="preserve">
+        <value>O ano informado deve estar entre 2000 e 2100</value>
+    </data>
+    <data name="REPORT_MONTH_INVALID" xml:space="preserve">
+        <value>O mês informado deve estar entre 1 e 12</value>
+    </data>
+    <data name="REPORT_OPERATOR_ID_REQUIRED" xml:space="preserve">
+        <value>O identificador do operador deve ser informado</value>
+    </data>
+    <data name="REPORT_ACCOUNT_ID_REQUIRED" xml:space="preserve">
+        <value>O identificador da conta deve ser informado</value>
+    </data>
+    <data name="REPORT_MEMBER_NOT_OWN_OPERATOR" xml:space="preserve">
+        <value>Não é possível acessar dados de outro operador</value>
+    </data>
+    <data name="REPORT_PAGE_INVALID" xml:space="preserve">
+        <value>O número da página deve ser maior ou igual a 1</value>
+    </data>
+    <data name="REPORT_PAGE_SIZE_INVALID" xml:space="preserve">
+        <value>O tamanho da página deve estar entre 1 e 200</value>
+    </data>
 </root>

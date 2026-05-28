@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v22
+Spec revision: v23
 -->
 
-> **Status:** Revised spec (v22) — Milestone 6 Phase 6.5 multi-source Brazilian Holiday providers + `Holiday.Source` provenance
+> **Status:** Revised spec (v23) — Milestone 7 Phase 1 Reporting Surface foundation — §6.14 base drop + `AgingBucket` enum + `ReportAgingBucketizer` + shared resource keys + `ReportValidationExtensions`
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -31,6 +31,7 @@ Spec revision: v22
 > v20: Clarified §6.7 Member tap routing for overnight vs forgotten-close cases: prior-day open segments are resolved by the next submitted Action and Date, not by server reinterpretation.
 > v21: Added §5.1 Brazilian Holiday Calendar appendix documenting the M6 pure-function import source: 10 mandatory national holidays, 3 curated optional federal Easter-anchored entries, Law 9.093/1995 for Sexta-feira Santa, Law 14.759/2023 for Consciência Negra, and the Anonymous Gregorian / Meeus/Jones/Butcher Easter algorithm reference.
 > v22: Milestone 6 Phase 6.5 multi-source Brazilian Holiday providers — §3.17 Holiday gains the `Source` column (`HolidaySource` enum: Manual=0, Canonical=1, BrasilApi=2, Nager=3) with a default of `Manual` and a Phase 6.5 migration backfilling existing rows. §5.1 grows a "Sources" subsection covering composite ordering (Nager → BrasilAPI → Canonical), the 13-concept identity catalog with name-match + ±3-day date proximity tiebreaker, the documented provider quirks (BrasilAPI's "Confraternização mundial" / "Dia da consciência negra" / "Independência do Brasil" renames; Nager's regional `global: false` rows being dropped; both providers missing Quarta-feira de Cinzas → always canonical backfill), and the 502 `HOLIDAY_SOURCE_UNAVAILABLE` contract for explicit single-source failures (Composite never 502s because canonical always backfills).
+> v23: Milestone 7 Phase 1 Reporting Surface foundation — §6.14 added covering the read-only reporting contract, three permission buckets (Manager/Admin whole-branch views, operator-self with empty-scope short-circuit, write-twin scope for preview endpoints), `AgingBucket` enum definition with exact boundary semantics (day 30 → `Days0To30`, day 31 → `Days31To60`, day 90 → `Days61To90`, day 91+ → `Days91Plus`), date-range guardrails (closed window, span ≤ 366 days, `AsOfDate` defaults to branch-local today via `IBranchClock`), `Status = Active AND Active = true` filter on financial totals, and the preview-never-commits invariant pinned by reload assertions.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -1458,6 +1459,43 @@ All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`,
 **Sibling-account isolation.** Submit computes and persists CashVariance for exactly one `(BranchId, AccountId, Date)` close. It reads transactions and prior close rows for that account only; sibling accounts never contribute to the variance.
 
 **System-only product.** The `"Diferença Caixa"` product is resolved by display name and is owned by Submit. It is never accepted in client `PUT /items` payloads (`DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN`), never deleted on rejection or recall, and is updated in place on resubmission or submit-after-recall.
+
+---
+
+### 6.14 Reporting Surface
+
+**Read-only contract.** All Milestone 7 reporting endpoints are read-only. None call `Add`, none mutate persisted state, none open a unit of work. The two preview endpoints (`POST /transaction/installment/preview`, `POST /transaction/{id}/edit-preview`) are compute-only and never persist; the "preview cannot commit" invariant is enforced by construction (no `IUnitOfWork` dependency) and pinned by WebApi.Test reload assertions that verify row state is byte-for-byte unchanged after a 200 response.
+
+**Permission buckets.**
+
+| Bucket                                   | Applies to                                                                                                                                  | Behavior                                                                                                                                                                       |
+|------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Manager/Admin only                       | Daily ledger, fiado balance, fiado aging, open-cheque aging, cash-variance summary, monthly reconciliation, transaction edit-impact preview | `[TokenAuthorize(Role.Manager, Role.Admin)]` per-action; Members receive 401/403                                                                                               |
+| Any branch role with operator-self scope | Operator transaction summary, time-entry balance summary                                                                                    | `[TokenAuthenticateBranch]` per-action; Member with no linked operator → empty summary short-circuit; Member targeting another operator → 403 `REPORT_MEMBER_NOT_OWN_OPERATOR` |
+| Same as write twin                       | Installment plan preview                                                                                                                    | Member with linked operator + account scope, Manager/Admin elevated; mirrors `POST /transaction/installment` permission rules                                                  |
+
+**Aging buckets.** Aging is computed server-side by `ReportAgingBucketizer.BucketFor(dueDate, asOfDate)` (static pure function, no DI registration):
+
+| `daysOutstanding = (asOfDate.Date − dueDate.Date).Days` | Bucket       |
+|---------------------------------------------------------|--------------|
+| `dueDate > asOfDate` (future-due)                       | `Current`    |
+| 0 – 30 (inclusive)                                      | `Days0To30`  |
+| 31 – 60 (inclusive)                                     | `Days31To60` |
+| 61 – 90 (inclusive)                                     | `Days61To90` |
+| > 90                                                    | `Days91Plus` |
+
+Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `Days61To90`; day 91 → `Days91Plus`.
+
+**Date-range guardrails.** Every paginated report that accepts a `[DateFrom, DateTo]` window enforces:
+- `DateFrom` and `DateTo` are valid (non-default) dates.
+- `DateFrom <= DateTo` (inverted range → 400 `REPORT_DATE_RANGE_INVERTED`).
+- `(DateTo − DateFrom).TotalDays <= 366` (too-wide span → 400 `REPORT_DATE_RANGE_TOO_WIDE`).
+
+`AsOfDate` parameters are optional; when omitted the use case resolves branch-local today via `IBranchClock.LocalBusinessDate(IBranchClock.UtcNow())`.
+
+**Financial total filters.** All financial aggregates filter on `Status = Active AND Active = true` (entity-base soft-delete). `Draft` and `Cancelled` rows are excluded from sums, balances, and totals. This applies to daily ledger balances, fiado balances, aging rows, cash-variance inputs, and monthly reconciliation totals.
+
+**Aggregation.** Aggregate queries (`SumActiveByX`, `ListOpenReceivables`, `ListVarianceTimeSeries`) live in repositories. Use cases never materialize whole tables into memory and aggregate in C#.
 
 ---
 

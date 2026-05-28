@@ -1160,5 +1160,71 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE", resourceCulture);
             }
         }
+
+        public static string REPORT_DATE_RANGE_REQUIRED {
+            get {
+                return ResourceManager.GetString("REPORT_DATE_RANGE_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string REPORT_DATE_RANGE_INVERTED {
+            get {
+                return ResourceManager.GetString("REPORT_DATE_RANGE_INVERTED", resourceCulture);
+            }
+        }
+
+        public static string REPORT_DATE_RANGE_TOO_WIDE {
+            get {
+                return ResourceManager.GetString("REPORT_DATE_RANGE_TOO_WIDE", resourceCulture);
+            }
+        }
+
+        public static string REPORT_AS_OF_DATE_INVALID {
+            get {
+                return ResourceManager.GetString("REPORT_AS_OF_DATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string REPORT_YEAR_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("REPORT_YEAR_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
+        public static string REPORT_MONTH_INVALID {
+            get {
+                return ResourceManager.GetString("REPORT_MONTH_INVALID", resourceCulture);
+            }
+        }
+
+        public static string REPORT_OPERATOR_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("REPORT_OPERATOR_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string REPORT_ACCOUNT_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("REPORT_ACCOUNT_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string REPORT_MEMBER_NOT_OWN_OPERATOR {
+            get {
+                return ResourceManager.GetString("REPORT_MEMBER_NOT_OWN_OPERATOR", resourceCulture);
+            }
+        }
+
+        public static string REPORT_PAGE_INVALID {
+            get {
+                return ResourceManager.GetString("REPORT_PAGE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string REPORT_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("REPORT_PAGE_SIZE_INVALID", resourceCulture);
+            }
+        }
     }
 }
