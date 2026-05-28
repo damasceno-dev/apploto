@@ -1,6 +1,7 @@
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Models;
+using server.Domain.Models.Projections;
 
 namespace server.Domain.Interfaces;
 
@@ -19,4 +20,6 @@ public interface ITransactionsRepository
     Task<int> CountByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
     Task<decimal> SumActiveByAccountAndDateBeforeAsNoTracking(Guid branchId, Guid accountId, DateTime dateExclusive);
     Task<(decimal totalIn, decimal totalOut)> SumActiveByAccountAndDateRangeAsNoTracking(Guid branchId, Guid accountId, DateTime dateFrom, DateTime dateTo);
+
+    Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(Guid branchId, Guid? clientId, DateTime asOfDate);
 }

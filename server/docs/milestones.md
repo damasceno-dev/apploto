@@ -1538,18 +1538,19 @@ Add the small set of primitives more than one later phase consumes. No endpoints
 
 `GET /report/fiado/balance?clientId?&asOfDate?` — Manager/Admin. One row per Tab client with their net outstanding per §6.4 (`SUM(Out) − SUM(In)` on `Account.Type = Tab AND Status = Active AND Date <= AsOfDate`). No aging bucket here — that's Phase 4. End-of-day collection-planning view.
 
-- [ ] **3.1** Add `FiadoBalanceQuery` to `server.Domain/Models/` (`ClientId?`, `AsOfDate`).
-- [ ] **3.2** Add `FiadoClientBalanceRow` projection record to `server.Domain/Models/Projections/` (`ClientId`, `ClientName`, `OutstandingTotal`).
-- [ ] **3.3** Extend `ITransactionsRepository` with `Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(branchId, clientId?, asOfDate)` implementing the §6.4 SQL: group by `ClientId` on Tab + Active rows where `Date <= asOfDate`, project `(Direction = Out) ? +Value : -Value` into the sum, exclude zero-balance groups, join `Clients` for `ClientName`, order `ClientName ASC, ClientId ASC`. Branch-scoped, `Active = true AND Status = Active`-filtered.
-- [ ] **3.4** Add the Infrastructure implementation.
-- [ ] **3.5** Extend `TransactionsRepositoryBuilder` and add `FiadoBalanceQueryBuilder`.
-- [ ] **3.6** Add Communication DTOs: `RequestFiadoBalanceJson { Guid? ClientId, DateTime? AsOfDate }`; `ResponseFiadoBalanceJson { DateTime AsOfDate, IReadOnlyList<ResponseFiadoClientBalanceItemJson> Items, decimal TotalOutstanding, bool Truncated }`; `ResponseFiadoClientBalanceItemJson { ClientId, ClientName, OutstandingTotal }`. Add `RequestFiadoBalanceJsonBuilder`.
-- [ ] **3.7** Add `FiadoBalanceFluentValidation`: optional `AsOfDate` validity. No pagination (fiado clients per branch are bounded; cap at 500 rows with `Truncated` flag).
-- [ ] **3.8** Implement `GetFiadoBalancesUseCase`: Manager/Admin → validate inline → resolve `asOfDate ?? branchClock.LocalBusinessDate(branchClock.UtcNow())` → call repo (no limit parameter; result is the full ordered set, bounded by branch's active fiado clientele which is typically a few dozen) → if `result.Count > 500`, set `Truncated = true` and take the first 500 items; otherwise `Truncated = false` and take all → compute `TotalOutstanding = sum across the returned items` → return.
-- [ ] **3.9** Register in DI.
-- [ ] **3.10** Add `GET /report/fiado/balance` to `ReportController` (Manager/Admin). Full `[ProducesResponseType]` for 200/400/401/403.
-- [ ] **3.11** Add `Validators.Test` and `UseCases.Test` for the validator and use case: happy with multiple clients; branch isolation; zero-balance clients excluded; Cancelled/Draft excluded from sums (exact-argument repo assertion); default `asOfDate` falls back to `IBranchClock`; `Truncated` cap exercised.
-- [ ] **3.12** Add `WebApi.Test` happy + unhappy with reload-based assertions on seeded multi-client Tab data.
+- [x] **3.1** Add `FiadoBalanceQuery` to `server.Domain/Models/` (`ClientId?`, `AsOfDate`).
+- [x] **3.2** Add `FiadoClientBalanceRow` projection record to `server.Domain/Models/Projections/` (`ClientId`, `ClientName`, `OutstandingTotal`).
+- [x] **3.3** Extend `ITransactionsRepository` with `Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(branchId, clientId?, asOfDate)` implementing the §6.4 SQL: group by `ClientId` on Tab + Active rows where `Date <= asOfDate`, project `(Direction = Out) ? +Value : -Value` into the sum, exclude zero-balance groups, join `Clients` for `ClientName`, order `ClientName ASC, ClientId ASC`. Branch-scoped, `Active = true AND Status = Active`-filtered.
+- [x] **3.4** Add the Infrastructure implementation.
+- [x] **3.5** Extend `TransactionsRepositoryBuilder` and add `FiadoBalanceQueryBuilder`.
+- [x] **3.6** Add Communication DTOs: `RequestFiadoBalanceJson { Guid? ClientId, DateTime? AsOfDate }`; `ResponseFiadoBalanceJson { DateTime AsOfDate, IReadOnlyList<ResponseFiadoClientBalanceItemJson> Items, decimal TotalOutstanding }`; `ResponseFiadoClientBalanceItemJson { ClientId, ClientName, OutstandingTotal }`. Add `RequestFiadoBalanceJsonBuilder`.
+  Note: dropped the `bool Truncated` field. A post-fetch in-memory cap does not protect the database query or aggregation cost, and silently summing only the kept rows would make `TotalOutstanding` ambiguous on a balance report. If branch fiado clientele ever grows past acceptable bounds, prefer real pagination or a repository-level `LIMIT n+1` with an explicit partial-total contract.
+- [x] **3.7** Add `FiadoBalanceFluentValidation`: optional `AsOfDate` validity. No pagination (fiado clients per branch are bounded; full ordered grouped set returned).
+- [x] **3.8** Implement `GetFiadoBalancesUseCase`: Manager/Admin → validate inline → resolve `asOfDate ?? branchClock.LocalBusinessDate(branchClock.UtcNow())` → call repo (no limit parameter; result is the full ordered set, bounded by branch's active fiado clientele which is typically a few dozen) → compute `TotalOutstanding = sum across the returned items` → return.
+- [x] **3.9** Register in DI.
+- [x] **3.10** Add `GET /report/fiado/balance` to `ReportController` (Manager/Admin). Full `[ProducesResponseType]` for 200/400/401/403.
+- [x] **3.11** Add `Validators.Test` and `UseCases.Test` for the validator and use case: happy with multiple clients; branch isolation; zero-balance clients excluded; Cancelled/Draft excluded from sums (exact-argument repo assertion); default `asOfDate` falls back to `IBranchClock`.
+- [x] **3.12** Add `WebApi.Test` happy + unhappy with reload-based assertions on seeded multi-client Tab data.
 
 ### Phase 4 — Fiado Aging Report
 

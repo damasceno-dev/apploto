@@ -3,6 +3,7 @@ using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using server.Domain.Models.Projections;
 
 namespace server.Infrastructure.Repositories;
 
@@ -182,6 +183,55 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .FirstOrDefaultAsync();
 
         return sums is null ? (0m, 0m) : (sums.TotalIn, sums.TotalOut);
+    }
+
+    public async Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(
+        Guid branchId,
+        Guid? clientId,
+        DateTime asOfDate)
+    {
+        var query = dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.Account.Type == AccountType.Tab &&
+                t.ClientId != null &&
+                t.Date <= asOfDate);
+
+        if (clientId is { } selectedClientId)
+        {
+            query = query.Where(t => t.ClientId == selectedClientId);
+        }
+
+        var aggregated = query
+            .GroupBy(t => t.ClientId!.Value)
+            .Select(g => new
+            {
+                ClientId = g.Key,
+                OutstandingTotal = g.Sum(t => t.Direction == Direction.Out ? t.Value : -t.Value)
+            })
+            .Where(r => r.OutstandingTotal != 0m);
+
+        var rows = await aggregated
+            .Join(
+                dbContext.Clients.AsNoTracking(),
+                row => row.ClientId,
+                client => client.Id,
+                (row, client) => new
+                {
+                    row.ClientId,
+                    ClientName = client.Name,
+                    row.OutstandingTotal
+                })
+            .OrderBy(row => row.ClientName)
+            .ThenBy(row => row.ClientId)
+            .ToListAsync();
+
+        return rows
+            .Select(r => new FiadoClientBalanceRow(r.ClientId, r.ClientName, r.OutstandingTotal))
+            .ToList();
     }
 
     private static IQueryable<Transaction> ApplyFilter(

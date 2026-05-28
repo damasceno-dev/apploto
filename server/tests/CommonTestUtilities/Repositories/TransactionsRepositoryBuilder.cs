@@ -3,6 +3,7 @@ using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using server.Domain.Models.Projections;
 using DailyLedgerListFilter = server.Domain.Models.DailyLedgerListFilter;
 
 namespace CommonTestUtilities.Repositories;
@@ -138,6 +139,20 @@ public class TransactionsRepositoryBuilder
         _repository.ListByOriginTransactionIdAndBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == originId),
                 Arg.Is<Guid>(value => value == branchId))
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListFiadoBalancesByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        Guid? clientId,
+        DateTime asOfDate,
+        IReadOnlyList<FiadoClientBalanceRow> result)
+    {
+        _repository.ListFiadoBalancesByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid?>(value => value == clientId),
+                Arg.Is<DateTime>(value => value == asOfDate))
             .Returns(result);
         return this;
     }
