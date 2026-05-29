@@ -48,6 +48,7 @@ using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
+using server.Application.UseCases.Transactions.InstallmentPreview;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
 using server.Application.UseCases.Holidays.Create;
@@ -169,6 +170,7 @@ public static class AppDependencyInjection
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
         services.AddScoped<CreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();
+        services.AddScoped<PreviewInstallmentPlanUseCase>();
         services.AddScoped<FinalizeTransactionUseCase>();
         services.AddScoped<GetTransactionUseCase>();
         services.AddScoped<ListTransactionsUseCase>();

@@ -1,13 +1,12 @@
 using System.Globalization;
 using System.Net;
 using CommonTestUtilities.Requests;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
-using server.Infrastructure;
+using server.Domain.Interfaces;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -724,18 +723,12 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
         return new DateTime(year, month, day, hour, 0, 0, DateTimeKind.Utc);
     }
 
-    private async Task<List<Transaction>> ListInstallmentsAsync(Guid originId, Guid branchId)
+    private async Task<IReadOnlyList<Transaction>> ListInstallmentsAsync(Guid originId, Guid branchId)
     {
         using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
-
-        return await dbContext.Transactions
-            .AsNoTracking()
-            .Where(transaction =>
-                transaction.OriginTransactionId == originId &&
-                transaction.BranchId == branchId)
-            .OrderBy(transaction => transaction.DueDate)
-            .ToListAsync();
+        var transactionsRepository = scope.ServiceProvider.GetRequiredService<ITransactionsRepository>();
+        var rows = await transactionsRepository.ListByOriginTransactionIdAndBranchIdAsNoTracking(originId, branchId);
+        return rows.OrderBy(t => t.DueDate).ToList();
     }
 
     private sealed record LedgerContext(

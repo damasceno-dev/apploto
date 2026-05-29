@@ -4,6 +4,7 @@ using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
+using server.Application.UseCases.Transactions.InstallmentPreview;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
 using server.Communication.Requests;
@@ -77,6 +78,23 @@ public class TransactionController : ControllerBase
     {
         var response = await createTransactionInstallmentUseCase.Execute(request);
         return Created(string.Empty, response);
+    }
+
+    [HttpPost]
+    [Route("installment/preview")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseInstallmentPreviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> PreviewInstallment(
+        [FromServices] PreviewInstallmentPlanUseCase previewInstallmentPlanUseCase,
+        [FromBody] RequestCreateTransactionInstallmentJson request)
+    {
+        var response = await previewInstallmentPlanUseCase.Execute(request);
+        return Ok(response);
     }
 
     [HttpPost]
