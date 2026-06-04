@@ -11,6 +11,7 @@ public interface ITransactionsRepository
     Task AddRange(IEnumerable<Transaction> transactions);
     Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId);
     Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId);
+    Task<Transaction?> GetByIdAndBranchIdAsNoTrackingWithTransactionType(Guid id, Guid branchId);
     Task<IReadOnlyList<Transaction>> ListByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<IReadOnlyList<Transaction>> ListByOriginTransactionIdAndBranchIdAsNoTracking(Guid originId, Guid branchId);

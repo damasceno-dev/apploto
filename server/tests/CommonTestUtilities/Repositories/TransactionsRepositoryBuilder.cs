@@ -38,6 +38,18 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
+    public TransactionsRepositoryBuilder GetByIdAndBranchIdAsNoTrackingWithTransactionTypeReturns(
+        Guid id,
+        Guid branchId,
+        Transaction? result)
+    {
+        _repository.GetByIdAndBranchIdAsNoTrackingWithTransactionType(
+                Arg.Is<Guid>(value => value == id),
+                Arg.Is<Guid>(value => value == branchId))
+            .Returns(result);
+        return this;
+    }
+
     public TransactionsRepositoryBuilder ListByBranchIdAsNoTrackingReturns(
         Guid branchId,
         TransactionListFilter filter,

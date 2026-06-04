@@ -33,6 +33,21 @@ public class DailyClosesRepositoryBuilder
         return this;
     }
 
+    public DailyClosesRepositoryBuilder GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(
+        Guid branchId,
+        Guid accountId,
+        DateTime date,
+        DailyClose? result)
+    {
+        _repository.GetByBranchIdAndAccountIdAndDateAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == accountId),
+                Arg.Is<DateTime>(value => value == date),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
     public DailyClosesRepositoryBuilder GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
         Guid branchId,
         Guid accountId,

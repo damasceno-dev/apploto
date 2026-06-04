@@ -38,6 +38,22 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 transaction.BranchId == branchId);
     }
 
+    public async Task<Transaction?> GetByIdAndBranchIdAsNoTrackingWithTransactionType(Guid id, Guid branchId)
+    {
+        // No-tracking twin of GetByIdAndBranchId for the edit-impact preview. Mirrors the
+        // tracked load's TransactionType -> Category include (the use case reads
+        // RequiresTabAccountAndClient) and additionally includes Account so the hypothetical
+        // overlay can read Account.Type without a second round-trip.
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Include(transaction => transaction.TransactionType)
+            .ThenInclude(transactionType => transactionType.Category)
+            .Include(transaction => transaction.Account)
+            .FirstOrDefaultAsync(transaction =>
+                transaction.Id == id &&
+                transaction.BranchId == branchId);
+    }
+
     public async Task<IReadOnlyList<Transaction>> ListByBranchIdAsNoTracking(
         Guid branchId,
         TransactionListFilter filter)

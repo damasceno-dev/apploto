@@ -8,6 +8,7 @@ public interface IDailyClosesRepository
     Task Add(DailyClose dailyClose);
     Task<DailyClose?> GetByIdAndBranchId(Guid id, Guid branchId);
     Task<DailyClose?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId);
+    Task<DailyClose?> GetByBranchIdAndAccountIdAndDateAsNoTracking(Guid branchId, Guid accountId, DateTime date, CancellationToken ct = default);
     Task<DailyClose?> GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
         Guid branchId,
         Guid accountId,

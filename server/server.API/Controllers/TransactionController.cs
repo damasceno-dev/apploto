@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.EditPreview;
 using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.InstallmentPreview;
@@ -9,6 +10,7 @@ using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities.Enums;
 using server.Filters;
 
 namespace server.Controllers;
@@ -146,6 +148,26 @@ public class TransactionController : ControllerBase
         [FromBody] RequestUpdateTransactionJson request)
     {
         var response = await updateTransactionUseCase.Execute(transactionId, request);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{transactionId:guid}/edit-preview")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseEditTransactionPreviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> EditPreview(
+        [FromServices] PreviewEditTransactionUseCase previewEditTransactionUseCase,
+        [FromRoute] Guid transactionId,
+        [FromBody] RequestUpdateTransactionJson request,
+        [FromQuery] DateTime? asOfDate,
+        CancellationToken cancellationToken)
+    {
+        var response = await previewEditTransactionUseCase.Execute(transactionId, request, asOfDate, cancellationToken);
         return Ok(response);
     }
 }
