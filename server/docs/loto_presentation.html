@@ -52,13 +52,13 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .schema-group .entity{font-size:13px;color:var(--dim);padding:3px 0;padding-left:8px;border-left:2px solid transparent}
 .schema-group .entity:hover{color:var(--text);border-left-color:inherit}
 
-.closing-slide{justify-content:center;align-items:center;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.closing-slide h2{font-size:clamp(26px,4vw,38px);font-weight:600;margin-bottom:36px;text-align:center}
-.closing-cards{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:920px;width:100%}
-.closing-card{background:var(--box);border:1px solid var(--border);border-radius:12px;padding:24px 28px;transition:all .3s}
+.closing-slide{justify-content:flex-start;align-items:center;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:22px}
+.closing-slide h2{font-size:clamp(24px,3vw,32px);font-weight:600;margin-bottom:16px;text-align:center}
+.closing-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:1180px;width:100%}
+.closing-card{background:var(--box);border:1px solid var(--border);border-radius:8px;padding:14px 16px;transition:all .3s;min-height:102px}
 .closing-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
-.closing-card h3{color:var(--accent);font-size:17px;font-weight:600;margin-bottom:10px}
-.closing-card p{color:var(--dim);font-size:14px;line-height:1.6}
+.closing-card h3{color:var(--accent);font-size:14px;font-weight:600;margin-bottom:7px}
+.closing-card p{color:var(--dim);font-size:12px;line-height:1.42}
 
 .intro-slide{justify-content:flex-start;align-items:center;padding:40px 60px;overflow-y:auto}
 .intro-slide h2{font-size:clamp(24px,3.5vw,36px);font-weight:600;margin-bottom:8px;text-align:center}
@@ -145,7 +145,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .fade-in{animation:fadeIn .4s ease both}
 
 .nav-btn.faded{opacity:.25;pointer-events:none}
-.restart-btn{margin-top:32px;background:var(--accent);border:none;color:var(--bg);padding:14px 36px;border-radius:8px;cursor:pointer;font-size:16px;font-weight:600;font-family:inherit;transition:all .2s;letter-spacing:.01em}
+.restart-btn{margin-top:16px;background:var(--accent);border:none;color:var(--bg);padding:10px 28px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;transition:all .2s;letter-spacing:.01em}
 .restart-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(230,126,34,.35)}
 .restart-btn:active{transform:scale(.97)}
 
@@ -160,7 +160,7 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
   .uc-panel{flex:1;min-height:0}
   .uc-narrative{font-size:13px;flex:1 1 45%}
   .uc-data{font-size:10.5px;flex:1 1 55%}
-  .closing-cards{grid-template-columns:1fr}
+  .closing-cards{grid-template-columns:1fr 1fr;max-width:820px}
   .schema-groups{gap:10px}
   .schema-group{min-width:140px;padding:12px 14px}
   .intro-card p{font-size:13px}
@@ -199,9 +199,10 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
   .step-controls{gap:6px;padding:4px 0}
   .step-btn{padding:4px 10px;font-size:11px}
   .step-dot{width:6px;height:6px}
-  .closing-slide h2{font-size:22px;margin-bottom:20px}
-  .closing-card{padding:16px 18px}
-  .closing-card h3{font-size:14px}
+  .closing-slide h2{font-size:20px;margin-bottom:14px}
+  .closing-cards{grid-template-columns:1fr}
+  .closing-card{padding:12px 14px;min-height:0}
+  .closing-card h3{font-size:13px}
   .closing-card p{font-size:12px}
   .bottom-nav{gap:8px;padding:0 8px}
   .nav-btn{padding:6px 12px;font-size:12px}
@@ -838,17 +839,17 @@ function renderIntro(s,i){
 
 function renderClosing(i){
   const cards=[
-    {t:'Multi-Tenancy',d:'Branch as tenant, BranchId on every entity, query-level isolation. A single User can span multiple Branches with different Roles.'},
-    {t:'Three-Date Model',d:'Date / DueDate / PaidAt enables receivables tracking and reconciliation. Know exactly when money is expected and when it actually arrives.'},
-    {t:'Dual Ledger + Snapshot',d:'Transaction ledger for audit trail, DailyClose for physical reconciliation. CashVariance bridges them using the most recent prior close as opening values.'},
-    {t:'Fiado Isolation',d:'Terminal / Tab account separation prevents credit sales from distorting cash drawer counts, keeping daily reconciliation accurate.'},
-    {t:'Branch Consistency',d:'Every FK on Transaction and DailyClose (Account, Operator, Client, TransactionType→Category) must resolve to the same BranchId — enforced at the service layer to prevent cross-tenant data leakage.'},
-    {t:'Transaction Scope',d:'Members read by linked account, can filter their own rows with Mine, and can update, finalize, or cancel only linked-account rows they recorded on the same local business day. Draft finalization promotes Status to Active. Cancellation is terminal: Status moves to Cancelled with a required reason, the cancellation audit fields and the generic update audit fields are stamped from the same clock instant, and installment siblings are not touched.'},
-    {t:'DailyClose Recall',d:'DailyClose supports Rejected→Draft resubmission and same-day Submitted→Draft recall for the recording operator, or any Manager/Admin. Workflow-specific timestamps and UpdatedAt use the same captured instant, and the system CashVariance row survives recall until the next Submit overwrites it in place.'},
-    {t:'TimeEntry Calculation',d:'Clock pairs live on child TimeEntrySegment rows (full DateTime, branch-local wall clock); the parent TimeEntry holds Date, Status, and computed totals. Two shapes: Members send Action: Open|Close (server-stamped DateTime); Managers/Admins send an explicit Segments list. A prior-day open segment is overnight if the next tap is Close on that prior-day row, or forgotten (contributes 0h) if the next tap is Open on today\\'s row. Gross hours = sum of closed segment durations + live contribution of any open segment (same day). Lunch top-up rule: effective_lunch = max(0, lunch_tier(grossHours) − total_gap), where total_gap counts every gap between consecutive segment pairs. Non-Present statuses return TotalHours = DailyTarget (abonado) or 0 (owing). At most one open segment per TimeEntry is enforced by the IX_TimeEntrySegments_TimeEntryId_OpenShift filtered unique index.'},
-    {t:'Brazilian Holiday Multi-Source',d:'GET /holiday/import-br/{year}/preview and POST /holiday/import-br/{year} accept source=Composite|Canonical|BrasilApi|Nager (default Composite). Composite walks Nager → BrasilAPI → Canonical: each of the 13 canonical concepts (Confraternização Universal, Carnaval terça, Quarta-feira de Cinzas, Sexta-feira Santa, Tiradentes, Dia do Trabalho, Corpus Christi, Independência, Nossa Senhora Aparecida, Finados, Proclamação da República, Consciência Negra, Natal) is claimed by the highest-priority provider whose row name-matches under accent-stripped substring matching, with a ±3-day date-proximity tiebreaker for same-name candidates; concepts unclaimed after both providers run are backfilled from the canonical Meeus/Jones/Butcher calendar. Provider quirks (BrasilAPI renaming "Confraternização Universal" → "Confraternização mundial" etc., Nager dropping regional global:false rows, both providers missing Quarta-feira de Cinzas → always Canonical) are absorbed by the concept catalog. Each persisted Holiday row carries a Holiday.Source enum (Manual=0, Canonical=1, BrasilApi=2, Nager=3) recording its actual provenance — the Phase 6.5 migration backfills existing rows to Manual. Explicit single-source calls return 502 HOLIDAY_SOURCE_UNAVAILABLE on provider failure; Composite never 502s because canonical always backfills.'},
-    {t:'Reporting Surface (§6.14)',d:'All M7 reporting endpoints are read-only — none call Add, none mutate persisted state. Three permission buckets: Manager/Admin for whole-branch financial views (daily ledger, fiado balance/aging, open-cheque aging, cash-variance, monthly reconciliation, edit-impact preview); any branch role with operator-self scope for operator summary and time-entry balance (Member with no linked operator → empty short-circuit; Member targeting another operator → 403 REPORT_MEMBER_NOT_OWN_OPERATOR); same rules as write twin for installment plan preview. Aging is computed by the static ReportAgingBucketizer.BucketFor(dueDate, asOfDate): future-due → Current; days 0–30 → Days0To30; 31–60 → Days31To60; 61–90 → Days61To90; 91+ → Days91Plus. Date-range guardrails: closed [DateFrom, DateTo] window, DateFrom ≤ DateTo, span ≤ 366 days; AsOfDate defaults to branch-local today via IBranchClock. Financial totals filter Status = Active AND Active = true — Draft and Cancelled rows are excluded. Preview endpoints are compute-only; "preview cannot commit" is enforced by construction (no IUnitOfWork) and pinned by WebApi.Test reload assertions.'},
-    {t:'Edit Impact Preview (§6.14)',d:'POST /transaction/{id}/edit-preview (Manager/Admin) answers "if I save this edit, what moves?" without persisting. The body reuses RequestUpdateTransactionJson verbatim; asOfDate rides the query string. It mirrors PUT /transaction/{id} step-for-step (role check, validation, no-tracking load with TransactionType + Account, cancelled/lock/fiado/client guards, relative validator) minus IUnitOfWork and the Commit, then delegates to the concrete TransactionEditImpactProjector helper. Impact carries three sections: ReceivableImpact (bucket before/after on a DueDate shift; appears/disappears flags on a PaidAt flip), FiadoBalanceImpact (per-client outstanding deltas only when AccountType = Tab and the client changes: old client gets −signedValue, new client +signedValue, where signedValue = Out ? +Value : −Value), and CashVarianceImpact (AccountId/Date/DailyCloseStatus populated whenever a close exists; CurrentVariance is the real §6.12 variance live-recomputed via ICashVarianceCalculator, populated for any non-Draft close (Submitted/Approved/Rejected, which all retain their last-submitted counts) — null for Draft/absent; DailyCloseStatus tells the manager whether the number is pending, signed-off, or repudiated; VarianceDelta is the computed net-flow delta, 0 today because no editable field changes §6.12 inputs but derived not hardcoded; ProjectedVariance = CurrentVariance + VarianceDelta; one close is modeled because AccountId/Date are immutable — a future editable Account/Date would make this a list). Monthly lock-readiness is deferred to the Milestone 10 monthly-reconciliation report. Preview-never-commits is enforced by construction (no IUnitOfWork), pinned by WebApi reload assertions, and a determinism test ties the predicted BucketAfter to the post-PUT fiado-aging row.'}
+    {t:'Multi-Tenancy',d:'Branch is the tenant. Tenant-scoped rows carry branch context, while Users can join multiple branches through BranchUser roles.'},
+    {t:'Three-Date Model',d:'Date, DueDate, and PaidAt separate occurrence, expected settlement, and actual settlement for receivables tracking.'},
+    {t:'Dual Ledger + Snapshot',d:'Transaction is the audit ledger; DailyClose is the physical snapshot. CashVariance compares expected flow with counted products.'},
+    {t:'Fiado Isolation',d:'Terminal and Tab accounts keep customer credit out of cash drawer counts. Fiado balance is queried from Tab transactions.'},
+    {t:'Branch Consistency',d:'Transaction and DailyClose references must resolve to the same Branch. The service layer blocks cross-tenant mixes.'},
+    {t:'Transaction Scope',d:'Members work only with linked-account, same-day rows they recorded. Managers and Admins review broader branch workflows.'},
+    {t:'DailyClose Recall',d:'Rejected closes return to Draft for resubmission. Same-day Submitted closes can be recalled, and CashVariance is reused on submit.'},
+    {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours.'},
+    {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
+    {t:'Reporting Surface (§6.14)',d:'M7 reports are read-only with role-scoped access. Date ranges are capped, and financial totals include only Active rows.'},
+    {t:'Edit Impact Preview (§6.14)',d:'Edit preview mirrors update rules without committing and projects receivable, fiado, and cash-variance impact before save.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">
