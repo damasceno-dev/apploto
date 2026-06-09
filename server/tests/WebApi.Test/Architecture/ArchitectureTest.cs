@@ -68,6 +68,21 @@ public class ArchitectureTest
         "server.ExceptionHandling"
     ];
 
+    /// <summary>
+    /// Use-case namespaces whose members must never be able to commit. Every read/preview surface
+    /// either reads (<c>GET</c>) or computes without persisting (<c>POST … /preview</c>); none may take
+    /// an <see cref="IUnitOfWork"/> dependency. Reflection over the constructor signature is the
+    /// regression guard — it is immune to the doc-comment mentions of <c>IUnitOfWork</c> these classes
+    /// carry to explain the invariant.
+    /// </summary>
+    private static readonly string[] PreviewNeverCommitsNamespacePrefixes =
+    [
+        "server.Application.UseCases.Reports",
+        "server.Application.UseCases.Transactions.InstallmentPreview",
+        "server.Application.UseCases.Transactions.EditPreview",
+        "server.Application.UseCases.Transactions.CreatePreview"
+    ];
+
     [Fact]
     public void AllUseCases_AreRegisteredInApplicationDi()
     {
@@ -96,6 +111,41 @@ public class ArchitectureTest
         unregistered.ShouldBeEmpty(
             "The following use cases are not registered in AppDependencyInjection.AddApplication(): "
             + string.Join(", ", unregistered)
+        );
+    }
+
+    [Fact]
+    public void PreviewAndReportUseCases_DoNotDependOnUnitOfWork()
+    {
+        // A reflection check on constructor signatures
+        // makes "a preview/report cannot persist" a build-time guarantee, not just a per-test
+        // reload/row-count assertion.
+        var applicationAssembly = typeof(AppDependencyInjection).Assembly;
+
+        var useCases = applicationAssembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .Where(t => t.Name.EndsWith("UseCase", StringComparison.Ordinal))
+            .Where(t => PreviewNeverCommitsNamespacePrefixes.Any(prefix =>
+                t.Namespace?.StartsWith(prefix, StringComparison.Ordinal) is true))
+            .ToList();
+
+        useCases.ShouldNotBeEmpty(
+            "No report or preview use cases were discovered under the preview-never-commits namespaces — "
+            + "the reflection filter is probably stale."
+        );
+
+        var committers = useCases
+            .Where(useCaseType => useCaseType
+                .GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Any(parameter => parameter.ParameterType == typeof(IUnitOfWork)))
+            .Select(useCaseType => useCaseType.FullName)
+            .ToList();
+
+        committers.ShouldBeEmpty(
+            "The following report/preview use cases declare an IUnitOfWork constructor parameter, so they "
+            + "could commit — preview/report surfaces must never be able to persist: "
+            + string.Join(", ", committers)
         );
     }
 

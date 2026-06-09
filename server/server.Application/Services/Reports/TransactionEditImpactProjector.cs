@@ -1,4 +1,5 @@
 using server.Application.Services.DailyCloses;
+using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -7,13 +8,16 @@ using server.Domain.Interfaces;
 namespace server.Application.Services.Reports;
 
 /// <summary>
-/// Computes the read-only impact sections for a hypothetical transaction edit without
-/// persisting anything. A concrete helper (no interface), wired and tested the same way as the
-/// other helpers — <see cref="ReportAgingBucketizer"/>, InstallmentPlanBuilder,
-/// TransactionCreatePreamble. Depends on <see cref="IDailyClosesRepository"/> (open-close lookup),
-/// <see cref="IClientsRepository"/> (fiado client names), and <see cref="ICashVarianceCalculator"/> +
+/// Computes the read-only impact sections for a hypothetical transaction change — both an edit
+/// (<see cref="Project"/>) and a create (<see cref="ProjectCreate"/>) — without persisting
+/// anything. A concrete helper (no interface), wired and tested the same way as the other helpers —
+/// <see cref="ReportAgingBucketizer"/>, InstallmentPlanBuilder, TransactionCreatePreamble. Depends
+/// on <see cref="IDailyClosesRepository"/> (open-close lookup), <see cref="IClientsRepository"/>
+/// (fiado client names), and <see cref="ICashVarianceCalculator"/> +
 /// <see cref="ICashVarianceProductResolver"/> (live variance recompute), plus the static
-/// <see cref="ReportAgingBucketizer"/>.
+/// <see cref="ReportAgingBucketizer"/>. Both projections return the shared
+/// <see cref="ResponseTransactionImpactJson"/> envelope; the legacy class name is retained because
+/// it stays the single DI-registered Reports helper.
 /// </summary>
 public class TransactionEditImpactProjector(
     IDailyClosesRepository dailyClosesRepository,
@@ -21,17 +25,42 @@ public class TransactionEditImpactProjector(
     ICashVarianceCalculator cashVarianceCalculator,
     ICashVarianceProductResolver cashVarianceProductResolver)
 {
-    public async Task<ResponseTransactionEditImpactJson> Project(
+    public async Task<ResponseTransactionImpactJson> Project(
         HypotheticalTransactionEdit edit,
         DateTime asOfDate,
         Guid branchId,
         CancellationToken ct = default)
     {
-        return new ResponseTransactionEditImpactJson
+        return new ResponseTransactionImpactJson
         {
             ReceivableImpact = BuildReceivableImpact(edit, asOfDate),
             FiadoBalanceImpact = await BuildFiadoBalanceImpact(edit, branchId),
             CashVarianceImpact = await BuildCashVarianceImpact(edit, branchId, ct)
+        };
+    }
+
+    /// <summary>
+    /// Projects the impact of a would-be <c>POST /transaction</c> row. A <c>Draft</c> row is invisible
+    /// to every Active-filtered surface (§6.4 fiado sums, open receivables, §6.12 cash variance), so
+    /// all three sections short-circuit to empty/zero. An <c>Active</c> row appears in open
+    /// receivables when it is a Tab row, pushes its signed value onto its Tab client, and moves the
+    /// day's cash variance by the negative of its net flow (genuinely non-zero — the reason this phase
+    /// exists, in contrast to the edit twin's structural zero).
+    /// </summary>
+    public async Task<ResponseTransactionImpactJson> ProjectCreate(
+        HypotheticalTransactionCreate create,
+        DateTime asOfDate,
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        if (create.Status == TransactionStatus.Draft)
+            return new ResponseTransactionImpactJson();
+
+        return new ResponseTransactionImpactJson
+        {
+            ReceivableImpact = BuildCreateReceivableImpact(create, asOfDate),
+            FiadoBalanceImpact = await BuildCreateFiadoBalanceImpact(create, branchId),
+            CashVarianceImpact = await BuildCreateCashVarianceImpact(create, branchId, ct)
         };
     }
 
@@ -128,6 +157,80 @@ public class TransactionEditImpactProjector(
         {
             AccountId = edit.AccountId,
             Date = edit.Date,
+            DailyCloseStatus = dailyClose.Status,
+            CurrentVariance = currentVariance,
+            ProjectedVariance = currentVariance is { } current ? current + varianceDelta : null,
+            VarianceDelta = varianceDelta
+        };
+    }
+
+    private static ResponseReceivableImpactJson BuildCreateReceivableImpact(HypotheticalTransactionCreate create, DateTime asOfDate)
+    {
+        // Open receivables are Tab-account, unpaid rows (§6.14 fiado aging). A new row carries no
+        // PaidAt, so a Tab create always appears; a non-Tab row never enters the open-receivables set.
+        if (create.AccountType != AccountType.Tab)
+            return new ResponseReceivableImpactJson();
+
+        return new ResponseReceivableImpactJson
+        {
+            BucketBefore = null,
+            BucketAfter = ReportAgingBucketizer.BucketFor(create.DueDate, asOfDate),
+            RowAppearsInOpenReceivables = true
+        };
+    }
+
+    private async Task<ResponseFiadoBalanceImpactJson> BuildCreateFiadoBalanceImpact(HypotheticalTransactionCreate create, Guid branchId)
+    {
+        // Fiado balances live on Tab accounts with a client. §6.4 sign convention: Out raises the
+        // outstanding balance (+), In lowers it (−). The new row pushes its signed value onto its client.
+        if (create.AccountType != AccountType.Tab || create.ClientId is not { } clientId)
+            return new ResponseFiadoBalanceImpactJson();
+
+        var signedValue = create.Direction == Direction.Out ? create.Value : -create.Value;
+
+        return new ResponseFiadoBalanceImpactJson
+        {
+            Deltas = [await BuildDelta(clientId, signedValue, branchId)]
+        };
+    }
+
+    private async Task<ResponseCashVarianceImpactJson> BuildCreateCashVarianceImpact(
+        HypotheticalTransactionCreate create,
+        Guid branchId,
+        CancellationToken ct)
+    {
+        // §6.12: CashVariance = TotalClosing − TotalOpening − (In − Out). The new row adds its net flow
+        // to (In − Out), so the variance moves by the negative of that net flow — genuinely non-zero,
+        // unlike the edit twin whose editable fields never touch §6.12's inputs.
+        var varianceDelta = -NetFlow(create.Direction, create.Value);
+
+        var dailyClose = await dailyClosesRepository
+            .GetByBranchIdAndAccountIdAndDateAsNoTracking(branchId, create.AccountId, create.Date, ct);
+
+        if (dailyClose is null)
+        {
+            // No close opened for this (account, date) — nothing to reconcile against.
+            return new ResponseCashVarianceImpactJson { VarianceDelta = varianceDelta };
+        }
+
+        // CurrentVariance is the real §6.12 number, live-recomputed whenever a complete closing-count
+        // set exists — any status except Draft (Submitted/Approved/Rejected all retain their
+        // last-submitted counts). Withheld for Draft, whose counts are still being entered.
+        // DailyCloseStatus is surfaced so the caller can judge whether the new row lands under a
+        // pending, signed-off, or repudiated close. Exactly one close is modeled: the create's
+        // (account, date) is fixed.
+        decimal? currentVariance = null;
+        if (dailyClose.Status is not DailyCloseStatus.Draft)
+        {
+            var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchId, ct);
+            currentVariance = await cashVarianceCalculator.CalculateAsync(
+                branchId, create.AccountId, create.Date, dailyClose.Id, cashVarianceProductId, ct);
+        }
+
+        return new ResponseCashVarianceImpactJson
+        {
+            AccountId = create.AccountId,
+            Date = create.Date,
             DailyCloseStatus = dailyClose.Status,
             CurrentVariance = currentVariance,
             ProjectedVariance = currentVariance is { } current ? current + varianceDelta : null,

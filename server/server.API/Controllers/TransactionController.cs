@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
 using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
@@ -63,6 +64,25 @@ public class TransactionController : ControllerBase
     {
         var response = await createTransactionUseCase.Execute(request);
         return Created(string.Empty, response);
+    }
+
+    [HttpPost]
+    [Route("preview")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseCreateTransactionPreviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> CreatePreview(
+        [FromServices] PreviewCreateTransactionUseCase previewCreateTransactionUseCase,
+        [FromQuery] DateTime? asOfDate,
+        [FromBody] RequestCreateTransactionJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await previewCreateTransactionUseCase.Execute(request, asOfDate, cancellationToken);
+        return Ok(response);
     }
 
     [HttpPost]

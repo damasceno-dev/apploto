@@ -1,5 +1,6 @@
 using System.Net;
 using CommonTestUtilities.Requests;
+using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -139,18 +140,25 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
     }
 
     [Fact]
-    public async Task EditPreview_BucketAfterPrediction_ShouldMatchPostUpdateAgingReport()
+    public async Task EditPreview_AllImpactPredictions_ShouldMatchPostUpdateReportsAndVariance()
     {
-        // End-to-end determinism: preview prediction must equal the real post-PUT state.
+        // End-to-end determinism: each previewed impact must equal the real state once the identical
+        // payload is committed via PUT /transaction/{id}.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnEditPreviewDeterminism", Role.Manager);
         var operatorContext = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab, "Fiado");
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
-        var client = await factory.SeedClientAsync(branch.Id, "Determinism Client");
+        var originalClient = await factory.SeedClientAsync(branch.Id, "Original Determinism Client");
+        var newClient = await factory.SeedClientAsync(branch.Id, "New Determinism Client");
 
         var asOfDate = new DateTime(2025, 6, 30);
         var transactionDate = new DateTime(2025, 3, 1);
+        await factory.SeedProductAsync(branch.Id, name: CashVarianceProductResolver.CashVarianceProductName);
+        var countedProduct = await factory.SeedProductAsync(branch.Id);
+        var close = await factory.SeedDailyCloseAsync(branch.Id, tabAccount.Id, transactionDate, DailyCloseStatus.Submitted);
+        await factory.SeedDailyCloseItemAsync(close.Id, countedProduct.Id, value: 500m);
+
         var transaction = await factory.SeedTransactionAsync(
             branchId: branch.Id,
             accountId: tabAccount.Id,
@@ -161,16 +169,17 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
             createdByUserId: user.Id,
             date: transactionDate,
             value: 100m,
-            clientId: client.Id,
+            clientId: originalClient.Id,
             dueDate: transactionDate,
             paidAt: null);
 
-        // Payload X: shift DueDate to 45 days before asOfDate (→ Days31To60), keep unpaid.
+        // Payload X: shift DueDate to 45 days before asOfDate (→ Days31To60), keep unpaid,
+        // and move the outstanding balance from originalClient to newClient.
         var payloadX = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("determinism edit")
             .WithDueDate(asOfDate.AddDays(-45))
             .WithPaidAt(null)
-            .WithClientId(client.Id)
+            .WithClientId(newClient.Id)
             .WithTransactionTime(new TimeOnly(11, 0))
             .Build();
 
@@ -181,12 +190,25 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var preview = await previewResponse.ReadContentAsync<ResponseEditTransactionPreviewJson>();
         var predictedBucket = preview.Impact.ReceivableImpact.BucketAfter;
         predictedBucket.ShouldBe(AgingBucket.Days31To60);
+        var originalClientDelta = preview.Impact.FiadoBalanceImpact.Deltas.Single(delta => delta.ClientId == originalClient.Id);
+        var newClientDelta = preview.Impact.FiadoBalanceImpact.Deltas.Single(delta => delta.ClientId == newClient.Id);
+        originalClientDelta.OutstandingDelta.ShouldBe(-100m);
+        newClientDelta.OutstandingDelta.ShouldBe(100m);
+        preview.Impact.CashVarianceImpact.CurrentVariance.ShouldBe(600m);
+        preview.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(0m);
+        preview.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(600m);
+
+        var balanceBeforeResponse = await _client.GetAuthAsync($"/report/fiado/balance?asOfDate={asOfDate:yyyy-MM-dd}", token);
+        balanceBeforeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var balanceBefore = await balanceBeforeResponse.ReadContentAsync<ResponseFiadoBalanceJson>();
+        var originalBefore = BalanceFor(balanceBefore, originalClient.Id);
+        var newBefore = BalanceFor(balanceBefore, newClient.Id);
 
         // 2) Commit the same payload X via the write twin.
         var updateResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", payloadX, token);
         updateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // 3) Read the affected row from the fiado aging report at the same asOfDate.
+        // 3) Receivable impact: read the affected row from the fiado aging report at the same asOfDate.
         var agingResponse = await _client.GetAuthAsync(
             $"/report/fiado/aging?asOfDate={asOfDate:yyyy-MM-dd}&page=1&pageSize=50", token);
         agingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -195,6 +217,21 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var row = aging.Items.SingleOrDefault(item => item.TransactionId == transaction.Id);
         row.ShouldNotBeNull();
         row.Bucket.ShouldBe(predictedBucket!.Value);
+
+        // 4) Fiado impact: the real before/after report deltas match the previewed deltas.
+        var balanceAfterResponse = await _client.GetAuthAsync($"/report/fiado/balance?asOfDate={asOfDate:yyyy-MM-dd}", token);
+        balanceAfterResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var balanceAfter = await balanceAfterResponse.ReadContentAsync<ResponseFiadoBalanceJson>();
+        (BalanceFor(balanceAfter, originalClient.Id) - originalBefore).ShouldBe(originalClientDelta.OutstandingDelta);
+        (BalanceFor(balanceAfter, newClient.Id) - newBefore).ShouldBe(newClientDelta.OutstandingDelta);
+
+        // 5) Cash variance impact: the real recompute after the write equals the previewed projection.
+        var actualVariance = await CalculateCashVarianceAsync(
+            branch.Id,
+            tabAccount.Id,
+            transactionDate,
+            close.Id);
+        actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.ProjectedVariance.GetValueOrDefault());
     }
 
     [Fact]
@@ -332,10 +369,11 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         payload.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(0m);
     }
 
-    // Every persisted scalar column on Transaction (navigation properties excluded). Value
-    // equality on the record makes the reload comparison exhaustive, so a regression that
-    // mutated any column during a preview would fail the assertion.
-    private static TransactionScalars Scalars(Transaction transaction) => new(
+    // Every persisted scalar column on Transaction (navigation properties excluded). Anonymous
+    // types have structural equality, so a regression that mutated any column during a preview
+    // would fail the assertion without needing a source-level record whose properties look unused.
+    private static object Scalars(Transaction transaction) => new
+    {
         transaction.Id,
         transaction.CreatedAt,
         transaction.Active,
@@ -359,31 +397,32 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         transaction.CancelledAt,
         transaction.CancelledByUserId,
         transaction.CancellationReason,
-        transaction.BranchId);
+        transaction.BranchId
+    };
 
-    private sealed record TransactionScalars(
-        Guid Id,
-        DateTime CreatedAt,
-        bool Active,
-        DateTime Date,
-        decimal Value,
-        string? Description,
-        TimeOnly? TransactionTime,
-        Guid TransactionTypeId,
-        Guid CategoryId,
-        Direction Direction,
-        Guid AccountId,
-        Guid? ClientId,
-        DateTime DueDate,
-        DateTime? PaidAt,
-        Guid? OriginTransactionId,
-        Guid RecordedByOperatorId,
-        Guid CreatedByUserId,
-        DateTime? UpdatedAt,
-        Guid? UpdatedByUserId,
-        TransactionStatus Status,
-        DateTime? CancelledAt,
-        Guid? CancelledByUserId,
-        string? CancellationReason,
-        Guid BranchId);
+    private static decimal BalanceFor(ResponseFiadoBalanceJson payload, Guid clientId)
+    {
+        return payload.Items.SingleOrDefault(item => item.ClientId == clientId)?.OutstandingTotal ?? 0m;
+    }
+
+    private async Task<decimal> CalculateCashVarianceAsync(
+        Guid branchId,
+        Guid accountId,
+        DateTime date,
+        Guid dailyCloseId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var productResolver = scope.ServiceProvider.GetRequiredService<ICashVarianceProductResolver>();
+        var calculator = scope.ServiceProvider.GetRequiredService<ICashVarianceCalculator>();
+        var cashVarianceProductId = await productResolver.GetIdAsync(branchId);
+
+        return await calculator.CalculateAsync(
+            branchId,
+            accountId,
+            date,
+            dailyCloseId,
+            cashVarianceProductId,
+            CancellationToken.None);
+    }
+
 }

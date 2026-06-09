@@ -6,9 +6,17 @@ using server.Exceptions.Exceptions;
 
 namespace server.Application.Services.Transactions;
 
+/// <summary>
+/// Result of branch-consistency resolution: the validated <see cref="TransactionType"/> (with its
+/// <c>Category</c> loaded) plus the resolved <see cref="Account"/>. The account is surfaced so
+/// callers can read its <c>Type</c> without a second load — the create-impact preview needs it to
+/// build its hypothetical row.
+/// </summary>
+public sealed record TransactionBranchConsistencyResult(TransactionType TransactionType, Account Account);
+
 public class TransactionBranchConsistencyService(IAccountsRepository accountsRepository, IOperatorsRepository operatorsRepository, IClientsRepository clientsRepository, ITransactionTypesRepository transactionTypesRepository)
 {
-    public async Task<TransactionType> ResolveAndValidate(
+    public async Task<TransactionBranchConsistencyResult> ResolveAndValidate(
         Guid branchId,
         Guid accountId,
         Guid recordedByOperatorId,
@@ -37,6 +45,6 @@ public class TransactionBranchConsistencyService(IAccountsRepository accountsRep
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT);
         }
 
-        return transactionType;
+        return new TransactionBranchConsistencyResult(transactionType, account);
     }
 }

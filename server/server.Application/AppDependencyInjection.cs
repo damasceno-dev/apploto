@@ -47,6 +47,7 @@ using server.Application.UseCases.Clients.Update;
 using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.CreateInstallment;
+using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
 using server.Application.UseCases.Transactions.Finalize;
 using server.Application.UseCases.Transactions.Get;
@@ -172,6 +173,7 @@ public static class AppDependencyInjection
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
         services.AddScoped<TransactionEditImpactProjector>();
         services.AddScoped<CreateTransactionUseCase>();
+        services.AddScoped<PreviewCreateTransactionUseCase>();
         services.AddScoped<CreateTransactionInstallmentUseCase>();
         services.AddScoped<PreviewInstallmentPlanUseCase>();
         services.AddScoped<FinalizeTransactionUseCase>();
