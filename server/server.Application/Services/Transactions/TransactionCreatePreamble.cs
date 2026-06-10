@@ -24,6 +24,7 @@ namespace server.Application.Services.Transactions;
 /// <param name="DueDate">The final due date for a single transaction create; null for installment preamble resolution.</param>
 /// <param name="BranchHolidays">The active branch holiday dates used by due-date and installment calculations.</param>
 /// <param name="Account">The validated active account for the branch. Create preview uses this to classify the hypothetical row.</param>
+/// <param name="Client">The validated active client for the branch, or null when the request carries no client. Installment-impact preview reads its <c>Name</c> without a second load.</param>
 public sealed record TransactionCreateContext(
     BranchUser BranchUser,
     Operator? CallerOperator,
@@ -31,7 +32,8 @@ public sealed record TransactionCreateContext(
     TransactionType TransactionType,
     DateTime? DueDate = null,
     IReadOnlySet<DateOnly>? BranchHolidays = null,
-    Account? Account = null);
+    Account? Account = null,
+    Client? Client = null);
 
 /// <summary>
 /// Runs the shared pre-create checks and resolution used by transaction create, installment create,
@@ -182,6 +184,7 @@ public class TransactionCreatePreamble(
             CallerOperator: callerOperator,
             RecordedByOperatorId: recordedByOperatorId,
             TransactionType: consistency.TransactionType,
-            Account: consistency.Account);
+            Account: consistency.Account,
+            Client: consistency.Client);
     }
 }

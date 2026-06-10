@@ -4,8 +4,10 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Holidays;
 using server.Application.Services.Members;
+using server.Application.Services.Reports;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Transactions.InstallmentPreview;
@@ -20,8 +22,21 @@ using Xunit;
 
 namespace UseCases.Test.UseCases.Transactions.InstallmentPreview;
 
+/// <summary>
+/// Installment-impact preview is the non-persisting twin of <c>CreateTransactionInstallmentUseCase</c>.
+/// These tests keep the Phase 6 row-preview assertions byte-for-byte and add the downstream impact
+/// forecast, running the <b>real</b> <see cref="TransactionEditImpactProjector"/> wired through the
+/// repository builders plus substituted <see cref="ICashVarianceCalculator"/> /
+/// <see cref="ICashVarianceProductResolver"/> (no interface to substitute, matching the codebase
+/// convention for compute helpers). The preview-never-commits invariant holds by construction — the
+/// use case injects no <c>IUnitOfWork</c>/<c>ITransactionsRepository</c>.
+/// </summary>
 public class PreviewInstallmentPlanUseCaseTest
 {
+    // ----------------------------------------------------------------------
+    // Phase 6 row-preview behavior — unchanged
+    // ----------------------------------------------------------------------
+
     [Fact]
     public async Task Execute_ShouldReturnPreviewWithCorrectShapeForManualInstallments()
     {
@@ -117,6 +132,237 @@ public class PreviewInstallmentPlanUseCaseTest
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_INSTALLMENT_REQUIRES_CHEQUE);
     }
 
+    // ----------------------------------------------------------------------
+    // Phase 7.2 impact forecast
+    // ----------------------------------------------------------------------
+
+    [Fact]
+    public async Task Execute_ShouldReturnOpenChequeAgingGroup_ForActivePlanWithCorrectTotalsAndBuckets()
+    {
+        var date = DateTime.Today;
+        var firstDue = date.AddDays(30);
+        var secondDue = date.AddDays(60);
+        var thirdDue = date.AddDays(90);
+        var asOfDate = date.AddDays(65); // row1 → Days31To60, row2 → Days0To30, row3 → Current
+
+        var ctx = BuildHappyPathContext(SettlementRule.OperatorEnteredCheque);
+        ctx.Request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithDescription("Cheque plano")
+            .WithValue(300m)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .WithInstallments(
+            [
+                new RequestCreateTransactionInstallmentItemJson { DueDate = firstDue, Value = 100m },
+                new RequestCreateTransactionInstallmentItemJson { DueDate = secondDue, Value = 100m },
+                new RequestCreateTransactionInstallmentItemJson { DueDate = thirdDue, Value = 100m }
+            ])
+            .Build();
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, asOfDate);
+
+        var group = response.Impact.OpenChequeAgingImpact;
+        group.GroupAppearsInOpenCheques.ShouldBeTrue();
+        group.OutstandingTotal.ShouldBe(300m);
+        group.OldestOpenDueDate.ShouldBe(firstDue);
+        group.OldestOpenBucket.ShouldBe(AgingBucket.Days31To60);
+        group.OpenRowCount.ShouldBe(3);
+        group.TotalRowCount.ShouldBe(3);
+        group.AccountId.ShouldBe(ctx.Account.Id);
+        group.AccountName.ShouldBe(ctx.Account.Name);
+        group.Description.ShouldBe("CH PRE (1/3) - Cheque plano");
+        group.Rows.Count.ShouldBe(3);
+
+        group.Rows[0].Index.ShouldBe(1);
+        group.Rows[0].DueDate.ShouldBe(firstDue);
+        group.Rows[0].Value.ShouldBe(100m);
+        group.Rows[0].DaysOutstanding.ShouldBe(35);
+        group.Rows[0].Bucket.ShouldBe(AgingBucket.Days31To60);
+        group.Rows[0].Description.ShouldBe("CH PRE (1/3) - Cheque plano");
+
+        group.Rows[1].Bucket.ShouldBe(AgingBucket.Days0To30);
+        group.Rows[1].DaysOutstanding.ShouldBe(5);
+
+        group.Rows[2].Bucket.ShouldBe(AgingBucket.Current);
+        group.Rows[2].DaysOutstanding.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReturnOneAggregatedFiadoDelta_ForTabPlanWithClient()
+    {
+        var ctx = BuildHappyPathContext(
+            SettlementRule.OperatorEnteredCheque,
+            accountType: AccountType.Tab,
+            direction: Direction.Out,
+            withClient: true);
+        ctx.Request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(DateTime.Today)
+            .WithValue(300m)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .WithClientId(ctx.ClientId)
+            .WithAutoGeneration(3, DateTime.Today.AddDays(30))
+            .Build();
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, DateTime.Today.AddDays(40));
+
+        // §6.4 Out raises outstanding (+): the whole plan lands as one +300 delta on the client.
+        response.Impact.FiadoBalanceImpact.Deltas.Count.ShouldBe(1);
+        var delta = response.Impact.FiadoBalanceImpact.Deltas.Single();
+        delta.ClientId.ShouldBe(ctx.ClientId!.Value);
+        delta.ClientName.ShouldBe("Tab Client");
+        delta.OutstandingDelta.ShouldBe(300m);
+
+        // The open-cheque group carries the same client identity.
+        response.Impact.OpenChequeAgingImpact.ClientId.ShouldBe(ctx.ClientId!.Value);
+        response.Impact.OpenChequeAgingImpact.ClientName.ShouldBe("Tab Client");
+    }
+
+    [Fact]
+    public async Task Execute_ShouldLeaveFiadoEmpty_ForTerminalPlan()
+    {
+        var ctx = BuildHappyPathContext(SettlementRule.OperatorEnteredCheque);
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, DateTime.Today.AddDays(40));
+
+        response.Impact.FiadoBalanceImpact.Deltas.ShouldBeEmpty();
+        response.Impact.OpenChequeAgingImpact.ClientId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldComputeVarianceDelta_AndWithholdCurrent_WhenNoClose()
+    {
+        // Terminal Out plan, total 300 → −Σ NetFlow(Out, value) = +300.
+        var ctx = BuildHappyPathContext(SettlementRule.OperatorEnteredCheque);
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, DateTime.Today.AddDays(40));
+
+        response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
+        response.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
+        response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
+        response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
+    }
+
+    [Theory]
+    [InlineData(DailyCloseStatus.Submitted)]
+    [InlineData(DailyCloseStatus.Approved)]
+    [InlineData(DailyCloseStatus.Rejected)]
+    public async Task Execute_ShouldLiveRecomputeCurrentAndProjected_WhenCloseIsNonDraft(DailyCloseStatus status)
+    {
+        var date = DateTime.Today;
+        var ctx = BuildHappyPathContext(SettlementRule.OperatorEnteredCheque);
+        ctx.Request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithValue(300m)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .WithAutoGeneration(3, date.AddDays(30))
+            .Build();
+        var (productId, close) = SeedClose(ctx, date, status, currentVariance: 425m);
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, date.AddDays(40));
+
+        response.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBe(status);
+        response.Impact.CashVarianceImpact.AccountId.ShouldBe(ctx.Account.Id);
+        response.Impact.CashVarianceImpact.Date.ShouldBe(date);
+        response.Impact.CashVarianceImpact.CurrentVariance.ShouldBe(425m);
+        // Terminal Out total 300 → VarianceDelta = +300 → projected = 425 + 300 = 725.
+        response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
+        response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(725m);
+        await ctx.CashVarianceCalculator.Received(1).CalculateAsync(
+            ctx.BranchUser.BranchId, ctx.Account.Id, date, close.Id, productId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldWithholdCurrentVariance_WhenCloseIsDraft()
+    {
+        var date = DateTime.Today;
+        var ctx = BuildHappyPathContext(SettlementRule.OperatorEnteredCheque);
+        ctx.Request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithValue(300m)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .WithAutoGeneration(3, date.AddDays(30))
+            .Build();
+        SeedClose(ctx, date, DailyCloseStatus.Draft, currentVariance: 425m);
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, date.AddDays(40));
+
+        response.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBe(DailyCloseStatus.Draft);
+        response.Impact.CashVarianceImpact.AccountId.ShouldBe(ctx.Account.Id);
+        response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
+        response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
+        response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
+        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReturnRowsButEmptyImpact_WhenSaveAsDraftIsTrue()
+    {
+        var date = DateTime.Today;
+        var ctx = BuildHappyPathContext(
+            SettlementRule.OperatorEnteredCheque,
+            accountType: AccountType.Tab,
+            direction: Direction.Out,
+            withClient: true);
+        ctx.Request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithDescription("Draft plan")
+            .WithValue(300m)
+            .WithTransactionTypeId(ctx.Request.TransactionTypeId)
+            .WithAccountId(ctx.Request.AccountId)
+            .WithClientId(ctx.ClientId)
+            .WithAutoGeneration(3, date.AddDays(30))
+            .WithSaveAsDraft(true)
+            .Build();
+        // Even with a seeded non-Draft close, a Draft plan must short-circuit to empty/zero.
+        SeedClose(ctx, date, DailyCloseStatus.Submitted, currentVariance: 425m);
+
+        var useCase = CreateUseCase(ctx);
+        var response = await useCase.Execute(ctx.Request, date.AddDays(40));
+
+        // Rows still returned.
+        response.InstallmentCount.ShouldBe(3);
+        response.Rows.Count.ShouldBe(3);
+
+        // Every impact section empty/zero.
+        response.Impact.OpenChequeAgingImpact.GroupAppearsInOpenCheques.ShouldBeFalse();
+        response.Impact.OpenChequeAgingImpact.OutstandingTotal.ShouldBe(0m);
+        response.Impact.OpenChequeAgingImpact.OldestOpenDueDate.ShouldBeNull();
+        response.Impact.OpenChequeAgingImpact.Rows.ShouldBeEmpty();
+        response.Impact.FiadoBalanceImpact.Deltas.ShouldBeEmpty();
+        response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(0m);
+        response.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
+        response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
+        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldFallBackToBranchClockToday_WhenAsOfDateOmitted()
+    {
+        var ctx = BuildHappyPathContext(SettlementRule.OperatorEnteredCheque);
+
+        var response = await CreateUseCase(ctx).Execute(ctx.Request);
+
+        response.Impact.OpenChequeAgingImpact.GroupAppearsInOpenCheques.ShouldBeTrue();
+        ctx.BranchClock.Received(1).UtcNow();
+        ctx.BranchClock.Received(1).LocalBusinessDate(ctx.BranchClockUtcNow);
+    }
+
+    // ----------------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------------
+
     private static PreviewInstallmentPlanUseCase CreateUseCase(HappyPathContext ctx)
     {
         var recordedByOperatorResolver = new TransactionRecordedByOperatorResolver();
@@ -139,11 +385,56 @@ public class PreviewInstallmentPlanUseCaseTest
             lockDateGuard,
             ctx.BranchHolidaySource);
         var installmentPlanBuilder = new InstallmentPlanBuilder();
+        var projector = new TransactionEditImpactProjector(
+            ctx.DailyClosesRepository,
+            ctx.ClientsRepository,
+            ctx.CashVarianceCalculator,
+            ctx.CashVarianceProductResolver);
 
-        return new PreviewInstallmentPlanUseCase(transactionCreatePreamble, installmentPlanBuilder);
+        return new PreviewInstallmentPlanUseCase(
+            transactionCreatePreamble,
+            installmentPlanBuilder,
+            projector,
+            ctx.BranchClock);
     }
 
-    private static HappyPathContext BuildHappyPathContext(SettlementRule settlementRule)
+    /// <summary>
+    /// Seeds a daily close for the plan's (account, date) and configures the cash-variance product
+    /// resolver + calculator so the real projector can live-recompute. Returns the product id and the
+    /// close so callers can assert exact-argument forwarding.
+    /// </summary>
+    private static (Guid ProductId, DailyClose Close) SeedClose(
+        HappyPathContext ctx,
+        DateTime date,
+        DailyCloseStatus status,
+        decimal currentVariance)
+    {
+        var close = new DailyClose
+        {
+            Id = Guid.NewGuid(),
+            BranchId = ctx.BranchUser.BranchId,
+            AccountId = ctx.Account.Id,
+            Date = date,
+            Status = status
+        };
+        ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
+            .GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(ctx.BranchUser.BranchId, ctx.Account.Id, date, close)
+            .Build();
+
+        var productId = Guid.NewGuid();
+        ctx.CashVarianceProductResolver.GetIdAsync(ctx.BranchUser.BranchId, Arg.Any<CancellationToken>()).Returns(productId);
+        ctx.CashVarianceCalculator
+            .CalculateAsync(ctx.BranchUser.BranchId, ctx.Account.Id, date, close.Id, productId, Arg.Any<CancellationToken>())
+            .Returns(currentVariance);
+
+        return (productId, close);
+    }
+
+    private static HappyPathContext BuildHappyPathContext(
+        SettlementRule settlementRule,
+        AccountType accountType = AccountType.Terminal,
+        Direction direction = Direction.Out,
+        bool withClient = false)
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var callerOperator = new OperatorBuilder()
@@ -154,7 +445,8 @@ public class PreviewInstallmentPlanUseCaseTest
         var account = new AccountBuilder()
             .WithId(accountId)
             .WithBranchId(branchUser.BranchId)
-            .WithType(AccountType.Terminal)
+            .WithType(accountType)
+            .WithName("Conta Preview")
             .Build();
 
         var branch = new BranchBuilder().WithId(branchUser.BranchId).Build();
@@ -162,7 +454,7 @@ public class PreviewInstallmentPlanUseCaseTest
         {
             Id = Guid.NewGuid(),
             Name = "Saídas",
-            DefaultDirection = Direction.Out,
+            DefaultDirection = direction,
             BranchId = branchUser.BranchId,
             Branch = branch
         };
@@ -177,9 +469,20 @@ public class PreviewInstallmentPlanUseCaseTest
             .WithAccount(account)
             .Build();
 
+        Guid? clientId = withClient ? Guid.NewGuid() : null;
+        var clientsRepositoryBuilder = new ClientsRepositoryBuilder();
+        if (clientId is { } resolvedClientId)
+        {
+            clientsRepositoryBuilder.GetActiveByIdAndBranchIdAsNoTracking(
+                resolvedClientId,
+                branchUser.BranchId,
+                new ClientBuilder().WithId(resolvedClientId).WithBranchId(branchUser.BranchId).WithName("Tab Client").Build());
+        }
+
         var request = new RequestCreateTransactionInstallmentJsonBuilder()
             .WithTransactionTypeId(transactionType.Id)
             .WithAccountId(accountId)
+            .WithClientId(clientId)
             .Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
@@ -192,7 +495,7 @@ public class PreviewInstallmentPlanUseCaseTest
         var accountsRepository = new AccountsRepositoryBuilder()
             .GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId, account)
             .Build();
-        var clientsRepository = new ClientsRepositoryBuilder().Build();
+        var clientsRepository = clientsRepositoryBuilder.Build();
         var transactionTypesRepository = new TransactionTypesRepositoryBuilder()
             .GetActiveByIdAndBranchIdWithCategoryAsNoTrackingReturns(transactionType.Id, branchUser.BranchId, transactionType)
             .Build();
@@ -205,12 +508,18 @@ public class PreviewInstallmentPlanUseCaseTest
         var branchHolidaySource = Substitute.For<IBranchHolidaySource>();
         branchHolidaySource.GetHolidayDatesAsync(branchUser.BranchId).Returns(new HashSet<DateOnly>());
 
+        var branchClockUtcNow = new DateTime(2025, 5, 10, 12, 0, 0, DateTimeKind.Utc);
+        var branchClock = Substitute.For<IBranchClock>();
+        branchClock.UtcNow().Returns(branchClockUtcNow);
+        branchClock.LocalBusinessDate(branchClockUtcNow).Returns(DateTime.Today);
+
         return new HappyPathContext
         {
             BranchUser = branchUser,
             CallerOperator = callerOperator,
             Account = account,
             TransactionType = transactionType,
+            ClientId = clientId,
             Request = request,
             AuthenticationService = authenticationService,
             OperatorsRepository = operatorsRepository,
@@ -219,7 +528,12 @@ public class PreviewInstallmentPlanUseCaseTest
             TransactionTypesRepository = transactionTypesRepository,
             SettingsRepository = settingsRepository,
             OperatorAccountsRepository = operatorAccountsRepository,
-            BranchHolidaySource = branchHolidaySource
+            BranchHolidaySource = branchHolidaySource,
+            DailyClosesRepository = new DailyClosesRepositoryBuilder().Build(),
+            CashVarianceCalculator = Substitute.For<ICashVarianceCalculator>(),
+            CashVarianceProductResolver = Substitute.For<ICashVarianceProductResolver>(),
+            BranchClock = branchClock,
+            BranchClockUtcNow = branchClockUtcNow
         };
     }
 
@@ -229,6 +543,7 @@ public class PreviewInstallmentPlanUseCaseTest
         public required Operator CallerOperator { get; set; }
         public required Account Account { get; set; }
         public required TransactionType TransactionType { get; set; }
+        public required Guid? ClientId { get; set; }
         public required RequestCreateTransactionInstallmentJson Request { get; set; }
         public required IAuthenticationService AuthenticationService { get; set; }
         public required IOperatorsRepository OperatorsRepository { get; set; }
@@ -238,5 +553,10 @@ public class PreviewInstallmentPlanUseCaseTest
         public required ISettingsRepository SettingsRepository { get; set; }
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
         public required IBranchHolidaySource BranchHolidaySource { get; set; }
+        public required IDailyClosesRepository DailyClosesRepository { get; set; }
+        public required ICashVarianceCalculator CashVarianceCalculator { get; set; }
+        public required ICashVarianceProductResolver CashVarianceProductResolver { get; set; }
+        public required IBranchClock BranchClock { get; set; }
+        public required DateTime BranchClockUtcNow { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 using System.Net;
 using CommonTestUtilities.Requests;
 using Microsoft.Extensions.DependencyInjection;
+using server.Application.Services.DailyCloses;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -66,6 +67,18 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
         payload.Rows[1].Description.ShouldBe("CH PRE (2/3) - Cheque preview");
         payload.Rows[2].Description.ShouldBe("CH PRE (3/3) - Cheque preview");
 
+        // Additive Impact: one would-be open-cheque group; Terminal Out plan → no fiado, variance +300.
+        var group = payload.Impact.OpenChequeAgingImpact;
+        group.GroupAppearsInOpenCheques.ShouldBeTrue();
+        group.OutstandingTotal.ShouldBe(300.00m);
+        group.OpenRowCount.ShouldBe(3);
+        group.TotalRowCount.ShouldBe(3);
+        group.Rows.Count.ShouldBe(3);
+        payload.Impact.FiadoBalanceImpact.Deltas.ShouldBeEmpty();
+        payload.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300.00m);
+        payload.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
+        payload.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
+
         var countAfter = await CountTransactionsAsync(branch.Id);
         countAfter.ShouldBe(countBefore);
     }
@@ -106,6 +119,15 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
         {
             payload.Rows[i].Index.ShouldBe(i + 1);
         }
+
+        // Additive Impact present for the auto-generated plan too.
+        var group = payload.Impact.OpenChequeAgingImpact;
+        group.GroupAppearsInOpenCheques.ShouldBeTrue();
+        group.OutstandingTotal.ShouldBe(400.00m);
+        group.OpenRowCount.ShouldBe(4);
+        group.TotalRowCount.ShouldBe(4);
+        group.Rows.Count.ShouldBe(4);
+        payload.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(400.00m);
 
         var countAfter = await CountTransactionsAsync(branch.Id);
         countAfter.ShouldBe(countBefore);
@@ -160,6 +182,359 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
             persistedRows[i].Value.ShouldBe(preview.Rows[i].Value);
             persistedRows[i].Description.ShouldBe(preview.Rows[i].Description);
         }
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_ShouldSpanBuckets_WhenAsOfDateIsNonTrivial()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevBuckets", Role.Manager);
+        await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
+
+        var date = DateTime.Today;
+        var firstDue = date.AddDays(30);
+        var secondDue = date.AddDays(60);
+        var thirdDue = date.AddDays(90);
+        // 65 days after the base: row1 → Days31To60 (35d), row2 → Days0To30 (5d), row3 → Current (future).
+        var asOfDate = date.AddDays(65);
+
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithDescription("Cheque plano")
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(account.Id)
+            .WithInstallments(
+            [
+                new RequestCreateTransactionInstallmentItemJson { DueDate = firstDue, Value = 100m },
+                new RequestCreateTransactionInstallmentItemJson { DueDate = secondDue, Value = 100m },
+                new RequestCreateTransactionInstallmentItemJson { DueDate = thirdDue, Value = 100m }
+            ])
+            .Build();
+
+        var url = $"/transaction/installment/preview?asOfDate={asOfDate:yyyy-MM-dd}";
+        var httpResponse = await _client.PostAuthAsync(url, request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var payload = await httpResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+
+        var group = payload.Impact.OpenChequeAgingImpact;
+        group.OldestOpenDueDate!.Value.Date.ShouldBe(firstDue.Date);
+        group.OldestOpenBucket.ShouldBe(AgingBucket.Days31To60);
+        group.Rows.Count.ShouldBe(3);
+        group.Rows[0].Bucket.ShouldBe(AgingBucket.Days31To60);
+        group.Rows[0].DaysOutstanding.ShouldBe(35);
+        group.Rows[1].Bucket.ShouldBe(AgingBucket.Days0To30);
+        group.Rows[1].DaysOutstanding.ShouldBe(5);
+        group.Rows[2].Bucket.ShouldBe(AgingBucket.Current);
+        group.Rows[2].DaysOutstanding.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_ShouldReturn200WithImpact_WhenMemberActsOnLinkedAccount()
+    {
+        // Preview/write parity: a Member with a linked operator + an allowed account can preview the plan.
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevMember", Role.Member);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(op.Id, account.Id);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
+
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(DateTime.Today)
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(account.Id)
+            .WithAutoGeneration(3, DateTime.Today.AddDays(30))
+            .Build();
+
+        var httpResponse = await _client.PostAuthAsync("/transaction/installment/preview", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var payload = await httpResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+        payload.Impact.OpenChequeAgingImpact.GroupAppearsInOpenCheques.ShouldBeTrue();
+        payload.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
+
+        (await CountTransactionsAsync(branch.Id)).ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_OpenChequeImpact_ShouldMatchReport_WhenSamePayloadWritten()
+    {
+        // Determinism: the previewed would-be group equals the real GET /report/cheques/open-aging
+        // group once the identical payload is committed.
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevOcaDet", Role.Manager);
+        await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
+        var client = await factory.SeedClientAsync(branch.Id, "Oca Client");
+
+        var date = DateTime.Today;
+        var asOfDate = date.AddDays(65);
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithDescription("Cheque plano")
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(account.Id)
+            .WithClientId(client.Id)
+            .WithInstallments(
+            [
+                new RequestCreateTransactionInstallmentItemJson { DueDate = date.AddDays(30), Value = 100m },
+                new RequestCreateTransactionInstallmentItemJson { DueDate = date.AddDays(60), Value = 100m },
+                new RequestCreateTransactionInstallmentItemJson { DueDate = date.AddDays(90), Value = 100m }
+            ])
+            .Build();
+
+        // 1) Preview X.
+        var previewResponse = await _client.PostAuthAsync(
+            $"/transaction/installment/preview?asOfDate={asOfDate:yyyy-MM-dd}", request, token);
+        previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await previewResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+        var previewGroup = preview.Impact.OpenChequeAgingImpact;
+
+        // 2) Commit the same payload X.
+        var createResponse = await _client.PostAuthAsync("/transaction/installment", request, token);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var created = await createResponse.ReadContentAsync<ResponseCreateTransactionInstallmentJson>();
+        var originId = created.Installments[0].Id;
+
+        // 3) Read the report group at the same as-of date.
+        var reportResponse = await _client.GetAuthAsync(
+            $"/report/cheques/open-aging?asOfDate={asOfDate:yyyy-MM-dd}&page=1&pageSize=50", token);
+        reportResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var report = await reportResponse.ReadContentAsync<ResponseOpenChequeAgingJson>();
+        var reportGroup = report.Items.Single(g => g.OriginTransactionId == originId);
+
+        // 4) Group-level parity.
+        previewGroup.OutstandingTotal.ShouldBe(reportGroup.OutstandingTotal);
+        previewGroup.OldestOpenDueDate!.Value.ShouldBe(reportGroup.OldestOpenDueDate);
+        previewGroup.OldestOpenBucket!.Value.ShouldBe(reportGroup.OldestOpenBucket);
+        previewGroup.OpenRowCount.ShouldBe(reportGroup.OpenRowCount);
+        previewGroup.TotalRowCount.ShouldBe(reportGroup.TotalRowCount);
+        previewGroup.ClientId.ShouldBe(reportGroup.ClientId);
+
+        // 5) Row-level parity. The preview side is compared in its RETURNED order (not sorted), so the
+        // positional contract — rows come back as Index 1..N with ascending due dates — is asserted
+        // directly. The persisted rows (installment order == due-date order) pin DueDate/Value/
+        // Description; the report rows are sorted by due date because the report's row order is not a
+        // contract, only its membership and per-row buckets are.
+        var persistedRows = await ListInstallmentsAsync(originId, branch.Id);
+        var previewRows = preview.Impact.OpenChequeAgingImpact.Rows;
+        var reportRows = reportGroup.Rows.OrderBy(r => r.DueDate).ToList();
+
+        previewRows.Count.ShouldBe(reportRows.Count);
+        previewRows.Count.ShouldBe(persistedRows.Count);
+        for (var i = 0; i < previewRows.Count; i++)
+        {
+            // Preview's own positional contract, verified without sorting the preview side.
+            previewRows[i].Index.ShouldBe(i + 1);
+            if (i > 0)
+                previewRows[i].DueDate.ShouldBeGreaterThan(previewRows[i - 1].DueDate);
+
+            previewRows[i].DueDate.ShouldBe(persistedRows[i].DueDate);
+            previewRows[i].Value.ShouldBe(persistedRows[i].Value);
+            previewRows[i].Description.ShouldBe(persistedRows[i].Description);
+
+            previewRows[i].DueDate.ShouldBe(reportRows[i].DueDate);
+            previewRows[i].Value.ShouldBe(reportRows[i].Value);
+            previewRows[i].Bucket.ShouldBe(reportRows[i].Bucket);
+        }
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_FiadoImpact_ShouldMatchBalanceDelta_WhenTabPlanWritten()
+    {
+        // Determinism: post-write fiado balance moves by exactly the previewed aggregated delta.
+        // The client starts with a NON-zero balance so the test does not assume a zero baseline.
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevFiadoDet", Role.Manager);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab, "Fiado");
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque, requiresTabAccountAndClient: true);
+        var client = await factory.SeedClientAsync(branch.Id, "Fiado Client");
+
+        var date = DateTime.Today;
+        var asOfDate = date.AddDays(1);
+
+        // Pre-existing non-zero balance: a prior Out 50 on the same Tab client.
+        await factory.SeedTransactionAsync(
+            branch.Id, tabAccount.Id, transactionType.Id, category.Id, Direction.Out,
+            op.Id, user.Id, date: date, value: 50m, clientId: client.Id, dueDate: date);
+
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(tabAccount.Id)
+            .WithClientId(client.Id)
+            .WithRecordedByOperatorId(op.Id)
+            .WithAutoGeneration(3, date.AddDays(30))
+            .Build();
+
+        var beforeBalance = await ClientBalanceAsync(token, client.Id, asOfDate);
+
+        var previewResponse = await _client.PostAuthAsync(
+            $"/transaction/installment/preview?asOfDate={asOfDate:yyyy-MM-dd}", request, token);
+        previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await previewResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+        var previewDelta = preview.Impact.FiadoBalanceImpact.Deltas.Single();
+        previewDelta.ClientId.ShouldBe(client.Id);
+        previewDelta.OutstandingDelta.ShouldBe(300m);
+
+        var createResponse = await _client.PostAuthAsync("/transaction/installment", request, token);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var afterBalance = await ClientBalanceAsync(token, client.Id, asOfDate);
+
+        (afterBalance - beforeBalance).ShouldBe(previewDelta.OutstandingDelta);
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_CashVariance_ShouldMatchRecompute_AgainstSeededClose()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevCvDet", Role.Manager);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var terminal = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
+        await factory.SeedProductAsync(branch.Id, name: CashVarianceProductResolver.CashVarianceProductName);
+        var countedProduct = await factory.SeedProductAsync(branch.Id);
+
+        var date = DateTime.Today;
+        // Submitted close: closing 500, no prior close → opening 0, no same-day ledger → variance 500.
+        var close = await factory.SeedDailyCloseAsync(branch.Id, terminal.Id, date, DailyCloseStatus.Submitted);
+        await factory.SeedDailyCloseItemAsync(close.Id, countedProduct.Id, value: 500m);
+
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(terminal.Id)
+            .WithRecordedByOperatorId(op.Id)
+            .WithAutoGeneration(3, date.AddDays(30))
+            .Build();
+
+        var previewResponse = await _client.PostAuthAsync("/transaction/installment/preview", request, token);
+        previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await previewResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+
+        preview.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBe(DailyCloseStatus.Submitted);
+        preview.Impact.CashVarianceImpact.CurrentVariance.ShouldBe(500m);
+        // Out plan total 300 → −Σ NetFlow(Out, value) = +300 → projected 800.
+        preview.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
+        preview.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(800m);
+
+        var createResponse = await _client.PostAuthAsync("/transaction/installment", request, token);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var actualVariance = await CalculateCashVarianceAsync(branch.Id, terminal.Id, date, close.Id);
+        actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.ProjectedVariance.GetValueOrDefault());
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_CashVariance_ShouldWithholdCurrent_WhenNoClose()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevCvNoClose", Role.Manager);
+        await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var terminal = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
+
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(DateTime.Today)
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(terminal.Id)
+            .WithAutoGeneration(3, DateTime.Today.AddDays(30))
+            .Build();
+
+        var httpResponse = await _client.PostAuthAsync("/transaction/installment/preview", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await httpResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+        preview.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
+        preview.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
+        preview.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
+        preview.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task PreviewInstallment_Draft_ShouldReturnRowsButEmptyImpact_AndNotAppearInReport()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevDraftDet", Role.Manager);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
+        var transactionType = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
+
+        var date = DateTime.Today;
+        var asOfDate = date.AddDays(65);
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(date)
+            .WithValue(300m)
+            .WithTransactionTypeId(transactionType.Id)
+            .WithAccountId(account.Id)
+            .WithRecordedByOperatorId(op.Id)
+            .WithAutoGeneration(3, date.AddDays(30))
+            .WithSaveAsDraft(true)
+            .Build();
+
+        var previewResponse = await _client.PostAuthAsync(
+            $"/transaction/installment/preview?asOfDate={asOfDate:yyyy-MM-dd}", request, token);
+        previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var preview = await previewResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
+
+        // Rows still returned, but every impact section is empty/zero for a Draft plan.
+        preview.Rows.Count.ShouldBe(3);
+        preview.Impact.OpenChequeAgingImpact.GroupAppearsInOpenCheques.ShouldBeFalse();
+        preview.Impact.OpenChequeAgingImpact.OutstandingTotal.ShouldBe(0m);
+        preview.Impact.OpenChequeAgingImpact.Rows.ShouldBeEmpty();
+        preview.Impact.FiadoBalanceImpact.Deltas.ShouldBeEmpty();
+        preview.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(0m);
+
+        // Committing the draft plan must not surface it in the Active-filtered open-cheque report.
+        var createResponse = await _client.PostAuthAsync("/transaction/installment", request, token);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var created = await createResponse.ReadContentAsync<ResponseCreateTransactionInstallmentJson>();
+        var originId = created.Installments[0].Id;
+
+        var reportResponse = await _client.GetAuthAsync(
+            $"/report/cheques/open-aging?asOfDate={asOfDate:yyyy-MM-dd}&page=1&pageSize=50", token);
+        reportResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var report = await reportResponse.ReadContentAsync<ResponseOpenChequeAgingJson>();
+        report.Items.ShouldNotContain(g => g.OriginTransactionId == originId);
+    }
+
+    private async Task<decimal> ClientBalanceAsync(string token, Guid clientId, DateTime asOfDate)
+    {
+        var response = await _client.GetAuthAsync(
+            $"/report/fiado/balance?clientId={clientId}&asOfDate={asOfDate:yyyy-MM-dd}", token);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var balance = await response.ReadContentAsync<ResponseFiadoBalanceJson>();
+        // A client with a net-zero balance is omitted from the report; treat absence as 0.
+        return balance.Items.SingleOrDefault(item => item.ClientId == clientId)?.OutstandingTotal ?? 0m;
+    }
+
+    private async Task<decimal> CalculateCashVarianceAsync(Guid branchId, Guid accountId, DateTime date, Guid dailyCloseId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var productResolver = scope.ServiceProvider.GetRequiredService<ICashVarianceProductResolver>();
+        var calculator = scope.ServiceProvider.GetRequiredService<ICashVarianceCalculator>();
+        var cashVarianceProductId = await productResolver.GetIdAsync(branchId);
+
+        return await calculator.CalculateAsync(branchId, accountId, date, dailyCloseId, cashVarianceProductId, CancellationToken.None);
     }
 
     private async Task<int> CountTransactionsAsync(Guid branchId)

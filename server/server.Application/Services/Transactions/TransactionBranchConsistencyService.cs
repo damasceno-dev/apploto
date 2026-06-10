@@ -8,11 +8,12 @@ namespace server.Application.Services.Transactions;
 
 /// <summary>
 /// Result of branch-consistency resolution: the validated <see cref="TransactionType"/> (with its
-/// <c>Category</c> loaded) plus the resolved <see cref="Account"/>. The account is surfaced so
-/// callers can read its <c>Type</c> without a second load — the create-impact preview needs it to
-/// build its hypothetical row.
+/// <c>Category</c> loaded), the resolved <see cref="Account"/>, and the resolved <see cref="Client"/>
+/// (null when the request carries no client). The account and client are surfaced so callers can read
+/// the account <c>Type</c> and the client <c>Name</c> without a second load — the create- and
+/// installment-impact previews need them to build their hypothetical rows.
 /// </summary>
-public sealed record TransactionBranchConsistencyResult(TransactionType TransactionType, Account Account);
+public sealed record TransactionBranchConsistencyResult(TransactionType TransactionType, Account Account, Client? Client);
 
 public class TransactionBranchConsistencyService(IAccountsRepository accountsRepository, IOperatorsRepository operatorsRepository, IClientsRepository clientsRepository, ITransactionTypesRepository transactionTypesRepository)
 {
@@ -29,9 +30,10 @@ public class TransactionBranchConsistencyService(IAccountsRepository accountsRep
         _ = await operatorsRepository.GetActiveByIdAndBranchIdAsNoTracking(recordedByOperatorId, branchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
 
+        Client? client = null;
         if (clientId is { } resolvedClientId)
         {
-            _ = await clientsRepository.GetActiveByIdAndBranchIdAsNoTracking(resolvedClientId, branchId)
+            client = await clientsRepository.GetActiveByIdAndBranchIdAsNoTracking(resolvedClientId, branchId)
                 ?? throw new NotFoundException(ResourcesErrorMessages.CLIENT_NOT_FOUND);
         }
 
@@ -45,6 +47,6 @@ public class TransactionBranchConsistencyService(IAccountsRepository accountsRep
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT);
         }
 
-        return new TransactionBranchConsistencyResult(transactionType, account);
+        return new TransactionBranchConsistencyResult(transactionType, account, client);
     }
 }

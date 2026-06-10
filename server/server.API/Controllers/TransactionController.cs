@@ -113,9 +113,11 @@ public class TransactionController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> PreviewInstallment(
         [FromServices] PreviewInstallmentPlanUseCase previewInstallmentPlanUseCase,
-        [FromBody] RequestCreateTransactionInstallmentJson request)
+        [FromQuery] DateTime? asOfDate,
+        [FromBody] RequestCreateTransactionInstallmentJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await previewInstallmentPlanUseCase.Execute(request);
+        var response = await previewInstallmentPlanUseCase.Execute(request, asOfDate, cancellationToken);
         return Ok(response);
     }
 
