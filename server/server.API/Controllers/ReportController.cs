@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using server.Application.UseCases.Reports.CashVariance;
 using server.Application.UseCases.Reports.DailyLedger;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
@@ -70,6 +71,22 @@ public class ReportController : ControllerBase
     public async Task<IActionResult> OpenChequeAging(
         [FromServices] GetOpenChequeAgingUseCase useCase,
         [FromQuery] RequestOpenChequeAgingJson request)
+    {
+        var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("cash-variance")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseCashVarianceSummaryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CashVarianceSummary(
+        [FromServices] GetCashVarianceSummaryUseCase useCase,
+        [FromQuery] RequestCashVarianceSummaryJson request)
     {
         var response = await useCase.Execute(request);
         return Ok(response);

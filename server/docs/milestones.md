@@ -1700,18 +1700,18 @@ Add the small set of primitives more than one later phase consumes. No endpoints
 
 `GET /report/cash-variance?accountId?&dateFrom&dateTo&page&pageSize` — Manager/Admin. Per-day variance time series across one or all accounts. Variance comes from the `Diferença Caixa` `DailyCloseItem` (§6.12). Missing days (no daily close) are excluded — the report does not fabricate zero rows.
 
-- [ ] **8.1** Add `CashVarianceListFilter` (`AccountId?`, `DateFrom`, `DateTo`, `Page`, `PageSize`).
-- [ ] **8.2** Add `VarianceTimeSeriesRow` projection record (`Date`, `AccountId`, `AccountName`, `Value`, `DailyCloseStatus`).
-- [ ] **8.3** Extend `IDailyCloseItemsRepository` with `Task<IReadOnlyList<VarianceTimeSeriesRow>> ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(branchId, productId, accountId?, dateFrom, dateTo)`. Caller passes `productId` so Infrastructure stays Domain-only (no dependency on `ICashVarianceProductResolver`). Branch-scoped, `Active`-filtered, joins `DailyClose` for status + ordering. Order `Date ASC, AccountName ASC`.
-- [ ] **8.4** Add the Infrastructure implementation.
-- [ ] **8.5** Extend `DailyCloseItemsRepositoryBuilder` and add `CashVarianceListFilterBuilder`.
-- [ ] **8.6** Add DTOs: `RequestCashVarianceSummaryJson { Guid? AccountId, DateTime DateFrom, DateTime DateTo, int Page, int PageSize }`; `ResponseCashVarianceSummaryJson` envelope with `Items, TotalCount, TotalPages, HasNext, HasPrevious, TotalVariance, MeanVariance, MaxVariance, MinVariance`; `ResponseCashVarianceSummaryItemJson { Date, AccountId, AccountName, VarianceValue, DailyCloseStatus }`. Add the request builder.
-- [ ] **8.7** Add `CashVarianceSummaryFluentValidation`: date-range rules via `ReportValidationExtensions`, pagination bounds.
-- [ ] **8.8** Implement `GetCashVarianceSummaryUseCase` under `UseCases/Reports/CashVariance/`: Manager/Admin → validate inline → optional `AccountId` validated against branch (404 `ACCOUNT_NOT_FOUND` if cross-branch) → resolve product id via `ICashVarianceProductResolver.GetIdAsync(branchId)` → call repo with the resolved product id → compute aggregates (`Total / Mean / Max / Min`; empty window → all zero) → in-memory pagination over the bounded result → return.
-- [ ] **8.9** Register in DI.
-- [ ] **8.10** Add `GET /report/cash-variance` to `ReportController` (Manager/Admin). Full `[ProducesResponseType]` for 200/400/401/403/404.
-- [ ] **8.11** Add `Validators.Test` + `UseCases.Test`: happy with mixed-status closes (Approved, Submitted, Draft — variance always read from the persisted close item per §6.12); branch isolation; empty window → zero aggregates and empty items; account filter narrowing; exact-argument `Received()` on resolver and on repo with the resolved `productId`.
-- [ ] **8.12** Add `WebApi.Test` happy + unhappy with reload-based assertion against seeded `Diferença Caixa` items.
+- [x] **8.1** ~~`CashVarianceListFilter`~~ — superseded; repo method uses individual parameters directly.
+- [x] **8.2** Add `VarianceTimeSeriesRow` projection record (`Date`, `AccountId`, `AccountName`, `Value`, `DailyCloseStatus`).
+- [x] **8.3** Extend `IDailyCloseItemsRepository` with `Task<IReadOnlyList<VarianceTimeSeriesRow>> ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(branchId, productId, accountId?, dateFrom, dateTo)`. Caller passes `productId` so Infrastructure stays Domain-only (no dependency on `ICashVarianceProductResolver`). Branch-scoped, `Active`-filtered, joins `DailyClose` for status + ordering. Order `Date ASC, AccountName ASC`.
+- [x] **8.4** Add the Infrastructure implementation.
+- [x] **8.5** Extend `DailyCloseItemsRepositoryBuilder` with exact-argument `ListVarianceValues...` helpers. ~~`CashVarianceListFilterBuilder`~~ — not needed (no filter model).
+- [x] **8.6** Add DTOs: `RequestCashVarianceSummaryJson { Guid? AccountId, DateTime DateFrom, DateTime DateTo, int Page, int PageSize }`; `ResponseCashVarianceSummaryJson` envelope with `Items, TotalCount, TotalPages, HasNext, HasPrevious, TotalVariance, MeanVariance, MaxVariance, MinVariance`; `ResponseCashVarianceSummaryItemJson { Date, AccountId, AccountName, VarianceValue, DailyCloseStatus }`. Add the request builder.
+- [x] **8.7** Add `CashVarianceSummaryFluentValidation`: date-range rules via `ReportValidationExtensions`, pagination bounds.
+- [x] **8.8** Implement `GetCashVarianceSummaryUseCase` under `UseCases/Reports/CashVariance/`: Manager/Admin → validate inline → optional `AccountId` validated against branch (404 `ACCOUNT_NOT_FOUND` if cross-branch) → resolve product id via `ICashVarianceProductResolver.GetIdAsync(branchId)` → call repo with the resolved product id → compute aggregates (`Total / Mean / Max / Min`; empty window → all zero) → in-memory pagination over the bounded result → return.
+- [x] **8.9** Register in DI.
+- [x] **8.10** Add `GET /report/cash-variance` to `ReportController` (Manager/Admin). Full `[ProducesResponseType]` for 200/400/401/403/404.
+- [x] **8.11** Add `Validators.Test` + `UseCases.Test`: happy with mixed-status closes (Approved, Submitted, Draft — variance always read from the persisted close item per §6.12); branch isolation; empty window → zero aggregates and empty items; account filter narrowing; exact-argument `Received()` on resolver and on repo with the resolved `productId`.
+- [x] **8.12** Add `WebApi.Test` happy + unhappy with reload-based assertion against seeded `Diferença Caixa` items.
 
 ### Phase 9 — Operator Transaction Summary Report
 
