@@ -1717,25 +1717,25 @@ Add the small set of primitives more than one later phase consumes. No endpoints
 
 `GET /report/operator-summary?operatorId?&dateFrom&dateTo&mine` — any branch role. Operator self-check ("what did I do this week?") and manager performance review. Member follows the M5 Phase 4 list-style scope precedent: no linked operator → empty summary short-circuit (not 403); explicit other operator → 403 `REPORT_MEMBER_NOT_OWN_OPERATOR`; Manager/Admin sees any branch operator.
 
-- [ ] **9.1** Add `OperatorTransactionSummaryQuery` (`OperatorId`, `DateFrom`, `DateTo`, `AllowedAccountIds?`).
-- [ ] **9.2** Add `OperatorTransactionSummaryProjection` (`TotalCount`, `TotalIn`, `TotalOut`, `IReadOnlyList<CategoryTotal> ByCategory`) and `CategoryTotal` (`CategoryId`, `CategoryName`, `Count`, `TotalIn`, `TotalOut`) projection records.
-- [ ] **9.3** Extend `ITransactionsRepository` with `Task<OperatorTransactionSummaryProjection> SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(branchId, operatorId, dateFrom, dateTo, allowedAccountIds?)`. Branch-scoped, `Active = true AND Status = Active`-filtered. Group by `(CategoryId, CategoryName)`, deterministic `OrderBy(c => c.CategoryName).ThenBy(c => c.CategoryId)` on the projection. `allowedAccountIds` narrows the result set when provided.
-- [ ] **9.4** Add the Infrastructure implementation.
-- [ ] **9.5** Extend `TransactionsRepositoryBuilder` and add `OperatorTransactionSummaryQueryBuilder`.
-- [ ] **9.6** Add DTOs: `RequestOperatorTransactionSummaryJson { Guid? OperatorId, DateTime DateFrom, DateTime DateTo, bool Mine }`; `ResponseOperatorTransactionSummaryJson { OperatorId, OperatorName, DateFrom, DateTo, TotalTransactionCount, TotalInValue, TotalOutValue, NetValue, IReadOnlyList<ResponseOperatorCategoryTotalJson> ByCategory }`; `ResponseOperatorCategoryTotalJson { CategoryId, CategoryName, Count, TotalIn, TotalOut }`. Add the request builder.
-- [ ] **9.7** Add `OperatorTransactionSummaryFluentValidation`: date-range rules, `Mine && OperatorId != null` mutex (mirror M5 Phase 4 TimeEntry list).
-- [ ] **9.8** Implement `GetOperatorTransactionSummaryUseCase` under `UseCases/Reports/OperatorSummary/`: any branch role → validate inline → resolve target operator per the rule below → for Members resolve `AllowedAccountIds` via `MemberAccountScopeResolver` (zero active links → empty summary short-circuit) → call `SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking` → map to response.
+- [x] **9.1** Add `OperatorTransactionSummaryQuery` (`OperatorId`, `DateFrom`, `DateTo`, `AllowedAccountIds?`).
+- [x] **9.2** Add `OperatorTransactionSummaryProjection` (`TotalCount`, `TotalIn`, `TotalOut`, `IReadOnlyList<CategoryTotal> ByCategory`) and `CategoryTotal` (`CategoryId`, `CategoryName`, `Count`, `TotalIn`, `TotalOut`) projection records.
+- [x] **9.3** Extend `ITransactionsRepository` with `Task<OperatorTransactionSummaryProjection> SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(branchId, operatorId, dateFrom, dateTo, allowedAccountIds?)`. Branch-scoped, `Active = true AND Status = Active`-filtered. Group by `(CategoryId, CategoryName)`, deterministic `OrderBy(c => c.CategoryName).ThenBy(c => c.CategoryId)` on the projection. `allowedAccountIds` narrows the result set when provided.
+- [x] **9.4** Add the Infrastructure implementation.
+- [x] **9.5** Extend `TransactionsRepositoryBuilder` and add `OperatorTransactionSummaryQueryBuilder`.
+- [x] **9.6** Add DTOs: `RequestOperatorTransactionSummaryJson { Guid? OperatorId, DateTime DateFrom, DateTime DateTo, bool Mine }`; `ResponseOperatorTransactionSummaryJson { OperatorId, OperatorName, DateFrom, DateTo, TotalTransactionCount, TotalInValue, TotalOutValue, NetValue, IReadOnlyList<ResponseOperatorCategoryTotalJson> ByCategory }`; `ResponseOperatorCategoryTotalJson { CategoryId, CategoryName, Count, TotalIn, TotalOut }`. Add the request builder.
+- [x] **9.7** Add `OperatorTransactionSummaryFluentValidation`: date-range rules, `Mine && OperatorId != null` mutex (mirror M5 Phase 4 TimeEntry list).
+- [x] **9.8** Implement `GetOperatorTransactionSummaryUseCase` under `UseCases/Reports/OperatorSummary/`: any branch role → validate inline → resolve target operator per the rule below → for Members resolve `AllowedAccountIds` via `MemberAccountScopeResolver` (zero active links → empty summary short-circuit) → call `SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking` → map to response.
 
   Operator resolution (matches M5 Phase 4 list-style precedent):
   - Member with **no linked operator** → empty summary short-circuit (`OperatorId = Guid.Empty`, `OperatorName = ""`, zero counts and totals, no repository call).
   - Member with a linked operator AND (`Mine = true` OR `OperatorId == own linked` OR `OperatorId omitted`) → use own linked operator.
   - Member with a linked operator AND explicit `OperatorId != own linked` → 403 `REPORT_MEMBER_NOT_OWN_OPERATOR`.
   - Manager/Admin → free choice; `OperatorId` must be supplied or `Mine = true`. Missing/cross-branch `OperatorId` → 404 `OPERATOR_NOT_FOUND`.
-- [ ] **9.9** Register in DI.
-- [ ] **9.10** Add `GET /report/operator-summary` to `ReportController` with `[TokenAuthenticateBranch]` only (no `[TokenAuthorize(...)]` — this is one of the two operator-self routes that the controller's lack of a class-level auth attribute exists to support). Full `[ProducesResponseType]` for 200/400/401/403/404.
-- [ ] **9.11** Add `Validators.Test`: mine + operator-id mutex; date-range failures.
-- [ ] **9.12** Add `UseCases.Test`: happy Manager any-operator; Member self with `Mine = true`; Member with `OperatorId == own`; Member with `OperatorId != own` → 403; Member with no linked operator → empty summary + repo `DidNotReceive()`; Member with zero account-scope → empty summary; branch isolation; Manager cross-branch → 404; Cancelled + Draft excluded.
-- [ ] **9.13** Add `WebApi.Test` happy + unhappy with reload-based assertions on seeded transaction matrix.
+- [x] **9.9** Register in DI.
+- [x] **9.10** Add `GET /report/operator-summary` to `ReportController` with `[TokenAuthenticateBranch]` only (no `[TokenAuthorize(...)]` — this is one of the two operator-self routes that the controller's lack of a class-level auth attribute exists to support). Full `[ProducesResponseType]` for 200/400/401/403/404.
+- [x] **9.11** Add `Validators.Test`: mine + operator-id mutex; date-range failures.
+- [x] **9.12** Add `UseCases.Test`: happy Manager any-operator; Member self with `Mine = true`; Member with `OperatorId == own`; Member with `OperatorId != own` → 403; Member with no linked operator → empty summary + repo `DidNotReceive()`; Member with zero account-scope → empty summary; branch isolation; Manager cross-branch → 404; Cancelled + Draft excluded.
+- [x] **9.13** Add `WebApi.Test` happy + unhappy with reload-based assertions on seeded transaction matrix.
 
 ### Phase 10 — Monthly Reconciliation Report
 

@@ -323,6 +323,55 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         return query;
     }
 
+    public async Task<OperatorTransactionSummaryProjection> SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        Guid operatorId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<Guid>? allowedAccountIds = null)
+    {
+        var query = dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.RecordedByOperatorId == operatorId &&
+                t.Date >= dateFrom &&
+                t.Date <= dateTo &&
+                t.Active &&
+                t.Status == TransactionStatus.Active);
+
+        if (allowedAccountIds is not null)
+        {
+            query = query.Where(t => allowedAccountIds.Contains(t.AccountId));
+        }
+
+        var rawGroups = await query
+            .GroupBy(t => new { t.CategoryId, t.Category.Name })
+            .Select(g => new
+            {
+                g.Key.CategoryId,
+                CategoryName = g.Key.Name,
+                Count = g.Count(),
+                TotalIn = g.Where(t => t.Direction == Direction.In).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                TotalOut = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m
+            })
+            .ToListAsync();
+
+        // Deterministic ordering applied on the projection (not in SQL) so the
+        // contract follows .NET string comparison instead of database collation.
+        var byCategory = rawGroups
+            .Select(g => new CategoryTotal(g.CategoryId, g.CategoryName, g.Count, g.TotalIn, g.TotalOut))
+            .OrderBy(c => c.CategoryName)
+            .ThenBy(c => c.CategoryId)
+            .ToList();
+
+        return new OperatorTransactionSummaryProjection(
+            byCategory.Sum(c => c.Count),
+            byCategory.Sum(c => c.TotalIn),
+            byCategory.Sum(c => c.TotalOut),
+            byCategory);
+    }
+
     public async Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
         Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize)
     {

@@ -1226,5 +1226,11 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("REPORT_PAGE_SIZE_INVALID", resourceCulture);
             }
         }
+
+        public static string REPORT_MINE_AND_OPERATOR_ID_CONFLICT {
+            get {
+                return ResourceManager.GetString("REPORT_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
+            }
+        }
     }
 }

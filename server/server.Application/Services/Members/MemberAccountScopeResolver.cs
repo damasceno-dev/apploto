@@ -2,6 +2,13 @@ using server.Domain.Interfaces;
 
 namespace server.Application.Services.Members;
 
+/// <summary>
+/// Runs two small read-only queries: first find the user's active
+/// operator, then list that operator's active account links. Skips the
+/// second query when there is no operator.
+///
+/// Does not cache. Call it once per request and reuse the result.
+/// </summary>
 public sealed class MemberAccountScopeResolver(
     IOperatorsRepository operatorsRepository,
     IOperatorAccountsRepository operatorAccountsRepository)

@@ -609,4 +609,7 @@
     <data name="REPORT_PAGE_SIZE_INVALID" xml:space="preserve">
         <value>O tamanho da página deve estar entre 1 e 200</value>
     </data>
+    <data name="REPORT_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
+        <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
+    </data>
 </root>

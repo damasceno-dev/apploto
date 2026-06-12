@@ -4,6 +4,7 @@ using server.Application.UseCases.Reports.DailyLedger;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
 using server.Application.UseCases.Reports.OpenChequeAging;
+using server.Application.UseCases.Reports.OperatorSummary;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -87,6 +88,22 @@ public class ReportController : ControllerBase
     public async Task<IActionResult> CashVarianceSummary(
         [FromServices] GetCashVarianceSummaryUseCase useCase,
         [FromQuery] RequestCashVarianceSummaryJson request)
+    {
+        var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("operator-summary")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseOperatorTransactionSummaryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> OperatorSummary(
+        [FromServices] GetOperatorTransactionSummaryUseCase useCase,
+        [FromQuery] RequestOperatorTransactionSummaryJson request)
     {
         var response = await useCase.Execute(request);
         return Ok(response);

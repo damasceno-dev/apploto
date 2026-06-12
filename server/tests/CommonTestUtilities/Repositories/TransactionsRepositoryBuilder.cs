@@ -211,6 +211,24 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
+    public TransactionsRepositoryBuilder SumByBranchIdAndOperatorIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        Guid operatorId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<Guid>? allowedAccountIds,
+        OperatorTransactionSummaryProjection result)
+    {
+        _repository.SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == operatorId),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo),
+                Arg.Is<IReadOnlyList<Guid>?>(actual => MatchesAllowedAccountIds(allowedAccountIds, actual)))
+            .Returns(result);
+        return this;
+    }
+
     public TransactionsRepositoryBuilder ListOpenChequeGroupsByBranchIdAsNoTrackingReturns(
         Guid branchId,
         Guid? accountId,
