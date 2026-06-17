@@ -74,6 +74,20 @@ public class DailyClosesRepositoryBuilder
         return this;
     }
 
+    public DailyClosesRepositoryBuilder ListByBranchIdAndYearMonthAsNoTrackingReturns(
+        Guid branchId,
+        int year,
+        int month,
+        IReadOnlyList<DailyClose> result)
+    {
+        _repository.ListByBranchIdAndYearMonthAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<int>(value => value == year),
+                Arg.Is<int>(value => value == month))
+            .Returns(result);
+        return this;
+    }
+
     public DailyClosesRepositoryBuilder CountByBranchIdAsNoTrackingReturns(
         Guid branchId,
         DailyCloseListFilter filter,

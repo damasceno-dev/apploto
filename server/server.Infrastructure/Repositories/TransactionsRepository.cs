@@ -452,6 +452,23 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
+        Guid branchId, int year, int month)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Date.Year == year &&
+                t.Date.Month == month)
+            .GroupBy(t => new { t.Date.Date, t.Status })
+            .OrderBy(g => g.Key.Date)
+            .ThenBy(g => g.Key.Status)
+            .Select(g => new MonthlyTransactionCountRow(g.Key.Date, g.Key.Status, g.Count()))
+            .ToListAsync();
+    }
+
     private IQueryable<Transaction> BuildOpenChequeBaseQuery(
         Guid branchId, Guid? accountId, Guid? clientId)
     {

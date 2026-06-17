@@ -38,4 +38,11 @@ public interface ITransactionsRepository
         Guid branchId, Guid? accountId, Guid? clientId);
     Task<IReadOnlyList<Transaction>> ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
         Guid originId, Guid branchId);
+    /// <summary>
+    /// Counts active, non-soft-deleted transactions for the branch/month grouped by (Date, Status), spanning
+    /// all Active/Draft/Canceled. A dedicated count aggregate — NOT the paginated list — so it counts in
+    /// the database without materializing every row and cannot silently drop rows past a page boundary.
+    /// </summary>
+    Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
+        Guid branchId, int year, int month);
 }

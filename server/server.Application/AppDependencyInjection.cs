@@ -12,6 +12,7 @@ using server.Application.UseCases.Reports.DailyLedger;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
 using server.Application.UseCases.Reports.CashVariance;
+using server.Application.UseCases.Reports.MonthlyReconciliation;
 using server.Application.UseCases.Reports.OpenChequeAging;
 using server.Application.UseCases.Reports.OperatorSummary;
 using server.Application.UseCases.BranchUsers.Add;
@@ -209,6 +210,7 @@ public static class AppDependencyInjection
         services.AddScoped<GetFiadoAgingUseCase>();
         services.AddScoped<GetOpenChequeAgingUseCase>();
         services.AddScoped<GetCashVarianceSummaryUseCase>();
+        services.AddScoped<GetMonthlyReconciliationUseCase>();
         services.AddScoped<GetOperatorTransactionSummaryUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();

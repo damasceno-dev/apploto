@@ -71,6 +71,21 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .FirstOrDefaultAsync();
     }
 
+    public async Task<IReadOnlyList<DailyClose>> ListByBranchIdAndYearMonthAsNoTracking(Guid branchId, int year, int month)
+    {
+        return await dbContext.DailyCloses
+            .AsNoTracking()
+            .Include(dailyClose => dailyClose.Account)
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.Active &&
+                dailyClose.Date.Year == year &&
+                dailyClose.Date.Month == month)
+            .OrderBy(dailyClose => dailyClose.Date)
+            .ThenBy(dailyClose => dailyClose.Account.Name)
+            .ToListAsync();
+    }
+
     public async Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(
         Guid branchId,
         DailyCloseListFilter filter)
@@ -105,44 +120,29 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .ThenInclude(item => item.Product);
     }
 
-    private static IQueryable<DailyClose> ApplyFilter(
-        IQueryable<DailyClose> source,
-        Guid branchId,
-        DailyCloseListFilter filter)
+    private static IQueryable<DailyClose> ApplyFilter(IQueryable<DailyClose> source,Guid branchId,DailyCloseListFilter filter)
     {
         var query = source.Where(dailyClose =>
             dailyClose.BranchId == branchId &&
             dailyClose.Active);
 
         if (filter.AllowedAccountIds is not null)
-        {
             query = query.Where(dailyClose => filter.AllowedAccountIds.Contains(dailyClose.AccountId));
-        }
 
         if (filter.AccountId is { } accountId)
-        {
             query = query.Where(dailyClose => dailyClose.AccountId == accountId);
-        }
 
         if (filter.Status is { } status)
-        {
             query = query.Where(dailyClose => dailyClose.Status == status);
-        }
 
         if (filter.DateFrom is { } dateFrom)
-        {
             query = query.Where(dailyClose => dailyClose.Date >= dateFrom);
-        }
 
         if (filter.DateTo is { } dateTo)
-        {
             query = query.Where(dailyClose => dailyClose.Date <= dateTo);
-        }
 
         if (filter.OperatorId is { } operatorId)
-        {
             query = query.Where(dailyClose => dailyClose.SubmittedByOperatorId == operatorId);
-        }
 
         return query;
     }

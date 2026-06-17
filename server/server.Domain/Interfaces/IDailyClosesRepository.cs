@@ -13,6 +13,12 @@ public interface IDailyClosesRepository
         Guid branchId,
         Guid accountId,
         DateTime beforeDate);
+    /// <summary>
+    /// Active closes for the branch in the given year/month, eager-loading <c>Account</c> (for the name and
+    /// ordering). Ordered Date ASC, then AccountName ASC. Powers the monthly reconciliation report; does not
+    /// load <c>SubmittedByOperator</c> because that report exposes no operator field.
+    /// </summary>
+    Task<IReadOnlyList<DailyClose>> ListByBranchIdAndYearMonthAsNoTracking(Guid branchId, int year, int month);
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(Guid branchId, DailyCloseListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, DailyCloseListFilter filter);
 }

@@ -3,6 +3,7 @@ using server.Application.UseCases.Reports.CashVariance;
 using server.Application.UseCases.Reports.DailyLedger;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
+using server.Application.UseCases.Reports.MonthlyReconciliation;
 using server.Application.UseCases.Reports.OpenChequeAging;
 using server.Application.UseCases.Reports.OperatorSummary;
 using server.Communication.Requests;
@@ -90,6 +91,26 @@ public class ReportController : ControllerBase
         [FromQuery] RequestCashVarianceSummaryJson request)
     {
         var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("monthly-reconciliation/{year:int:min(2000):max(2100)}/{month:int:min(1):max(12)}")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseMonthlyReconciliationJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MonthlyReconciliation(
+        [FromServices] GetMonthlyReconciliationUseCase useCase,
+        [FromRoute] int year,
+        [FromRoute] int month)
+    {
+        var response = await useCase.Execute(new RequestMonthlyReconciliationJson
+        {
+            Year = year,
+            Month = month
+        });
         return Ok(response);
     }
 

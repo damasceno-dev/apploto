@@ -273,6 +273,20 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
+    public TransactionsRepositoryBuilder CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTrackingReturns(
+        Guid branchId,
+        int year,
+        int month,
+        IReadOnlyList<MonthlyTransactionCountRow> result)
+    {
+        _repository.CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<int>(value => value == year),
+                Arg.Is<int>(value => value == month))
+            .Returns(result);
+        return this;
+    }
+
     public ITransactionsRepository Build()
     {
         return _repository;

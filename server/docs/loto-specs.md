@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
-Spec revision: v28
+Spec revision: v29
 -->
 
-> **Status:** Revised spec (v28) — Milestone 7 Slice 7.2 Cheque Installment Impact Preview — §6.14 "Installment impact preview" subsection added covering `POST /transaction/installment/preview` (branch-authenticated, **same scope as the `POST /transaction/installment` write twin** — Member-scoped via `TransactionCreatePreamble`, not Manager/Admin-only). The Phase 6 row preview (`TotalValue`, `InstallmentCount`, `Rows`) is unchanged; a new additive `Impact` object forecasts the would-be plan's open-cheque aging group, optional aggregated fiado delta (Tab account + client), and cash variance. `asOfDate?` is a query-string parameter. A `Draft` plan short-circuits every impact section to empty/zero; preview never commits
+> **Status:** Revised spec (v29) — Milestone 7 Phase 10 Monthly Reconciliation Report — §6.14 "Monthly reconciliation report" subsection added for `GET /report/monthly-reconciliation/{year}/{month}` (Manager/Admin). The response returns every calendar day in the month with account close statuses, transaction counts by Active/Draft/Cancelled, per-close variance, per-day net variance, `LockReady`, and a structured `Blockers` list (clients format/localize the text). `LockReady` is true only when every active close in the month is Approved and there are no Draft transactions.
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -37,6 +37,7 @@ Spec revision: v28
 > v26: Milestone 7 Slice 7 Edit Impact Preview — §6.14 extended with "Edit impact preview" subsection documenting `POST /transaction/{id}/edit-preview` (Manager/Admin). The body reuses `RequestUpdateTransactionJson` verbatim (no parallel DTO, no field made optional); `asOfDate?` lives on the query string. The use case mirrors `PUT /transaction/{id}` step-for-step (role check → validate → no-tracking load with TransactionType + Account → cancelled/lock/fiado/client guards → relative validator) minus `IUnitOfWork` and the mutation/Commit, then delegates to the concrete `TransactionEditImpactProjector` helper (no interface — same convention as the other M7 compute helpers). Response `ResponseEditTransactionPreviewJson { TransactionId, Impact, Warnings }` always carries all three impact sections: `ReceivableImpact` (bucket-before/after on a DueDate shift, appears/disappears flags on a `PaidAt` flip), `FiadoBalanceImpact` (per-client outstanding deltas only when `AccountType = Tab` and the client changes; old client −signedValue, new client +signedValue, `signedValue = Out ? +Value : −Value`), and `CashVarianceImpact` (`AccountId`/`Date`/`DailyCloseStatus` populated whenever a close exists; `CurrentVariance`/`ProjectedVariance` live-recomputed via `ICashVarianceCalculator` for any non-Draft close (Submitted/Approved/Rejected), with the close status surfaced via `DailyCloseStatus` so the manager can tell a pending vs signed-off vs repudiated number; `VarianceDelta` is the computed net-flow delta, 0 today because no editable field changes §6.12's inputs but derived, never hardcoded; single-close boundary documented). Monthly lock-readiness is deferred to the Milestone 10 monthly-reconciliation report. Preview-never-commits is enforced by construction (no `IUnitOfWork`) and pinned by WebApi reload assertions plus a determinism test that compares every impact against the post-PUT state: receivable bucket via fiado aging, fiado deltas via before/after fiado balances, and cash variance via a real post-write calculator recompute.
 > v27: Milestone 7 Slice 7.1 Create Impact Preview — §6.14 extended with "Create impact preview" subsection documenting `POST /transaction/preview`. **Permission is the same as the `POST /transaction` write twin** — `[TokenAuthenticateBranch]`, not Manager/Admin-only; the use case runs through `TransactionCreatePreamble`, so Members inherit the same linked-operator + account-scope checks as the real create flow (preview/write parity: anyone who can create the row can preview it). This contrasts with the edit-impact preview, which stays the deliberate Manager/Admin exception because it previews an edit to an existing persisted row loaded by id, not a scope-limited create. The body reuses `RequestCreateTransactionJson` verbatim; `asOfDate?` lives on the query string. The use case mirrors `CreateTransactionUseCase` step-for-step (validate → preamble resolve) minus `AddRange`/`Commit`, then delegates to `TransactionEditImpactProjector.ProjectCreate(...)` (the same single DI-registered Reports helper, now hosting both projections). Response `ResponseCreateTransactionPreviewJson { Impact, Warnings }` carries **no** `TransactionId` (nothing is created). The shared impact envelope `ResponseTransactionEditImpactJson` was renamed to the neutral `ResponseTransactionImpactJson` (free rename — v26 unreleased) and is now returned by both previews. A `Draft` would-be row short-circuits all three sections to empty/zero. For an `Active` row: `ReceivableImpact` marks a Tab row appearing (`RowAppearsInOpenReceivables = true`, `BucketAfter` from `ReportAgingBucketizer.BucketFor(DueDate, asOfDate)`, `BucketBefore` null; empty for non-Tab); `FiadoBalanceImpact` carries one `+signedValue` delta on the selected Tab client (`signedValue = Out ? +Value : −Value`, §6.4); `CashVarianceImpact.VarianceDelta = −NetFlow(Direction, Value)` (`NetFlow = In ? +Value : −Value`) is **genuinely non-zero** — the reason this slice exists, contrasting the edit preview's structural zero — with `CurrentVariance`/`ProjectedVariance` live-recomputed for any non-Draft close and `DailyCloseStatus` surfaced. For Member callers every impact query uses only the preamble-resolved `(account, client, date)` — no branch-wide balances, receivables, or all-account variance summaries. Preview-never-commits is enforced by construction (no `IUnitOfWork`/`ITransactionsRepository`) and pinned by a WebApi row-count assertion plus a determinism test that compares every impact against the post-create state: receivable bucket via fiado aging, fiado delta via fiado balance, and cash variance via a real post-create calculator recompute.
 > v28: Milestone 7 Slice 7.2 Cheque Installment Impact Preview — §6.14 extended with "Installment impact preview" subsection documenting `POST /transaction/installment/preview?asOfDate?`. **Permission is the same as the `POST /transaction/installment` write twin** — `[TokenAuthenticateBranch]`, not Manager/Admin-only; the use case runs through `TransactionCreatePreamble` (Member linked-operator + account-scope checks inherited), so anyone who can create the plan can preview it. The body remains `RequestCreateTransactionInstallmentJson` verbatim; `asOfDate?` lives on the query string. The Phase 6 row preview (`TotalValue`, `InstallmentCount`, `Rows`) is **byte-for-byte unchanged**; a new additive `Impact: ResponseInstallmentPreviewImpactJson { OpenChequeAgingImpact, FiadoBalanceImpact, CashVarianceImpact }` is returned alongside it (the fiado and cash-variance sections reuse the create/edit preview DTOs verbatim; the open-cheque section is a group rollup with its own `ResponseOpenChequeAgingImpactJson` envelope, and per-row identity is positional via `Index` — no `OriginTransactionId` / `TransactionId` is exposed because nothing is created). The use case adds `IBranchClock` + the concrete `TransactionEditImpactProjector.ProjectInstallment(...)` and stays non-persisting by construction (no `ITransactionsRepository`/`IUnitOfWork`). A `Draft` plan short-circuits all three sections to empty/zero (draft rows are excluded from the open-cheque report, §6.4 fiado sums, and §6.12 cash variance) while still returning the generated rows. For an `Active` plan the projector **aggregates** the generated rows (it does not loop the single-row create projection): `OpenChequeAgingImpact` is one would-be group (`GroupAppearsInOpenCheques = true`, `OutstandingTotal = Σ row.Value`, `OldestOpenDueDate = min(row.DueDate)`, `OldestOpenBucket` from `ReportAgingBucketizer`, `OpenRowCount = TotalRowCount = rows.Count`, per-row `DaysOutstanding`/`Bucket` by the same rule as `GET /report/cheques/open-aging`); `FiadoBalanceImpact` is one aggregated client delta `Σ(Out ? +row.Value : −row.Value)` when `AccountType = Tab` and a client is set (else empty), closing the parity hole for cheque types that also require Tab account + client; `CashVarianceImpact.VarianceDelta = −Σ NetFlow(Direction, row.Value)` on the plan's `(account, Date)`, with `CurrentVariance`/`ProjectedVariance` live-recomputed for any non-`Draft` close and `DailyCloseStatus` surfaced (`ProjectedVariance` is the variance if current close counts remain unchanged after these cheque rows are recorded). Preview-never-commits is pinned by a WebApi row-count assertion plus determinism tests: open-cheque parity (`GET /report/cheques/open-aging` group matches the preview position-for-position), fiado parity (before/after `GET /report/fiado/balance` delta equals the previewed delta against a non-zero starting balance), cash-variance parity (a real post-write `ICashVarianceCalculator` recompute equals the previewed `ProjectedVariance`), and draft (a committed draft plan does not appear in the open-cheque report).
+> v29: Milestone 7 Phase 10 Monthly Reconciliation Report — §6.14 extended with "Monthly reconciliation report" subsection documenting `GET /report/monthly-reconciliation/{year}/{month}` (Manager/Admin). The route accepts years 2000–2100 and months 1–12; out-of-range route values do not match and return 404. The response envelope is `ResponseMonthlyReconciliationJson { Year, Month, LockReady, Days, Blockers }`, with every calendar day in `Days`. Each day includes close rows, Active/Draft/Cancelled transaction counts, and `NetVariance`; close variance is keyed by `(Date, AccountId)` so multiple closes on the same day keep distinct values. `LockReady` is true only when every active close in the month is Approved and there are zero Draft transactions. `Blockers` is a list of structured `ResponseMonthlyReconciliationBlockerJson` items (`Type` ∈ `UnapprovedClose`/`DraftTransactions`, plus `Day`, `DailyCloseId?`, `AccountId?`, `AccountName?`, `CloseStatus?`, `DraftTransactionCount?`) so clients format/localize the text and deep-link to the offending close via the returned ids.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -179,15 +180,15 @@ public class Branch : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | Display name: "Lotérica Centro", "Lotérica Asa Sul" |
-| Cnpj | varchar(18) | NULL | Brazilian company ID |
-| Address | text | NULL | |
-| Phone | varchar(20) | NULL | |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | Default true |
+| Column    | Type         | Null     | Notes                                               |
+|-----------|--------------|----------|-----------------------------------------------------|
+| Id        | uuid         | PK       |                                                     |
+| Name      | varchar(255) | NOT NULL | Display name: "Lotérica Centro", "Lotérica Asa Sul" |
+| Cnpj      | varchar(18)  | NULL     | Brazilian company ID                                |
+| Address   | text         | NULL     |                                                     |
+| Phone     | varchar(20)  | NULL     |                                                     |
+| CreatedAt | timestamptz  | NOT NULL |                                                     |
+| Active    | boolean      | NOT NULL | Default true                                        |
 
 ### 3.3 User
 
@@ -206,14 +207,14 @@ public class User : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | |
-| Email | varchar(255) | NOT NULL | UNIQUE |
-| Password | varchar(255) | NOT NULL | Hashed |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column    | Type         | Null     | Notes  |
+|-----------|--------------|----------|--------|
+| Id        | uuid         | PK       |        |
+| Name      | varchar(255) | NOT NULL |        |
+| Email     | varchar(255) | NOT NULL | UNIQUE |
+| Password  | varchar(255) | NOT NULL | Hashed |
+| CreatedAt | timestamptz  | NOT NULL |        |
+| Active    | boolean      | NOT NULL |        |
 
 ### 3.4 RefreshToken
 
@@ -245,14 +246,14 @@ public class BranchUser : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| UserId | uuid | NOT NULL | FK → User |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| Role | smallint | NOT NULL | Enum: Admin=0, Manager=1, Member=2 |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column    | Type        | Null     | Notes                              |
+|-----------|-------------|----------|------------------------------------|
+| Id        | uuid        | PK       |                                    |
+| UserId    | uuid        | NOT NULL | FK → User                          |
+| BranchId  | uuid        | NOT NULL | FK → Branch                        |
+| Role      | smallint    | NOT NULL | Enum: Admin=0, Manager=1, Member=2 |
+| CreatedAt | timestamptz | NOT NULL |                                    |
+| Active    | boolean     | NOT NULL |                                    |
 
 **Unique constraint:** `(UserId, BranchId)` — a user has one role per branch.
 
@@ -277,14 +278,14 @@ public class Operator : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes                                                           |
-|---|---|---|-----------------------------------------------------------------|
-| Id | uuid | PK |                                                                 |
-| Name | varchar(255) | NOT NULL | "Lenna", "Jennifer", "Tracy"                                    |
-| BranchId | uuid | NOT NULL | FK → Branch                                                     |
-| UserId | uuid | NULL | FK → User. Null = no login (former employee, or not yet set up) |
-| CreatedAt | timestamptz | NOT NULL |                                                                 |
-| Active | boolean | NOT NULL |                                                                 |
+| Column    | Type         | Null     | Notes                                                           |
+|-----------|--------------|----------|-----------------------------------------------------------------|
+| Id        | uuid         | PK       |                                                                 |
+| Name      | varchar(255) | NOT NULL | "Lenna", "Jennifer", "Tracy"                                    |
+| BranchId  | uuid         | NOT NULL | FK → Branch                                                     |
+| UserId    | uuid         | NULL     | FK → User. Null = no login (former employee, or not yet set up) |
+| CreatedAt | timestamptz  | NOT NULL |                                                                 |
+| Active    | boolean      | NOT NULL |                                                                 |
 
 **Unique active user-link constraint:** `(BranchId, UserId) WHERE UserId IS NOT NULL AND Active = true` — a user can have at most one active linked Operator per branch. Multiple terminal/account access is represented through `OperatorAccount`, not through multiple active Operator rows for the same user. Operators without a login keep `UserId = null` and are not constrained by this index.
 
@@ -316,30 +317,30 @@ public class Account : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes                                                                          |
-|---|---|---|--------------------------------------------------------------------------------|
-| Id | uuid | PK |                                                                                |
-| Type | smallint | NOT NULL | Enum: Terminal=0, BankAccount=1, Tab=2                                         |
-| Name | varchar(255) | NOT NULL | "Lenna", "CEF 1292", "Tab Lenna"                                               |
-| Institution | varchar(255) | NULL | "Lotérica" for terminals, "Caixa Econômica" for bank accounts                  |
-| Number | varchar(50) | NULL | Terminal number "1","2","3" or bank account number                             |
-| BranchId | uuid | NOT NULL | FK → Branch                                                                    |
-| TabAccountId | uuid | NULL | FK → Account (self). Only for Terminal type → points to its optional paired Tab account |
-| CreatedAt | timestamptz | NOT NULL |                                                                                |
-| Active | boolean | NOT NULL |                                                                                |
+| Column       | Type         | Null     | Notes                                                                                   |
+|--------------|--------------|----------|-----------------------------------------------------------------------------------------|
+| Id           | uuid         | PK       |                                                                                         |
+| Type         | smallint     | NOT NULL | Enum: Terminal=0, BankAccount=1, Tab=2                                                  |
+| Name         | varchar(255) | NOT NULL | "Lenna", "CEF 1292", "Tab Lenna"                                                        |
+| Institution  | varchar(255) | NULL     | "Lotérica" for terminals, "Caixa Econômica" for bank accounts                           |
+| Number       | varchar(50)  | NULL     | Terminal number "1","2","3" or bank account number                                      |
+| BranchId     | uuid         | NOT NULL | FK → Branch                                                                             |
+| TabAccountId | uuid         | NULL     | FK → Account (self). Only for Terminal type → points to its optional paired Tab account |
+| CreatedAt    | timestamptz  | NOT NULL |                                                                                         |
+| Active       | boolean      | NOT NULL |                                                                                         |
 
 **Example data (for a branch where fiado is enabled on all three terminals):**
 
-| Name | Type | TabAccountId | Institution | Number |
-|---|---|---|---|---|
-| Lenna | Terminal | → "Tab Lenna" | Lotérica | 1 |
-| Jennifer | Terminal | → "Tab Jennifer" | Lotérica | 2 |
-| Tracy | Terminal | → "Tab Tracy" | Lotérica | 3 |
-| Tab Lenna | Tab | null | Lotérica | 4 |
-| Tab Jennifer | Tab | null | Lotérica | 5 |
-| Tab Tracy | Tab | null | Lotérica | 6 |
-| CEF 1292 | BankAccount | null | Caixa Econômica | 5780706014 |
-| CEF 4995 | BankAccount | null | Caixa Econômica | 5780706014 |
+| Name         | Type        | TabAccountId     | Institution     | Number     |
+|--------------|-------------|------------------|-----------------|------------|
+| Lenna        | Terminal    | → "Tab Lenna"    | Lotérica        | 1          |
+| Jennifer     | Terminal    | → "Tab Jennifer" | Lotérica        | 2          |
+| Tracy        | Terminal    | → "Tab Tracy"    | Lotérica        | 3          |
+| Tab Lenna    | Tab         | null             | Lotérica        | 4          |
+| Tab Jennifer | Tab         | null             | Lotérica        | 5          |
+| Tab Tracy    | Tab         | null             | Lotérica        | 6          |
+| CEF 1292     | BankAccount | null             | Caixa Econômica | 5780706014 |
+| CEF 4995     | BankAccount | null             | Caixa Econômica | 5780706014 |
 
 **TabAccountId invariants** (enforced at service layer and/or DB check constraints):
 - Only `Terminal` accounts may have a non-null `TabAccountId`
@@ -372,14 +373,14 @@ public class OperatorAccount : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| OperatorId | uuid | NOT NULL | FK → Operator |
-| AccountId | uuid | NOT NULL | FK → Account |
-| IsPrimary | boolean | NOT NULL | Default false. True = this is the operator's main terminal |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column     | Type        | Null     | Notes                                                      |
+|------------|-------------|----------|------------------------------------------------------------|
+| Id         | uuid        | PK       |                                                            |
+| OperatorId | uuid        | NOT NULL | FK → Operator                                              |
+| AccountId  | uuid        | NOT NULL | FK → Account                                               |
+| IsPrimary  | boolean     | NOT NULL | Default false. True = this is the operator's main terminal |
+| CreatedAt  | timestamptz | NOT NULL |                                                            |
+| Active     | boolean     | NOT NULL |                                                            |
 
 **Unique constraint:** `(OperatorId, AccountId)`
 
@@ -403,14 +404,14 @@ public class Category : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | "Receita", "Saídas", "Despesas Comerciais", etc. |
-| DefaultDirection | smallint | NOT NULL | Enum: In=0, Out=1 |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column           | Type         | Null     | Notes                                            |
+|------------------|--------------|----------|--------------------------------------------------|
+| Id               | uuid         | PK       |                                                  |
+| Name             | varchar(255) | NOT NULL | "Receita", "Saídas", "Despesas Comerciais", etc. |
+| DefaultDirection | smallint     | NOT NULL | Enum: In=0, Out=1                                |
+| BranchId         | uuid         | NOT NULL | FK → Branch                                      |
+| CreatedAt        | timestamptz  | NOT NULL |                                                  |
+| Active           | boolean      | NOT NULL |                                                  |
 
 **Unique constraint:** `(BranchId, Name) WHERE Active = true`
 
@@ -433,15 +434,15 @@ public class TransactionType : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | "Depósito Dinheiro", "PIX", "Cartão de Crédito", etc. |
-| SettlementRule | smallint | NOT NULL | Enum: SameDay=0, NextCalendarDay=1, NextBusinessDay=2, TwoBusinessDays=3, OperatorEnteredCheque=4 |
-| RequiresTabAccountAndClient | boolean | NOT NULL | When true, transaction creation requires `Account.Type == Tab` and `ClientId != null` |
-| CategoryId | uuid | NOT NULL | FK → Category |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | Soft-disable without deleting |
+| Column                      | Type         | Null     | Notes                                                                                             |
+|-----------------------------|--------------|----------|---------------------------------------------------------------------------------------------------|
+| Id                          | uuid         | PK       |                                                                                                   |
+| Name                        | varchar(255) | NOT NULL | "Depósito Dinheiro", "PIX", "Cartão de Crédito", etc.                                             |
+| SettlementRule              | smallint     | NOT NULL | Enum: SameDay=0, NextCalendarDay=1, NextBusinessDay=2, TwoBusinessDays=3, OperatorEnteredCheque=4 |
+| RequiresTabAccountAndClient | boolean      | NOT NULL | When true, transaction creation requires `Account.Type == Tab` and `ClientId != null`             |
+| CategoryId                  | uuid         | NOT NULL | FK → Category                                                                                     |
+| CreatedAt                   | timestamptz  | NOT NULL |                                                                                                   |
+| Active                      | boolean      | NOT NULL | Soft-disable without deleting                                                                     |
 
 **Note:** TransactionType inherits BranchId through its Category. No direct BranchId column needed.
 
@@ -473,20 +474,20 @@ public class Client : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | |
-| Cpf | varchar(11) | NULL | Brazilian personal ID (normalized digits, 11 chars) |
-| Cep | varchar(9) | NULL | Postal code |
-| Address | text | NULL | |
-| Phone | varchar(20) | NOT NULL | Primary phone |
-| PhoneSecondary | varchar(20) | NULL | |
-| Notes | text | NULL | Freeform observations |
-| Email | varchar(255) | NULL | |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column         | Type         | Null     | Notes                                               |
+|----------------|--------------|----------|-----------------------------------------------------|
+| Id             | uuid         | PK       |                                                     |
+| Name           | varchar(255) | NOT NULL |                                                     |
+| Cpf            | varchar(11)  | NULL     | Brazilian personal ID (normalized digits, 11 chars) |
+| Cep            | varchar(9)   | NULL     | Postal code                                         |
+| Address        | text         | NULL     |                                                     |
+| Phone          | varchar(20)  | NOT NULL | Primary phone                                       |
+| PhoneSecondary | varchar(20)  | NULL     |                                                     |
+| Notes          | text         | NULL     | Freeform observations                               |
+| Email          | varchar(255) | NULL     |                                                     |
+| BranchId       | uuid         | NOT NULL | FK → Branch                                         |
+| CreatedAt      | timestamptz  | NOT NULL |                                                     |
+| Active         | boolean      | NOT NULL |                                                     |
 
 **Unique constraint:** `(BranchId, Cpf) WHERE Cpf IS NOT NULL AND Active = true` — at most one active client per CPF per branch. Prevents duplicate customer records while allowing the CPF field to remain optional.
 
@@ -554,30 +555,30 @@ public class Transaction : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Date | date | NOT NULL | When the financial event occurred |
-| Value | numeric(14,2) | NOT NULL | Always positive |
-| Description | varchar(500) | NULL | Freeform notes. For credit card: "Parcelado 3x" or "à vista" |
-| TransactionTime | time | NULL | Time of day (used by cash deposits and other time-sensitive entries) |
-| TransactionTypeId | uuid | NOT NULL | FK → TransactionType. **Source of truth for classification** |
-| CategoryId | uuid | NOT NULL | FK → Category. **Denormalized** — always equals TransactionType.CategoryId, set at creation, never independently editable |
-| Direction | smallint | NOT NULL | Enum: In=0, Out=1. **Denormalized** — always equals Category.DefaultDirection, set at creation, never independently editable |
-| AccountId | uuid | NOT NULL | FK → Account |
-| ClientId | uuid | NULL | FK → Client. Only for client-related transactions |
-| DueDate | date | NOT NULL | When payment is expected |
-| PaidAt | timestamptz | NULL | When actually paid. NULL = unpaid |
-| OriginTransactionId | uuid | NULL | FK → Transaction (self). All installments in a group share the same value, including the first (self-reference) |
-| RecordedByOperatorId | uuid | NOT NULL | FK → Operator. Which operator's context (terminal) this transaction belongs to |
-| CreatedByUserId | uuid | NOT NULL | FK → User. Who actually created this record (may differ from operator for manager corrections) |
-| Status | smallint | NOT NULL | Enum: Draft=0, Active=1, Cancelled=2 |
-| CancelledAt | timestamptz | NULL | |
-| CancelledByUserId | uuid | NULL | FK → User |
-| CancellationReason | varchar(500) | NULL | |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | EntityBase default. Redundant with Status for transactions but kept for consistency |
+| Column               | Type          | Null     | Notes                                                                                                                        |
+|----------------------|---------------|----------|------------------------------------------------------------------------------------------------------------------------------|
+| Id                   | uuid          | PK       |                                                                                                                              |
+| Date                 | date          | NOT NULL | When the financial event occurred                                                                                            |
+| Value                | numeric(14,2) | NOT NULL | Always positive                                                                                                              |
+| Description          | varchar(500)  | NULL     | Freeform notes. For credit card: "Parcelado 3x" or "à vista"                                                                 |
+| TransactionTime      | time          | NULL     | Time of day (used by cash deposits and other time-sensitive entries)                                                         |
+| TransactionTypeId    | uuid          | NOT NULL | FK → TransactionType. **Source of truth for classification**                                                                 |
+| CategoryId           | uuid          | NOT NULL | FK → Category. **Denormalized** — always equals TransactionType.CategoryId, set at creation, never independently editable    |
+| Direction            | smallint      | NOT NULL | Enum: In=0, Out=1. **Denormalized** — always equals Category.DefaultDirection, set at creation, never independently editable |
+| AccountId            | uuid          | NOT NULL | FK → Account                                                                                                                 |
+| ClientId             | uuid          | NULL     | FK → Client. Only for client-related transactions                                                                            |
+| DueDate              | date          | NOT NULL | When payment is expected                                                                                                     |
+| PaidAt               | timestamptz   | NULL     | When actually paid. NULL = unpaid                                                                                            |
+| OriginTransactionId  | uuid          | NULL     | FK → Transaction (self). All installments in a group share the same value, including the first (self-reference)              |
+| RecordedByOperatorId | uuid          | NOT NULL | FK → Operator. Which operator's context (terminal) this transaction belongs to                                               |
+| CreatedByUserId      | uuid          | NOT NULL | FK → User. Who actually created this record (may differ from operator for manager corrections)                               |
+| Status               | smallint      | NOT NULL | Enum: Draft=0, Active=1, Cancelled=2                                                                                         |
+| CancelledAt          | timestamptz   | NULL     |                                                                                                                              |
+| CancelledByUserId    | uuid          | NULL     | FK → User                                                                                                                    |
+| CancellationReason   | varchar(500)  | NULL     |                                                                                                                              |
+| BranchId             | uuid          | NOT NULL | FK → Branch                                                                                                                  |
+| CreatedAt            | timestamptz   | NOT NULL |                                                                                                                              |
+| Active               | boolean       | NOT NULL | EntityBase default. Redundant with Status for transactions but kept for consistency                                          |
 
 **Nullable columns analysis** (8 nullable content columns):
 - `Description` — not all transaction types use it
@@ -615,14 +616,14 @@ public class Product : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| Name | varchar(255) | NOT NULL | "Dinheiro", "Telesena", "Raspadinha", "Jogos", "Loteria Especial", "Federal", "Tarifa Bolão", "Diferença Caixa" |
-| DisplayOrder | int | NOT NULL | Controls form field ordering |
-| BranchId | uuid | NOT NULL | FK → Branch |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column       | Type         | Null     | Notes                                                                                                           |
+|--------------|--------------|----------|-----------------------------------------------------------------------------------------------------------------|
+| Id           | uuid         | PK       |                                                                                                                 |
+| Name         | varchar(255) | NOT NULL | "Dinheiro", "Telesena", "Raspadinha", "Jogos", "Loteria Especial", "Federal", "Tarifa Bolão", "Diferença Caixa" |
+| DisplayOrder | int          | NOT NULL | Controls form field ordering                                                                                    |
+| BranchId     | uuid         | NOT NULL | FK → Branch                                                                                                     |
+| CreatedAt    | timestamptz  | NOT NULL |                                                                                                                 |
+| Active       | boolean      | NOT NULL |                                                                                                                 |
 
 **Unique constraint:** `(BranchId, Name) WHERE Active = true`
 
@@ -771,16 +772,16 @@ public class TimeEntrySegment : EntityBase
 }
 ```
 
-| Column | Type | Null | Notes |
-|---|---|---|---|
-| Id | uuid | PK | |
-| ClockIn | timestamp (no tz) | NOT NULL | Branch-local wall clock; must fall within `[parent.Date, parent.Date + 1 day)` |
-| ClockOut | timestamp (no tz) | NULL | Null = open shift; when set must be > ClockIn and ClockOut − ClockIn ≤ 24 h |
-| TimeEntryId | uuid | NOT NULL | FK → TimeEntry (CASCADE on delete) |
-| UpdatedAt | timestamptz | NULL | Stamped on admin edit |
-| UpdatedByUserId | uuid | NULL | FK → User; who last modified this segment |
-| CreatedAt | timestamptz | NOT NULL | |
-| Active | boolean | NOT NULL | |
+| Column          | Type              | Null     | Notes                                                                          |
+|-----------------|-------------------|----------|--------------------------------------------------------------------------------|
+| Id              | uuid              | PK       |                                                                                |
+| ClockIn         | timestamp (no tz) | NOT NULL | Branch-local wall clock; must fall within `[parent.Date, parent.Date + 1 day)` |
+| ClockOut        | timestamp (no tz) | NULL     | Null = open shift; when set must be > ClockIn and ClockOut − ClockIn ≤ 24 h    |
+| TimeEntryId     | uuid              | NOT NULL | FK → TimeEntry (CASCADE on delete)                                             |
+| UpdatedAt       | timestamptz       | NULL     | Stamped on admin edit                                                          |
+| UpdatedByUserId | uuid              | NULL     | FK → User; who last modified this segment                                      |
+| CreatedAt       | timestamptz       | NOT NULL |                                                                                |
+| Active          | boolean           | NOT NULL |                                                                                |
 
 **Day-bounds invariant:** `segment.ClockIn ∈ [parent.Date, parent.Date + 1 day)`. When `ClockOut` is set: `ClockOut > ClockIn` and `ClockOut − ClockIn ≤ 24 h`, which implicitly bounds `ClockOut < parent.Date + 2 days`.
 
@@ -923,11 +924,11 @@ public enum TimeEntryStatus
 
 ### What is NOT an enum
 
-| Concept | Why data table |
-|---|---|
-| Category | Owner may add new expense categories |
+| Concept         | Why data table                                                     |
+|-----------------|--------------------------------------------------------------------|
+| Category        | Owner may add new expense categories                               |
 | TransactionType | New payment methods emerge (PIX was added to Access mid-lifecycle) |
-| Product | New lottery products can appear from CEF |
+| Product         | New lottery products can appear from CEF                           |
 
 ---
 
@@ -1636,6 +1637,35 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 | `CashVarianceImpact`    | `ResponseCashVarianceImpactJson { AccountId?, Date?, DailyCloseStatus?, CurrentVariance?, ProjectedVariance?, VarianceDelta }`                                                                                                                                                                                                                 | `VarianceDelta = −Σ NetFlow(Direction, row.Value)` (`NetFlow = In ? +Value : −Value`) on the plan's `(account, Date)`. `AccountId`/`Date`/`DailyCloseStatus` are populated whenever a daily close exists for `(branch, account, Date)`. `CurrentVariance` is live-recomputed via `ICashVarianceCalculator` for any non-`Draft` close (`Submitted`/`Approved`/`Rejected`), null for a `Draft` or absent close; `ProjectedVariance = CurrentVariance + VarianceDelta`, set only when `CurrentVariance` is non-null. `ProjectedVariance` is "the variance if current close counts remain unchanged after these cheque rows are recorded" — later count adjustments can offset it; the preview reports the immediate ledger-side consequence. Single-close boundary: exactly one close, since the plan's `(account, Date)` is fixed. |
 
 *Preview-never-commits invariant:* the use case injects neither `IUnitOfWork` nor `ITransactionsRepository`, so it cannot persist by construction (pinned by the Phase 12.3 scan, which covers `UseCases/Transactions/InstallmentPreview/`). The WebApi tests assert the branch transaction count is unchanged across the call, and determinism tests commit the same payload through `POST /transaction/installment` and compare each impact against the resulting state: the open-cheque group matches the `GET /report/cheques/open-aging` group (`OutstandingTotal`/`OldestOpenDueDate`/`OldestOpenBucket`/`OpenRowCount`/`TotalRowCount` and rows position-for-position); the fiado delta equals the before/after change in the client's `GET /report/fiado/balance` total (against a non-zero starting balance); `CashVarianceImpact.ProjectedVariance` matches a real post-write `ICashVarianceCalculator` recompute; and a committed `Draft` plan does not appear in the open-cheque report.
+
+**Monthly reconciliation report.** `GET /report/monthly-reconciliation/{year}/{month}` — Manager/Admin. This is the gatekeeper screen managers consult before advancing `Setting.LockDate` after month end.
+
+*Endpoint:* `GET /report/monthly-reconciliation/{year:int:min(2000):max(2100)}/{month:int:min(1):max(12)}`
+
+*Permission:* `[TokenAuthorize(Role.Manager, Role.Admin)]`. Members receive 401/403 through the standard auth filters and role check. Values outside the route constraints (for example year 1900 or month 13) do not match the route and return 404, not the validator's 400.
+
+*Validation:* the request shape is `RequestMonthlyReconciliationJson { Year, Month }`. Year must be in 2000–2100 (`REPORT_YEAR_OUT_OF_RANGE`); Month must be in 1–12 (`REPORT_MONTH_INVALID`). The route constraints normally catch the same invalid route values before the use case.
+
+*Response (`ResponseMonthlyReconciliationJson`):* `{ Year, Month, LockReady, Days, Blockers }`. `Days` contains one row for every calendar day in the requested month, including days with no closes and no transactions.
+
+*Per-day contract (`ResponseMonthlyReconciliationDayJson`):*
+
+| Field                       | Description                                                                                                      |
+|-----------------------------|------------------------------------------------------------------------------------------------------------------|
+| `Date`                      | Calendar date for the row                                                                                        |
+| `Closes`                    | Account close rows for that day, ordered by account name                                                         |
+| `ActiveTransactionCount`    | Count of active, non-soft-deleted transactions on the day                                                        |
+| `DraftTransactionCount`     | Count of draft, non-soft-deleted transactions on the day                                                         |
+| `CancelledTransactionCount` | Count of cancelled, non-soft-deleted transactions on the day                                                     |
+| `NetVariance`               | Sum of the day's `"Diferença Caixa"` DailyCloseItem values across all accounts; zero when no variance row exists |
+
+*Per-close contract (`ResponseMonthlyReconciliationDayCloseJson`):* `{ DailyCloseId, AccountId, AccountName, Status, VarianceValue }`. `VarianceValue` is looked up by `(Date, AccountId)`, not by Date alone, so multiple account closes on the same day keep their distinct cash-variance values.
+
+*Transaction counts:* the repository groups non-soft-deleted transactions by `(Date, Status)` for the requested branch/month. Counts intentionally include all three statuses — Active, Draft, and Cancelled — because Draft rows block lock readiness and Canceled-only days still need to be visible in the calendar.
+
+*Lock-ready rule:* `LockReady` is true iff every active DailyClose returned for the branch/month has `Status = Approved` and there are no grouped transaction-count rows with `Status = Draft` and `Count > 0`. Cancelled transactions don’t block lock readiness.
+
+*Blockers contract:* `Blockers` is a list of **structured** `ResponseMonthlyReconciliationBlockerJson` items for UI triage — not pre-formatted sentences. The backend returns fields and the client renders (and localizes) the message. Each item is `{ Type, Day, DailyCloseId?, AccountId?, AccountName?, CloseStatus?, DraftTransactionCount? }` where `Type` is the `MonthlyReconciliationBlockerType` enum (`UnapprovedClose` | `DraftTransactions`). For each non-Approved close the report appends an `UnapprovedClose` item carrying `Day`, `DailyCloseId`, `AccountId`, `AccountName`, and `CloseStatus` (the ids let a client deep-link straight to the close/account rather than re-matching by day and name); for each day with outstanding Draft transactions it appends a `DraftTransactions` item carrying `Day` and `DraftTransactionCount` (an aggregate count, so it has no single id — clients link via the day + Draft-status filter). An empty list means the report has no known close-status or draft-transaction blockers.
 
 ---
 
