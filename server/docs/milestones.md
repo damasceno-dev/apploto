@@ -1484,7 +1484,7 @@ Final pass to close Milestone 6 with the same discipline used in M5 Phase 6. Pha
 
 **Precondition:** Milestones 3–6 are fully closed and producing data. The transaction read scope (§6.10), the transaction mutation contract (§6.11), `MemberAccountScopeResolver` / `MemberAccountScopeGuard`, `LockDateGuard`, `IBranchClock`, `ICashVarianceProductResolver`, `ICashVarianceCalculator`, `DueDateCalculator`, `InstallmentPlanBuilder`, `ITimeEntryCalculationService`, `IBranchHolidaySource`, `TransactionBranchConsistencyService`, `TransactionMutationPermissionGuard`, and `PostgresExceptionHandler` are already available.
 
-**Explicit deferrals (called out in the original sketch):** Bounced-cheque lifecycle (`TransactionStatus.Bounced` / `BouncedAt`) and operator-entered-vs-auto-generated installment provenance are intentionally not part of M7. Both would be write flows against the ledger and would violate the read-only scope boundary. Noted at the end of this milestone as candidate M7.5 phases if operational signal emerges.
+**Explicit deferrals (called out in the original sketch):** Bounced-cheque lifecycle (`TransactionStatus.Bounced` / `BouncedAt`) and operator-entered-vs-auto-generated installment provenance are intentionally not part of M7. Both would be write flows against the ledger and would violate the read-only scope boundary. Noted at the end of this milestone as later ledger follow-ups if operational signal emerges.
 
 **Key behaviors:**
 
@@ -1820,12 +1820,72 @@ Close the milestone with the same discipline used in M5 Phase 6 and M6 Phase 7. 
 - Spec sync covers §6.14 with all seven contract subsections (base reporting contract, fiado aging, open-cheque aging, edit impact preview, create impact preview, installment impact preview, monthly reconciliation); shared revision metadata is at `v30` and `check-loto-doc-sync.sh` passes.
 - Validator, use-case, Web API, and architecture tests pass.
 
-### Out of M7 scope (explicit deferrals to candidate M7.5)
+### Out of M7 scope (explicit deferrals to later ledger milestones)
 
 Both come straight from the original M7 sketch. Both would be write-flow work and therefore violate this milestone's read-only scope boundary. Calling them out so they aren't forgotten:
 
 - **Bounced cheque lifecycle.** If product signal emerges that bounced cheques must stay in receivable totals and aging views, a follow-up adds `TransactionStatus.Bounced = 3` (or a parallel `BouncedAt` audit column on `Transaction`), updates §6.4 and §6.11, and threads the new state through the fiado balance + open-cheque aging reports from this milestone. Treating bounced cheques as a `CancellationReason` overload would invalidate their inclusion in aging — so do this properly when it ships.
 - **Installment provenance metadata.** If audit/legal asks the system to distinguish operator-entered manual rows from auto-generated rows, a follow-up adds a structured `InstallmentSource` (or similar) on the origin transaction, not on `Description`. Then surface it in the M7 reports that already show installment groups.
+
+---
+
+## Milestone 7.5 — Frontend UX Contract Gaps
+
+**Goal:** Close the high-payoff backend contract gaps surfaced by the first frontend screen catalog: a single manager dashboard aggregation endpoint and a daily-close review context that exposes opening values. These are read-oriented UX contracts that let web/mobile build the manager work queue and close approval/review screens without fragile client-side joins or hidden business-rule duplication.
+
+**Scope boundary:** Additive read/reporting endpoints and response fields only. No schema changes, no new lifecycle states, no write flows, no lock-date advancement changes, no bounced-cheque lifecycle, and no installment provenance metadata. Existing M7 report endpoints remain valid; this milestone may reuse their repositories/projections but should not make clients stitch them manually for the first manager screen.
+
+**Precondition:** Milestone 7 is closed and the frontend M0 screen catalog has locked the manager dashboard and daily-close approval semantics. DailyClose, CashVariance, Account, OperatorAccount, and M7 reporting repositories already exist.
+
+**Key behaviors:**
+
+- **Backend owns derived dashboard facts.** The manager dashboard should not reconstruct "pending approval", "not submitted", "variance for this close", or branch-local date behavior from three unrelated calls. M7.5 centralizes those derivations in one contract.
+- **Dashboard is exception-first.** The endpoint optimizes the manager's first workflow: pending approvals, not-submitted accounts/operators, and highest-variance closes for one selected branch-local date.
+- **Opening values are server-derived.** §6.5 already defines opening values as the most recent prior close for the same `(BranchId, AccountId)`. The review/close context must expose them directly instead of making clients rediscover the prior close and recalculate the mapping.
+- **List enrichment is secondary.** Adding `VarianceValue` to `ResponseListDailyCloseItemJson` is useful only if list/approval screens still need inline variance after the dashboard and review-context endpoints exist. Treat it as a deliberate gate, not automatic DTO bloat.
+
+### Phase 1 — Manager dashboard aggregation endpoint
+
+`GET /report/dashboard?date=YYYY-MM-DD` — Manager/Admin only. Returns the selected branch-local date, close rows with variance, pending approval count/list, not-submitted rows, and branch-level variance aggregates for the day.
+
+- [ ] **1.1** Add dashboard response DTOs under `server.Communication`: `ResponseDashboardJson` with `Date`, `TotalVariance`, `MeanVariance`, `PendingApprovalCount`, `IReadOnlyList<ResponseDashboardCloseJson> Closes`, and `IReadOnlyList<ResponseDashboardNotSubmittedJson> NotSubmitted`. Close rows carry `DailyCloseId`, `AccountId`, `AccountName`, `SubmittedByOperatorId?`, `SubmittedByOperatorName?`, `DailyCloseStatus Status`, `SubmittedAt?`, `ApprovedAt?`, and `VarianceValue?` (null when no submitted cash-variance row exists). Not-submitted rows carry the expected account/operator identity and, when a Draft close exists, the `DailyCloseId` + status so the UI can deep-link.
+- [ ] **1.2** Define the "expected closer" rule explicitly before implementation. Default expectation: active `AccountType.Terminal` accounts with at least one active `OperatorAccount` link are expected to close. If existing operational behavior requires BankAccount or Tab closes, document that and adjust the rule before writing code.
+- [ ] **1.3** Extend repositories with purpose-built projections instead of reusing paginated list endpoints for dashboard computation. Reuse `IDailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking` where it fits, but add a dedicated account/operator projection if the not-submitted rule needs active terminal assignments.
+- [ ] **1.4** Implement `GetDashboardUseCase` under `UseCases/Reports/Dashboard/`: Manager/Admin → validate date → resolve `Diferença Caixa` product id → load closes for the date → load variance rows keyed by `(Date, AccountId)` → load expected closers → project rows, pending count/list, not-submitted rows, and aggregate variance in the use case.
+- [ ] **1.5** Add `GET /report/dashboard` to `ReportController` with `[TokenAuthorize(Role.Manager, Role.Admin)]` and full `[ProducesResponseType]` for 200/400/401/403/404 if account/operator lookups introduce a 404 path; otherwise no spurious 404 declaration.
+- [ ] **1.6** Add validator, use-case, and WebApi tests: happy mixed day; empty day with not-submitted rows; Draft close counts as not submitted but carries its close id; Submitted close increments `PendingApprovalCount`; Approved/Rejected are not pending; variance rows join by `(Date, AccountId)` and never by date alone; Member receives 403; cross-branch data is excluded.
+
+### Phase 2 — Daily-close review context with opening values
+
+Preferred contract: `GET /dailyclose/{dailyCloseId}/review` (name may be refined in-phase) returning the close header plus per-product opening/closing context for the close-day form and manager approval review. Use a dedicated response shape unless implementation proves that enriching `ResponseDailyCloseJson` is cheaper and does not make generic reads misleading.
+
+- [ ] **2.1** Add review/context DTOs: `ResponseDailyCloseReviewJson` wrapping the close header fields plus `IReadOnlyList<ResponseDailyCloseReviewItemJson> Items`. Each item carries `ProductId`, `ProductName`, `OpeningValue?`, `ClosingValue`, and `IsCashVarianceProduct`. `OpeningValue` is null for the system `Diferença Caixa` row unless the implementation intentionally documents a different display rule.
+- [ ] **2.2** Implement the opening-value projection from §6.5: find the most recent prior active close for the same `(BranchId, AccountId)` ordered by `Date DESC, CreatedAt DESC, Id DESC`, map prior active items by `ProductId`, and surface zero or null according to the DTO rule chosen in 2.1. Do not include the prior `Diferença Caixa` row as a normal opening product value.
+- [ ] **2.3** Reuse the existing DailyClose get permission semantics: missing/cross-branch id → 404; Member without a linked operator or outside account scope → the existing DailyClose read-scope 403 path; Manager/Admin elevated. The review endpoint must not leak cross-branch prior-close existence through opening values.
+- [ ] **2.4** Add `DailyCloseController` route + `[ProducesResponseType]` declarations matching actual returnable codes.
+- [ ] **2.5** Add use-case and WebApi tests: no prior close → opening values empty/zero by the chosen rule; prior close skips weekends/holidays naturally via most-recent-prior ordering; product removed since prior close is handled predictably; `Diferença Caixa` is flagged as system-calculated; branch isolation; Member in-scope success; Member out-of-scope 403; Manager/Admin success.
+
+### Phase 3 — DailyClose list variance enrichment gate
+
+- [ ] **3.1** After Phases 1–2, decide whether `ResponseListDailyCloseItemJson` still needs `VarianceValue?`. If dashboard and review context cover the first frontend flows, leave the existing list DTO untouched and document the deferral here.
+- [ ] **3.2** If the field is still needed, add it as a nullable additive field on `ResponseListDailyCloseItemJson`; load it through the same `Diferença Caixa` product lookup and `(Date, AccountId)` join used elsewhere. Do not make list pagination depend on materializing all rows in a large date range.
+- [ ] **3.3** Add tests for the chosen path: either a deferral note with no code change, or validator/use-case/WebApi assertions that list rows include the correct variance and null for Draft/no-variance rows.
+
+### Phase 4 — Contract hardening + spec sync
+
+- [ ] **4.1** Audit `[ProducesResponseType]` declarations for every M7.5 endpoint and add WebApi coverage for each declared status.
+- [ ] **4.2** Confirm architecture tests resolve any new use cases/services. Projection helpers that stay private/static in the use-case folder do not need DI registration.
+- [ ] **4.3** Update `loto-specs.md` §6.14 with the dashboard aggregation contract and the daily-close review/opening-values contract. Mirror relevant product-facing notes in `loto_presentation.html`; `loto_entity_relationship_diagram.html` should remain unchanged unless implementation introduces schema changes, which this milestone should avoid. Bump the shared spec revision after the current M7 close-out revision (expected `v31` if M7 closes at `v30`) and run `bash server/docs/check-loto-doc-sync.sh`.
+- [ ] **4.4** Run `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, and `dotnet test tests/WebApi.Test`.
+- [ ] **4.5** Update this milestone with completion notes where implementation intentionally differs from the plan.
+
+### Done criteria
+
+- `GET /report/dashboard?date=...` gives the manager dashboard everything needed for the selected date without client-side stitching across daily-close list, cash-variance summary, and account/operator assignment calls.
+- The daily-close review/close context exposes opening values derived by the server from the most recent prior close for the same account, with branch and member-scope isolation pinned by tests.
+- `VarianceValue` on `ResponseListDailyCloseItemJson` is either intentionally deferred after the Phase 3 gate or added with tests as a nullable additive field.
+- No M7.5 code writes persisted state or changes ledger lifecycle semantics.
+- Spec sync passes and all validator, use-case, WebApi, and architecture checks are green.
 
 ---
 
