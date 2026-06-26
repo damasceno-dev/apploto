@@ -7,7 +7,7 @@ Cross-platform runtime TypeScript code shared by `web` and `mobile`.
 ## Initial structure
 
 - `shared/api`
-- `shared/core` later if needed
+- `shared/core` (day-one — decided 2026-06-26)
 
 ## `shared/api` contains
 
@@ -29,7 +29,7 @@ Cross-platform runtime TypeScript code shared by `web` and `mobile`.
 
 - Backend owns the API contract.
 - `shared/api` starts with the generated client, raw functions, and TanStack Query helpers.
-- `shared/core` should be added only when pure TS helpers begin repeating.
+- `shared/core` is created day-one; both apps need BRL/CPF/date formatters and pt-BR enum-label maps immediately.
 - Shared packages should not read `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` directly.
 - `server.Exceptions` stays backend-only; consumers rely on the serialized API error contract instead.
 - Required C# fields must remain required in generated TS contracts.

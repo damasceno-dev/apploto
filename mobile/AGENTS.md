@@ -9,7 +9,7 @@
 ## Integration guidance
 
 - Reuse `shared/api` for the same API contract, raw functions, and TanStack Query helpers used by the web app
-- Add `shared/core` later only if pure TS helpers start repeating across web and mobile
+- Consume `shared/core` (day-one) for BRL/CPF/date formatters and pt-BR enum-label maps shared with web
 - Keep upload, media, and device-specific adaptation at the mobile app boundary
 - Consume design guidance from `design` tokens, specs, assets, and references
 
