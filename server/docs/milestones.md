@@ -1772,6 +1772,8 @@ Add the small set of primitives more than one later phase consumes. No endpoints
 
 `GET /report/timeentry-balance?operatorId?&dateFrom&dateTo&mine` — any branch role. Operator self-check ("how many hours have I worked? am I behind target?") and manager payroll prep. Re-runs `ITimeEntryCalculationService.Calculate` per row so in-progress current-day rows surface live-recomputed hours (§6.7 / M5 Phase 4 pattern). The per-row recompute and period-sum logic lives **inside the use case** (no separate `TimeEntryBalancePeriodSummarizer` service class).
 
+> **Superseded in part by the Phase 11 Addendum (2026-06-27) below.** Items 11.1–11.12 record the original **single-operator-only** contract as built and shipped green. The addendum adds a **branch-wide (all-operator) mode** for Manager/Admin and reshapes the response into a per-operator list; implement it on top of this slice. Where the addendum and the original items disagree (response shape in 11.5, resolution rule in 11.7, controller type in 11.9, tests in 11.11/11.12), the addendum wins.
+
 - [ ] **11.1** **No query object** — following the Phase 8 (`CashVarianceListFilter`) and Phase 10 (`MonthlyReconciliationQuery`/`Row`) precedent, both dropped during implementation. The use case reads `RequestTimeEntryBalanceSummaryJson` directly and passes loose params (`branchId, operatorId, dateFrom, dateTo` — 4 args, under the 5-param split threshold) to the repository. Do **not** add a `TimeEntryBalanceSummaryQuery`.
 - [ ] **11.2** Extend `ITimeEntriesRepository` with `Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(branchId, operatorId, dateFrom, dateTo)`. Branch-scoped, ordered `Date ASC`, eager-loads `.Include(t => t.Segments.Where(s => s.Active))`.
 - [ ] **11.3** Add the Infrastructure implementation.
@@ -1791,6 +1793,42 @@ Add the small set of primitives more than one later phase consumes. No endpoints
 - [ ] **11.10** Add `Validators.Test` for the validator (including the mine + operator-id mutex).
 - [ ] **11.11** Add `UseCases.Test`: happy mixed-status period (Present + Sunday + Holiday + DayOff); Member self with `Mine`; Member with explicit own `OperatorId`; Member other-operator → 403; Member no-linked-operator → empty summary + repo `DidNotReceive()`; Manager/Admin any operator; branch isolation; in-progress current-day row contributes live-recomputed hours (exact-argument `Received()` on `Calculate` with the captured `branchLocalNow`); prior-day forgotten-open row contributes 0 for the open segment but counts the closed sibling; abonado day contributes `DailyTarget`; owing day contributes `-DailyTarget`.
 - [ ] **11.12** Add `WebApi.Test` happy + unhappy with end-to-end seeded data including an in-progress current-day TimeEntry. Assert `ContainsInProgress = true` and that the day's `TotalHours` matches the live-recompute path.
+
+### Phase 11 Addendum (2026-06-27) — Branch-wide all-operator mode
+
+**Why**: A Manager/Admin who names no operator (and does not pass `mine`) should get a payroll-prep roll-up for **every** operator in the branch, not a `400`. The original slice (item 11.7) rejected that case with `REPORT_OPERATOR_ID_REQUIRED`; this addendum turns "no operator named" into a branch-wide view. Member scope is unchanged — a Member still only ever sees their own operator. The single-operator drill-down (a Member's own, `mine=true`, or a Manager naming one `operatorId`) is unchanged in behavior; only the JSON envelope changes.
+
+**Response reshape** (one endpoint, one response type — no polymorphic payload, so OpenAPI/TS codegen stays a single shape). The current single-operator `ResponseTimeEntryBalanceSummaryJson` body becomes a per-operator element inside a wrapper:
+
+- `ResponseTimeEntryBalanceSummaryJson { DateTime DateFrom, DateTime DateTo, IReadOnlyList<ResponseTimeEntryBalanceOperatorJson> Operators }` — the window lives on the wrapper (one range for all operators).
+- `ResponseTimeEntryBalanceOperatorJson { Guid OperatorId, string OperatorName, decimal TotalHours, decimal TotalBalanceHours, int PresentDays, int AbsentDays, int OwingDays, int AbonadoDays, bool ContainsInProgress, IReadOnlyList<ResponseTimeEntryBalanceSummaryDayJson> Days }` — the old top-level body minus `DateFrom`/`DateTo`.
+- `ResponseTimeEntryBalanceSummaryDayJson` unchanged. `RequestTimeEntryBalanceSummaryJson` unchanged.
+- Single-operator results (Member own / `mine` / targeted `operatorId`) return exactly **one** element in `Operators`. Unlinked Member returns an **empty** `Operators` list (no more empty-scalar object).
+- Clients derive "anything open in the branch" via `Operators.Any(o => o.ContainsInProgress)`; no branch-level `ContainsInProgress` field is added (kept lean; easy to add later).
+
+**Resolution after auth** (only the last bullet is new):
+
+- Member → own operator (one element) or empty `Operators` (unlinked). Explicit other-operator → 403 `REPORT_MEMBER_NOT_OWN_OPERATOR`. *(unchanged)*
+- Manager/Admin + `operatorId` → that operator, one element; 404 `OPERATOR_NOT_FOUND` on cross-branch. *(unchanged)*
+- Manager/Admin + `mine` → own operator, one element; 404 if no linked operator. *(unchanged)*
+- **Manager/Admin + neither → NEW branch-wide mode**: one element per operator that has ≥ 1 active entry in the window. The `REPORT_OPERATOR_ID_REQUIRED` throw is removed from this use case (the resource string stays — Phase 9 `operator-summary` still uses it).
+
+**Decisions baked in** (flagging for review — say the word to change either):
+- **Zero-entry operators are omitted.** Branch-wide mode lists only operators with at least one entry in the range (pure projection of existing rows). Listing *all active operators* with zero-filled summaries (a "who didn't log hours?" view) is a deliberate non-goal for now.
+- **One endpoint, always-wrapped.** Alternative considered and rejected: keep the single-operator shape and add a separate `…/branch` endpoint. Rejected because you asked for the same endpoint to cover both; the cost is reshaping the already-built single-operator response + tests.
+- **Operator ordering**: `OperatorName` ASC; days within each operator stay `Date` ASC.
+
+**Checklist**:
+
+- [ ] **11A.1** Add repo `Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndDateRangeAsNoTracking(branchId, dateFrom, dateTo)` — branch-wide, `Active`-filtered, eager-load `.Include(t => t.Operator)` + `.Include(t => t.Segments.Where(s => s.Active))`, ordered `Operator.Name` then `Date`. Keep the operator-scoped `ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking` (11.2) for the member / targeted / `mine` paths.
+- [ ] **11A.2** Infrastructure impl + extend `TimeEntriesRepositoryBuilder` with the exact-argument helper for the new branch-wide method.
+- [ ] **11A.3** Reshape DTOs: new wrapper `ResponseTimeEntryBalanceSummaryJson` + new `ResponseTimeEntryBalanceOperatorJson`; `ResponseTimeEntryBalanceSummaryDayJson` and `RequestTimeEntryBalanceSummaryJson` unchanged.
+- [ ] **11A.4** Use case: extract a shared `BuildOperatorSummary(operatorId, operatorName, entries, setting, branchLocalNow)` that does the per-row `Calculate` loop + day-category counts (currently inline in `BuildResponse`), and call it from both paths. Single-operator path → wrap one element. Branch-wide path → fetch branch rows, `GroupBy(OperatorId)` (name from the included `Operator`), build one element each, order by name. Capture `branchLocalNow` **once** for the whole report (every operator shares one "now"). Remove the `REPORT_OPERATOR_ID_REQUIRED` throw.
+- [ ] **11A.5** Controller: response type → new wrapper. Auth (`[TokenAuthenticateBranch]`) and `[ProducesResponseType]` set unchanged (200/400/401/403/404); 400 now comes only from the validator (inverted / too-wide range, `mine`+`operatorId` mutex).
+- [ ] **11A.6** Validator unchanged — the mutex stays; the "operator required" rule never lived in the validator (it was a use-case role check, now removed).
+- [ ] **11A.7** Update `UseCases.Test`: single-operator cases assert `Operators.Single()`; the former "Manager omits both → 400" case becomes "Manager omits both → all operators." Add branch-wide cases: two operators with mixed statuses grouped + ordered by name; branch isolation (other branch's operators excluded); Member still scoped to own; zero-entry operator omitted.
+- [ ] **11A.8** Update `WebApi.Test`: single-operator happy assertions read `Operators[0]`; the unhappy "Manager omits both → 400" case moves to a happy branch-wide test (≥ 2 seeded operators, assert per-operator grouping + name ordering); keep 401 / inverted-400 / mutex-400 / 403 / 404.
+- [ ] **11A.9** Phase 12 follow-through: 12.1's `timeentry-balance` row no longer lists `REPORT_OPERATOR_ID_REQUIRED` as a returnable 400 cause; the spec §6.14 entry authored in Phase 12 must document branch-wide mode and the wrapper shape.
 
 ### Phase 12 — Hardening + Spec Close-Out
 
