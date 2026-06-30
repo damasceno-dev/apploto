@@ -6,6 +6,7 @@ using server.Application.UseCases.Reports.FiadoBalance;
 using server.Application.UseCases.Reports.MonthlyReconciliation;
 using server.Application.UseCases.Reports.OpenChequeAging;
 using server.Application.UseCases.Reports.OperatorSummary;
+using server.Application.UseCases.Reports.TimeEntryBalance;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -125,6 +126,22 @@ public class ReportController : ControllerBase
     public async Task<IActionResult> OperatorSummary(
         [FromServices] GetOperatorTransactionSummaryUseCase useCase,
         [FromQuery] RequestOperatorTransactionSummaryJson request)
+    {
+        var response = await useCase.Execute(request);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("timeentry-balance")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseTimeEntryBalanceSummaryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> TimeEntryBalance(
+        [FromServices] GetTimeEntryBalanceSummaryUseCase useCase,
+        [FromQuery] RequestTimeEntryBalanceSummaryJson request)
     {
         var response = await useCase.Execute(request);
         return Ok(response);

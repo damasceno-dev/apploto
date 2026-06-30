@@ -11,5 +11,7 @@ public interface ITimeEntriesRepository
     Task<TimeEntry?> GetByBranchIdOperatorIdAndDate(Guid branchId, Guid operatorId, DateTime date);
     Task<IReadOnlyList<TimeEntry>> ListByBranchIdAsNoTracking(Guid branchId, TimeEntryListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, TimeEntryListFilter filter);
+    Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(Guid branchId, Guid operatorId, DateTime dateFrom, DateTime dateTo);
+    Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndDateRangeAsNoTracking(Guid branchId, DateTime dateFrom, DateTime dateTo);
     Task<bool> ExistsActiveByBranchIdOperatorIdAndDate(Guid branchId, Guid operatorId, DateTime date);
 }

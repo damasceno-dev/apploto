@@ -71,6 +71,36 @@ public class TimeEntriesRepositoryBuilder
         return this;
     }
 
+    public TimeEntriesRepositoryBuilder ListByBranchIdAndOperatorIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        Guid operatorId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<TimeEntry> result)
+    {
+        _repository.ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == operatorId),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo))
+            .Returns(result);
+        return this;
+    }
+
+    public TimeEntriesRepositoryBuilder ListByBranchIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<TimeEntry> result)
+    {
+        _repository.ListByBranchIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo))
+            .Returns(result);
+        return this;
+    }
+
     public TimeEntriesRepositoryBuilder ExistsActiveByBranchIdOperatorIdAndDateReturns(
         Guid branchId,
         Guid operatorId,

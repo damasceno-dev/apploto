@@ -15,6 +15,7 @@ using server.Application.UseCases.Reports.CashVariance;
 using server.Application.UseCases.Reports.MonthlyReconciliation;
 using server.Application.UseCases.Reports.OpenChequeAging;
 using server.Application.UseCases.Reports.OperatorSummary;
+using server.Application.UseCases.Reports.TimeEntryBalance;
 using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
 using server.Application.UseCases.BranchUsers.Remove;
@@ -212,6 +213,7 @@ public static class AppDependencyInjection
         services.AddScoped<GetCashVarianceSummaryUseCase>();
         services.AddScoped<GetMonthlyReconciliationUseCase>();
         services.AddScoped<GetOperatorTransactionSummaryUseCase>();
+        services.AddScoped<GetTimeEntryBalanceSummaryUseCase>();
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();

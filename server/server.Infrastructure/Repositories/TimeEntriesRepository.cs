@@ -86,6 +86,44 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
             .CountAsync();
     }
 
+    public async Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        Guid operatorId,
+        DateTime dateFrom,
+        DateTime dateTo)
+    {
+        return await dbContext.TimeEntries
+            .AsNoTracking()
+            .Include(te => te.Segments.Where(segment => segment.Active))
+            .Where(te =>
+                te.BranchId == branchId &&
+                te.OperatorId == operatorId &&
+                te.Date >= dateFrom &&
+                te.Date <= dateTo &&
+                te.Active)
+            .OrderBy(te => te.Date)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        DateTime dateFrom,
+        DateTime dateTo)
+    {
+        return await dbContext.TimeEntries
+            .AsNoTracking()
+            .Include(te => te.Operator)
+            .Include(te => te.Segments.Where(segment => segment.Active))
+            .Where(te =>
+                te.BranchId == branchId &&
+                te.Date >= dateFrom &&
+                te.Date <= dateTo &&
+                te.Active)
+            .OrderBy(te => te.Operator.Name)
+            .ThenBy(te => te.Date)
+            .ToListAsync();
+    }
+
     public async Task<bool> ExistsActiveByBranchIdOperatorIdAndDate(Guid branchId, Guid operatorId, DateTime date)
     {
         return await dbContext.TimeEntries
