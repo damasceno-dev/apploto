@@ -1,4 +1,4 @@
-# LottoGest — Shared Milestones
+# Lotero — Shared Milestones
 
 > **Status:** Active
 > **Draft started at** 2026-06-10

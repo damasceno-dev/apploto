@@ -35,13 +35,13 @@ The manual is explicit: *"A paleta jogos é de uso exclusivo dos jogos da CAIXA 
 
 ## What we deliberately do differently (inspired, not cloned)
 
-LottoGest is an internal management tool for lotérica *operators and managers*, not a consumer-facing CAIXA product, and it is **not an official CAIXA property**. So:
+Lotero is an internal management tool for lotérica *operators and managers*, not a consumer-facing CAIXA product, and it is **not an official CAIXA property**. So:
 
 1. **Anchor on the fixed palette, not the games palette.** Azul CAIXA `#005CA9` + Laranja CAIXA `#F39200` + a turquesa secondary give instant lotérica familiarity. The games palette stays out of the UI entirely (it's CAIXA-trademark-loaded and visually loud).
 2. **We build full tonal ramps; the manual ships spot colors.** M2 derives 50→900 ramps from these anchors (the manual only gives a handful of stops). Our ramps are ours.
 3. **Feedback colors are defined for contrast, not copied.** Success/danger/warning take their *hue family* from the brasilidade spirit (green/red/amber) but are tuned to pass our WCAG AA gate against our surfaces — not lifted from `paleta jogos`.
 4. **Calm, dense, light-first.** This is a finance tool read all day; we pull the *restraint* of the institutional palette (lots of white/gelo neutral, blue structure, orange used sparingly as accent), not the festive gradients.
-5. **No trevo, no wordmark, no padronagem.** The clover symbol, the "loterias CAIXA" lockup, and the clover-tile patterns are CAIXA brand assets — LottoGest gets its own mark. We borrow the *color feeling*, nothing trademarked.
+5. **No trevo, no wordmark, no padronagem.** The clover symbol, the "loterias CAIXA" lockup, and the clover-tile patterns are CAIXA brand assets — Lotero gets its own mark. We borrow the *color feeling*, nothing trademarked.
 
 ## Suggested mapping into the M2 token layers (for M2 to decide, not binding)
 
@@ -53,4 +53,4 @@ LottoGest is an internal management tool for lotérica *operators and managers*,
 
 ## Typography note
 
-The Loterias CAIXA wordmark uses **Futura Std** (the "CAIXA" endorsement is Futura Std bold, lowercase) — a brand-display face, not a UI face. For LottoGest screens, M2 should pick a screen-grade family (system-first stack recommended for v1) and reserve any Futura-like geometric face for headings only if licensing allows. Body/table typography is an M2 decision, not a brand-manual mandate.
+The Loterias CAIXA wordmark uses **Futura Std** (the "CAIXA" endorsement is Futura Std bold, lowercase) — a brand-display face, not a UI face. For Lotero screens, M2 should pick a screen-grade family (system-first stack recommended for v1) and reserve any Futura-like geometric face for headings only if licensing allows. Body/table typography is an M2 decision, not a brand-manual mandate.

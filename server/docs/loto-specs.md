@@ -1,9 +1,9 @@
-# LottoGest — Backend Schema Specification
+# Lotero — Backend Schema Specification
 
 <!--
 Sync group: loto-backend-docs
 Canonical source: server/docs/loto-specs.md (this file is canonical; derived artifacts: server/docs/loto_presentation.html, server/docs/loto_entity_relationship_diagram.html)
-Coverage: Full entity model, relationships, invariants, workflows, and Access-to-LottoGest mapping.
+Coverage: Full entity model, relationships, invariants, workflows, and Access-to-Lotero mapping.
 Spec revision: v29
 -->
 
@@ -54,7 +54,7 @@ Spec revision: v29
 5. [Seed Data](#5-seed-data)
 6. [Business Rules](#6-business-rules)
 7. [Key Workflows](#7-key-workflows)
-8. [Access-to-LottoGest Mapping](#8-access-to-lottogest-mapping)
+8. [Access-to-Lotero Mapping](#8-access-to-lotero-mapping)
 
 ---
 
@@ -66,7 +66,7 @@ A *casa lotérica* is a privately-owned branch that operates under contract with
 
 Every day, each operator (cashier) processes dozens of financial transactions at their terminal. At the end of the day, the operator must close their register: count what is physically in the drawer, compare it to what the system says should be there, and report the difference. The owner then reconciles this against CEF's own settlement report (*borderô*).
 
-This is currently done on paper + Microsoft Access. LottoGest digitizes the entire flow.
+This is currently done on paper + Microsoft Access. Lotero digitizes the entire flow.
 
 ### The two parallel systems
 
@@ -92,11 +92,13 @@ Every transaction has three dates that track its full lifecycle:
 
 This enables receivables tracking ("money expected this week"), aging reports, and reconciliation with CEF settlement reports.
 
+> *On the name:* **Lotero** is drawn from *lotérica* — the Portuguese word for a lottery house — and mirrors *lotero*, the Spanish term for a lottery-ticket seller. It names the operator behind the counter, the person this system is built for, rather than the lottery draw itself.
+
 ---
 
 ## 2. Multi-Tenancy Model
 
-LottoGest is designed as a **SaaS platform** where different owners operate independent lottery houses.
+Lotero is designed as a **SaaS platform** where different owners operate independent lottery houses.
 
 ### Isolation boundary
 
@@ -1734,11 +1736,11 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 
 ---
 
-## 8. Access-to-LottoGest Mapping
+## 8. Access-to-Lotero Mapping
 
 ### Tables
 
-| Access Table     | LottoGest Entity             | Notes                                                                                                  |
+| Access Table     | Lotero Entity                | Notes                                                                                                  |
 |------------------|------------------------------|--------------------------------------------------------------------------------------------------------|
 | TblUsuario       | User + BranchUser + Operator | Split into 3 concerns                                                                                  |
 | TblContas        | Account                      | Added Tab type, self-referencing FK                                                                    |
@@ -1761,35 +1763,35 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 
 ### Access columns → Transaction columns
 
-| Access (TblLancamentos) | LottoGest (Transaction)       | Notes                                                                                                                             |
-|-------------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
-| lco_id                  | Id                            | Auto-increment → Guid                                                                                                             |
-| lco_data                | Date                          |                                                                                                                                   |
-| lco_valor               | Value                         | Access decimal → Postgres numeric(14,2)                                                                                           |
-| id_categoria            | CategoryId                    | Integer FK → Guid FK                                                                                                              |
-| id_tipo                 | TransactionTypeId             | Integer FK → Guid FK                                                                                                              |
-| lco_descricao           | Description + TransactionTime | Time values split out to dedicated field                                                                                          |
-| id_cliente              | ClientId                      |                                                                                                                                   |
-| lco_vencimento          | DueDate                       |                                                                                                                                   |
-| lco_data_pagamento      | PaidAt                        |                                                                                                                                   |
-| id_conta                | AccountId                     |                                                                                                                                   |
-| lco_sinal               | Direction                     | "Positivo"/"Negativo" string → In/Out enum                                                                                        |
-| lco_condicao            | *(removed)*                   | Overloaded in Access (payment condition + authorization flag). Not needed with proper TransactionType and Description             |
-| lco_forma_pagamento     | *(removed)*                   | Redundant with TransactionType                                                                                                    |
-| lco_origem              | OriginTransactionId           | Integer ID → Guid self-referencing FK. First installment references itself.                                                       |
-| lco_status              | *(unused in Access)*          | Always empty in production data. LottoGest `Status` (Draft/Active/Cancelled) is new functionality, not a migration of this column |
-| lco_dataRegistro        | CreatedAt                     | From EntityBase                                                                                                                   |
-| *(none)*                | BranchId                      | NEW: multi-tenant                                                                                                                 |
-| *(none)*                | RecordedByOperatorId          | NEW: which operator's context                                                                                                     |
-| *(none)*                | CreatedByUserId               | NEW: who actually created the record                                                                                              |
-| *(none)*                | CancelledAt                   | NEW: audit trail                                                                                                                  |
-| *(none)*                | CancelledByUserId             | NEW: audit trail                                                                                                                  |
-| *(none)*                | CancellationReason            | NEW: audit trail                                                                                                                  |
-| *(none)*                | TransactionTime               | NEW: extracted from Description                                                                                                   |
+| Access (TblLancamentos) | Lotero (Transaction)          | Notes                                                                                                                          |
+|-------------------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| lco_id                  | Id                            | Auto-increment → Guid                                                                                                          |
+| lco_data                | Date                          |                                                                                                                                |
+| lco_valor               | Value                         | Access decimal → Postgres numeric(14,2)                                                                                        |
+| id_categoria            | CategoryId                    | Integer FK → Guid FK                                                                                                           |
+| id_tipo                 | TransactionTypeId             | Integer FK → Guid FK                                                                                                           |
+| lco_descricao           | Description + TransactionTime | Time values split out to dedicated field                                                                                       |
+| id_cliente              | ClientId                      |                                                                                                                                |
+| lco_vencimento          | DueDate                       |                                                                                                                                |
+| lco_data_pagamento      | PaidAt                        |                                                                                                                                |
+| id_conta                | AccountId                     |                                                                                                                                |
+| lco_sinal               | Direction                     | "Positivo"/"Negativo" string → In/Out enum                                                                                     |
+| lco_condicao            | *(removed)*                   | Overloaded in Access (payment condition + authorization flag). Not needed with proper TransactionType and Description          |
+| lco_forma_pagamento     | *(removed)*                   | Redundant with TransactionType                                                                                                 |
+| lco_origem              | OriginTransactionId           | Integer ID → Guid self-referencing FK. First installment references itself.                                                    |
+| lco_status              | *(unused in Access)*          | Always empty in production data. Lotero `Status` (Draft/Active/Cancelled) is new functionality, not a migration of this column |
+| lco_dataRegistro        | CreatedAt                     | From EntityBase                                                                                                                |
+| *(none)*                | BranchId                      | NEW: multi-tenant                                                                                                              |
+| *(none)*                | RecordedByOperatorId          | NEW: which operator's context                                                                                                  |
+| *(none)*                | CreatedByUserId               | NEW: who actually created the record                                                                                           |
+| *(none)*                | CancelledAt                   | NEW: audit trail                                                                                                               |
+| *(none)*                | CancelledByUserId             | NEW: audit trail                                                                                                               |
+| *(none)*                | CancellationReason            | NEW: audit trail                                                                                                               |
+| *(none)*                | TransactionTime               | NEW: extracted from Description                                                                                                |
 
 ### Entity count
 
-|              | Access | LottoGest                                                           |
+|              | Access | Lotero                                                              |
 |--------------|--------|---------------------------------------------------------------------|
 | Tables       | 13     | 18                                                                  |
 | New entities | —      | Branch, BranchUser, Operator, OperatorAccount, DailyClose (session) |

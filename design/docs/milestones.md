@@ -1,10 +1,10 @@
-# LottoGest — Design Milestones
+# Lotero — Design Milestones
 
 > **Status:** Active
 > **Draft started at** 2026-06-10
 > **Planned start:** 2026-06-30
 
-**The output of the `design/` folder is the LottoGest design system** — the non-runtime source of truth that `web` and `mobile` both consume: **tokens, the component contract, screen blueprints, and the formatting/copy specs.** The milestones split into two halves:
+**The output of the `design/` folder is the Lotero design system** — the non-runtime source of truth that `web` and `mobile` both consume: **tokens, the component contract, screen blueprints, and the formatting/copy specs.** The milestones split into two halves:
 
 - **Discovery & direction (M0–M1):** understand *what every screen is* (M0, semantic) and decide *how it should look* (M1, visual direction). These feed the system; they are not the system.
 - **The design system (M2–M4):** **tokens** (M2) → **component contract** (M3) → **screen blueprints** (M4). This is the durable deliverable web/mobile build against.
@@ -89,7 +89,7 @@ For each screen the dev-team prototype, attach/paste:
 
 ### Suggested prompt template
 
-> *"You are designing one screen of **LottoGest**, an internal **pt-BR** management web app for a Brazilian lottery house (lotérica). Audience: a [manager / operator]. Build the **[SCREEN NAME]** screen.*
+> *"You are designing one screen of **Lotero**, an internal **pt-BR** management web app for a Brazilian lottery house (lotérica). Audience: a [manager / operator]. Build the **[SCREEN NAME]** screen.*
 > *Data + behavior: [paste the `screens.md` entry]. Example API response: [paste from Swagger]. Required states to show: loading / empty / error / success.*
 > *Visual tone: [your adjectives] — calm, dense, finance-grade, light theme (also show a dark variant). Money as `R$ 1.234,56`, dates `dd/MM/yyyy`, tabular numerals in tables.*
 > *Color inspiration (do NOT copy the Caixa logo/clover): [paste palette]. Use our own neutral mark placeholder.*

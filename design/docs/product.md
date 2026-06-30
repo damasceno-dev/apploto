@@ -1,4 +1,4 @@
-# LottoGest — Product Framing (frontend)
+# Lotero — Product Framing (frontend)
 
 > **Draft started at** 2026-06-10
 > **Planned start:** 2026-06-30
@@ -8,7 +8,7 @@
 
 ## 1. What this is, for the frontend
 
-LottoGest is a multi-tenant management app for Brazilian lottery houses (*lotéricas*); each **Branch** is one tenant. Operators record the day's money movements and close their day; managers review closes, watch cash variance and receivables, and lock the month. Two subsystems run in parallel: the **money system** (transactions, daily close, fiado, cheques, cards) and the **people system** (time tracking).
+Lotero is a multi-tenant management app for Brazilian lottery houses (*lotéricas*); each **Branch** is one tenant. Operators record the day's money movements and close their day; managers review closes, watch cash variance and receivables, and lock the month. Two subsystems run in parallel: the **money system** (transactions, daily close, fiado, cheques, cards) and the **people system** (time tracking).
 
 > Domain reference (do not duplicate): `loto-specs.md` §1 (domain overview), §2 (multi-tenancy & user model), §3 (entities), §4 (enums), §5 (seed data), §6 (business rules).
 

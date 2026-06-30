@@ -1,4 +1,4 @@
-# LottoGest — Screen Catalog (semantic)
+# Lotero — Screen Catalog (semantic)
 
 > **Status:** Draft (Design M0, Phase 3). Template + five screens defined; remaining stubbed (item 0.3.3).
 > **What this is:** *what every screen contains and does* — no colors, no layout. The visual look is decided in M1 (Visual Direction); the visual layout in M4 (Screen Blueprints). This catalog is the layer both build on.

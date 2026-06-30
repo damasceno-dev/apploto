@@ -1,4 +1,4 @@
-# LottoGest — Database Environments
+# Lotero — Database Environments
 
 ## Environment mapping
 

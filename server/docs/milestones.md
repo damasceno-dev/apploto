@@ -1,4 +1,4 @@
-# LottoGest — Backend Milestones
+# Lotero — Backend Milestones
 
 > **Status:** Active
 > **Started:** 2026-04-06
@@ -503,7 +503,7 @@ Refine Phase 3 before commit so cheque installments match operator-entered chequ
 Close the remaining Phase 3 / 3.1 alignment gaps before treating the cheque-installment contract as stable. This phase is intentionally refactor-focused: no new operator-facing behavior should land here unless it is required to make the current create/installment contract consistent, testable, and spec-aligned.
 
 - [x] **3.2.1** Combine the recorded-by resolution cleanup with the shared write-path cleanup: extract a dedicated `TransactionRecordedByOperatorResolver` under `server.Application/Services/Transactions/` and centralize the shared single-create/installment-create write preamble (`GetAuthenticatedBranchUser` → caller linked operator lookup → recorded-by resolution → branch consistency → member account scope → lock-date) so the two create flows cannot drift in ordering or semantics
-- [x] **3.2.2** Propagate the Phase 3.1 installment contract into the LottoGest doc sync group: update `loto-specs.md` section `6.3`, update the affected `loto_presentation.html` examples/narrative, update `loto_entity_relationship_diagram.html` if any transaction-field or relationship notes need to change, bump the shared `Spec revision` on all three files together, and require `bash server/docs/check-loto-doc-sync.sh` to pass after the semantic sync
+- [x] **3.2.2** Propagate the Phase 3.1 installment contract into the Lotero doc sync group: update `loto-specs.md` section `6.3`, update the affected `loto_presentation.html` examples/narrative, update `loto_entity_relationship_diagram.html` if any transaction-field or relationship notes need to change, bump the shared `Spec revision` on all three files together, and require `bash server/docs/check-loto-doc-sync.sh` to pass after the semantic sync
 - [x] **3.2.3** Apply description-length protection consistently across transaction create flows: reuse `TransactionValidationExtensions.DescriptionMaxLength()` in `CreateTransactionFluentValidation`, add the corresponding installment-create validation, and reserve the maximum `CH PRE ({i}/{N}) - ` prefix budget so persisted cheque-installment descriptions still respect the `varchar(500)` database limit instead of failing at the database layer
 - [x] **3.2.4** Align guard ordering between single-create and installment-create so `MemberAccountScopeGuard` runs before the installment non-cheque `ConflictException` branch, preserving the intended `403`-before-`409` behavior when a `Member` targets an out-of-scope account
 - [x] **3.2.5** Remove the duplicate auto-generate due-date rule from `CreateTransactionInstallmentFluentValidation` so the same invalid auto-generated `DueDate` does not emit duplicate validation messages

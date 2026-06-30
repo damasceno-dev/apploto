@@ -79,4 +79,4 @@ for file in "${HTML_FILES[@]}"; do
   fi
 done
 
-echo "LottoGest doc sync metadata is aligned for ${spec_revision}."
+echo "Lotero doc sync metadata is aligned for ${spec_revision}."

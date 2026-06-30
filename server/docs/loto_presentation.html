@@ -9,7 +9,7 @@ Spec revision: v29
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LottoGest Backend Architecture</title>
+<title>Lotero Backend Architecture</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -258,7 +258,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'What is a Transaction?',
-   narrative:'The <b>Transaction</b> table is the central ledger of LottoGest. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets <b>CategoryId</b> (= TransactionType.CategoryId) and <b>Direction</b> (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br><b>TransactionType</b> also stores <b>SettlementRule</b> (how DueDate is calculated) and <b>RequiresTabAccountAndClient</b> (whether the transaction must use a Tab account and ClientId, used by the fiado Cliente types).<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
+   narrative:'The <b>Transaction</b> table is the central ledger of Lotero. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets <b>CategoryId</b> (= TransactionType.CategoryId) and <b>Direction</b> (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br><b>TransactionType</b> also stores <b>SettlementRule</b> (how DueDate is calculated) and <b>RequiresTabAccountAndClient</b> (whether the transaction must use a Tab account and ClientId, used by the fiado Cliente types).<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
    activeTables:['Category','TransactionType','Account'],
    activeArrows:[],
    data:[
@@ -318,7 +318,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
-   narrative:'Operator sends <b>R$800</b> via PIX to a supplier. Value is still positive (R$800) — <b>LottoGest always stores positive values</b>, using Direction to determine the sign. Direction=Out means this R$800 is subtracted from the drawer.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
+   narrative:'Operator sends <b>R$800</b> via PIX to a supplier. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out means this R$800 is subtracted from the drawer.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -369,7 +369,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Multi-Tenancy: User + Branch',
-   narrative:'LottoGest is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).<br><br>Here we have two Users: <b>Jennifer</b> (Member — the day-to-day operator) and <b>Maria</b> (Manager — approves closings and can cover shifts).',
+   narrative:'Lotero is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).<br><br>Here we have two Users: <b>Jennifer</b> (Member — the day-to-day operator) and <b>Maria</b> (Manager — approves closings and can cover shifts).',
    activeTables:['User','BranchUser','Branch'],
    activeArrows:['user-bu','bu-branch'],
    data:[
@@ -421,7 +421,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Pre-dated Cheques in Brazil',
-   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. A customer writes a cheque with a future date — the business holds it and deposits it on that date.<br><br>When a cheque is split into installments, LottoGest creates <b>N separate Transaction rows</b>, one per installment. This is extracted from the original Access VBA logic (FrmLancamentoCheque). Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.',
+   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. A customer writes a cheque with a future date — the business holds it and deposits it on that date.<br><br>When a cheque is split into installments, Lotero creates <b>N separate Transaction rows</b>, one per installment. This is extracted from the original Access VBA logic (FrmLancamentoCheque). Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.',
    activeTables:['Account','Client','TransactionType'],
    activeArrows:['cat-tt'],
    data:[
@@ -580,7 +580,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Open Day: Opening Values',
-   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> from the most recent prior close for this same account, not necessarily literal yesterday. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$2,800</b> (R$2,000 + R$500 + R$300).<br><br>LottoGest tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
+   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> from the most recent prior close for this same account, not necessarily literal yesterday. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$2,800</b> (R$2,000 + R$500 + R$300).<br><br>Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -706,7 +706,7 @@ function renderSlide(s,i){
 
 function renderTitle(i){
   return `<div class="slide title-slide" data-idx="${i}">
-    <h1>LottoGest Backend Architecture</h1>
+    <h1>Lotero Backend Architecture</h1>
     <p class="subtitle">A lottery house cash management SaaS — digitizing daily operations from paper + Microsoft Access</p>
     <ul class="bullets">
       <li>.NET + EF Core + PostgreSQL</li>
@@ -745,7 +745,7 @@ function renderIntro(s,i){
           <h3 class="accent-color">The Core Problem</h3>
           <p>Every day, each operator (cashier) processes dozens of financial transactions at their terminal. At the end of the day, the operator must <b>close their register</b>: count what is physically in the drawer, compare it to what the system says should be there, and report the difference. The owner then reconciles this against CEF's own settlement report (<em>borderô</em>).</p>
         </div>
-        <div class="intro-highlight">This is currently done on <b>paper + Microsoft Access</b>. LottoGest digitizes the entire flow — from transaction entry to daily closing to manager approval.</div>
+        <div class="intro-highlight">This is currently done on <b>paper + Microsoft Access</b>. Lotero digitizes the entire flow — from transaction entry to daily closing to manager approval.</div>
       </div>
       <div class="intro-col">
         <div class="intro-card">
