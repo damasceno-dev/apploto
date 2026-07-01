@@ -1844,7 +1844,15 @@ Close the milestone with the same discipline used in M5 Phase 6 and M6 Phase 7. 
 - [ ] **12.8** Run `bash server/docs/check-loto-doc-sync.sh`.
 - [ ] **12.9** Review §6.14 in `loto-specs.md` and update any wording that drifted from the implementation. Add a v30 revision note describing the M7 close-out (entire reporting contract stable for downstream code generation). Bump shared `Spec revision` to `v30` across all three sync-group files.
 - [ ] **12.10** Update this milestone with completion notes where implementation intentionally differs from the original plan (M5 6.8 / M6 7.8 convention).
-- [ ] **12.11** **OpenAPI `required` metadata gap (project-wide).** The built-in .NET 10 generator emits no `required` array for response/request DTO members and no `required: true` on non-nullable query parameters, so generated TypeScript makes every field optional — directly undermining the "contract stable for downstream code generation" done-criterion. This is **systemic** (all ~83 response DTOs + every request DTO; `server.Communication` has no `[Required]`, no C# `required` keyword, and `ApiDependencyInjection` has only the Bearer document transformer). Surfaced during the Phase 11 Addendum review. Fix uniformly, **not** per-DTO: add a schema/operation transformer in `AddOpenApi(...)` that marks non-nullable members + non-nullable `[FromQuery]` params as `required`, and pin it with an OpenAPI snapshot/assert test. Belongs to the backend OpenAPI-hardening track the `shared/` milestone's named-enum codegen gate already depends on; coordinate the two. Do not bolt one-off attributes onto the Phase 11 DTOs.
+
+> **Phase 12 completion notes (close-out audit findings — items 12.1–12.10 complete; the former item 12.11 relocated to Milestone 7.6 so Phase 12 closes cleanly):**
+> - **`[ProducesResponseType]` audit (12.1):** all eleven M7 actions were cross-checked against their actual throwable codes. Ten had declarations that exactly matched their reachable sets and needed no change — Manager/Admin reports (daily-ledger, cash-variance) reach 404 via a cross-branch `AccountId` lookup; fiado/balance, fiado/aging, open-cheque-aging have no use-case 404 path and correctly omit it; the three preview actions reach 403/404/409 through `TransactionCreatePreamble` (create/installment) or the edit-preview role/guard chain. The eleventh — **monthly-reconciliation** — had a mismatch (declared 400 unreachable, route-constraint 404 undeclared) fixed via a route correction (see the dedicated note below); its `[ProducesResponseType]` set itself was left at `{200,400,401,403}`, now fully reachable. One coverage gap (not a declaration gap) was also found and closed — see 12.4.
+> - **monthly-reconciliation 400 vs 404 — contract correction (12.1):** the original route `{year:int:min(2000):max(2100)}/{month:int:min(1):max(12)}` mirrored `MonthlyReconciliationFluentValidation`'s bounds exactly, so an out-of-range value was rejected by routing (a body-less framework **404**, not a `ResponseErrorJson`) before the action ran. That left the declared `[ProducesResponseType(400)]` unreachable over HTTP **and** a real 404 undeclared — so the endpoint's contract did not match its declarations. Phase 12 fixed it: the route now carries bare `:int` constraints (no `min/max`), so `Validate(request)` (which runs before the `new DateTime(year, month, 1)` window is built — no overflow risk) owns the range check and an out-of-range `year`/`month` returns a real 400 `ResponseErrorJson` (`REPORT_YEAR_OUT_OF_RANGE` / `REPORT_MONTH_INVALID`) — the same shape every sibling report's 400 uses. The old `MonthlyReconciliation_ShouldReturn404_WhenYearViolatesRouteConstraint` test became `…_ShouldReturn400_WhenYearOutOfRange`, and a `…_ShouldReturn400_WhenMonthOutOfRange` was added. The declared `{200,400,401,403}` set is now fully reachable and WebApi-tested. (A non-integer path segment still fails the `:int` match with the universal typed-route 404 — that is framework behavior shared by every `:guid`/`:int` route, not a documented contract response.) §6.14 and the v30 note updated.
+> - **Coverage catch-up (12.4):** `GET /report/fiado/balance` declared `[ProducesResponseType(400)]` (the `FiadoBalanceFluentValidation` `AsOfDate != default` rule) but its unhappy-path suite asserted only 401/403. Added **`FiadoBalance_ShouldReturn400_WhenAsOfDateIsDefault`** (`asOfDate=0001-01-01` → 400 `REPORT_AS_OF_DATE_INVALID`), matching the existing sibling tests on fiado/aging and open-cheque-aging. **One new WebApi test case.** No other endpoint had an untested declared code.
+> - **Architecture coverage (12.2):** `TransactionEditImpactProjector` is a `public`, non-record class under `server.Application.Services.Reports`, so it is already auto-discovered **and** resolution-pinned by `AllPublicServicesAndExceptionHandlers_AreResolvableFromConfiguredRootContainer` (its namespace matches the `server.Application.Services` sweep prefix; `AddScoped<TransactionEditImpactProjector>()` makes it resolvable). All eleven M7 use cases end in `UseCase` and are covered by `AllUseCases_AreRegisteredInApplicationDi`. `ReportAgingBucketizer` stays out of DI (static; covered by `ReportAgingBucketizerTest`). **Catch-up:** the registration test only proved each `*UseCase` service type is present in the collection — it never built the provider, so a use case registered with an *unregistered* constructor dependency would have passed and only failed at runtime. A new `AllUseCases_AreResolvableFromConfiguredRootContainer` test builds the full API+Application+Infrastructure container and actually resolves every `*UseCase`, satisfying 12.2's literal "resolve every M7 use case" wording for the entire application surface.
+> - **Preview-never-commits test name (12.3):** the test landed in Slice 7.1 as `ArchitectureTest.PreviewAndReportUseCases_DoNotDependOnUnitOfWork` (the name this doc and the 7.1 note already pin), not the prompt's illustrative `…_DoNotInjectIUnitOfWork`. It is functionally exactly what 12.3 requires — a reflection scan over all four namespaces (`UseCases/Reports`, `…/Transactions/InstallmentPreview`, `…/EditPreview`, `…/CreatePreview`) failing the build if any constructor declares an `IUnitOfWork` parameter — so it was verified present and green rather than renamed (renaming would churn two doc references for no functional gain).
+> - **Spec drift (12.9):** the only §6.14 drift across Phases 1–11 was the **missing time-entry-balance contract** — the Phase 11 addendum reshaped the response into the `Operators[]` wrapper and added the branch-wide mode, but §6.14 only carried it in the permission-bucket table. Phase 12 added the explicit "Time-entry balance summary" subsection (11A.9 follow-through) and a clarifying note on the bucket table. All other subsections matched the implementation. Spec bumped to **v30** across the three sync-group files; `check-loto-doc-sync.sh` green.
+> - **Former 12.11 relocated (OpenAPI `required` metadata):** the project-wide OpenAPI `required`-metadata gap is a systemic schema/operation-transformer task, not part of the M7 reporting close-out, and it was blocking a clean "Phase 12 complete". It has been **moved to the new Milestone 7.6 — Backend OpenAPI Contract Hardening** (Phase 1), which is also the server-track milestone the `shared/` named-enum codegen gate already names as a precondition. M7's Done criteria are read-contract criteria and do not depend on it; the v30 status line and revision note now carry the "shape-stable, with `required`-metadata pending" caveat so the "stable for code generation" claim is not overstated.
 
 ### Done criteria
 
@@ -1856,7 +1864,7 @@ Close the milestone with the same discipline used in M5 Phase 6 and M6 Phase 7. 
 - `POST /transaction/installment/preview` and `POST /transaction/installment` produce position-for-position identical row sequences for the same input, pinned by the determinism test in Phase 6.7; Phase 7.2 additionally pins downstream open-cheque aging, optional fiado, and cash-variance impact parity.
 - `POST /transaction/{id}/edit-preview` and `PUT /transaction/{id}` produce consistent impact predictions, pinned by the determinism test in Phase 7.10.
 - `POST /transaction/preview` and `POST /transaction` produce consistent impact predictions, pinned by the determinism test in Phase 7.1.11.
-- Spec sync covers §6.14 with all seven contract subsections (base reporting contract, fiado aging, open-cheque aging, edit impact preview, create impact preview, installment impact preview, monthly reconciliation); shared revision metadata is at `v30` and `check-loto-doc-sync.sh` passes.
+- Spec sync covers §6.14 with all eight contract subsections (base reporting contract, fiado aging, open-cheque aging, edit impact preview, create impact preview, installment impact preview, monthly reconciliation, time-entry balance summary); shared revision metadata is at `v30` and `check-loto-doc-sync.sh` passes.
 - Validator, use-case, Web API, and architecture tests pass.
 
 ### Out of M7 scope (explicit deferrals to later ledger milestones)
@@ -1924,6 +1932,47 @@ Preferred contract: `GET /dailyclose/{dailyCloseId}/review` (name may be refined
 - The daily-close review/close context exposes opening values derived by the server from the most recent prior close for the same account, with branch and member-scope isolation pinned by tests.
 - `VarianceValue` on `ResponseListDailyCloseItemJson` is either intentionally deferred after the Phase 3 gate or added with tests as a nullable additive field.
 - No M7.5 code writes persisted state or changes ledger lifecycle semantics.
+- Spec sync passes and all validator, use-case, WebApi, and architecture checks are green.
+
+---
+
+## Milestone 7.6 — Backend OpenAPI Contract Hardening
+
+**Goal:** Make the generated OpenAPI document a faithful, codegen-grade contract so downstream TypeScript (web + mobile, via `shared/api`) is generated with correct required/optional fields and named — not bare-numeric — enums. This is the server-track milestone the `shared/` milestone's named-enum codegen gate names as a precondition (`shared/docs/milestones.md`: "the backend **OpenAPI Contract Hardening** milestone … does not exist yet"). It exists now.
+
+**Why this is its own milestone (relocated from M7 Phase 12.11):** the gap is systemic and project-wide — it touches every request/response DTO and the `AddOpenApi(...)` pipeline, not the M7 reporting surface specifically. Folding it into the M7 read-contract close-out would have mixed a cross-cutting serialization concern into a feature milestone and blocked M7 from closing. M7 closed at `v30` "shape-stable" (endpoints, DTOs, status codes, semantics locked); this milestone makes the *emitted metadata* match that shape.
+
+**Scope boundary:** OpenAPI document fidelity and the serialization contract only — no new endpoints, no DTO field changes beyond annotations/serialization attributes, no lifecycle or business-rule changes. Integer enum input may still be accepted during a transition window; the change is what the document advertises and what responses serialize.
+
+**Precondition:** Milestone 7 closed at spec `v30`. `server.Communication` DTOs and `ApiDependencyInjection` (currently only a Bearer document transformer) exist.
+
+### Phase 1 — `required` metadata transformer (was M7 Phase 12.11)
+
+The built-in .NET 10 generator emits no `required` array for response/request DTO members and no `required: true` on non-nullable `[FromQuery]` params, so generated TypeScript makes every field optional — directly undermining "contract stable for downstream code generation". Surfaced during the M7 Phase 11 Addendum review; carried here as the headline phase.
+
+- [ ] **1.1** Add a schema/operation transformer in `AddOpenApi(...)` that marks non-nullable response/request DTO members and non-nullable `[FromQuery]` parameters as `required`. Fix uniformly — **not** per-DTO, and do not bolt one-off `[Required]` attributes onto the Phase 11 (or any) DTOs.
+- [ ] **1.2** Decide the non-nullable signal (C# nullable-annotation context on `server.Communication` members + parameter nullability) and document it so new DTOs inherit the behavior automatically.
+- [ ] **1.3** Pin it with an OpenAPI snapshot/assert test: a sample of response DTOs (including at least one M7 report envelope) and at least one request DTO and one non-nullable query param show up `required` in the generated document.
+
+### Phase 2 — Named-enum response contract
+
+The `shared/` named-enum codegen gate asserts the generated TS exposes enum *names* (string unions / named objects), never bare numeric unions. The server half: public contract enums serialize as names on responses, and the OpenAPI document lists named values.
+
+- [ ] **2.1** Make public contract enums serialize as names on responses (`Draft`, `Active`, `Cancelled`, …); accept integer input during the transition.
+- [ ] **2.2** Ensure the OpenAPI document lists named enum values, not bare integers, for those enums.
+- [ ] **2.3** WebApi/OpenAPI tests pin at least one request enum and one response enum end-to-end.
+
+### Phase 3 — Audit, snapshot, and spec sync
+
+- [ ] **3.1** Audit required/nullability fidelity across a representative sample of DTOs (not just the M7 reporting DTOs).
+- [ ] **3.2** Add/extend an OpenAPI document snapshot test so contract regressions fail the build.
+- [ ] **3.3** Bump the shared `Spec revision` (expected `v31`) with a revision note describing the OpenAPI contract hardening, mirror the product-facing note where relevant, and run `bash server/docs/check-loto-doc-sync.sh`.
+
+### Done criteria
+
+- Generated OpenAPI marks non-nullable members and non-nullable query params as `required`; generated TypeScript no longer makes every field optional.
+- Public contract enums appear by name in the document and on responses; the `shared/` named-enum codegen gate's server-side precondition is satisfied.
+- Snapshot/assert tests pin both guarantees so regressions break the build.
 - Spec sync passes and all validator, use-case, WebApi, and architecture checks are green.
 
 ---
