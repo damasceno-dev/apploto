@@ -165,11 +165,11 @@ Each will be filled with the template above, every data field tagged by source, 
 
 ---
 
-## Backend contract gaps surfaced (for the server track)
+## Backend contract gaps — tracked on the server track (M7.5)
 
-Mismatches/gaps found while mapping screens to the current contract. None block M0; they're candidate backend additions (not in `server/docs/milestones.md` M8–M10):
+Surfaced while mapping screens to the current contract. **These are owned by [server Milestone 7.5 — Frontend UX Contract Gaps](../../server/docs/milestones.md)** — not a frontend TODO. The per-field `[gap]` tags above resolve when M7.5 ships. None block M0.
 
-1. **No variance on the daily-close list item.** `ResponseListDailyCloseItemJson` has status/operator/account but no `VarianceValue`, so the Work Queue and approval list must cross-join the cash-variance summary by `(Date, AccountId)`. Adding `VarianceValue` to the list item would remove that join. *(small additive change)*
-2. **Opening values are not returned** on `ResponseDailyCloseJson` / its items (only the entered `Value`). The close-day form and the approval comparison both want opening values served alongside each item (or an open-day "opening snapshot" endpoint). §6.5 already computes them server-side.
-3. **No dashboard aggregation endpoint.** The Manager Work Queue stitches daily-close list + cash-variance summary + account list (not-submitted) + monthly-reconciliation blockers. A single `GET /report/dashboard?date=` returning per-close `{account, operator, status, variance}`, the pending-approval count, the not-submitted accounts, and the open blockers would collapse the most-used screen to one call and kill the client-side joins/derivations.
-4. **Draft finalize is a distinct endpoint** (`POST /transaction/{id}/finalize`), not an edit flag — correctly modeled now; noted so the UI builds an explicit "Finalize" action.
+1. **No variance on the daily-close list item.** `ResponseListDailyCloseItemJson` has status/operator/account but no `VarianceValue`, so the Work Queue and approval list must cross-join the cash-variance summary by `(Date, AccountId)`. **→ server M7.5 Phase 3** (DailyClose list variance enrichment gate).
+2. **Opening values are not returned** on `ResponseDailyCloseJson` / its items (only the entered `Value`); §6.5 computes them server-side. **→ server M7.5 Phase 2** (daily-close review context with opening values).
+3. **No dashboard aggregation endpoint.** The Manager Work Queue stitches daily-close list + cash-variance summary + account list (not-submitted) + monthly-reconciliation blockers. **→ server M7.5 Phase 1** (`GET /report/dashboard?date=` — one call, no client-side joins).
+4. **Draft finalize** (`POST /transaction/{id}/finalize`) — **already implemented**; a UI note, not a gap, so no milestone is needed (the UI just builds an explicit "Finalize" action).

@@ -1880,6 +1880,8 @@ Both come straight from the original M7 sketch. Both would be write-flow work an
 
 **Goal:** Close the high-payoff backend contract gaps surfaced by the first frontend screen catalog: a single manager dashboard aggregation endpoint and a daily-close review context that exposes opening values. These are read-oriented UX contracts that let web/mobile build the manager work queue and close approval/review screens without fragile client-side joins or hidden business-rule duplication.
 
+**Source:** these gaps were surfaced by the frontend M0 screen catalog — see `design/docs/screens.md` → "Backend contract gaps — tracked on the server track (M7.5)". Mapping: variance-on-list → Phase 3, opening-values → Phase 2, dashboard-endpoint → Phase 1. A fourth observation (draft-finalize) needed no work — `POST /transaction/{id}/finalize` already exists.
+
 **Scope boundary:** Additive read/reporting endpoints and response fields only. No schema changes, no new lifecycle states, no write flows, no lock-date advancement changes, no bounced-cheque lifecycle, and no installment provenance metadata. Existing M7 report endpoints remain valid; this milestone may reuse their repositories/projections but should not make clients stitch them manually for the first manager screen.
 
 **Precondition:** Milestone 7 is closed and the frontend M0 screen catalog has locked the manager dashboard and daily-close approval semantics. DailyClose, CashVariance, Account, OperatorAccount, and M7 reporting repositories already exist.
