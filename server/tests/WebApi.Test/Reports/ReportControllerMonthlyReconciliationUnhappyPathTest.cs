@@ -1,5 +1,6 @@
 using System.Net;
 using server.Domain.Entities.Enums;
+using server.Exceptions;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -29,13 +30,30 @@ public class ReportControllerMonthlyReconciliationUnhappyPathTest(ServerWebAppli
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
 
+    // The route uses bare `:int` constraints, so an out-of-range year reaches
+    // MonthlyReconciliationFluentValidation and returns a real 400 ResponseErrorJson — not the
+    // body-less framework 404 a min/max route-constraint miss used to produce.
     [Fact]
-    public async Task MonthlyReconciliation_ShouldReturn404_WhenYearViolatesRouteConstraint()
+    public async Task MonthlyReconciliation_ShouldReturn400_WhenYearOutOfRange()
     {
-        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("MonthlyReconYear404", Role.Manager);
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("MonthlyReconYear400", Role.Manager);
 
         var httpResponse = await _client.GetAuthAsync("/report/monthly-reconciliation/1900/8", token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.REPORT_YEAR_OUT_OF_RANGE);
+    }
+
+    [Fact]
+    public async Task MonthlyReconciliation_ShouldReturn400_WhenMonthOutOfRange()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("MonthlyReconMonth400", Role.Manager);
+
+        var httpResponse = await _client.GetAuthAsync("/report/monthly-reconciliation/2025/13", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.REPORT_MONTH_INVALID);
     }
 }

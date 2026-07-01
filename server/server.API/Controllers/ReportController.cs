@@ -95,8 +95,11 @@ public class ReportController : ControllerBase
         return Ok(response);
     }
 
+    // Range checking is owned by MonthlyReconciliationFluentValidation so an out-of-range year/month
+    // reaches the action and returns a real 400 ResponseErrorJson (REPORT_YEAR_OUT_OF_RANGE /
+    // REPORT_MONTH_INVALID)
     [HttpGet]
-    [Route("monthly-reconciliation/{year:int:min(2000):max(2100)}/{month:int:min(1):max(12)}")]
+    [Route("monthly-reconciliation/{year:int}/{month:int}")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponseMonthlyReconciliationJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]

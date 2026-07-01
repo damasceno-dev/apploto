@@ -114,6 +114,50 @@ public class ArchitectureTest
         );
     }
 
+    /// <summary>
+    /// Complements <see cref="AllUseCases_AreRegisteredInApplicationDi"/>. That check only proves each
+    /// <c>*UseCase</c> service type is present in the DI collection — it never builds the provider, so a
+    /// use case that is registered but whose constructor takes an <em>unregistered</em> dependency would
+    /// still pass and only fail at runtime the first time its endpoint is hit. This test builds the
+    /// fully-configured root container (API + Application + Infrastructure) and actually resolves every
+    /// <c>*UseCase</c>, turning "registered but not constructible" into a build-time failure instead of a
+    /// first-request 500.
+    /// </summary>
+    [Fact]
+    public void AllUseCases_AreResolvableFromConfiguredRootContainer()
+    {
+        var services = new ServiceCollection();
+        services.AddApi();
+        services.AddApplication();
+        services.AddInfrastructure(BuildArchitectureConfiguration());
+
+        var useCases = typeof(AppDependencyInjection).Assembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .Where(t => t.Name.EndsWith("UseCase", StringComparison.Ordinal))
+            .ToList();
+
+        useCases.ShouldNotBeEmpty(
+            "No use cases were discovered in the server.Application assembly — the reflection filter is probably stale."
+        );
+
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions
+        {
+            ValidateScopes = true
+        });
+        using var scope = provider.CreateScope();
+
+        var failures = useCases
+            .Select(useCaseType => TryResolve(scope.ServiceProvider, useCaseType, useCaseType))
+            .Where(message => message is not null)
+            .ToList();
+
+        failures.ShouldBeEmpty(
+            "The following use cases are registered but could not be resolved from the configured container "
+            + "(a constructor dependency is missing a registration): "
+            + string.Join(" | ", failures)
+        );
+    }
+
     [Fact]
     public void PreviewAndReportUseCases_DoNotDependOnUnitOfWork()
     {

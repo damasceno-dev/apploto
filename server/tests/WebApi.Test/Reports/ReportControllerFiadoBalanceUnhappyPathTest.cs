@@ -34,4 +34,20 @@ public class ReportControllerFiadoBalanceUnhappyPathTest(ServerWebApplicationFac
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    // The action declares [ProducesResponseType(400)] for the
+    // FiadoBalanceFluentValidation AsOfDate rule, but no WebApi test exercised it — the
+    // sibling asOfDate reports (fiado/aging, cheques/open-aging) already pin this path.
+    [Fact]
+    public async Task FiadoBalance_ShouldReturn400_WhenAsOfDateIsDefault()
+    {
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("FBUnhappy400AsOfDate");
+        const string url = "/report/fiado/balance?asOfDate=0001-01-01";
+
+        var httpResponse = await _client.GetAuthAsync(url, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.REPORT_AS_OF_DATE_INVALID);
+    }
 }
