@@ -2,7 +2,7 @@
 
 > **Draft started at** 2026-06-10
 > **Planned start:** 2026-06-30
-> **Scope:** the *frontend* framing only. Domain truth (entities, business rules, flows) lives in `server/docs/loto-specs.md` — this file points to it and never restates it. Per-screen detail lives in [`screens.md`](screens.md).
+> **Scope:** the *frontend* framing only. Domain truth (entities, business rules, flows) lives in `docs/loto-specs.md` — this file points to it and never restates it. Per-screen detail lives in [`screens.md`](screens.md).
 
 ---
 

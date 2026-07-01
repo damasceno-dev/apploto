@@ -11,14 +11,16 @@ server/
 design/
 infra/
 shared/
+docs/
 ```
 
 ## Global rules
 
-- Keep the repo split as `web`, `mobile`, `server`, `design`, `infra`, and `shared`.
+- Keep the application/runtime areas split as `web`, `mobile`, `server`, `design`, `infra`, and `shared`.
 - Keep `pnpm workspaces` so `web` and `mobile` can consume shared runtime TS code cleanly.
 - Treat `design/` as non-runtime: tokens, specs, assets, references.
 - Treat `shared/` as cross-platform runtime TS code only.
+- Treat `docs/` as non-runtime project documentation. Its three files — `docs/loto-specs.md`, `docs/loto_presentation.html`, and `docs/loto_entity_relationship_diagram.html` — are one project-level doc sync group: factual changes must update the affected files together and pass `docs/check-loto-doc-sync.sh`.
 
 ## Core architecture decisions
 

@@ -25,7 +25,7 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 - **Three-layer token model:** *primitive* → *semantic* → *domain* (one token per colored backend enum value). App code consumes **semantic and domain tokens only** — never primitives, never raw hex. Each app ships a lint gate banning raw hex / primitive refs, with one exemption: the app's token-adapter module (Tailwind preset / NativeWind theme).
 - **Light and dark from the start.** The semantic layer is keyed under both `light` and `dark`; the system ships **both themes from M2**. Structuring for both now is cheap; retrofitting dark later is not.
 - **`references/` holds inputs, not implementations.** Park prompts, screenshots, exported screens, PDFs, links. **Never** vendor generated React/Expo projects or `node_modules` under `design/`. A prototype is referenced by link/snapshot.
-- **Doc sync is scripted.** `product.md` and `screens.md` carry a `Synced against loto-specs: vNN` marker; a repo-level sync script fails when it drifts from the current spec revision, so a backend spec bump flags the frontend docs for re-check. (To be unified with the server doc-sync group — see the pending docs-to-root move.)
+- **Doc sync is scripted.** The domain doc-sync group now lives at repo-root `docs/`, validated by `docs/check-loto-doc-sync.sh`. Extending that check to the frontend docs — `product.md` and `screens.md` carrying a `Synced against loto-specs: vNN` marker that a backend spec bump flags for re-check — is **still pending item 0.4.3**; it is not implemented yet.
 - **pt-BR is the product language.** User-facing copy guidance is pt-BR; doc prose may be English.
 
 ### Milestone overview

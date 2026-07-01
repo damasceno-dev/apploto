@@ -87,7 +87,7 @@ If `server.API` needs direct compile-time access to `ServerException` or excepti
 - Keep DTOs simple and serialization-focused. Validation does not live in DTOs.
 - Prefer explicit mappings over reflection-based or convention-based mapper libraries.
 - Prefer stable, named patterns over ad hoc feature-specific structure.
-- Treat `server/docs/loto-specs.md`, `server/docs/loto_presentation.html`, and `server/docs/loto_entity_relationship_diagram.html` as one Lotero backend doc sync group. Factual changes must update the affected files together, keep the shared sync metadata aligned, and pass `server/docs/check-loto-doc-sync.sh`.
+- Spec changes must keep the project-level `docs/` doc sync group aligned and pass `docs/check-loto-doc-sync.sh` (the sync group and its rule are defined in the root `AGENTS.md`).
 
 ## Layer guide
 
