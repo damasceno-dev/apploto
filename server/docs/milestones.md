@@ -1892,6 +1892,7 @@ Both come straight from the original M7 sketch. Both would be write-flow work an
 - **Dashboard is exception-first.** The endpoint optimizes the manager's first workflow: pending approvals, not-submitted accounts/operators, and highest-variance closes for one selected branch-local date.
 - **Opening values are server-derived.** §6.5 already defines opening values as the most recent prior close for the same `(BranchId, AccountId)`. The review/close context must expose them directly instead of making clients rediscover the prior close and recalculate the mapping.
 - **List enrichment is secondary.** Adding `VarianceValue` to `ResponseListDailyCloseItemJson` is useful only if list/approval screens still need inline variance after the dashboard and review-context endpoints exist. Treat it as a deliberate gate, not automatic DTO bloat.
+- **No domain query/filter objects (Phase 11 precedent).** Use cases read the request DTO directly and pass loose params (`branchId`, `date`, `productId`, …) to repositories; repo aggregate returns use projection records in `server.Domain/Models/Projections/`. Do **not** wrap params in a `DashboardQuery` / review-query object that never reaches the data path. `RequestDashboardJson` is the wire contract (validated input), not a domain query wrapper.
 
 ### Phase 1 — Manager dashboard aggregation endpoint
 
