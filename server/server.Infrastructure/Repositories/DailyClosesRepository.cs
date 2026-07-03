@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using server.Domain.Models.Projections;
 
 namespace server.Infrastructure.Repositories;
 
@@ -83,6 +84,30 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
                 dailyClose.Date.Month == month)
             .OrderBy(dailyClose => dailyClose.Date)
             .ThenBy(dailyClose => dailyClose.Account.Name)
+            .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<DashboardCloseRow>> ListDashboardClosesByBranchIdAndDateAsNoTracking(
+        Guid branchId,
+        DateTime date)
+    {
+        return await dbContext.DailyCloses
+            .AsNoTracking()
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.Date == date &&
+                dailyClose.Active)
+            .OrderBy(dailyClose => dailyClose.Account.Name)
+            .ThenBy(dailyClose => dailyClose.Id)
+            .Select(dailyClose => new DashboardCloseRow(
+                dailyClose.Id,
+                dailyClose.AccountId,
+                dailyClose.Account.Name,
+                dailyClose.SubmittedByOperatorId,
+                dailyClose.SubmittedByOperator != null ? dailyClose.SubmittedByOperator.Name : null,
+                dailyClose.Status,
+                dailyClose.SubmittedAt,
+                dailyClose.ApprovedAt))
             .ToListAsync();
     }
 

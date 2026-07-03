@@ -1,5 +1,6 @@
 using server.Domain.Entities;
 using server.Domain.Models;
+using server.Domain.Models.Projections;
 
 namespace server.Domain.Interfaces;
 
@@ -19,6 +20,12 @@ public interface IDailyClosesRepository
     /// load <c>SubmittedByOperator</c> because that report exposes no operator field.
     /// </summary>
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAndYearMonthAsNoTracking(Guid branchId, int year, int month);
+    /// <summary>
+    /// All active closes for the branch on one date (every status, Draft included so the dashboard can
+    /// deep-link not-submitted accounts), projected with account and submitting-operator identity.
+    /// Ordered AccountName ASC, then Id ASC.
+    /// </summary>
+    Task<IReadOnlyList<DashboardCloseRow>> ListDashboardClosesByBranchIdAndDateAsNoTracking(Guid branchId, DateTime date);
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(Guid branchId, DailyCloseListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, DailyCloseListFilter filter);
 }

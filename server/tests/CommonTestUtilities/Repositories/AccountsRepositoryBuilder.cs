@@ -1,6 +1,7 @@
 using NSubstitute;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
+using server.Domain.Models.Projections;
 
 namespace CommonTestUtilities.Repositories;
 
@@ -12,6 +13,8 @@ public class AccountsRepositoryBuilder
     {
         _repository.ListActiveTerminalIdsByTabAccountIds(Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>())
             .Returns(new Dictionary<Guid, Guid>());
+        _repository.ListExpectedClosersByBranchIdAsNoTracking(Arg.Any<Guid>())
+            .Returns(new List<ExpectedCloserRow>());
     }
 
     public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Account? account)
@@ -60,6 +63,15 @@ public class AccountsRepositoryBuilder
                 branchId,
                 Arg.Is<IReadOnlyCollection<Guid>>(ids => ids.OrderBy(i => i).SequenceEqual(tabAccountIds.OrderBy(i => i))))
             .Returns(terminalIdsByTabAccountId);
+        return this;
+    }
+
+    public AccountsRepositoryBuilder ListExpectedClosersByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        IReadOnlyList<ExpectedCloserRow> result)
+    {
+        _repository.ListExpectedClosersByBranchIdAsNoTracking(Arg.Is<Guid>(value => value == branchId))
+            .Returns(result);
         return this;
     }
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models.Projections;
 
 namespace server.Infrastructure.Repositories;
 
@@ -80,4 +81,35 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
             .ToDictionaryAsync(a => a.TabAccountId!.Value, a => a.Id);
     }
 
+    public async Task<IReadOnlyList<ExpectedCloserRow>> ListExpectedClosersByBranchIdAsNoTracking(Guid branchId)
+    {
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .Where(a =>
+                a.BranchId == branchId &&
+                a.Type == AccountType.Terminal &&
+                a.Active &&
+                a.Branch.Active &&
+                a.OperatorAccounts.Any(link => link.Active && link.Operator.Active))
+            .OrderBy(a => a.Name)
+            .ThenBy(a => a.Id)
+            .Select(a => new ExpectedCloserRow(
+                a.Id,
+                a.Name,
+                a.OperatorAccounts
+                    .Where(link => link.Active && link.Operator.Active)
+                    .OrderByDescending(link => link.IsPrimary)
+                    .ThenBy(link => link.Operator.Name)
+                    .ThenBy(link => link.OperatorId)
+                    .Select(link => link.OperatorId)
+                    .First(),
+                a.OperatorAccounts
+                    .Where(link => link.Active && link.Operator.Active)
+                    .OrderByDescending(link => link.IsPrimary)
+                    .ThenBy(link => link.Operator.Name)
+                    .ThenBy(link => link.OperatorId)
+                    .Select(link => link.Operator.Name)
+                    .First()))
+            .ToListAsync();
+    }
 }

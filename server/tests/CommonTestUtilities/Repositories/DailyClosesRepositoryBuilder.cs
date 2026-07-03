@@ -2,12 +2,32 @@ using NSubstitute;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using server.Domain.Models.Projections;
 
 namespace CommonTestUtilities.Repositories;
 
 public class DailyClosesRepositoryBuilder
 {
     private readonly IDailyClosesRepository _repository = Substitute.For<IDailyClosesRepository>();
+
+    public DailyClosesRepositoryBuilder()
+    {
+        _repository
+            .ListDashboardClosesByBranchIdAndDateAsNoTracking(Arg.Any<Guid>(), Arg.Any<DateTime>())
+            .Returns(new List<DashboardCloseRow>());
+    }
+
+    public DailyClosesRepositoryBuilder ListDashboardClosesByBranchIdAndDateAsNoTrackingReturns(
+        Guid branchId,
+        DateTime date,
+        IReadOnlyList<DashboardCloseRow> result)
+    {
+        _repository.ListDashboardClosesByBranchIdAndDateAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DateTime>(value => value == date))
+            .Returns(result);
+        return this;
+    }
 
     public DailyClosesRepositoryBuilder GetByIdAndBranchIdReturns(
         Guid id,

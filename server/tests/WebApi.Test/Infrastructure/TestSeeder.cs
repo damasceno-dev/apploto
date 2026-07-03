@@ -157,7 +157,7 @@ internal static class TestSeeder
             return client;
         }
 
-        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null, Guid? userId = null)
+        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null, Guid? userId = null, Guid? id = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -184,7 +184,7 @@ internal static class TestSeeder
 
             var op = new Operator
             {
-                Id = Guid.NewGuid(),
+                Id = id ?? Guid.NewGuid(),
                 Name = name ?? $"Operator {Guid.NewGuid():N}",
                 BranchId = branchId,
                 UserId = userId
