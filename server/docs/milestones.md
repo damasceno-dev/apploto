@@ -1917,9 +1917,11 @@ Preferred contract: `GET /dailyclose/{dailyCloseId}/review` (name may be refined
 
 ### Phase 3 — DailyClose list variance enrichment gate
 
-- [ ] **3.1** After Phases 1–2, decide whether `ResponseListDailyCloseItemJson` still needs `VarianceValue?`. If dashboard and review context cover the first frontend flows, leave the existing list DTO untouched and document the deferral here.
-- [ ] **3.2** If the field is still needed, add it as a nullable additive field on `ResponseListDailyCloseItemJson`; load it through the same `Diferença Caixa` product lookup and `(Date, AccountId)` join used elsewhere. Do not make list pagination depend on materializing all rows in a large date range.
-- [ ] **3.3** Add tests for the chosen path: either a deferral note with no code change, or validator/use-case/WebApi assertions that list rows include the correct variance and null for Draft/no-variance rows.
+**Outcome: deferred (no code change), decided 2026-07-05 after Phases 1–2 shipped.**
+
+- [x] **3.1** After Phases 1–2, decide whether `ResponseListDailyCloseItemJson` still needs `VarianceValue?`. If dashboard and review context cover the first frontend flows, leave the existing list DTO untouched and document the deferral here. **Decision: defer.** Both cataloged consumers of inline list variance (`design/docs/screens.md` gap §1) are covered without it: the Manager Work Queue is date-scoped and exception-first, which is exactly what `GET /report/dashboard` returns — `ResponseDashboardCloseJson.VarianceValue` inline per close row, joined server-side by `(Date, AccountId)` — and the Daily-close approval screen reads the flagged cash-variance row (`IsCashVarianceProduct`) with opening/closing values from `GET /dailyclose/{id}/review`. The only other cataloged consumer of the paginated `GET /dailyclose` list (Operator Day Cockpit) reads close state, not variance. Reopen this gate if a future multi-date list/history screen needs inline variance per row.
+- [x] **3.2** Not applicable — the field was not added (3.1 deferred). `ResponseListDailyCloseItemJson` and the list use case are untouched.
+- [x] **3.3** Deferral path chosen: no code change, so no new tests; the 3.1 note is the documented outcome.
 
 ### Phase 4 — Contract hardening + spec sync
 
