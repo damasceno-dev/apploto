@@ -5,6 +5,7 @@ using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
 using server.Application.UseCases.DailyCloses.Reject;
+using server.Application.UseCases.DailyCloses.Review;
 using server.Application.UseCases.DailyCloses.Submit;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -124,6 +125,21 @@ public class DailyCloseController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(
         [FromServices] GetDailyCloseUseCase useCase,
+        [FromRoute] Guid dailyCloseId)
+    {
+        var response = await useCase.Execute(dailyCloseId);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("{dailyCloseId:guid}/review")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseReviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Review(
+        [FromServices] GetDailyCloseReviewUseCase useCase,
         [FromRoute] Guid dailyCloseId)
     {
         var response = await useCase.Execute(dailyCloseId);
