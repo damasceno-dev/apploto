@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v30
+Spec revision: v31
 -->
 <html lang="en">
 <head>
@@ -852,7 +852,9 @@ function renderClosing(i){
     {t:'Edit Impact Preview (§6.14)',d:'Edit preview mirrors update rules without committing and projects receivable, fiado, and cash-variance impact before save.'},
     {t:'Create Impact Preview (§6.14)',d:'POST /transaction/preview shares the create write scope (Member-scoped, not Manager/Admin-only) and forecasts the same three impacts without committing. Unlike the edit preview, its cash-variance delta is genuinely non-zero.'},
     {t:'Installment Impact Preview (§6.14)',d:'POST /transaction/installment/preview keeps its unchanged row plan and adds an additive Impact: the would-be open-cheque aging group, an optional aggregated fiado delta (Tab + client), and the cash-variance shift. Same scope as the installment write twin; a Draft plan forecasts empty; preview never commits.'},
-    {t:'Monthly Reconciliation (§6.14)',d:'GET /report/monthly-reconciliation/{year}/{month} is Manager/Admin-only. It returns every calendar day with close statuses, transaction counts, per-close and net variance, LockReady, and Blockers explaining non-Approved closes or outstanding Draft transactions.'}
+    {t:'Monthly Reconciliation (§6.14)',d:'GET /report/monthly-reconciliation/{year}/{month} is Manager/Admin-only. It returns every calendar day with close statuses, transaction counts, per-close and net variance, LockReady, and Blockers explaining non-Approved closes or outstanding Draft transactions.'},
+    {t:'Manager Dashboard (§6.14)',d:'GET /report/dashboard?date= is Manager/Admin-only and backs the manager work queue in one call: submitted-or-later closes with per-account variance joined by (Date, AccountId), the pending-approval count, day variance aggregates, and the expected Terminal accounts that have not submitted — an open Draft close deep-links from its not-submitted row. The paginated daily-close list stays lean: inline list variance was deliberately deferred.'},
+    {t:'Daily-Close Review (§6.14)',d:'GET /dailyclose/{id}/review returns the close header plus per-product opening → closing values for the close-day form and approval review. Opening values are server-derived from the most recent prior close for the same account (§6.5); the Diferença Caixa row is flagged system-calculated and carries no opening value. Same read scope as reading the close itself.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">

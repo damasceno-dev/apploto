@@ -1878,6 +1878,8 @@ Both come straight from the original M7 sketch. Both would be write-flow work an
 
 ## Milestone 7.5 — Frontend UX Contract Gaps
 
+**Status: complete (closed at spec `v31`, 2026-07-05).** Phases 1–2 shipped the dashboard and review endpoints; Phase 3 resolved as a documented deferral; Phase 4 audited the contracts, extended the never-commits architecture scan, synced §6.14, and bumped the doc group to `v31`.
+
 **Goal:** Close the high-payoff backend contract gaps surfaced by the first frontend screen catalog: a single manager dashboard aggregation endpoint and a daily-close review context that exposes opening values. These are read-oriented UX contracts that let web/mobile build the manager work queue and close approval/review screens without fragile client-side joins or hidden business-rule duplication.
 
 **Source:** these gaps were surfaced by the frontend M0 screen catalog — see `design/docs/screens.md` → "Backend contract gaps — tracked on the server track (M7.5)". Mapping: variance-on-list → Phase 3, opening-values → Phase 2, dashboard-endpoint → Phase 1. A fourth observation (draft-finalize) needed no work — `POST /transaction/{id}/finalize` already exists.
@@ -1925,11 +1927,18 @@ Preferred contract: `GET /dailyclose/{dailyCloseId}/review` (name may be refined
 
 ### Phase 4 — Contract hardening + spec sync
 
-- [ ] **4.1** Audit `[ProducesResponseType]` declarations for every M7.5 endpoint and add WebApi coverage for each declared status.
-- [ ] **4.2** Confirm architecture tests resolve any new use cases/services. Projection helpers that stay private/static in the use-case folder do not need DI registration.
-- [ ] **4.3** Update `loto-specs.md` §6.14 with the dashboard aggregation contract and the daily-close review/opening-values contract. Mirror relevant product-facing notes in `loto_presentation.html`; `loto_entity_relationship_diagram.html` should remain unchanged unless implementation introduces schema changes, which this milestone should avoid. Bump the shared spec revision after the current M7 close-out revision (expected `v31` if M7 closes at `v30`) and run `bash docs/check-loto-doc-sync.sh`.
-- [ ] **4.4** Run `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, and `dotnet test tests/WebApi.Test`.
-- [ ] **4.5** Update this milestone with completion notes where implementation intentionally differs from the plan.
+- [x] **4.1** Audit `[ProducesResponseType]` declarations for every M7.5 endpoint and add WebApi coverage for each declared status. **Audit result: no gaps.** `GET /report/dashboard` declares `{200, 400, 401, 403}` — 400 from `DashboardFluentValidation`, 403 from the auth filter + use-case role check, and deliberately no 404 (a missing `Diferença Caixa` seed product is an `InvalidOperationException` bootstrap defect, not a client-visible not-found). `GET /dailyclose/{id}/review` declares `{200, 401, 403, 404}` — no request body/query, so no 400 path. Every declared code was already hit by at least one WebApi test; no catch-up tests were needed.
+- [x] **4.2** Confirm architecture tests resolve any new use cases/services. Projection helpers that stay private/static in the use-case folder do not need DI registration. **Result:** the project-wide `*UseCase` reflection sweeps auto-discovered `GetDashboardUseCase` and `GetDailyCloseReviewUseCase` (registration + root-container resolution), and both controller actions declare explicit auth intent — no explicit resolution test was needed. One catch-up: `server.Application.UseCases.DailyCloses.Review` was added to the `PreviewNeverCommitsNamespacePrefixes` scan so the review context's read-only invariant is pinned at build time like the report use cases.
+- [x] **4.3** Update `loto-specs.md` §6.14 with the dashboard aggregation contract and the daily-close review/opening-values contract. Mirror relevant product-facing notes in `loto_presentation.html`; `loto_entity_relationship_diagram.html` should remain unchanged unless implementation introduces schema changes, which this milestone should avoid. Bump the shared spec revision after the current M7 close-out revision (expected `v31` if M7 closes at `v30`) and run `bash docs/check-loto-doc-sync.sh`. **Done at `v31`** (M7.5 shipped before M7.6, so it took `v31`; M7.6 moves to `v32`). §6.14 gained "Manager dashboard aggregation", "Daily-close review context", and the Phase 3 deferral note; the presentation gained two closing-slide cards; the ERD changed only its revision metadata (no schema change). `check-loto-doc-sync.sh` passes green.
+- [x] **4.4** Run `dotnet test tests/Validators.Test`, `dotnet test tests/UseCases.Test`, and `dotnet test tests/WebApi.Test`. **All green at close-out: 299 / 941 / 748 passed, 0 failed.**
+- [x] **4.5** Update this milestone with completion notes where implementation intentionally differs from the plan. See "Completion notes" below.
+
+**Completion notes (M7.5 close-out, 2026-07-05):**
+
+- **Phase 3 resolved as a deferral** — `ResponseListDailyCloseItemJson` is untouched; the dashboard covers the work queue's inline variance and the review context covers approval (rationale recorded in Phase 3 above and in §6.14).
+- **Expected-closer rule as implemented:** the item 1.2 default stood, tightened to active `OperatorAccount` links whose `Operator` is also active; the surfaced operator is the primary active link with a first-active-by-name fallback; future branch-local dates produce an empty `NotSubmitted`.
+- **The review kept a dedicated `ResponseDailyCloseReviewJson`** (the 2.1 preferred contract) rather than enriching `ResponseDailyCloseJson`, because the generic DTO is also a write-operation response and opening values would make it context-dependent.
+- **No new failure modes:** neither endpoint introduced a 404 lookup path beyond the review's existing DailyClose read-scope 404, and no `[ProducesResponseType]` correction was required — the Phase 1/2 slices had declared the reachable sets correctly.
 
 ### Done criteria
 
@@ -1971,7 +1980,7 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 - [ ] **3.1** Audit required/nullability fidelity across a representative sample of DTOs (not just the M7 reporting DTOs).
 - [ ] **3.2** Add/extend an OpenAPI document snapshot test so contract regressions fail the build.
-- [ ] **3.3** Bump the shared `Spec revision` (expected `v31`) with a revision note describing the OpenAPI contract hardening, mirror the product-facing note where relevant, and run `bash docs/check-loto-doc-sync.sh`.
+- [ ] **3.3** Bump the shared `Spec revision` (expected `v32` — M7.5 closed first and took `v31`) with a revision note describing the OpenAPI contract hardening, mirror the product-facing note where relevant, and run `bash docs/check-loto-doc-sync.sh`.
 
 ### Done criteria
 
