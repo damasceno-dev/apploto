@@ -42,6 +42,14 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 .title-slide .bullets{list-style:none;display:flex;flex-direction:column;gap:12px}
 .title-slide .bullets li{font-size:16px;color:var(--dim);letter-spacing:.01em}
 .title-slide .bullets li::before{content:'▸ ';color:var(--accent);font-weight:600}
+.title-slide .acts{margin-top:30px;font-size:14px;color:var(--text);letter-spacing:.02em}
+.title-slide .acts b{color:var(--accent);font-weight:600}
+.title-slide .kbd-hint{margin-top:10px;font-size:12px;color:var(--dim)}
+.part-tag{width:100%;flex-shrink:0;font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px}
+.title-slide .part-tag{text-align:center;margin-bottom:18px}
+.design-note{display:block;margin-top:10px;padding:8px 12px;border-left:2px solid var(--blue);background:rgba(74,158,255,.06);border-radius:0 6px 6px 0;font-size:12.5px;color:var(--dim);line-height:1.6}
+.design-note b{color:var(--text)}
+.design-note .dn-label{color:var(--blue);font-weight:600}
 
 .schema-slide{justify-content:flex-start;align-items:center;padding-top:36px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .schema-slide h2{font-size:clamp(24px,3.5vw,34px);font-weight:600;margin-bottom:28px}
@@ -239,10 +247,10 @@ const ACCENT='#e67e22',DIM='#9c9a92',BORDER='#555';
 
 const SLIDES=[
 {type:'title'},
-{type:'schema'},
 {type:'intro',id:'domain'},
 {type:'intro',id:'parallel'},
 {type:'intro',id:'concepts'},
+{type:'schema'},
 {type:'uc',title:'UC1: Cash Deposit',
  viewBox:'0 0 720 340',
  tables:{
@@ -258,7 +266,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'What is a Transaction?',
-   narrative:'The <b>Transaction</b> table is the central ledger of Lotero. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets <b>CategoryId</b> (= TransactionType.CategoryId) and <b>Direction</b> (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br><b>TransactionType</b> also stores <b>SettlementRule</b> (how DueDate is calculated) and <b>RequiresTabAccountAndClient</b> (whether the transaction must use a Tab account and ClientId, used by the fiado Cliente types).<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
+   narrative:'The <b>Transaction</b> table is the central ledger of Lotero. Every financial event at a lottery house — a cash deposit, a bill payment, a credit card sale — becomes one row in this table. It records <em>what</em> happened, <em>when</em>, <em>how much</em>, and through which account.<br><br>Transactions are classified through a two-level hierarchy: <b>Category</b> (top-level) contains <b>TransactionType</b> (what the operator selects). <b>TransactionType is the single source of truth</b> — it is the only classification input from the operator. The system automatically sets CategoryId (= TransactionType.CategoryId) and Direction (= Category.DefaultDirection) as <em>denormalized fields</em>, never independently editable after creation.<br><br>TransactionType also stores <b>SettlementRule</b> (how DueDate is calculated) and <b>RequiresTabAccountAndClient</b> (whether the transaction must use a Tab account and ClientId, used by the fiado Cliente types).<br><br>Each operator works at a terminal, which is modeled as an <b>Account</b>.',
    activeTables:['Category','TransactionType','Account'],
    activeArrows:[],
    data:[
@@ -318,7 +326,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
-   narrative:'Operator sends <b>R$800</b> via PIX to a supplier. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out means this R$800 is subtracted from the drawer.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
+   narrative:'A customer pays a supplier <b>R$800</b> via PIX through the lotérica: they hand over cash, and Jennifer sends the transfer electronically. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the digital money leaves toward the supplier.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -327,12 +335,12 @@ const SLIDES=[
      {n:'Direction',v:'"Out"',hl:'hl'},{n:'CategoryId',v:'→ Saídas'},
      {n:'TransactionTypeId',v:'→ PIX'},{n:'AccountId',v:'→ Jennifer'},
      {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'"2025-03-15"'},
-     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'},
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'},
      {n:'Status',v:'"Active"'}
     ]}
    ]},
   {title:'Direction Contrast',
-   narrative:'To see both directions, compare the R$800 PIX (<b>Out</b>) with a client paying back R$300 on their fiado tab (<b>In</b>, under TransactionType "Cliente" in Category "Entradas" — previewed here, covered in detail in UC5).<br><br>In and Out are mirror operations on the ledger:<br><b style="color:var(--accent)">+R$300 (In) − R$800 (Out) = −R$500 net</b><br><br>This is the core of the transaction ledger — every financial event is an <b>In</b> or <b>Out</b>, and Direction is always derived from the parent Category, never overridden.',
+   narrative:'To see both directions, compare the R$800 PIX (<b>Out</b>) with a client paying back R$300 on their fiado tab (<b>In</b>, under TransactionType "Cliente" in Category "Entradas" — previewed here, covered in detail in UC5).<br><br>In and Out are mirror operations on the ledger:<br><b style="color:var(--accent)">+R$ 300.00 (In) − R$ 800.00 (Out) = −R$ 500.00 net</b><br><br>This is the core of the transaction ledger — every financial event is an <b>In</b> or <b>Out</b>, and Direction is always derived from the parent Category, never overridden.',
    activeTables:['Account'],
    activeArrows:[],
    data:[
@@ -380,15 +388,15 @@ const SLIDES=[
     {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Manager"',hl:'hl'}]}
    ]},
   {title:'Operator: Why Separate from User?',
-   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Today\'s scenario:</b> Jennifer is <b>off today</b>. Maria (Manager) logs in and covers Jennifer\'s terminal. This is exactly why User, Operator, and Account are separate — on transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another.<br><br><b style="color:var(--blue)">Design note:</b> Operator links directly to User (optional FK), <em>not</em> to BranchUser. This is intentional — the link must survive BranchUser deactivation. Each User can have at most one active linked Operator per Branch, enforced by a filtered unique index on (BranchId, UserId) where UserId is not null and Active is true. Updating an Operator with UserId null clears only the login link; the Operator row remains active for history, reporting, and account assignments. Branch consistency is enforced at the <b>API/service layer</b>.',
+   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Last Saturday (March 8):</b> Jennifer was <b>off</b>. Maria (Manager) logged in and covered her terminal. This is exactly why User, Operator, and Account are separate — on that day\'s transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another. Keep March 8 in mind — the next two stories happen on it.<br><br><span class="design-note"><span class="dn-label">Design note:</span> Operator links directly to User (optional FK), <em>not</em> to BranchUser — the link must survive BranchUser deactivation. Each User can have at most one active linked Operator per Branch (filtered unique index on (BranchId, UserId) where UserId is not null and Active is true). Updating an Operator with UserId null clears only the login link; the Operator row remains active for history, reporting, and account assignments. Branch consistency is enforced at the API/service layer.</span>',
    activeTables:['Operator','Branch','User'],
    activeArrows:['op-branch','op-user'],
    data:[
     {entity:'Operator',fields:[{n:'Name',v:'"Jennifer"'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'UserId',v:'→ Jennifer (User)',hl:'hl'}]},
-    {entity:'Covering scenario',fields:[{n:'RecordedByOperatorId',v:'→ Jennifer',hl:'hl'},{n:'CreatedByUserId',v:'→ Maria',hl:'hl-blue'}]}
+    {entity:'Covering scenario (March 8)',fields:[{n:'Date',v:'"2025-03-08"'},{n:'RecordedByOperatorId',v:'→ Jennifer',hl:'hl'},{n:'CreatedByUserId',v:'→ Maria',hl:'hl-blue'}]}
    ]},
   {title:'Accounts and the Terminal/Tab Pair',
-   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><b style="color:var(--blue)">TabAccountId invariants:</b> only <b>Terminal</b> accounts may set it, the target must be of type <b>Tab</b>, a Terminal may exist without a Tab, and each Tab is paired with <b>at most one</b> Terminal.',
+   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><span class="design-note"><span class="dn-label">TabAccountId invariants:</span> only Terminal accounts may set it, the target must be of type Tab, a Terminal may exist without a Tab, and each Tab is paired with at most one Terminal.</span>',
    activeTables:['AccountTerminal','AccountTab','OperatorAccount','Operator'],
    activeArrows:['oa-op','oa-acc','acc-tab'],
    data:[
@@ -421,7 +429,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Pre-dated Cheques in Brazil',
-   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. A customer writes a cheque with a future date — the business holds it and deposits it on that date.<br><br>When a cheque is split into installments, Lotero creates <b>N separate Transaction rows</b>, one per installment. This is extracted from the original Access VBA logic (FrmLancamentoCheque). Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.',
+   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. Carlos — still March 8, with Maria covering Jennifer\'s terminal — writes a cheque with a future date; the business holds it and deposits it on that date.<br><br>When a cheque is split into installments, Lotero creates <b>N separate Transaction rows</b>, one per installment. Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.<br><br><span class="design-note"><span class="dn-label">Heritage:</span> this behavior is extracted from the original Access VBA logic (FrmLancamentoCheque).</span>',
    activeTables:['Account','Client','TransactionType'],
    activeArrows:['cat-tt'],
    data:[
@@ -429,11 +437,11 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"Depósito Cheque"'},{n:'SettlementRule',v:'OperatorEnteredCheque'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'System Creates 3 Installments',
-   narrative:'<b>R$3,000 cheque in 3 installments:</b> the system creates 3 Transaction rows. <b>Manual rows are the default</b> — the operator supplies each installment\'s Value and DueDate, and the request total must equal the exact sum (rules out fat-finger splits). <b>Auto-generation is optional</b>: the operator sets <code>AutoGenerateInstallments = true</code>, an installment count, and a base DueDate; the server splits equally with the residual on the last row, staggers monthly from the base date, and moves weekend or branch holiday dates to the next business day.<br><br>Row descriptions follow <code>CH PRE ({i}/{N}) - {Description}</code> when the operator supplies a description; otherwise just <code>CH PRE ({i}/{N})</code> with no trailing separator. <b>All installments share the same OriginTransactionId, including the first</b> (which points to itself). This simplifies group lookups: <code>WHERE OriginTransactionId = @groupId</code> returns all members.',
+   narrative:'<b>R$3,000 cheque in 3 installments:</b> the system creates 3 Transaction rows. <b>Manual rows are the default</b> — the operator supplies each installment\'s Value and DueDate, and the request total must equal the exact sum (rules out fat-finger splits). <b>Auto-generation is optional</b>: the operator sets <code>AutoGenerateInstallments = true</code>, an installment count, and a base DueDate; the server splits equally with the residual on the last row, staggers monthly from the base date, and moves weekend or branch holiday dates to the next business day.<br><br>Notice the authorship on every row: <b>RecordedByOperatorId → Jennifer</b>, <b>CreatedByUserId → Maria</b> — the UC3 covering split, visible in the data.<br><br><span class="design-note"><span class="dn-label">Naming rule:</span> row descriptions follow <code>CH PRE ({i}/{N}) - {Description}</code> when the operator supplies a description; otherwise just <code>CH PRE ({i}/{N})</code> with no trailing separator. All installments share the same OriginTransactionId, including the first (which points to itself), so <code>WHERE OriginTransactionId = @groupId</code> returns all members.</span>',
    activeTables:['Tx1','Tx2','Tx3','Account'],
    activeArrows:['tx1-acc','tx2-acc','tx3-acc'],
    data:[
-    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (1/3)"'},{n:'DueDate',v:'"2025-05-15"'},{n:'OriginTransactionId',v:'→ tx-001 (self)',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]},
+    {entity:'Transaction #1',fields:[{n:'Id',v:'"tx-001"'},{n:'Date',v:'"2025-03-08"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (1/3)"'},{n:'DueDate',v:'"2025-05-15"'},{n:'OriginTransactionId',v:'→ tx-001 (self)',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]},
     {entity:'Transaction #2',fields:[{n:'Id',v:'"tx-002"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (2/3)"'},{n:'DueDate',v:'"2025-06-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]},
     {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]}
    ]},
@@ -487,20 +495,20 @@ const SLIDES=[
     {entity:'Client',fields:[{n:'Name',v:'"João"'}]}
    ]},
   {title:'Credit Sale (Money Out on Tab)',
-   narrative:'Client João buys <b>R$150</b> of lottery tickets on credit. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Saídas"</b>.<br><br>The Fiado in/out distinction is handled by <b>two separate TransactionTypes</b>: "Cliente" under "Saídas" = Out (credit sale), "Cliente" under "Entradas" = In (payment). Both set <b>RequiresTabAccountAndClient = true</b>, so the branch-consistency layer requires a Tab account and ClientId. Direction is never overridden — it is always derived from the Category\'s DefaultDirection. The Transaction has <b>Direction=Out</b> on the <b>Tab account</b> (not the Terminal!), with ClientId set to João.',
+   narrative:'Client João buys <b>R$150</b> of lottery tickets on credit — it\'s still March 8, so Maria (covering, UC3) records it on Jennifer\'s terminal context. She selects TransactionType <b>"Cliente"</b> under Category <b>"Saídas"</b>.<br><br>The Fiado in/out distinction is handled by <b>two separate TransactionTypes</b>: "Cliente" under "Saídas" = Out (credit sale), "Cliente" under "Entradas" = In (payment). Both set <b>RequiresTabAccountAndClient = true</b>, so the branch-consistency layer requires a Tab account and ClientId. Direction is never overridden — it is always derived from the Category\'s DefaultDirection. The Transaction has <b>Direction=Out</b> on the <b>Tab account</b> (not the Terminal!), with ClientId set to João.',
    activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
    activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
    data:[
     {entity:'TransactionType',fields:[{n:'Name',v:'"Cliente"'},{n:'CategoryId',v:'→ Saídas'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'true',hl:'hl'}]},
     {entity:'Transaction',fields:[
-     {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"Out"',hl:'hl'},
+     {n:'Date',v:'"2025-03-08"'},{n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"Out"',hl:'hl'},
      {n:'AccountId',v:'→ Tab Jennifer',hl:'hl'},{n:'ClientId',v:'→ João'},
      {n:'CategoryId',v:'→ Saídas'},{n:'TransactionTypeId',v:'→ Cliente'},
      {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}
     ]}
    ]},
   {title:'Tab Balance = R$150',
-   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The owner can query this grouped by Client for an <b>aging report</b>: "show me all customers who owe money, sorted by oldest debt."<br><br><b style="color:var(--blue)">Important:</b> The Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product. The daily close form may display it for reference, but does not store it as a snapshot value.',
+   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The owner can query this grouped by Client for an <b>aging report</b>: "show me all customers who owe money, sorted by oldest debt."<br><br><span class="design-note"><span class="dn-label">Important:</span> the Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product. The daily close form may display it for reference, but does not store it as a snapshot value.</span>',
    activeTables:['AccountTab'],
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 150'},
@@ -508,16 +516,16 @@ const SLIDES=[
     {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Jennifer\'\n\n→ <span class="res">R$ 150.00</span>'}
    ]},
   {title:'Client Pays Back',
-   narrative:'João returns and pays his R$150 debt. The operator selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. This row also requires a Tab account and ClientId, and the Transaction has <b>Direction=In</b> on the Tab account.',
+   narrative:'João returns the following Friday (March 14) — Jennifer is back at her own terminal — and pays his R$150 debt. She selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. This row also requires a Tab account and ClientId, and the Transaction has <b>Direction=In</b> on the Tab account.',
    activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
    activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
    data:[
     {entity:'TransactionType',fields:[{n:'Name',v:'"Cliente"'},{n:'CategoryId',v:'→ Entradas',hl:'hl-green'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'true',hl:'hl'}]},
     {entity:'Transaction (Payment)',fields:[
-     {n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
+     {n:'Date',v:'"2025-03-14"'},{n:'Value',v:'"R$ 150.00"'},{n:'Direction',v:'"In"',hl:'hl-green'},
      {n:'AccountId',v:'→ Tab Jennifer'},{n:'ClientId',v:'→ João'},
      {n:'CategoryId',v:'→ Entradas',hl:'hl-green'},{n:'TransactionTypeId',v:'→ Cliente'},
-     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}
+     {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'}
     ]}
    ]},
   {title:'Balance Zeroed — Drawer Untouched',
@@ -568,7 +576,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Login: Identity Chain',
-   narrative:'When an operator logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br>Jennifer is at her own terminal today (the normal case, as in UC1). The Operator→User link is validated at the API layer to ensure branch consistency, and a filtered unique index guarantees one active linked Operator per User within a Branch while still allowing unlinked historical operators.',
+   narrative:'Back on <b>March 15</b> — Jennifer\'s own Saturday from UC1 and UC2, now told end-to-end. When she logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br><span class="design-note"><span class="dn-label">Design note:</span> the Operator→User link is validated at the API layer to ensure branch consistency, and a filtered unique index guarantees one active linked Operator per User within a Branch while still allowing unlinked historical operators.</span>',
    activeTables:['User','BranchUser','Branch','Operator','OperatorAccount','Account'],
    activeArrows:['u-bu','bu-br','br-op','op-oa','oa-acc'],
    staggerDelay:true,
@@ -645,15 +653,15 @@ const SLIDES=[
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> using the formula:<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$5,780 − R$2,800 − R$3,000 = <b style="color:#ef5350">−R$20</b><br><br>The <b>−R$20</b> means Jennifer counted <b>R$20 less</b> than expected in the drawer (R$4,980 cash vs R$5,000 expected). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. On rejected resubmits or submit-after-recall, that same system row is updated in place. The manager now sees this in their <b>pending review queue</b>.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. On submit, the system computes <b>CashVariance</b> per §6.12 — <b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − TotalTransactions</b> — and persists the result as a <b>Diferença Caixa</b> DailyCloseItem. Jennifer never types this value: the drawer she counted and the ledger she recorded are all the system needs.<br><br>On rejected resubmits or submit-after-recall, that same system row is updated in place. Maria will see this close in her <b>pending review queue</b> the next morning.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
-    {entity:'CashVariance Calculation',fields:[
-     {n:'TotalClosing',v:'"R$ 5,780.00"  (4,980 + 500 + 300)'},{n:'− TotalOpening',v:'"R$ 2,800.00"  (2,000 + 500 + 300)'},
-     {n:'− TotalTransactions',v:'"R$ 3,000.00"  (2,000 + 800 + 200)'},{n:'= CashVariance',v:'"−R$ 20.00"',hl:'hl-red'}
+    {entity:'CashVariance inputs (§6.12)',fields:[
+     {n:'TotalClosing',v:'"R$ 5,780.00"  (4,980 + 500 + 300)'},{n:'TotalOpening',v:'"R$ 2,800.00"  (2,000 + 500 + 300)'},
+     {n:'TotalTransactions',v:'from the day\'s Active rows'}
     ]},
-    {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'"R$ -20.00"',hl:'hl-red'}]},
+    {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'computed on submit',hl:'hl'}]},
     {entity:'DailyClose (updated)',fields:[
      {n:'Status',v:'"Submitted"',hl:'hl'},
      {n:'SubmittedAt',v:'"2025-03-15T18:30:00Z"',hl:'hl'},
@@ -662,7 +670,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Manager Approves',
-   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the CashVariance (<b>−R$20</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin. This workflow replaces the paper-based process that lottery houses currently use.',
+   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the system-computed <b>Diferença Caixa</b>, and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin. This workflow replaces the paper-based process that lottery houses currently use.',
    activeTables:['DailyClose'],
    activeArrows:[],
    data:[
@@ -675,6 +683,7 @@ const SLIDES=[
    ]}
  ]
 },
+{type:'intro',id:'morning'},
 {type:'closing'}
 ];
 
@@ -683,9 +692,22 @@ let stepPerSlide={};
 let autoPlayTimer=null;
 let autoPlaying=false;
 
+function partLabel(s){
+  if(s.type==='title')return 'Overview';
+  if(s.type==='uc')return 'Part II — Six Stories';
+  if(s.type==='schema')return 'Part I — The Business';
+  if(s.type==='intro')return s.id==='morning'?'Part III — The Payoff':'Part I — The Business';
+  if(s.type==='closing')return 'Part III — The Payoff';
+  return '';
+}
+
 function init(){
   const track=document.getElementById('track');
   track.innerHTML=SLIDES.map((s,i)=>renderSlide(s,i)).join('');
+  document.querySelectorAll('.slide').forEach((el,i)=>{
+    const label=partLabel(SLIDES[i]);
+    if(label)el.insertAdjacentHTML('afterbegin',`<div class="part-tag">${label}</div>`);
+  });
   renderDots();
   SLIDES.forEach((_,i)=>{stepPerSlide[i]=0});
   initAllArrows();
@@ -713,6 +735,8 @@ function renderTitle(i){
       <li>18 entities, multi-tenant (Branch = tenant)</li>
       <li>Transaction ledger + Daily closing snapshot</li>
     </ul>
+    <p class="acts"><b>Part I</b> — The Business &nbsp;·&nbsp; <b>Part II</b> — Six Stories &nbsp;·&nbsp; <b>Part III</b> — The Payoff</p>
+    <p class="kbd-hint">&#8592; &#8594; slides &nbsp;·&nbsp; &#8593; &#8595; steps within a story</p>
   </div>`;
 }
 
@@ -722,14 +746,15 @@ function renderSchema(i){
     {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account']},
     {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client']},
     {name:'Closing',color:'var(--purple)',entities:['DailyClose','DailyCloseItem','Product']},
-    {name:'HR',color:'var(--teal)',entities:['TimeEntry','Holiday','Setting']}
+    {name:'HR',color:'var(--teal)',entities:['TimeEntry','TimeEntrySegment','Holiday','Setting']}
   ];
   const gs=groups.map(g=>{
     const ents=g.entities.map(e=>`<div class="entity" style="border-left-color:${g.color}">${e}</div>`).join('');
     return `<div class="schema-group"><h3 style="border-bottom-color:${g.color};color:${g.color}">${g.name}</h3>${ents}</div>`;
   }).join('');
   return `<div class="slide schema-slide" data-idx="${i}">
-    <h2>Schema Overview — 18 Entities</h2>
+    <h2>The Map — 18 Entities</h2>
+    <p style="font-size:14px;color:var(--dim);font-style:italic;margin:-18px 0 24px;text-align:center">The complete data map behind the stories and architectural decisions ahead.</p>
     <div class="schema-groups">${gs}</div>
   </div>`;
 }
@@ -746,6 +771,17 @@ function renderIntro(s,i){
           <p>Every day, each operator (cashier) processes dozens of financial transactions at their terminal. At the end of the day, the operator must <b>close their register</b>: count what is physically in the drawer, compare it to what the system says should be there, and report the difference. The owner then reconciles this against CEF's own settlement report (<em>borderô</em>).</p>
         </div>
         <div class="intro-highlight">This is currently done on <b>paper + Microsoft Access</b>. Lotero digitizes the entire flow — from transaction entry to daily closing to manager approval.</div>
+        <div class="intro-card">
+          <h3 class="accent-color">The Cast</h3>
+          <p>Four people carry every story in this deck:</p>
+          <table class="mini-table">
+            <tr><th>Who</th><th>Role</th><th>Where</th></tr>
+            <tr><td><b>Jennifer</b></td><td>Operator — records the day and closes her register</td><td>UC1–UC6</td></tr>
+            <tr><td><b>Maria</b></td><td>Manager — approves closings; covers Jennifer's day off</td><td>UC3–UC6</td></tr>
+            <tr><td><b>João</b></td><td>Regular customer — buys on fiado, pays his tab</td><td>UC5</td></tr>
+            <tr><td><b>Carlos</b></td><td>Customer — pays with a pre-dated cheque in installments</td><td>UC4</td></tr>
+          </table>
+        </div>
       </div>
       <div class="intro-col">
         <div class="intro-card">
@@ -781,7 +817,7 @@ function renderIntro(s,i){
     </div>
     <div class="intro-cols stacked" style="margin-top:16px">
       <div class="intro-card" style="max-width:700px;text-align:center;border:2px solid var(--accent)">
-        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − (Active In − Active Out)</span></h3>
+        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − TotalTransactions (§6.12)</span></h3>
         <p style="font-size:15px;margin-top:8px">This is <b>the single most important number</b> in the system. The owner reviews it daily for each operator. A mismatch triggers investigation — was a transaction missed? Did the operator miscount? Was there theft?</p>
         <p style="font-size:13px;margin-top:10px;color:var(--dim)"><b>Note:</b> The Fiado (credit) balance is <em>not</em> part of the snapshot — it is always calculated at query time from Tab account transactions, never persisted as a DailyClose product.</p>
       </div>
@@ -834,6 +870,35 @@ function renderIntro(s,i){
     </div>
   </div>`;
 
+  if(s.id==='morning') return `<div class="slide intro-slide" data-idx="${i}">
+    <h2>The Morning After: Maria&#39;s Dashboard</h2>
+    <p class="intro-sub">Sunday, March 16 — everything the six stories produced, on one screen</p>
+    <div class="intro-cols">
+      <div class="intro-col">
+        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with per-account variance, the pending-approval count, and the expected terminals that have not submitted. Close rows are ordered by account name.</p>
+        <div class="intro-card">
+          <h3 class="accent-color">The Work Queue</h3>
+          <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. A terminal with an open Draft close deep-links straight into it.</p>
+        </div>
+        <div class="intro-card">
+          <h3 class="blue-color">The Close Review</h3>
+          <p>One tap opens Jennifer&#39;s close as a comparison (<code>GET /dailyclose/{id}/review</code>): opening values the server derived from her most recent prior close, the closing values she counted, and the <b>Diferença Caixa</b> row flagged as system-calculated. Maria approves — or rejects with a reason, leaving it <b>Rejected</b>; the next permitted item edit returns it to Draft for resubmission (§6.13).</p>
+        </div>
+      </div>
+      <div class="intro-col">
+        <div class="intro-card">
+          <h3 class="teal-color">Beyond the Day</h3>
+          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due; monthly reconciliation totals every day and tells Maria when the month is <b>LockReady</b> — and exactly which closes or Draft rows still block it.</p>
+        </div>
+        <div class="intro-card">
+          <h3 class="in-color">Previews That Never Commit</h3>
+          <p>Before a risky edit or a new row is saved, impact previews forecast the receivable, fiado, and cash-variance movement <em>without persisting anything</em> — guaranteed by construction (no unit of work) and pinned by architecture tests.</p>
+        </div>
+        <div class="intro-highlight">Every screen above exists so one number can be trusted: <b>CashVariance = TotalClosing − TotalOpening − TotalTransactions</b>. The story ends where the day began — with the drawer, counted.</div>
+      </div>
+    </div>
+  </div>`;
+
   return `<div class="slide" data-idx="${i}"></div>`;
 }
 
@@ -848,13 +913,7 @@ function renderClosing(i){
     {t:'DailyClose Recall',d:'Rejected closes return to Draft for resubmission. Same-day Submitted closes can be recalled, and CashVariance is reused on submit.'},
     {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
-    {t:'Reporting Surface (§6.14)',d:'M7 reports are read-only with role-scoped access. Date ranges are capped, and financial totals include only Active rows.'},
-    {t:'Edit Impact Preview (§6.14)',d:'Edit preview mirrors update rules without committing and projects receivable, fiado, and cash-variance impact before save.'},
-    {t:'Create Impact Preview (§6.14)',d:'POST /transaction/preview shares the create write scope (Member-scoped, not Manager/Admin-only) and forecasts the same three impacts without committing. Unlike the edit preview, its cash-variance delta is genuinely non-zero.'},
-    {t:'Installment Impact Preview (§6.14)',d:'POST /transaction/installment/preview keeps its unchanged row plan and adds an additive Impact: the would-be open-cheque aging group, an optional aggregated fiado delta (Tab + client), and the cash-variance shift. Same scope as the installment write twin; a Draft plan forecasts empty; preview never commits.'},
-    {t:'Monthly Reconciliation (§6.14)',d:'GET /report/monthly-reconciliation/{year}/{month} is Manager/Admin-only. It returns every calendar day with close statuses, transaction counts, per-close and net variance, LockReady, and Blockers explaining non-Approved closes or outstanding Draft transactions.'},
-    {t:'Manager Dashboard (§6.14)',d:'GET /report/dashboard?date= is Manager/Admin-only and backs the manager work queue in one call: submitted-or-later closes with per-account variance joined by (Date, AccountId), the pending-approval count, day variance aggregates, and the expected Terminal accounts that have not submitted — an open Draft close deep-links from its not-submitted row. The paginated daily-close list stays lean: inline list variance was deliberately deferred.'},
-    {t:'Daily-Close Review (§6.14)',d:'GET /dailyclose/{id}/review returns the close header plus per-product opening → closing values for the close-day form and approval review. Opening values are server-derived from the most recent prior close for the same account (§6.5); the Diferença Caixa row is flagged system-calculated and carries no opening value. Same read scope as reading the close itself.'}
+    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">
@@ -1087,30 +1146,33 @@ function toggleAutoPlay(slideIdx){
   }else{
     autoPlaying=true;
     const btn=document.querySelector(`[data-play="${slideIdx}"]`);
-    if(btn)btn.classList.add('playing');
+    if(btn){btn.classList.add('playing');btn.innerHTML='&#10074;&#10074;';}
     restartAutoPlayTimer(slideIdx);
   }
 }
 
+// Reading-paced autoplay: longer narratives stay on screen longer (4-14s).
+function stepDuration(s,stepIdx){
+  const text=(s.steps[stepIdx].narrative||'').replace(/<[^>]*>/g,'');
+  return Math.min(14000,Math.max(4000,3000+text.length*12));
+}
+
 function restartAutoPlayTimer(slideIdx){
-  clearInterval(autoPlayTimer);
-  autoPlayTimer=setInterval(()=>{
-    const s=SLIDES[slideIdx];
-    if(s.type!=='uc')return stopAutoPlay();
+  clearTimeout(autoPlayTimer);
+  const s=SLIDES[slideIdx];
+  if(s.type!=='uc')return stopAutoPlay();
+  autoPlayTimer=setTimeout(()=>{
     const cur=stepPerSlide[slideIdx]||0;
     const next=cur+1;
-    if(next>=s.steps.length){
-      updateStep(slideIdx,0);
-    }else{
-      updateStep(slideIdx,next);
-    }
-  },4000);
+    updateStep(slideIdx,next>=s.steps.length?0:next);
+    if(autoPlaying)restartAutoPlayTimer(slideIdx);
+  },stepDuration(s,stepPerSlide[slideIdx]||0));
 }
 
 function stopAutoPlay(){
   autoPlaying=false;
-  clearInterval(autoPlayTimer);
-  document.querySelectorAll('.play-btn').forEach(b=>b.classList.remove('playing'));
+  clearTimeout(autoPlayTimer);
+  document.querySelectorAll('.play-btn').forEach(b=>{b.classList.remove('playing');b.innerHTML='&#9654;&#124;';});
 }
 
 function onKey(e){
