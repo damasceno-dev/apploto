@@ -281,6 +281,41 @@ public class CashVarianceCalculatorTest
         result.ShouldBe(-150m);
     }
 
+    /// <summary>
+    /// Access-faithful day: opening counts R$5,800 (cash 5,000 + stock 800); the day records
+    /// R$3,000 of Out rows (cash-to-bank deposit, PIX cash-out, payout), so counted assets are
+    /// expected to drop to R$2,800; the operator counts R$2,780 — the drawer is R$20 short.
+    /// Pins the §6.12 sign convention against a realistic scenario, mirroring the original
+    /// FrmCaixa conferência where all-Negativo terminal days balanced as Lançamentos + Final − Inicial.
+    /// </summary>
+    [Fact]
+    public async Task CalculateAsync_ShouldReturnMinus20_ForRealisticAllOutTerminalDay()
+    {
+        var ctx = BuildContext(
+            currentItems:
+            [
+                Item(Guid.NewGuid(), 1_980m),
+                Item(Guid.NewGuid(), 500m),
+                Item(Guid.NewGuid(), 300m)
+            ],
+            priorClose: null,
+            transactionsOut: 3_000m);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [
+                Item(Guid.NewGuid(), 5_000m),
+                Item(Guid.NewGuid(), 500m),
+                Item(Guid.NewGuid(), 300m)
+            ]);
+        RewirePriorClose(ctx);
+
+        var result = await ctx.CalculateAsync();
+
+        result.ShouldBe(-20m);
+    }
+
     [Fact]
     public async Task CalculateAsync_ShouldExcludeCashVarianceProduct_FromClosingAndOpening()
     {

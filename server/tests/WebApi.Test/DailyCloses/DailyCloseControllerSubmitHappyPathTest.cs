@@ -246,6 +246,52 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         items.Single(item => item.ProductId == cvProduct.Id).Value.ShouldBe(90m);
     }
 
+    /// <summary>
+    /// Access-faithful end-to-end day pinning the §6.12 sign convention: opening counts
+    /// R$5,800 (cash 5,000 + stock 800), the day records R$3,000 of Out rows (cash-to-bank
+    /// deposit 2,000, PIX cash-out 800, payout 200), the operator counts R$2,780 — the
+    /// persisted Diferença Caixa is −R$20 (the drawer came up R$20 short).
+    /// </summary>
+    [Fact]
+    public async Task Submit_ShouldPersistMinus20Variance_ForRealisticAllOutTerminalDay()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcSubmitRealisticDay", Role.Manager);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(op.Id, account.Id);
+        var cvProduct = await factory.SeedProductAsync(branch.Id, name: CashVarianceProductResolver.CashVarianceProductName);
+        var cash = await factory.SeedProductAsync(branch.Id);
+        var telesena = await factory.SeedProductAsync(branch.Id);
+        var raspadinha = await factory.SeedProductAsync(branch.Id);
+        var closeDate = LocalToday();
+        var priorClose = await factory.SeedDailyCloseAsync(
+            branch.Id,
+            account.Id,
+            date: closeDate.AddDays(-1),
+            status: DailyCloseStatus.Submitted);
+        await factory.SeedDailyCloseItemAsync(priorClose.Id, cash.Id, value: 5_000m);
+        await factory.SeedDailyCloseItemAsync(priorClose.Id, telesena.Id, value: 500m);
+        await factory.SeedDailyCloseItemAsync(priorClose.Id, raspadinha.Id, value: 300m);
+        var close = await factory.SeedDailyCloseAsync(
+            branch.Id,
+            account.Id,
+            date: closeDate,
+            status: DailyCloseStatus.Draft,
+            submittedByOperatorId: op.Id);
+        await factory.SeedDailyCloseItemAsync(close.Id, cash.Id, value: 1_980m);
+        await factory.SeedDailyCloseItemAsync(close.Id, telesena.Id, value: 500m);
+        await factory.SeedDailyCloseItemAsync(close.Id, raspadinha.Id, value: 300m);
+        await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.Out, 2_000m);
+        await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.Out, 800m);
+        await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.Out, 200m);
+
+        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
+        items.Single(item => item.ProductId == cvProduct.Id).Value.ShouldBe(-20m);
+    }
+
     private async Task PutItemsAsync(Guid closeId, Guid productId, decimal value, string token)
     {
         var request = new RequestPutDailyCloseItemsJson

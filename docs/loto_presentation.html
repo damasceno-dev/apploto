@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v31
+Spec revision: v32
 -->
 <html lang="en">
 <head>
@@ -275,7 +275,7 @@ const SLIDES=[
     {entity:'Account',fields:[{n:'Name',v:'"Jennifer"'},{n:'Type',v:'"Terminal"'}]}
    ]},
   {title:'Creating a Cash Deposit',
-   narrative:'A customer brings <b>R$2,000</b> in cash to be deposited into their CEF bank account via the lotérica. The operator selects "Depósito Dinheiro" and enters the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> Although the cash physically enters the drawer, it is a <em>liability</em> — the lotérica owes that money to CEF at settlement. "Depósito Dinheiro" is seeded under <b>Saídas</b> to reflect this accounting reality. The cash drawer is reconciled via the <b>DailyClose</b> snapshot, not by overriding Direction on individual transactions.<br><br>For cash deposits, <b>DueDate = Date + 1 day</b>, because the seeded SettlementRule is NextCalendarDay.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
+   narrative:'The drawer has accumulated more cash than Jennifer should keep at the counter. She deposits <b>R$2,000</b> of drawer cash with the bank, selecting "Depósito Dinheiro" and entering the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> The cash physically <em>leaves</em> the drawer — on a terminal, Direction records value entering or leaving the operator\'s custody. That is why "Depósito Dinheiro" is seeded under <b>Saídas</b>: at day end the counted drawer is expected to be R$2,000 lighter, and the <b>DailyClose</b> snapshot verifies exactly that.<br><br><b>DueDate = Date + 1 day</b> (SettlementRule NextCalendarDay): the bank credit lands tomorrow.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -326,7 +326,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
-   narrative:'A customer pays a supplier <b>R$800</b> via PIX through the lotérica: they hand over cash, and Jennifer sends the transfer electronically. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the digital money leaves toward the supplier.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1 where DueDate was Date+1.',
+   narrative:'A customer needs cash. They send <b>R$800</b> by PIX to the lotérica\'s account, and Jennifer hands them R$800 from the drawer — a <em>saque via PIX</em>. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the cash leaves the drawer; the PIX credit compensates the house on the bank side.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1, where the bank credit lands the next day (DueDate = Date + 1).',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -429,7 +429,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Pre-dated Cheques in Brazil',
-   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. Carlos — still March 8, with Maria covering Jennifer\'s terminal — writes a cheque with a future date; the business holds it and deposits it on that date.<br><br>When a cheque is split into installments, Lotero creates <b>N separate Transaction rows</b>, one per installment. Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.<br><br><span class="design-note"><span class="dn-label">Heritage:</span> this behavior is extracted from the original Access VBA logic (FrmLancamentoCheque).</span>',
+   narrative:'In Brazilian commerce, <b>pre-dated cheques</b> are common. Carlos — still March 8, with Maria covering Jennifer\'s terminal — writes a cheque with a future date and receives drawer cash now; the house holds the cheque and deposits it on its date.<br><br>When a cheque is split into installments, Lotero creates <b>N separate Transaction rows</b>, one per installment. Credit card installments work differently — they store one Transaction with description "Parcelado 3x". Only cheques create multiple rows.<br><br><span class="design-note"><span class="dn-label">Heritage:</span> this behavior is extracted from the original Access VBA logic (FrmLancamentoCheque).</span>',
    activeTables:['Account','Client','TransactionType'],
    activeArrows:['cat-tt'],
    data:[
@@ -588,13 +588,13 @@ const SLIDES=[
     ]}
    ]},
   {title:'Open Day: Opening Values',
-   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> from the most recent prior close for this same account, not necessarily literal yesterday. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$2,800</b> (R$2,000 + R$500 + R$300).<br><br>Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
+   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> from the most recent prior close for this same account, not necessarily literal yesterday. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$5,800</b> (R$5,000 + R$500 + R$300).<br><br>Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
     {entity:'Most recent prior closing = today\'s opening',fields:[
-     {n:'Dinheiro',v:'"R$ 2,000.00"'},{n:'Telesena',v:'"R$ 500.00"'},{n:'Raspadinha',v:'"R$ 300.00"'},
-     {n:'TotalOpening',v:'"R$ 2,800.00"',hl:'hl'}
+     {n:'Dinheiro',v:'"R$ 5,000.00"'},{n:'Telesena',v:'"R$ 500.00"'},{n:'Raspadinha',v:'"R$ 300.00"'},
+     {n:'TotalOpening',v:'"R$ 5,800.00"',hl:'hl'}
     ]},
     {entity:'DailyClose (new)',fields:[
      {n:'Date',v:'"2025-03-15"'},{n:'Status',v:'"Draft"',hl:'hl'},
@@ -602,7 +602,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 1: Depósito Dinheiro (Out, R$2,000)',
-   narrative:'A customer brings <b>R$2,000</b> in cash for a CEF deposit at 10:30. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because this is a <b>liability to CEF</b> — the lotérica owes this money at settlement. But the cash <em>physically enters</em> the drawer and will be counted in the DailyClose snapshot. <b>DueDate = Date + 1 day</b> because the TransactionType uses SettlementRule=NextCalendarDay.<br><br>Same mechanics as UC1, now in context of the full day.',
+   narrative:'At 10:30 the drawer is heavy, so Jennifer deposits <b>R$2,000</b> of drawer cash with the bank. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because the cash <em>physically leaves</em> the drawer — at day end the count is expected to be R$2,000 lighter. <b>DueDate = Date + 1 day</b> (SettlementRule=NextCalendarDay): the bank credit lands tomorrow.<br><br>Same mechanics as UC1, now in context of the full day.',
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -614,7 +614,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 2: PIX (Out, R$800)',
-   narrative:'Customer sends <b>R$800</b> via PIX at 14:15. TransactionType = "PIX" under <b>Saídas</b> (Out). The customer hands over cash, and the operator processes the PIX transfer electronically.<br><br><b>PIX is instant</b> — DueDate equals Date (same-day settlement). Compare with the cash deposit\'s next-day DueDate. This difference matters for receivables tracking: the owner can query "what settles today vs tomorrow."',
+   narrative:'At 14:15 a customer withdraws <b>R$800</b> via PIX — they transfer to the lotérica\'s account and Jennifer hands them cash from the drawer (<em>saque via PIX</em>). TransactionType = "PIX" under <b>Saídas</b> (Out).<br><br><b>PIX is instant</b> — DueDate equals Date (same-day settlement). Compare with the cash deposit\'s next-day DueDate. This difference matters for receivables tracking: the owner can query "what settles today vs tomorrow."',
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -626,7 +626,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 3: Sobra de Bolão (Out, R$200)',
-   narrative:'At 16:00, Jennifer records a <b>R$200</b> lottery pool leftover (<em>Sobra de Bolão</em>). This is under <b>Despesas Comerciais</b> (Out) — a different Category from the previous two (which were under Saídas).<br><br>All three transactions are Direction=Out, which is typical for Terminal accounts. On a Terminal, all services involve customers bringing cash that becomes a CEF liability. The Direction reflects the <b>accounting flow</b>, not the physical cash movement — the DailyClose snapshot captures the physical reality.<br><br><b>Running total: 3 transactions summing to R$3,000</b> (2,000 + 800 + 200).',
+   narrative:'At 16:00, Jennifer pays out a <b>R$200</b> lottery-pool leftover (<em>Sobra de Bolão</em>) from the drawer. This is under <b>Despesas Comerciais</b> (Out) — a different Category from the previous two (which were under Saídas).<br><br>All three transactions are Direction=Out — typical for a terminal: recorded rows are value <em>leaving</em> the operator\'s custody (deposits to the bank, cash-outs, payouts). No counter sales appear in this day\'s ledger — in this story they ride the counted stock/cash swap. The rule that matters: each value is represented <em>exactly once</em>, as a row or in the count, never both (§6.12).<br><br><b>Running total: 3 transactions, R$3,000 Out</b> (2,000 + 800 + 200).',
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -641,27 +641,27 @@ const SLIDES=[
     ]}
    ]},
   {title:'Close Day: Physical Count',
-   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. These become <b>DailyCloseItem</b> rows linked to this DailyClose.<br><br><b>TotalClosing = R$5,780</b> (R$4,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged on this simple day. The cash increased from R$2,000 to R$4,980 (customers brought cash throughout the day).<br><br>Jennifer does <b>not</b> enter Diferença Caixa — the system will compute it on submit.',
+   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. These become <b>DailyCloseItem</b> rows linked to this DailyClose.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged on this simple day. The cash fell from R$5,000 to a counted R$1,980 after the day\'s R$3,000 of Saídas.<br><br>Jennifer does <b>not</b> enter Diferença Caixa — the system will compute it on submit.',
    activeTables:['Product','DailyCloseItem','DailyClose'],
    activeArrows:['prod-dci','dci-dc'],
    data:[
-    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 4,980.00"'}]},
+    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 1,980.00"'}]},
     {entity:'DailyCloseItem #2',fields:[{n:'ProductId',v:'→ Telesena'},{n:'Value',v:'"R$ 500.00"'}]},
     {entity:'DailyCloseItem #3',fields:[{n:'ProductId',v:'→ Raspadinha'},{n:'Value',v:'"R$ 300.00"'}]},
     {entity:'Totals',fields:[
-     {n:'TotalClosing',v:'"R$ 5,780.00"  (4,980 + 500 + 300)',hl:'hl'}
+     {n:'TotalClosing',v:'"R$ 2,780.00"  (1,980 + 500 + 300)',hl:'hl'}
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. On submit, the system computes <b>CashVariance</b> per §6.12 — <b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − TotalTransactions</b> — and persists the result as a <b>Diferença Caixa</b> DailyCloseItem. Jennifer never types this value: the drawer she counted and the ledger she recorded are all the system needs.<br><br>On rejected resubmits or submit-after-recall, that same system row is updated in place. Maria will see this close in her <b>pending review queue</b> the next morning.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>The day\'s Saídas were expected to leave the counted assets R$3,000 lighter — but the drawer came up <b>R$20 lighter still</b> (R$1,980 counted vs R$2,000 expected cash). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. On rejected resubmits or submit-after-recall, that same system row is updated in place. Maria will see this close in her <b>pending review queue</b> the next morning.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
-    {entity:'CashVariance inputs (§6.12)',fields:[
-     {n:'TotalClosing',v:'"R$ 5,780.00"  (4,980 + 500 + 300)'},{n:'TotalOpening',v:'"R$ 2,800.00"  (2,000 + 500 + 300)'},
-     {n:'TotalTransactions',v:'from the day\'s Active rows'}
+    {entity:'CashVariance Calculation (§6.12)',fields:[
+     {n:'TotalClosing',v:'"R$ 2,780.00"  (1,980 + 500 + 300)'},{n:'− TotalOpening',v:'"R$ 5,800.00"  (5,000 + 500 + 300)'},
+     {n:'− TotalTransactions',v:'"−R$ 3,000.00"  (0 In − 3,000 Out)'},{n:'= CashVariance',v:'"−R$ 20.00"',hl:'hl-red'}
     ]},
-    {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'computed on submit',hl:'hl'}]},
+    {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'"−R$ 20.00"',hl:'hl-red'}]},
     {entity:'DailyClose (updated)',fields:[
      {n:'Status',v:'"Submitted"',hl:'hl'},
      {n:'SubmittedAt',v:'"2025-03-15T18:30:00Z"',hl:'hl'},
@@ -670,7 +670,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Manager Approves',
-   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the system-computed <b>Diferença Caixa</b>, and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin. This workflow replaces the paper-based process that lottery houses currently use.',
+   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the system-computed <b>Diferença Caixa</b> (<b>−R$ 20.00</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin. This workflow replaces the paper-based process that lottery houses currently use.',
    activeTables:['DailyClose'],
    activeArrows:[],
    data:[
@@ -786,7 +786,7 @@ function renderIntro(s,i){
       <div class="intro-col">
         <div class="intro-card">
           <h3 class="blue-color">A Typical Day</h3>
-          <p>An operator sits at a terminal all day processing: cash deposits (customer brings money), PIX transfers, credit/debit card payments, lottery ticket sales, bill payments, and credit sales to regular customers (<em>fiado</em>). Each event must be recorded, classified, and tracked through settlement.</p>
+          <p>An operator sits at a terminal all day: lottery sales, bill payments, PIX and card cash-outs, cash deposits to the bank, and credit sales to regular customers (<em>fiado</em>). The money that moves through the operator&#39;s custody must be recorded, classified, and tracked through settlement.</p>
         </div>
         <div class="intro-card">
           <h3 class="teal-color">The Owner's View</h3>
@@ -817,7 +817,7 @@ function renderIntro(s,i){
     </div>
     <div class="intro-cols stacked" style="margin-top:16px">
       <div class="intro-card" style="max-width:700px;text-align:center;border:2px solid var(--accent)">
-        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − TotalTransactions (§6.12)</span></h3>
+        <h3 class="accent-color" style="font-size:18px">CashVariance = Actual (Snapshot) − Expected (Ledger)<br><span style="font-size:14px;font-weight:normal">= TotalClosing − TotalOpening − (Active In − Active Out) &nbsp;(§6.12)</span></h3>
         <p style="font-size:15px;margin-top:8px">This is <b>the single most important number</b> in the system. The owner reviews it daily for each operator. A mismatch triggers investigation — was a transaction missed? Did the operator miscount? Was there theft?</p>
         <p style="font-size:13px;margin-top:10px;color:var(--dim)"><b>Note:</b> The Fiado (credit) balance is <em>not</em> part of the snapshot — it is always calculated at query time from Tab account transactions, never persisted as a DailyClose product.</p>
       </div>
@@ -875,7 +875,7 @@ function renderIntro(s,i){
     <p class="intro-sub">Sunday, March 16 — everything the six stories produced, on one screen</p>
     <div class="intro-cols">
       <div class="intro-col">
-        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with per-account variance, the pending-approval count, and the expected terminals that have not submitted. Close rows are ordered by account name.</p>
+        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with per-account variance (Jennifer&#39;s close carries its <b style="color:#ef5350">−R$ 20.00</b>), the pending-approval count, and the expected terminals that have not submitted. Close rows are ordered by account name.</p>
         <div class="intro-card">
           <h3 class="accent-color">The Work Queue</h3>
           <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. A terminal with an open Draft close deep-links straight into it.</p>

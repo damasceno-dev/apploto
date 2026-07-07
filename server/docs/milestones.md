@@ -816,6 +816,8 @@ Mirroring Milestone 3 Phase 5.5: a small refactor pass after the user-facing sur
 - The project-wide architecture tests (DI registration + auth-intent) pass with the new use cases, services, and `DailyCloseController`
 - All three test suites green (`Validators.Test`, `UseCases.Test`, `WebApi.Test`)
 
+**Addendum (2026-07-06) — §6.12 Direction semantics verified against the original Access system.** A presentation review raised the question of whether `CashVariance = TotalClosing − TotalOpening − (In − Out)` had the movement sign flipped for realistic terminal days. Verification against the Access export (`FrmCaixa.AtualizarDiferenca`: `DifCaixa = Lançamentos + TotalFinal − TotalInicial`; `lco_valor` stored positive with `lco_sinal` carrying direction; terminal rows effectively all `Negativo` — 116 of 118 real rows) **confirmed the formula is correct**: on a terminal, `In`/`Out` records value entering/leaving the operator's custody (cash-to-bank deposits, PIX/card cash-outs, and payouts are `Out`). What this did **not** establish is the canonical representation of ordinary product sales — count-only vs product-transaction-explained — which is deferred to Milestone 9.5; §6.12 states only the exactly-once invariant (each value is a ledger row or a counted asset, never both). No code change; §6.12 gained a Direction-semantics paragraph (spec `v32`), and Access-faithful regression tests now pin the sign convention (`CashVarianceCalculatorTest.CalculateAsync_ShouldReturnMinus20_ForRealisticAllOutTerminalDay`, `DailyCloseControllerSubmitHappyPathTest.Submit_ShouldPersistMinus20Variance_ForRealisticAllOutTerminalDay`).
+
 ---
 
 ## Milestone 5 — Time Entry & Holiday
@@ -1980,7 +1982,7 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 - [ ] **3.1** Audit required/nullability fidelity across a representative sample of DTOs (not just the M7 reporting DTOs).
 - [ ] **3.2** Add/extend an OpenAPI document snapshot test so contract regressions fail the build.
-- [ ] **3.3** Bump the shared `Spec revision` (expected `v32` — M7.5 closed first and took `v31`) with a revision note describing the OpenAPI contract hardening, mirror the product-facing note where relevant, and run `bash docs/check-loto-doc-sync.sh`.
+- [ ] **3.3** Bump the shared `Spec revision` (expected `v33` — M7.5 took `v31`, the §6.12 Direction-semantics clarification took `v32`) with a revision note describing the OpenAPI contract hardening, mirror the product-facing note where relevant, and run `bash docs/check-loto-doc-sync.sh`.
 
 ### Done criteria
 
@@ -2028,13 +2030,64 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 ---
 
+## Milestone 9.5 — Legacy Reconciliation Semantics Audit
+
+**Goal:** Verify, with the shop's operational knowledge, the real-world meaning of every legacy transaction type and close-product slot the port carried over by name, resolve the representational ambiguities the 2026-07 Access audit surfaced, and pin the chosen representations with tests, seed renames, and spec notes — so the M10 import maps legacy data onto *verified* semantics instead of name lookalikes.
+
+**Scope boundary:** Verification, characterization tests, seed naming, and documentation. The §6.12 variance formula does **not** change in this milestone; any formula-adjacent evolution (net-zero bucket transfers, per-bucket attribution) exits through the Phase 3 decision gate into its own milestone.
+
+**Precondition:** The system design is settled (backend contracts through M7.6, frontend M0 screen catalog locked). Confirmed facts going in (2026-07 audit): the §6.12 **sign convention** is Access-verified and regression-pinned; per the owner, the shop currently creates no lancamento for raspadinha sales. **Not yet established** — and exactly what this milestone decides: the canonical representation of ordinary product sales (count-only vs product-transaction-explained). Until then, §6.12 asserts only the exactly-once invariant: each value is a ledger row or a counted asset, never both.
+
+**Key behaviors:**
+
+- **Test-first.** The milestone opens by characterizing **both** consistent representations in the suites — neither is pinned as canonical until Phase 2 verification.
+- **The open question that names this milestone:** why do `Raspadinha`/`Telesena` transaction types exist? Hypothesis A: they record **non-sale exits** — bulk returns/encalhe to the distributor (the R$5,686.00 tipo-20 row), prize payouts on winning cards, damaged/void stock — events where value leaves custody with no compensating counted asset. Hypothesis B: they are the legacy way to **explain a product sale as a row**, with the proceeds kept out of the Dinheiro count. Both reconcile when used consistently; Phase 2 decides which the shop practiced and which the new system canonizes.
+- **Known mechanical divergence to resolve:** Access included the fiado balance inside the conferência totals (`TxtFiado`/`TxtFiadoIni` in `AtualizarDiferenca`; earliest data even stored it as counted slot `prod_id 1`), so cash tab-paybacks and credit sales of counted stock netted to zero. The port removed fiado from the close entirely (§6.4 query-time) — so a cash payback entering the counted drawer, or counted stock leaving on credit, distorts the terminal's per-day variance by ±V with no terminal-side row. This is the highest-stakes item in the audit.
+
+### Phase 1 — Characterization tests (before any decision; none pins a canonical form)
+
+- [ ] **1.1** Count-only representation: stock −V and cash +V with no ledger rows → variance 0.
+- [ ] **1.2** Product-transaction-explained representation: product-typed `Saídas` row of V, stock −V, proceeds **not** counted → variance 0.
+- [ ] **1.3** Double-count failure mode: the swap counted **plus** a product-typed `Saídas` row of V → variance +V. The anti-pattern under *either* representation — the same value represented twice.
+- [ ] **1.4** Fiado divergence characterization: (a) Tab `In` payback of V with drawer counted +V and no terminal row → terminal variance +V; (b) credit sale handing out counted stock −V → terminal variance −V. Pin current behavior explicitly as *characterization pending Phase 2 verification*, with the Access fiado-in-totals contrast in the test comments.
+
+### Phase 2 — Domain verification checklist (shop knowledge + production data at import time)
+
+- [ ] **2.1** `Raspadinha` / `Telesena` / `Troca de Telesena` / `Encalhe Federal` types: confirm which real events each records (returns, prizes, exchanges, voids); identify what the R$5,686.00 row was.
+- [ ] **2.2** Fiado × drawer interaction: do cash paybacks physically enter the counted drawer? Do credit sales hand out counted stock? If yes to either, choose: (a) paired terminal rows / bucket-transfer representation, (b) include the fiado delta in variance for terminals with paired Tabs (Access parity), or (c) accept and document the per-day distortion. Update §6.4/§6.12 with the decision.
+- [ ] **2.3** Access opening-side adjustments: `AtualizarDiferenca` added `prod 12 "Operador"` and the *current day's* `prod 7 "Tarifa Bolão"` to the **initial** total; the port's TotalOpening is prior-close items only. Verify what these slots represented (operator float? fee bucket carried separately?) and whether dropping them breaks parity for any real day.
+- [ ] **2.4** Legacy product slots not carried: `prod 1 Fiado` (early counted slot), `prod 8 Total Caixa`, `prod 9 HorasTrabalhadas`, `prod 10 Ausente` — confirm all derived/legacy-only so the M10 import skips or transforms them deliberately.
+- [ ] **2.5** Remaining type semantics for seed naming and deck accuracy: `Depósito Dinheiro` (who deposits; one-sided terminal row or paired with a bank-conta row?), `PIX` (saque via PIX vs supplier payment), `Cartão de Crédito`/`Débito` (cash-advance flow; settlement timing), `MarketPlace`, `Sobra de Bolão`/`Sobra de Federal`, `Desconto`, `Volante rejeitado`, `Pgto Prêmio` (CEF reimbursement path — is a bank-side `Entradas` row recorded?).
+- [ ] **2.6** Bank accounts (`contas 9/10`, `Crédito Banco`/`Débito Banco` categories): what the shop records there; confirm bank accounts stay outside the close/variance surface (M7.5 expected-closer rule already excludes them).
+
+### Phase 3 — Decisions + sync
+
+- [ ] **3.1** Choose the canonical sale representation (count-only vs product-transaction-explained) from the Phase 2 findings; document it in §6.12 and mark the corresponding Phase 1 test as the canonical form (the other remains as the documented consistent alternative).
+- [ ] **3.2** Rename seeded product-like transaction types to verified event names (e.g. `Devolução Raspadinha`, `Prêmio Raspadinha`); update the §5 seed table + Access `tipo_id` mapping; correct presentation stories if any verified semantics differ from the current telling.
+- [ ] **3.3** Record each 2.x resolution in §6.12/§6.13 notes; bump the shared spec revision; `bash docs/check-loto-doc-sync.sh` green.
+- [ ] **3.4** Decision gate — explicit accounting semantics: adopt/defer/reject a `VarianceEffect` model on TransactionType (net-zero bucket-transfer rows that would make recorded sales *safe*, optional `ProductId` attribution for per-bucket variance). If adopted, it becomes its own milestone: it filters the variance sum, which is a formula-adjacent contract change.
+
+### Phase 4 — Close-out
+
+- [ ] **4.1** All three suites green; architecture tests unaffected.
+- [ ] **4.2** Completion notes recording each verification outcome, especially where reality contradicted the working hypotheses above.
+
+### Done criteria
+
+- Every legacy transaction type and product slot carried over by name has a verified, documented meaning.
+- Both consistent sale representations and the double-count failure mode are characterized by tests, and the canonical representation is chosen and documented in §6.12.
+- The fiado-in-totals divergence and the opening-side adjustments are resolved or explicitly accepted with rationale in the spec.
+- M10's data mapping is unblocked: tipo/product mapping decisions reference this milestone's outcomes.
+
+---
+
 ## Milestone 10 — Access Data Import
 
 **Goal:** Provide a one-time migration path from the legacy Microsoft Access database to the new system, preserving historical operators, accounts, clients, transactions, daily closes, and time entries.
 
 **Scope boundary:** Import tooling and data mapping. Not a recurring sync — a one-time cutover per branch.
 
-**Precondition:** All entity milestones (2–6) are complete so the target schema exists.
+**Precondition:** All entity milestones (2–6) are complete so the target schema exists. The Milestone 9.5 semantics audit has resolved the legacy type/slot mappings this import depends on.
 
 **Key behaviors:**
 
