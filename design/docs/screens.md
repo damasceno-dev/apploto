@@ -59,11 +59,12 @@ Legend: **✓ defined** · ▫ stub (to define in 0.3.3)
 - **Primary job** — clear today's approvals and act on exceptions (variances, non-submitters, blockers) fast.
 - **Access** — manager-admin; whole-branch.
 - **Default view / filter** — most recent business day (branch-local); the queue defaults to *needs-action* items (Submitted + Rejected). Managers open this to act, not to browse.
-- **Data shown** *(a queue grouped by exception type, most-urgent first)*
-  - **Pending approvals** — closes with `Status = Submitted`. `[DTO: ResponseListDailyCloseItemJson]` (AccountName, SubmittedByOperatorName, Status).
-  - **Cash-variance exceptions** — biggest `|variance|` first. `[composed]` cash-variance summary (`ResponseCashVarianceSummaryItemJson.VarianceValue`) joined to the close list by `(Date, AccountId)`.
-  - **Not-submitted accounts** — expected terminal accounts with no close for the day. `[derived]` from account list − closes present; `[gap]` (no direct endpoint — candidate `GET /report/dashboard`).
-  - **Rejected / fix-needed closes** — closes with `Status = Rejected`. `[DTO]`.
+- **Data shown** *(a queue grouped by exception type, most-urgent first; the close, variance, and not-submitted groups all come from **one call** — `GET /report/dashboard?date=`)*
+  - **Pending approvals** — closes with `Status = Submitted`, plus `PendingApprovalCount`. `[DTO: ResponseDashboardJson.Closes / ResponseDashboardCloseJson]` (AccountName, SubmittedByOperatorName, Status, SubmittedAt).
+  - **Cash-variance exceptions** — biggest `|variance|` first. `[DTO: ResponseDashboardCloseJson.VarianceValue]` — joined server-side by `(Date, AccountId)`, no client-side cross-join. The biggest-first ordering is `[derived]`: the endpoint returns close rows ordered by account name.
+  - **Day variance aggregates** — `TotalVariance` / `MeanVariance` for the selected date. `[DTO: ResponseDashboardJson]`.
+  - **Not-submitted accounts** — expected terminal accounts with no submitted-or-later close. `[DTO: ResponseDashboardNotSubmittedJson]`; when an open Draft exists the row carries `DailyCloseId` + `Status` for the deep-link.
+  - **Rejected / fix-needed closes** — closes with `Status = Rejected`. `[DTO: ResponseDashboardCloseJson]`.
   - **Draft transactions blocking month lock** — count of `Status = Draft` transactions in the open period. `[composed]` transaction list filtered to Draft (also surfaced as a reconciliation blocker).
   - **Month-end reconciliation blockers** — `[DTO: ResponseMonthlyReconciliationJson.Blockers + LockReady]` (`[composed]`: a call to `/report/monthly-reconciliation/{year}/{month}`).
 - **Actions** — open a close → Daily-close approval; open a report; jump to a blocker's source (deep-link target → Monthly reconciliation, or Transactions filtered to Draft); change day.
@@ -74,7 +75,7 @@ Legend: **✓ defined** · ▫ stub (to define in 0.3.3)
   - *error* — `ResponseErrorJson` banner; retry.
   - *success* — grouped queue.
 - **Navigation** — entered after branch session; deep-links to Daily-close approval, Monthly reconciliation, Transactions (Draft filter), Reports.
-- **Note** — this screen is heavily `[composed]`/`[gap]`; it is the prime consumer of the candidate `GET /report/dashboard` endpoint (gaps §3).
+- **Note** — server M7.5 shipped `GET /report/dashboard` for this screen (gaps §3, resolved): the close, variance, and not-submitted groups need no client-side joins. Only the Draft-transaction count and the reconciliation blockers remain `[composed]`.
 
 ## ✓ Daily-close approval
 
@@ -83,10 +84,10 @@ Legend: **✓ defined** · ▫ stub (to define in 0.3.3)
 - **Access** — manager-admin; whole-branch.
 - **Default view / filter** — the single close passed in; day transactions filtered to its `(account, date)`.
 - **Data shown** *(comparison: opening → closing → variance, with source clearly marked)*
-  - **Close header** — account, date, status, submitted-by operator, submitted-at, rejection reason (if any). `[DTO: ResponseDailyCloseJson]`.
-  - **Closing snapshot — operator-entered** — per-product `ProductName` + `Value`. `[DTO: ResponseDailyCloseItemJson]`. **Mark as operator-entered.**
-  - **Opening values — system-derived** — per product, from the prior close. `[gap]` — *not* on the DTO; needs the prior close (`GET /dailyclose/{id}`) or a new endpoint (gaps §2).
-  - **Cash variance (Diferença Caixa) — system-calculated** — the item whose product is "Diferença Caixa". `[DTO: ResponseDailyCloseItemJson]` but **mark system-calculated (§6.5/§6.12), not operator-entered.**
+  - **Close header** — account, date, status, submitted-by operator, submitted-at, rejection reason (if any). `[DTO: ResponseDailyCloseReviewJson]` — **one call**, `GET /dailyclose/{id}/review`, serves the header and every item row below.
+  - **Closing snapshot — operator-entered** — per-product `ProductName` + `ClosingValue`. `[DTO: ResponseDailyCloseReviewItemJson]`. **Mark as operator-entered.**
+  - **Opening values — system-derived** — per product, `OpeningValue` from the most recent prior close (§6.5), derived server-side. `[DTO: ResponseDailyCloseReviewItemJson]` (gaps §2, resolved). `null` on the variance row by design.
+  - **Cash variance (Diferença Caixa) — system-calculated** — the item flagged `IsCashVarianceProduct = true` — **do not name-match the product string**. `[DTO: ResponseDailyCloseReviewItemJson]`; **mark system-calculated (§6.5/§6.12), not operator-entered.**
   - **Day's transactions** — context for the count. `[composed]` transaction list filtered to `(account, date)`.
 - **Actions** — **Approve** → `POST /dailyclose/{id}/approve`; **Reject with reason** → `POST /dailyclose/{id}/reject` (`RequestRejectDailyCloseJson`; reason required).
 - **Audit / lock context** — submitted-by/at, approved-by/at, rejection reason; if already `Approved`/`Rejected`, the screen is read-only.
@@ -158,18 +159,18 @@ Each will be filled with the template above, every data field tagged by source, 
 - **Installment (cheque) plan** — build + preview a pre-dated cheque plan and its downstream impact (incl. open-cheque aging impact).
 - **Daily ledger** · **Fiado balance** · **Fiado aging** · **Open-cheque aging** · **Cash-variance summary** · **Monthly reconciliation + lock** — the Report endpoints; reconciliation also advances `LockDate` via `PUT /setting`.
 - **My transaction summary** · **My time-entry balance** — operator-self report endpoints.
-- **Open day** · **Close day** · **Fix & resubmit** — the day-flow sub-screens the Operator Day Cockpit orchestrates (§7.1, over DailyClose + Transaction).
+- **Open day** · **Close day** · **Fix & resubmit** — the day-flow sub-screens the Operator Day Cockpit orchestrates (§7.1, over DailyClose + Transaction). Close day reads opening values from `GET /dailyclose/{id}/review` (§6.14 — a Member within account scope may call it); do not re-derive them from the prior close.
 - **Clock in / out** — TimeEntry upsert with live-running in-progress.
 - **Time-entry management** — Manager/Admin list + edit + deactivate TimeEntry.
 - **Operators · Account assignment · Accounts · Clients · Categories & Transaction Types · Products · Holidays · Settings · Branch members** — admin CRUD over the respective controllers.
 
 ---
 
-## Backend contract gaps — tracked on the server track (M7.5)
+## Backend contract gaps — resolved by server M7.5
 
-Surfaced while mapping screens to the current contract. **These are owned by [server Milestone 7.5 — Frontend UX Contract Gaps](../../server/docs/milestones.md)** — not a frontend TODO. The per-field `[gap]` tags above resolve when M7.5 ships. None block M0.
+Surfaced while mapping screens to the pre-M7.5 contract; **all resolved** by [server Milestone 7.5 — Frontend UX Contract Gaps](../../server/docs/milestones.md), shipped at spec `v31` (contracts in `loto-specs.md` §6.14). The per-field tags above have been updated to the shipped DTOs. Outcomes:
 
-1. **No variance on the daily-close list item.** `ResponseListDailyCloseItemJson` has status/operator/account but no `VarianceValue`, so the Work Queue and approval list must cross-join the cash-variance summary by `(Date, AccountId)`. **→ server M7.5 Phase 3** (DailyClose list variance enrichment gate).
-2. **Opening values are not returned** on `ResponseDailyCloseJson` / its items (only the entered `Value`); §6.5 computes them server-side. **→ server M7.5 Phase 2** (daily-close review context with opening values).
-3. **No dashboard aggregation endpoint.** The Manager Work Queue stitches daily-close list + cash-variance summary + account list (not-submitted) + monthly-reconciliation blockers. **→ server M7.5 Phase 1** (`GET /report/dashboard?date=` — one call, no client-side joins).
-4. **Draft finalize** (`POST /transaction/{id}/finalize`) — **already implemented**; a UI note, not a gap, so no milestone is needed (the UI just builds an explicit "Finalize" action).
+1. **No variance on the daily-close list item.** Resolved as a **documented deferral** (M7.5 Phase 3): `ResponseListDailyCloseItemJson` is intentionally unchanged. The cross-join this gap described is no longer needed anywhere — the Work Queue reads inline variance from the dashboard's close rows and the approval screen from the review context. The gate reopens only if a future multi-date list/history screen needs inline variance per row.
+2. **Opening values are not returned.** Resolved (M7.5 Phase 2): `GET /dailyclose/{dailyCloseId}/review` returns `ResponseDailyCloseReviewJson` — the close header plus per-item `OpeningValue?` (§6.5 server-derived; `null` on the variance row), `ClosingValue`, and `IsCashVarianceProduct`. Same read scope as reading the close itself, so the operator's Close-day form may use it too.
+3. **No dashboard aggregation endpoint.** Resolved (M7.5 Phase 1): `GET /report/dashboard?date=` returns `ResponseDashboardJson { Date, TotalVariance, MeanVariance, PendingApprovalCount, Closes, NotSubmitted }` — one call, no client-side joins. Close rows are ordered by account name (exception-first ordering is a UI concern); Draft closes surface only in `NotSubmitted`, carrying their close id for the deep-link.
+4. **Draft finalize** (`POST /transaction/{id}/finalize`) — **already implemented**; a UI note, not a gap, so no milestone was needed (the UI just builds an explicit "Finalize" action).
