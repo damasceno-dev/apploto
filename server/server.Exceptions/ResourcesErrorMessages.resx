@@ -151,25 +151,25 @@
         <value>O tipo da conta não pode ser alterado após a criação</value>
     </data>
     <data name="ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB" xml:space="preserve">
-        <value>Ao criar um Terminal, informe uma conta Tab existente ou uma nova conta Tab, mas não ambas</value>
+        <value>Ao criar um Terminal, informe uma conta fiado existente ou uma nova conta fiado, mas não ambas</value>
     </data>
     <data name="ACCOUNT_TERMINAL_NOT_FOUND" xml:space="preserve">
         <value>Conta Terminal de referência não encontrada ou inativa nesta filial</value>
     </data>
     <data name="ACCOUNT_TERMINAL_ALREADY_LINKED" xml:space="preserve">
-        <value>Esta conta Terminal já possui uma conta Tab ativa associada</value>
+        <value>Esta conta Terminal já possui uma conta fiado ativa associada</value>
     </data>
     <data name="ACCOUNT_TERMINAL_ID_EMPTY" xml:space="preserve">
         <value>O identificador da conta Terminal deve ser informado</value>
     </data>
     <data name="ACCOUNT_TAB_ID_EMPTY" xml:space="preserve">
-        <value>O identificador da conta Tab deve ser informado</value>
+        <value>O identificador da conta fiado deve ser informado</value>
     </data>
     <data name="ACCOUNT_TAB_NOT_FOUND" xml:space="preserve">
-        <value>Conta Tab de referência não encontrada ou inativa nesta filial</value>
+        <value>Conta fiado de referência não encontrada ou inativa nesta filial</value>
     </data>
     <data name="ACCOUNT_TAB_ALREADY_LINKED" xml:space="preserve">
-        <value>Esta conta Tab já está associada a um Terminal ativo</value>
+        <value>Esta conta fiado já está associada a um Terminal ativo</value>
     </data>
     <data name="OPERATOR_ACCOUNT_NOT_FOUND" xml:space="preserve">
         <value>Vínculo entre operador e conta não encontrado ou já inativo</value>
@@ -205,7 +205,7 @@
         <value>Transação não encontrada</value>
     </data>
     <data name="TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT" xml:space="preserve">
-        <value>Este tipo de transação exige uma conta Tab e um cliente informado</value>
+        <value>Este tipo de transação exige uma conta fiado e um cliente informado</value>
     </data>
     <data name="TRANSACTION_DATE_LOCKED" xml:space="preserve">
         <value>A data da transação está bloqueada pelo fechamento</value>
