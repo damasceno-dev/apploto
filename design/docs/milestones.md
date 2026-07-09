@@ -54,8 +54,8 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 
 ### Phase 2 — Display & copy conventions *(these double as M1 tool inputs)*
 
-- [ ] **0.2.1** `design/specs/formatting-ptbr.md` — BRL (`R$ 1.234,56`, signed variance `+R$ 12,00` / `−R$ 12,00`), date `dd/MM/yyyy`, datetime, time `HH:mm`, CPF/CNPJ/phone masks, decimal-comma. The contract `shared/core` (Shared M3) implements and that M1's tool prompts cite.
-- [ ] **0.2.2** `design/specs/copy-guidelines.md` — tone, sentence-case, a terminology glossary (Fiado, Diferença Caixa, fechamento do dia, cheque pré-datado, bolão…) mapped from `loto-specs.md`, and the error-display rule (`ResponseErrorJson.ErrorMessages` rendered verbatim).
+- [x] **0.2.1** `design/specs/formatting-ptbr.md` — BRL (`R$ 1.234,56`, signed variance `+R$ 12,00` / `−R$ 12,00`), date `dd/MM/yyyy`, datetime, time `HH:mm`, CPF/CNPJ/phone masks, decimal-comma. The contract `shared/core` (Shared M3) implements and that M1's tool prompts cite.
+- [x] **0.2.2** `design/specs/copy-guidelines.md` — tone, sentence-case, a terminology glossary (Fiado, Diferença Caixa, fechamento do dia, cheque pré-datado, bolão…) mapped from `loto-specs.md`, and the error-display rule (`ResponseErrorJson.ErrorMessages` rendered verbatim).
 
 ### Phase 3 — Semantic screen catalog
 
