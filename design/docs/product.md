@@ -47,7 +47,7 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 - **Manager Work Queue** — exception-first home: pending approvals, not-submitted accounts, biggest variances, rejected/fix-needed closes, draft transactions blocking lock, reconciliation blockers.
 - **Daily-close approval** — review a submitted close as a comparison (opening → closing → variance), approve or reject with reason.
 
-**Transactions ledger** *(view Manager/Admin; entry also Member on mobile)*
+**Transactions ledger** *(Member: reads + entry scoped to linked accounts, §6.10/§6.11; Manager/Admin: whole branch — same screens on both platforms)*
 - **Transactions list** — filter and browse the ledger.
 - **Transaction — Create (fast entry)** — operator-speed, type-driven entry with optional impact preview.
 - **Transaction — Edit (correction / audit)** — restricted-field correction with full impact preview (manager-control).
@@ -61,13 +61,13 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 
 **Operator day flow** *(Member, mobile-first)*
 - **Operator Day Cockpit** — the operator's "today" home; surfaces the next action across the steps below.
-- **Open day** · **Record transactions** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
+- **Open day** · record transactions via **Transaction — Create (fast entry)** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
 
 **Time clock & management**
 - **Clock in / out** *(Member)* · **Time-entry management** *(Manager/Admin)*.
 
 **Admin & configuration** *(Manager/Admin)*
-- **Operators** · **Account assignment** · **Accounts** · **Clients** · **Categories & Transaction Types** · **Products** · **Holidays** · **Settings** · **Branch members**.
+- **Operators** · **Account assignment** · **Accounts** · **Clients** *(exception: also counter — any branch role except deactivate)* · **Categories & Transaction Types** · **Products** · **Holidays** · **Settings** · **Branch members**.
 
 ## 5. Flows
 

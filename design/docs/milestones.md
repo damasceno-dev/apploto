@@ -61,7 +61,7 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 
 - [x] **0.3.1** `design/docs/screens.md` — the per-screen template (Purpose · Primary job · Access · Permission fallback · Default view · Data shown *with per-field source tags `[DTO]`/`[derived]`/`[composed]`/`[gap]`* · Actions · Audit/lock · States · Navigation) + the full screen list by area. Visual hierarchy and deep-link state preservation are explicitly deferred to M4.
 - [x] **0.3.2** Define the spine screens in full: **Manager Work Queue** (exception-first, reframed from "Dashboard"), **Daily-close approval** (comparison framing, system-calc vs operator-entered marked), **Transaction — Create (fast entry)** + **Transaction — Edit (correction/audit)** (split into two), and **Operator Day Cockpit** (operator next-action home).
-- [ ] **0.3.3** Define the remaining screens, area by area, each mapped to its controller(s) + response DTO fields, every data field source-tagged.
+- [x] **0.3.3** Define the remaining screens, area by area, each mapped to its controller(s) + response DTO fields, every data field source-tagged.
 
 ### Phase 4 — IA + cross-screen patterns + close-out
 
