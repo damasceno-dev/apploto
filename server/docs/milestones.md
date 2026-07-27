@@ -1993,11 +1993,112 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 ---
 
+## Milestone 7.7 — Domain Integrity & Close-Day Contract Fixes
+
+**Goal:** Close the integrity and operator-UX holes surfaced by the 2026-07 design-phase catalog review (design M0 / 0.3.3 close-out; this milestone owns gap-register items **A, B, D, E, F–M, O, S, and T** in `design/docs/screens.md`): the counting flow that cannot show its variance before submit (D+F), the approved variance that can silently go stale, the month lock that is only a UI gate, the frontend-support contracts design 0.4.2 depends on, and the smaller contract conveniences the screen catalog currently composes around. Design M4 blueprints for the affected screens are gated on this milestone's outcomes.
+
+**Scope boundary:** Hardening/expanding existing endpoints plus a small number of new commands; no visual/frontend work. The fiado *settlement* implementation stays in this milestone (Phase 5) — M9.5 is verification/documentation-only and serves as an input, never the owner. Every factual contract change bumps the shared Spec revision and runs `bash docs/check-loto-doc-sync.sh`; endpoint contracts and persistence behavior are pinned in **WebApi.Test** (UseCases.Test covers use-case logic only).
+
+**Precondition:** Independent of M7.6 (can run before or in parallel). Phase 1 decisions (owner: dev team) gate the phases marked with their item number; Phase 2 needs only 1.5, and Phase 6 items 6.1–6.4 have no decision dependency (6.5/6.6 need 1.7).
+
+### Phase 1 — Decision sign-off *(owner: dev-team; each outcome is recorded in the gap register + the relevant §6 spec note before its implementation phase starts)*
+
+- [ ] **1.1** **Gap G — submitted/approved close vs a moving ledger.** Verified: transaction create / draft-finalize / cancel guard only `LockDate`, never the close state of their `(account, date)` — an approved close's persisted variance goes stale and feeds the dashboard, cash-variance summary, and monthly reconciliation. Choose one of two **approval-preserving** strategies: **(a)** freeze the account/day ledger at submit, with explicit reopen + re-approval; or **(b)** any variance-affecting ledger mutation invalidates the close and forces re-review — and the strategy must define the **`Submitted`** case explicitly, not just `Approved`: under (a) the freeze starts at submit; under (b) a mutation against a `Submitted` close either blocks or returns the close to `Draft` for resubmission. Live recomputation on read surfaces may **supplement** either (as a divergence display aid) but is not a standalone option — recompute-only leaves an `Approved` close whose changed number nobody approved. Also decide two companion rules: outstanding `Draft` rows at submit → block, or force a finalize/cancel prompt; and whether the silent `Submitted → Draft` recall-on-item-save is replaced by an explicit **Recall submission** action (recommended — a state transition hidden inside an ordinary save is a footgun).
+- [ ] **1.2** **Gap K — atomic month-lock contract.** Confirm the lock-month command shape (e.g. `POST /setting/lock-month {Year, Month}`) and its server-enforced condition set — every existing close `Approved`, zero `Draft` transactions, expected terminal closers all closed, month not in the future — plus the definitions that make those checks well-founded:
+  - **Expected `(terminal, date)` pairs:** which dates count — weekends (lotéricas open Saturdays), branch holidays, explicitly closed days, and account/operator activation-deactivation windows. The M7.5 expected-closer rule is per-date and link-based; the month check needs the date dimension defined.
+  - **Current-month rule:** whether locking the current, unfinished month is prohibited (recommended) or allowed through today.
+  - **Whole-interval validation:** the command validates every month in `(current LockDate, requested month]` — May cannot be skipped by locking June directly.
+  - **Initial state:** a new branch seeds `LockDate = DateTime.MinValue` (`CreateBranchSeedFactory`), so "earliest unlocked month" resolves to year 1 — define the floor (e.g. branch `CreatedAt` month, or first data month).
+  - **Concurrency:** transaction isolation so a ledger write cannot race the readiness check and land inside a just-locked month (serializable check-and-set, or equivalent guard).
+  - **Empty-month rule:** whether a month with expected closers but **no closes at all** is lockable (today `LockReady` is `closes.All(...)` — vacuously true when empty).
+  - **CEF attestation:** whether locking requires an explicit manager attestation that the CEF borderô was reconciled (§7.2), or that stays out of scope for MVP.
+  Confirm `LockDate` becomes read-only through `PUT /setting` (the Settings catalog entry already notes this).
+- [ ] **1.3** **Gap H — fiado settlement representation.** Verified: balance is `Out − In` ignoring `PaidAt` (§6.4) while aging keys on `PaidAt IS NULL` **direction-unfiltered** (`BuildOpenReceivablesQuery`) — settling a sale row removes it from aging without reducing the balance, and repayment `In` rows appear in aging as debt. Choose: client-level balance + explicit *Receber pagamento* flow (per-row `PaidAt` dropped from fiado semantics; leanest) **or** payment allocation with partial settlement (fullest). **Implementation stays in this milestone (Phase 5)** — M9.5 is verification/documentation-only by its own scope boundary, so it may *inform* this decision (Phase 5 may sequence after M9.5 Phase 2.2's shop verification) but never absorbs the implementation. Sub-decision: **gap A** — the Member-visible fiado reference on the close-day form (member-scoped balance read scoped to the close's paired Tab, or drop the §6.5 reference display for Members).
+- [ ] **1.4** **Gap I — Rejected-close edit window.** §6.13 lets the recording Member edit a `Rejected` close only on the close's own local day, but §7.2 reviews happen next morning — resubmission is impossible for the operator in the normal flow. Preferred: recording operator may edit an explicitly `Rejected` close until the period locks (same-day rule retained for voluntary `Submitted → Draft` recall only); alternative: prior-day corrections become manager-owned and §7.1 is amended.
+- [ ] **1.5** **Gap J — `DailyClose.Notes`.** Add the write path (recommended — the approval screen needs the variance cause) or drop the column. Today every read DTO returns it and no request DTO can set it.
+- [ ] **1.6** **Gap O — time-policy dating model.** Choose between **(a)** effective-dated policy rows — as a separate `TimeEntryPolicy` entity, **not** by versioning the branch's unique `Setting` row (it carries `LockDate` and is 1-per-branch by constraint) — or **(b)** a per-entry policy snapshot stamped at entry creation/edit. Either way, changing `DailyTargetHours` / lunch tiers stops rewriting historical balances. Includes the migration/backfill rule for existing branches (the current constants become the initial policy).
+- [ ] **1.7** **Concurrency + idempotency contract (design 0.4.2 dependency).** The frontend patterns item promises idempotent financial submits and a stale-state convention with no server owner until now. Decide: the idempotency mechanism for financial creates (e.g. a client-supplied `Idempotency-Key` / request id honored by `POST /transaction`, `/transaction/installment`, and the 1.3 payment command if it ships) and the optimistic-concurrency signal for mutations (e.g. an `UpdatedAt`/row-version precondition → 409/412 stale-state response, or an explicit last-write-wins declaration per endpoint).
+- [ ] **1.8** **Terminal ↔ Tab assignment pairing (gaps L + S).** The workstation-first UX auto-routes fiado to the terminal's paired Tab, which collides with explicit `OperatorAccount` scope. Decide: assigning a Terminal auto-assigns its paired Tab, implies Tab permission without a row, or requires both assignments explicitly (and what happens on pair/unpair after assignment). Also decide the **deactivation rule (gap S)** — verified: `DeactivateAccountUseCase` clears operator links but never the pairing, so an active Terminal can point at an inactive Tab and an inactive Terminal keeps reserving its Tab. Deactivating either side must atomically unpair, or be blocked with a verbatim key while paired. Implementation + tests land in Phase 5.
+
+### Phase 2 — Close-day form contract *(gaps D + F + J; needs only 1.5)*
+
+- [ ] **2.1** Expand the review projection (`GET /dailyclose/{dailyCloseId}/review` or a sibling read) to enumerate **all active products** ordered by `DisplayOrder` — a fresh, just-opened close included: per item `ProductId`, `ProductName`, `DisplayOrder`, server-derived `OpeningValue?` (§6.5; the variance row stays `null`), **nullable** not-yet-entered `ClosingValue`, `IsCashVarianceProduct`. **This is a breaking DTO change, not additive** — `ClosingValue` goes `decimal` → `decimal?` (and rows now exist for never-entered products): version it deliberately, update the M7.6 OpenAPI snapshot expectations, and note it in the spec revision. Kills the client-side three-call composition and the "Diferença Caixa" name-match.
+- [ ] **2.2** **Pre-submit variance preview** for `Draft` closes: live §6.12 computation via the **same `ICashVarianceCalculator` submit uses**. The **required** shape is `POST /dailyclose/{dailyCloseId}/variance-preview` accepting **candidate item values** — the operator needs the variance *while typing*, before anything is saved; a computed field on the expanded review (saved values only) is an optional supplement, not a substitute. Never persists: no `IUnitOfWork` dependency; extend the never-commits architecture scan to the new namespace.
+- [ ] **2.3** `Notes` write path per 1.5 (on submit or `PUT /items`; max length 1000, verbatim validation errors); already returned on review/get.
+- [ ] **2.4** Tests — UseCases.Test: fresh-close enumeration, prior-close opening mapping, preview/submit variance parity. WebApi.Test: a fresh close returns the full product set with null closings; the preview leaves persisted state unchanged (reload assertion); `Notes` round-trip submit → review. Architecture scan green.
+- [ ] **2.5** Spec sync: §6.5/§6.13/§6.14 review-contract updates; design gaps D/F/J flagged for catalog re-sync.
+
+### Phase 3 — Ledger ↔ close integrity *(gap G ⛔ 1.1 · gap L · gap I ⛔ 1.4)*
+
+- [ ] **3.1** Implement the chosen 1.1 strategy across every variance-affecting ledger mutation (create, installment create, finalize, cancel) and **every stale-variance read surface — review, dashboard, cash-variance summary, and monthly reconciliation** — per the option picked. **Race protection is part of the contract:** ledger mutations and close transitions commit in independent transactions, so a submit/approve can interleave with a create/finalize/cancel and dodge the sequential checks — define an atomic `(BranchId, AccountId, Date)` guard (row-level lock on the close, serializable check-and-set, or equivalent) that both sides take. WebApi.Test pins the full matrix — **each mutation × each close state (`Submitted` and `Approved`)** behaves per the decision (blocked, close returned to `Draft`, or approval invalidated with re-review required), each read surface reports correctly afterwards — **plus two concurrent cases**: (1) a mutation racing an **approve** on the same `(account, date)` cannot yield an `Approved` close whose variance excludes the mutation; (2) a variance-affecting mutation racing a **submit** must either land before the variance is calculated (included in the persisted submitted value) or serialize after it and follow the chosen block/invalidate strategy — never a `Submitted` close whose persisted variance silently excludes the mutation. Case (2) also proves the submit path acquires the guard **before** computing the variance, not after.
+- [ ] **3.2** Draft-at-submit rule per 1.1: submitting a close with outstanding `Draft` rows on its `(account, date)` blocks with a verbatim key, or returns the structured prompt contract — per the decision. WebApi.Test covers both accept and reject sides.
+- [ ] **3.3** **Open-day guards (gap L, both halves):** `POST /dailyclose` rejects non-`Terminal` accounts with a verbatim key (e.g. `DAILYCLOSE_ACCOUNT_NOT_TERMINAL`), matching the dashboard expected-closer rule — **and enforces the open date**: `EnsureCanOpen` currently ignores its date argument (verified), so a Member can open an old/future close they then cannot edit. Validate the Member-supplied `Date` against branch-local today (or infer it server-side); Manager/Admin back-dated opens stay allowed pre-lock per §6.13; **future dates are rejected for every role** — no drawer can be counted for a day that hasn't happened. WebApi.Test: Tab and Bank accounts rejected, Terminal accepted; Member old-date and future-date opens rejected, today accepted; Manager back-dated open accepted, Manager future-date open rejected.
+- [ ] **3.4** **Rejected-close window (gap I)** per 1.4: workflow-guard change + §6.13 matrix update. WebApi.Test: a next-day Member edit of a `Rejected` close succeeds (or is cleanly manager-routed, per the decision); the `Submitted` recall stays same-day-only.
+- [ ] **3.5** **Explicit recall action** per 1.1 (if chosen): `POST /dailyclose/{dailyCloseId}/recall` replaces the silent `Submitted → Draft` transition on item save — an ordinary `PUT /items` against a `Submitted` close then returns `DAILYCLOSE_NOT_EDITABLE` instead of silently recalling. §6.5/§6.13 updated; WebApi.Test both paths.
+- [ ] **3.6** Spec sync: §6.5/§6.6/§6.11/§6.13 updated to the shipped rules.
+
+### Phase 4 — Atomic month lock *(gap K ⛔ 1.2)*
+
+- [ ] **4.1** Lock-month command per the full 1.2 contract — expected-pair definition, current-month rule, **whole-interval validation** (every month in `(current LockDate, requested month]` must pass), the `DateTime.MinValue` initial-state floor, and the readiness check running under the 1.2 concurrency guard so a ledger write cannot race it; one verbatim error key per unmet condition (unapproved close, draft transactions, missing expected closer, future month, unvalidated intermediate month, empty-month rule).
+- [ ] **4.2** `PUT /setting` stops accepting `LockDate` (or rejects it with a verbatim key pointing at the command) — the command becomes the only lock path.
+- [ ] **4.3** Tests — WebApi.Test matrix: each blocker rejects with its key; success advances `LockDate` to the month's last day; locking June with May unresolved is rejected (interval validation); a fresh branch (MinValue floor) locks its first real month correctly; locking the same month twice is a clean conflict/no-op; a future month is rejected; a concurrent ledger write during lock cannot land inside the locked month. UseCases.Test: readiness evaluation against the expected-closer set, including weekend/holiday/activation-window dates.
+- [ ] **4.4** Spec sync: §6.6/§6.14 + the monthly-reconciliation contract note; design gap K + the Monthly-reconciliation and Settings entries flagged for catalog re-sync.
+
+### Phase 5 — Fiado settlement coherence + account pairing *(gaps H + A + S ⛔ 1.3 + 1.8, and ⛔ 1.7 for the payment command; sequenced after M9.5 Phase 2.2 — implementation lives here, M9.5 stays verification/documentation-only)*
+
+- [ ] **5.1** Implement the chosen representation: repository/query changes (at minimum, the open-receivables query stops surfacing repayment `In` rows) and, if chosen, the *Receber pagamento* command (honoring the 1.7 idempotency contract) or the allocation model.
+- [ ] **5.2** **Gap A** per the 1.3 sub-decision: member-scoped fiado reference read for the close-day form (scoped to the close's paired Tab account, same read scope as the close), or the §6.5 reference-display sentence is amended to Manager/Admin-only.
+- [ ] **5.3** **Terminal↔Tab pairing semantics per 1.8 (gaps L + S):** implement the chosen assignment rule in the member-scope resolution + `OperatorAccount` endpoints, and the deactivation rule in `DELETE /account/{id}` (atomic unpair, or blocked with a verbatim key while paired). WebApi.Test **both directions**: deactivating a Terminal with a paired Tab, and deactivating a Tab paired to an active Terminal; plus the scope effect of assign/unassign under the chosen pairing rule.
+- [ ] **5.4** Coherence tests (WebApi.Test): a repayment never appears as a receivable; settling per the chosen semantics reduces the aging surface and the client's exposure consistently with `GET /report/fiado/balance`; the gap-A read (if shipped) is member-visible and Tab-scoped only.
+- [ ] **5.5** Spec sync: §6.4/§6.5/§6.14 + the account-pairing rules (§3.7) rewritten to the chosen semantics; design gaps H/A/S + the fiado and Accounts screens flagged for catalog re-sync.
+
+### Phase 6 — Contract conveniences + frontend-support contracts *(gaps M + B + E + the design-0.4.2 dependencies; 6.5/6.6 ⛔ 1.7)*
+
+- [ ] **6.1** `OriginTransactionId` filter on `GET /transaction` (`RequestListTransactionsJson`), preserving §6.10 member account scope unchanged. WebApi.Test: sibling enumeration works for a Member on a linked account; out-of-scope keeps the empty short-circuit.
+- [ ] **6.2** `DailyCloseId` on `ResponseCashVarianceSummaryItemJson`, joined by `(Date, AccountId)` like the dashboard rule. WebApi.Test pins the join against sibling accounts on the same day.
+- [ ] **6.3** Stale operator→user link (gap E): enrich `ResponseOperatorJson` with the linked user's display fields resolved regardless of membership state, **or** clear `Operator.UserId` on membership removal — pick at implementation, record why. WebApi.Test: the removed-membership case resolves (or clears) deterministically.
+- [ ] **6.4** **Server-authoritative branch date/time:** expose branch-local "today"/"now" (`IBranchClock`) on the session/context reads (`GET /branch/current` and/or `GET /operator/self-context`) so no client derives the business date from the device clock (Open day does today — the catalog notes this derivation is replaced). Enforcement of the *open date* itself is Phase 3 item 3.3 — before that lands there is **no** server-side check, so exposure alone is not enough. WebApi.Test pins the field.
+- [ ] **6.5** **Idempotent financial creates** per 1.7: `POST /transaction` and `POST /transaction/installment` (and the Phase 5 payment command, if shipped) honor the chosen idempotency mechanism — a retried request cannot double-record money. WebApi.Test: sequential same-key replay → one persisted row/plan, deterministic response; **concurrent** same-key requests → exactly one write (key reservation and write persist atomically — a crash between them must not strand the key); same key with a **different payload** → conflict (verbatim key), not a silent replay.
+- [ ] **6.6** **Optimistic-concurrency / stale-state contract** per 1.7 on mutating endpoints (transaction update/cancel, close item edits, settings) — precondition honored, stale writes rejected with the declared verbatim key, or the explicit per-endpoint last-write-wins note recorded in the spec. WebApi.Test for one representative endpoint per family.
+- [ ] **6.7** **`IsInProgress` filter on `GET /timeentry` (gap T):** the time-entry console's "forgotten punches first" job needs a server-side filter (and/or an `IsInProgress DESC` ordering option) — today the flag exists only on the item DTO, so triage is page-local. WebApi.Test: filter returns only open-segment entries across pages.
+- [ ] **6.8** Spec sync + design gaps B/E/M/T and the 0.4.2 pattern items flagged for catalog re-sync.
+
+### Phase 7 — Time-entry policy integrity *(gap O ⛔ 1.6)*
+
+- [ ] **7.1** Implement **the model chosen in 1.6** — the two branches differ in shape, so only one of these lands:
+  - **(a) Effective-dated:** new `TimeEntryPolicy` entity; EF migration backfills one row per existing branch from its current constants (seed factory creates it for new branches); `ITimeEntryCalculationService` callers resolve the policy row applicable to each entry's date. `Setting` keeps `LockDate` and is not versioned.
+  - **(b) Per-entry snapshot:** policy fields added to `TimeEntry`; EF migration backfills existing entries from the branch's current constants; new/edited entries copy the current defaults at write time; reports read each entry's snapshot — no date resolution.
+- [ ] **7.2** Branch-wide balance roll-up includes **zero-entry active operators** (empty `Days`, zeroed totals) so payroll sees the employee who never clocked in; ordering rule unchanged. Labelling missing days *Sem registro* stays a client-side derivation — no server operating-day matrix in this milestone (the reduced promise is recorded in design gap O).
+- [ ] **7.3** Tests — WebApi.Test: changing `DailyTargetHours`, `LunchDeductionOver6H`, **and** `LunchDeductionOver4H` today leaves yesterday's reported balance unchanged (all three constants, not just the target); the migration backfill preserves pre-change balances; the roll-up contains a linked operator with no entries **and an active operator with no login link at all** (`UserId = null` — payroll covers employees, not logins). UseCases.Test: policy-resolution logic per entry date.
+- [ ] **7.4** Spec sync: §3.18/§6.7 updated to the dating model.
+
+### Phase 8 — Spec-sync debts + close-out
+
+- [ ] **8.1** Fix the stale §6.7 "replaces the entire segment set atomically" wording to the shipped reconcile semantics (id-matched upsert, granular `DELETE`, `ClockIn` locked through the snapshot route).
+- [ ] **8.2** Audit the presentation's `PaidAt` examples against the create contract (no `PaidAt` on `RequestCreateTransactionJson`); correct the doc-sync group files together.
+- [ ] **8.3** Spec revision bumped per factual change with revision notes; `bash docs/check-loto-doc-sync.sh` green.
+- [ ] **8.4** All three suites + architecture tests green; completion notes per phase; design gap register statuses (A, B, D, E, F–M, O, S, T — everything this milestone resolves) and the gap → screen map updated so the design M4 per-screen gate can read them.
+
+### Done criteria
+
+- An operator sees opening values and a live variance **before** submitting — on a fresh close, from candidate values while typing — and can record a note explaining the variance (or the `Notes` column is gone).
+- No sequence of permitted ledger calls can make a surfaced close variance silently wrong on **any** read surface (review, dashboard, cash-variance summary, monthly reconciliation): every `Approved` number was approved as shown and the `Submitted` case has defined behavior, per the chosen 1.1 strategy — pinned by the WebApi.Test mutation × close-state matrix. A Member can no longer open a close for a day they cannot edit.
+- Deactivating an account can no longer strand a Terminal↔Tab pairing (atomic unpair or block, both directions tested), and forgotten-punch triage has real server-side filtering.
+- A month can only be locked through the atomic command — whole-interval validated, race-safe, well-founded from the seeded `MinValue` state — and `PUT /setting` can no longer move `LockDate`.
+- Fiado settlement semantics are coherent between balance and aging, implemented **in this milestone**, and the close-day form's fiado reference (gap A) has a resolved answer for Members.
+- The rejected-close correction journey works in the §7.2 next-morning rhythm.
+- Financial creates are idempotent, mutations have a declared concurrency contract, and clients read the business date from the server — the design-0.4.2 patterns have their server half.
+- Sibling enumeration, the cash-variance deep-link, operator-link identity, and time-policy dating (with backfill) are contract-complete; spec sync green at the final revision.
+
+**Deferred to [Milestone 11](#milestone-11--post-mvp-reporting-surface) (gap Q):** the upcoming-settlements view and the §7.2 monthly report — named and owned there, not silently dropped.
+
+---
+
 ## Milestone 8 — Invitation & Email Onboarding
 
 **Goal:** Replace the current "add already-registered user" membership flow with an invitation system that allows branch admins/managers to invite users by email, including users who have not yet registered.
 
-**Scope boundary:** Invitation entity, email delivery integration, accept/decline flow, and the registration-via-invitation path.
+**Scope boundary:** Invitation entity, email delivery integration, accept/decline flow, and the registration-via-invitation path — plus the account self-service the 2026-07 design review flagged as launch-blocking (`design/docs/screens.md` gap N): password recovery, change-password, and a minimal profile surface.
 
 **Precondition:** Milestone 1 membership management is stable. This milestone was explicitly deferred from Milestone 1.
 
@@ -2008,6 +2109,10 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 - Accept flow: existing user joins branch; new user registers and joins in one step
 - Decline/expiration handling
 - Permission matrix: `Admin` and `Manager` can invite; invited role follows the existing permission rules from Milestone 1
+- **Password recovery (gap N):** forgot-password flow — emailed reset token → set new password; reuses the same email delivery integration. No recovery path exists today; a common launch-critical recovery need that blocks public launch. **Token hardening is part of the contract, not an afterthought:** reset tokens are single-use, expiring, and stored **hashed at rest**; the request endpoint is throttled and **enumeration-safe** (the same response whether or not the e-mail exists); a successful reset revokes **all** active refresh sessions for the user.
+- **Authenticated account self-service (gap N):** change-password with current-password confirmation, and a minimal profile read/update (name) — the endpoint behind the frontend's uncataloged Profile/session-menu surface (design M0 item 0.4.6). A successful change-password also revokes **all** active refresh sessions (not just the current one).
+- **Logout:** an explicit logout endpoint that revokes the refresh token server-side (identity token expires naturally) — today the frontend can only discard tokens client-side, leaving the refresh token live.
+- **First-branch bootstrap decision (gap C):** who registers the first user and creates the first branch — self-serve registration + `POST /branch/create`, or operated onboarding. `POST /user/register` and `POST /branch/create` exist but are deliberately uncataloged; this milestone decides and the design catalog's auth addendum (design 0.4.6) follows the decision.
 
 ---
 
@@ -2036,7 +2141,7 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 **Scope boundary:** Verification, characterization tests, seed naming, and documentation. The §6.12 variance formula does **not** change in this milestone; any formula-adjacent evolution (net-zero bucket transfers, per-bucket attribution) exits through the Phase 3 decision gate into its own milestone.
 
-**Precondition:** The system design is settled (backend contracts through M7.6, frontend M0 screen catalog locked). Confirmed facts going in (2026-07 audit): the §6.12 **sign convention** is Access-verified and regression-pinned; per the owner, the shop currently creates no lancamento for raspadinha sales. **Not yet established** — and exactly what this milestone decides: the canonical representation of ordinary product sales (count-only vs product-transaction-explained). Until then, §6.12 asserts only the exactly-once invariant: each value is a ledger row or a counted asset, never both.
+**Precondition:** Backend contracts through **M7.6**; frontend M0 screen catalog at its **reviewed baseline**. **Sequencing note (no cycle):** M7.7 Phase 5 (fiado settlement implementation) waits on *this* milestone's Phase 2.2 — run Phase 2.2 early; nothing here waits on M7.7 completing. Confirmed facts going in (2026-07 audit): the §6.12 **sign convention** is Access-verified and regression-pinned; per the owner, the shop currently creates no lancamento for raspadinha sales. **Not yet established** — and exactly what this milestone decides: the canonical representation of ordinary product sales (count-only vs product-transaction-explained). Until then, §6.12 asserts only the exactly-once invariant: each value is a ledger row or a counted asset, never both.
 
 **Key behaviors:**
 
@@ -2087,7 +2192,7 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 **Scope boundary:** Import tooling and data mapping. Not a recurring sync — a one-time cutover per branch.
 
-**Precondition:** All entity milestones (2–6) are complete so the target schema exists. The Milestone 9.5 semantics audit has resolved the legacy type/slot mappings this import depends on.
+**Precondition:** All entity milestones (2–6) are complete so the target schema exists; **M7.7 is complete** (imported data must be validated against the final integrity contracts — close/ledger rules, month lock, pairing, settlement semantics — not the pre-M7.7 ones); the Milestone 9.5 semantics audit has resolved the legacy type/slot mappings this import depends on.
 
 **Key behaviors:**
 
@@ -2096,3 +2201,20 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 - Handle legacy data quality issues (missing fields, orphaned references)
 - Validate imported data against current business rules where possible, flag violations for manual review
 - Import is branch-scoped: each legacy database maps to one `Branch`
+
+---
+
+## Milestone 11 — Post-MVP Reporting Surface
+
+**Goal:** Ship the §7.2 manager-workflow reports the MVP catalog deliberately deferred (design `screens.md` gap Q): the upcoming-settlements view and the consolidated monthly report. This milestone exists so those §7.2 promises have a named owner instead of silently lapsing.
+
+**Scope boundary:** Read-only reporting endpoints plus their spec/catalog sync. No new ledger semantics — it consumes the M7.7 integrity contracts and the M9.5 verified semantics.
+
+**Precondition:** M7.7 (variance integrity — a monthly report must not aggregate stale numbers) and M9.5 (verified bolão/type semantics — Tarifa/Sobras Bolão must mean what the shop means). The corresponding screen entries are cataloged in `design/docs/screens.md` when this milestone is scheduled (gap Q).
+
+**Key behaviors:**
+
+- **Upcoming-settlements view:** open receivable rows across settlement instruments by `DueDate` — pre-dated cheque installments *and* card-settlement rows (the open-cheque aging report covers cheques only today) — filterable by account/window, Manager/Admin.
+- **Consolidated monthly report (§7.2 item 4):** per-month variance + Tarifa Bolão + Sobras Bolão + hours by operator by day, aligned with the monthly-reconciliation window; the CEF borderô comparison stays manual for MVP unless M7.7's 1.2 attestation decision made it structured.
+- Standard report guardrails (date-range caps, `Active`-filtered aggregates, repository-level aggregation) and the M7.6 OpenAPI fidelity rules apply.
+- Spec sync: §6.14 additions + §7.2 re-pointed at the shipped surfaces; design catalog entries written and gap Q closed.
