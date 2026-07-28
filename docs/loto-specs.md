@@ -298,6 +298,8 @@ public class Operator : EntityBase
 
 ### 3.7 Account
 
+> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** Terminal↔Tab pairing is **terminal-centric**; Tab (fiado) access requires an explicit `OperatorAccount(Tab)` assignment (never implied by a Terminal assignment), an operator may hold Tab assignments across multiple terminals, and deactivating either side **atomically unpairs** both directions. The text below describes the pre-decision contract.
+
 A financial account: terminal drawer, bank account, or tab (fiado) account.
 
 ```csharp
@@ -1105,6 +1107,8 @@ Credit card transactions do NOT create multiple rows — the total is stored as 
 
 ### 6.4 Fiado (tab) balance
 
+> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** fiado settlement moves to a client-level balance with an explicit *Receber pagamento* flow; per-row `PaidAt` drops from fiado semantics and aging reconciles by **FIFO query-time netting**. The text below describes the pre-decision contract.
+
 Outstanding credit for an account = sum of `Out` transactions minus sum of `In` transactions on that Tab account, where `Status = Active` and optionally filtered by date range and/or client.
 
 ```sql
@@ -1119,6 +1123,8 @@ WHERE AccountId = @tabAccountId
 ```
 
 ### 6.5 Daily closing
+
+> ⚠ **Pending M7.7 changes (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** the silent `Submitted → Draft` recall-on-item-save (item 6 below) is replaced by an explicit **Recall** action; submitting seals the `(account, date)` ledger (freeze-at-submit) and is blocked while `Draft` rows exist; `DailyClose.Notes` gains a write path (editable on the `Draft` item-save, frozen at submit); the close-day form's member fiado reference (gap A) is available **only** to an operator holding the paired Tab's explicit `OperatorAccount(Tab)` assignment — Terminal-only operators cannot see it. The text below describes the pre-decision contract.
 
 1. Operator opens DailyClose (creates with Status=Draft)
 2. Operator enters DailyCloseItems (one per product — cash count, ticket values, etc.)
@@ -1137,9 +1143,13 @@ WHERE AccountId = @tabAccountId
 
 ### 6.6 Date locking
 
+> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `LockDate` becomes read-only via `PUT /setting`; the only lock path is an atomic `POST /setting/lock-month` with server-enforced readiness (activity-based expected closers, whole-interval validation, current/unfinished month not lockable). The text below describes the pre-decision contract.
+
 `Setting.LockDate` defines the cutoff. Transactions on or before this date cannot be created, edited, or cancelled. Every DailyClose workflow transition on or before this date is blocked: open, edit items, submit, approve, reject, `Rejected -> Draft` auto-transition, and `Submitted -> Draft` recall. The lock date is advanced by the manager after month-end reconciliation.
 
 ### 6.7 Time entry calculation
+
+> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** time-entry policy values (`DailyTargetHours`, lunch tiers) move to an effective-dated `TimeEntryPolicy` entity resolved per entry date, so changing them no longer rewrites historical balances (migration backfills one policy row per branch from current constants). The text below describes the pre-decision contract.
 
 This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. The service consumes a list of segment inputs (full `DateTime` pairs) rather than a single clock pair, which makes overnight segments unambiguous without any wrap-around arithmetic.
 
@@ -1355,6 +1365,8 @@ The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious
 
 ### 6.11 Transaction mutation contract
 
+> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** financial creates (`POST /transaction`, `/transaction/installment`, the *Receber pagamento* command) honor a client `Idempotency-Key`; mutating endpoints carry an optimistic-concurrency precondition via Postgres `xmin` → `409` on stale writes. The text below describes the pre-decision contract.
+
 Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`. Cancellation is a terminal state transition: the client sends a required `CancellationReason`, and the server moves a `Draft` or `Active` row to `Cancelled` with an explicit cancellation audit trail. All three operations share the same member account scope, mutation permission matrix, lock-date behavior, and generic update audit convention.
 
 **Editable fields:**
@@ -1446,6 +1458,8 @@ The calculator reads `Direction.In` and `Direction.Out` with two explicit calls 
 The CashVariance DailyCloseItem is written by the system when the operator submits the daily close, and updated in place if the close is rejected and resubmitted or recalled and submitted again. The operator cannot directly type a variance value.
 
 ### 6.13 DailyClose contract
+
+> ⚠ **Pending M7.7 changes (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `Approved` is no longer terminal — a manager **Reopen** returns it to `Draft` for re-approval; a `Rejected` close is editable by the recording operator until the period locks (and by any Manager/Admin), not only on its own local day; the `Submitted → Draft` recall becomes an explicit action. The text below describes the pre-decision contract.
 
 **Workflow states.** The state machine is `Draft -> Submitted -> Approved | Rejected`, with two automatic edit-time transitions: `Rejected -> Draft` for resubmission after manager feedback, and `Submitted -> Draft` for same-day soft-final recall. `Approved` is terminal.
 
