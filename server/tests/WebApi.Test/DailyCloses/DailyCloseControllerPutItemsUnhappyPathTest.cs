@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http.Json;
 using server.Application.Services.DailyCloses;
+using server.Application.UseCases.DailyCloses;
 using server.Communication.Requests;
+using server.Communication.Responses;
+using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
 using Shouldly;
@@ -24,6 +27,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
     {
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = 1,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
@@ -50,6 +54,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 10m }]
         };
 
@@ -83,6 +88,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
@@ -119,6 +125,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
@@ -145,6 +152,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
@@ -169,6 +177,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = otherClose.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
@@ -198,6 +207,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         // Payload directly references the CashVariance product — must be rejected.
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = cvProduct.Id, Value = 10m }]
         };
 
@@ -219,12 +229,92 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
 
-        var request = new RequestPutDailyCloseItemsJson { Items = null };
+        var request = new RequestPutDailyCloseItemsJson
+        {
+            Version = close.Version,
+            Items = null
+        };
 
         var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_ITEMS_REQUIRED);
+    }
+
+    [Fact]
+    public async Task PutItems_ShouldReturn409AndPreserveFirstWrite_WhenVersionIsStale()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcPutStaleVersion",
+            Role.Manager);
+        await factory.SeedProductAsync(branch.Id, CashVarianceProductResolver.CashVarianceProductName);
+        var product = await factory.SeedProductAsync(branch.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
+
+        var firstResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Notes = "first write",
+                Items =
+                [
+                    new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 10m }
+                ]
+            },
+            token);
+        firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var firstPayload = await firstResponse.ReadContentAsync<ResponseDailyCloseJson>();
+
+        var staleResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Notes = "stale overwrite",
+                Items =
+                [
+                    new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 99m }
+                ]
+            },
+            token);
+
+        staleResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await staleResponse.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_STALE_WRITE);
+        var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
+        persisted.ShouldNotBeNull();
+        persisted.Version.ShouldBe(firstPayload.Version);
+        persisted.Notes.ShouldBe("first write");
+        var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
+        items.ShouldHaveSingleItem().Value.ShouldBe(10m);
+    }
+
+    [Fact]
+    public async Task PutItems_ShouldReturn400WithVerbatimError_WhenNotesExceedMaxLength()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcPutNotesTooLong",
+            Role.Admin);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
+
+        var response = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Items = [],
+                Notes = new string('x', DailyCloseValidationExtensions.NotesMaxLength + 1)
+            },
+            token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var error = await response.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(string.Format(
+            ResourcesErrorMessages.DAILYCLOSE_NOTES_LENGTH,
+            DailyCloseValidationExtensions.NotesMaxLength));
     }
 }

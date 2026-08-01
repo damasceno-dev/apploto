@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v32
+Spec revision: v34
 -->
 <html lang="en">
 <head>
@@ -371,6 +371,7 @@ Spec revision: v32
     '\n' +
     '  DailyClose {\n' +
     '    uuid id PK\n' +
+    '    uint version "PostgreSQL xmin concurrency token"\n' +
     '    date date\n' +
     '    enum status\n' +
     '    uuid accountId FK\n' +

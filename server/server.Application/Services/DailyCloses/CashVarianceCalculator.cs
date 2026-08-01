@@ -1,3 +1,4 @@
+using server.Communication.Requests;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 
@@ -24,6 +25,44 @@ public class CashVarianceCalculator(
             .Where(item => item.ProductId != cashVarianceProductId)
             .Sum(item => item.Value);
 
+        return await CalculateFromTotalClosingAsync(
+            branchId,
+            accountId,
+            branchLocalDate,
+            totalClosing,
+            cashVarianceProductId,
+            ct);
+    }
+
+    public Task<decimal> CalculateCandidateAsync(
+        Guid branchId,
+        Guid accountId,
+        DateTime branchLocalDate,
+        IReadOnlyList<RequestUpsertDailyCloseItemJson> candidateValues,
+        Guid cashVarianceProductId,
+        CancellationToken ct)
+    {
+        var totalClosing = candidateValues
+            .Where(item => item.ProductId != cashVarianceProductId)
+            .Sum(item => item.Value);
+
+        return CalculateFromTotalClosingAsync(
+            branchId,
+            accountId,
+            branchLocalDate,
+            totalClosing,
+            cashVarianceProductId,
+            ct);
+    }
+
+    private async Task<decimal> CalculateFromTotalClosingAsync(
+        Guid branchId,
+        Guid accountId,
+        DateTime branchLocalDate,
+        decimal totalClosing,
+        Guid cashVarianceProductId,
+        CancellationToken ct)
+    {
         ct.ThrowIfCancellationRequested();
 
         var priorClose = await dailyClosesRepository

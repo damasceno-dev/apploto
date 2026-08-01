@@ -1,3 +1,4 @@
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -10,7 +11,9 @@ namespace server.Application.UseCases.DailyCloses.Review;
 public class GetDailyCloseReviewUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
-    IMemberAccountScopeResolver memberAccountScopeResolver)
+    IProductsRepository productsRepository,
+    IMemberAccountScopeResolver memberAccountScopeResolver,
+    ICashVarianceProductResolver cashVarianceProductResolver)
 {
     public async Task<ResponseDailyCloseReviewJson> Execute(Guid dailyCloseId)
     {
@@ -38,7 +41,9 @@ public class GetDailyCloseReviewUseCase(
                 branchUser.BranchId,
                 dailyClose.AccountId,
                 dailyClose.Date);
+        var activeProducts = await productsRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId);
+        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
 
-        return dailyClose.ToReviewResponse(priorClose);
+        return dailyClose.ToReviewResponse(priorClose, activeProducts, cashVarianceProductId);
     }
 }

@@ -2,6 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using NSubstitute;
 using server.Application.Services.DailyCloses;
+using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
@@ -341,6 +342,73 @@ public class CashVarianceCalculatorTest
         var result = await ctx.CalculateAsync();
 
         result.ShouldBe(30m);
+    }
+
+    [Fact]
+    public async Task CalculateCandidateAsync_ShouldUseCandidateValuesInsteadOfSavedDraftItems()
+    {
+        var candidateProductId = Guid.NewGuid();
+        var ctx = BuildContext(
+            currentItems: [Item(candidateProductId, 10m)],
+            priorClose: null,
+            transactionsIn: 20m,
+            transactionsOut: 5m);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [Item(candidateProductId, 50m)]);
+        RewirePriorClose(ctx);
+
+        var result = await ctx.Calculator.CalculateCandidateAsync(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate,
+            [new RequestUpsertDailyCloseItemJson { ProductId = candidateProductId, Value = 200m }],
+            ctx.CashVarianceProductId,
+            CancellationToken.None);
+
+        result.ShouldBe(135m);
+        await ctx.DailyCloseItemsRepository.DidNotReceive()
+            .ListActiveByDailyCloseIdAsNoTracking(Arg.Any<Guid>());
+    }
+
+    [Fact]
+    public async Task CalculateCandidateAsync_ShouldMatchSavedCalculation_WhenValuesAreTheSame()
+    {
+        var firstProductId = Guid.NewGuid();
+        var secondProductId = Guid.NewGuid();
+        var currentItems =
+            new[]
+            {
+                Item(firstProductId, 120m),
+                Item(secondProductId, 30m)
+            };
+        var ctx = BuildContext(
+            currentItems,
+            priorClose: null,
+            transactionsIn: 25m,
+            transactionsOut: 10m);
+        ctx.PriorClose = PriorClose(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate.AddDays(-1),
+            [Item(firstProductId, 80m), Item(secondProductId, 20m)]);
+        RewirePriorClose(ctx);
+
+        var savedResult = await ctx.CalculateAsync();
+        var candidateResult = await ctx.Calculator.CalculateCandidateAsync(
+            ctx.BranchId,
+            ctx.AccountId,
+            ctx.BranchLocalDate,
+            [
+                new RequestUpsertDailyCloseItemJson { ProductId = firstProductId, Value = 120m },
+                new RequestUpsertDailyCloseItemJson { ProductId = secondProductId, Value = 30m }
+            ],
+            ctx.CashVarianceProductId,
+            CancellationToken.None);
+
+        candidateResult.ShouldBe(savedResult);
     }
 
     private static CalculatorContext BuildContext(

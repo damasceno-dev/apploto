@@ -1,4 +1,5 @@
 using CommonTestUtilities.Requests;
+using server.Application.UseCases.DailyCloses;
 using server.Application.UseCases.DailyCloses.PutItems;
 using server.Exceptions;
 using Shouldly;
@@ -18,6 +19,46 @@ public class PutDailyCloseItemsFluentValidationTest
         var result = _validator.Validate(request);
 
         result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenVersionIsMissing()
+    {
+        var request = new RequestPutDailyCloseItemsJsonBuilder()
+            .WithVersion(0)
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(error => error.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.DAILYCLOSE_VERSION_REQUIRED);
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenNotesExceedMaxLength()
+    {
+        var request = new RequestPutDailyCloseItemsJsonBuilder()
+            .WithNotes(new string('x', DailyCloseValidationExtensions.NotesMaxLength + 1))
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(error => error.ErrorMessage)
+            .ShouldContain(string.Format(
+                ResourcesErrorMessages.DAILYCLOSE_NOTES_LENGTH,
+                DailyCloseValidationExtensions.NotesMaxLength));
+    }
+
+    [Fact]
+    public void Validate_ShouldSucceed_WhenNotesAreEmpty()
+    {
+        var request = new RequestPutDailyCloseItemsJsonBuilder()
+            .WithNotes(string.Empty)
+            .Build();
+
+        _validator.Validate(request).IsValid.ShouldBeTrue();
     }
 
     [Fact]

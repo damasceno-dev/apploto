@@ -27,12 +27,13 @@ public class PutDailyCloseItemsUseCase(
 {
     public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId, RequestPutDailyCloseItemsJson request)
     {
-        Validate(request);
+        var items = Validate(request);
 
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         var close = await dailyClosesRepository.GetByIdAndBranchId(dailyCloseId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+        var originalStatus = close.Status;
 
         var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
         var callerOperator = memberScope.LinkedOperator;
@@ -46,8 +47,18 @@ public class PutDailyCloseItemsUseCase(
             close.Date,
             ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
 
+        if (close.Version != request.Version)
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_STALE_WRITE);
+
+        if (originalStatus is DailyCloseStatus.Submitted
+            && request.Notes is not null
+            && request.Notes != close.Notes)
+        {
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOTES_FROZEN);
+        }
+
         // One-shot product resolution — cross-branch or inactive products are absent from the result.
-        var payloadProductIds = request.Items!.Select(i => i.ProductId).ToList();
+        var payloadProductIds = items.Select(i => i.ProductId).ToList();
         var resolvedProducts = await productsRepository
             .ListActiveByIdsAndBranchIdAsNoTracking(payloadProductIds, branchUser.BranchId);
 
@@ -98,7 +109,7 @@ public class PutDailyCloseItemsUseCase(
         }
 
         // Insert new or mutate existing items.
-        foreach (var payloadItem in request.Items!)
+        foreach (var payloadItem in items)
         {
             var existing = close.Items.FirstOrDefault(i => i.Active && i.ProductId == payloadItem.ProductId);
             if (existing is not null)
@@ -120,6 +131,12 @@ public class PutDailyCloseItemsUseCase(
             }
         }
 
+        // Notes are part of the Draft edit. A Submitted close may still enter the legacy
+        // same-save recall path until M7.7 Phase 3 replaces it with an explicit command,
+        // but changing the frozen note makes that entire request fail above.
+        if (originalStatus is not DailyCloseStatus.Submitted && request.Notes is not null)
+            close.Notes = request.Notes.Length == 0 ? null : request.Notes;
+
         // Stamp generic mutation audit from the single captured instant.
         close.UpdatedAt = now;
         close.UpdatedByUserId = branchUser.UserId;
@@ -129,10 +146,17 @@ public class PutDailyCloseItemsUseCase(
         return close.ToResponse(productMap);
     }
 
-    private static void Validate(RequestPutDailyCloseItemsJson request)
+    /// <summary>
+    /// Validates the payload and hands back the items. Returning them keeps the validator's
+    /// <c>NotNull</c> rule and the single null-forgiving assertion side by side, instead of
+    /// repeating <c>request.Items!</c> at every use site.
+    /// </summary>
+    private static IReadOnlyList<RequestUpsertDailyCloseItemJson> Validate(RequestPutDailyCloseItemsJson request)
     {
         var result = new PutDailyCloseItemsFluentValidation().Validate(request);
         if (result.IsValid is false)
             throw new OnValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
+
+        return request.Items!;
     }
 }

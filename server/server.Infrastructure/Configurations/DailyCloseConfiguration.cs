@@ -11,6 +11,7 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.ToTable("DailyCloses");
         builder.HasKey(dailyClose => dailyClose.Id);
 
+        builder.Property(dailyClose => dailyClose.Version).IsRowVersion();
         builder.Property(dailyClose => dailyClose.Date).HasColumnType("date").IsRequired();
         builder.Property(dailyClose => dailyClose.Status).HasConversion<short>().IsRequired();
         builder.Property(dailyClose => dailyClose.SubmittedAt).HasColumnType("timestamp with time zone").IsRequired(false);

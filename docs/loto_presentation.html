@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v32
+Spec revision: v34
 -->
 <html lang="en">
 <head>
@@ -588,7 +588,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Open Day: Opening Values',
-   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. The system shows <b>opening values</b> from the most recent prior close for this same account, not necessarily literal yesterday. These are the baseline for the CashVariance calculation at end of day.<br><br><b>TotalOpening = R$5,800</b> (R$5,000 + R$500 + R$300).<br><br>Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
+   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. One review call enumerates <b>every active Product by DisplayOrder</b>, even though this fresh close has no saved items: opening values come from the most recent prior close for the same account, while not-yet-entered closing values are null. The reserved Diferença Caixa row is flagged by the server, with both opening and closing null before calculation.<br><br><b>TotalOpening = R$5,800</b> (R$5,000 + R$500 + R$300).<br><br>Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -641,7 +641,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Close Day: Physical Count',
-   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. These become <b>DailyCloseItem</b> rows linked to this DailyClose.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged on this simple day. The cash fell from R$5,000 to a counted R$1,980 after the day\'s R$3,000 of Saídas.<br><br>Jennifer does <b>not</b> enter Diferença Caixa — the system will compute it on submit.',
+   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. As she types, <code>POST /dailyclose/{id}/variance-preview</code> sends those unsaved candidate values through the same calculator Submit uses, so the displayed <b>−R$20</b> variance updates before any save and the preview never persists. She can add a Notes explanation on the Draft item-save; the close\'s PostgreSQL <code>xmin</code> Version prevents a stale tab from overwriting it.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged on this simple day. The cash fell from R$5,000 to a counted R$1,980 after the day\'s R$3,000 of Saídas.<br><br>Jennifer does <b>not</b> enter Diferença Caixa — the system computes it from the candidates and persists it only on submit.',
    activeTables:['Product','DailyCloseItem','DailyClose'],
    activeArrows:['prod-dci','dci-dc'],
    data:[
@@ -670,7 +670,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Manager Approves',
-   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, checks the system-computed <b>Diferença Caixa</b> (<b>−R$ 20.00</b> — where did it go?), and <b>Approves</b>.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin. This workflow replaces the paper-based process that lottery houses currently use.',
+   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, reads Jennifer\'s frozen <b>Notes</b> explaining the cause, checks the system-computed <b>Diferença Caixa</b> (<b>−R$ 20.00</b>), and <b>Approves</b>. If a product is retired after Jennifer counted it, its saved row remains in this review so Maria can still reconcile the submitted variance.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin — but an attempt to change the frozen Notes rejects the whole recall-save. This workflow replaces the paper-based process that lottery houses currently use.',
    activeTables:['DailyClose'],
    activeArrows:[],
    data:[
@@ -882,7 +882,7 @@ function renderIntro(s,i){
         </div>
         <div class="intro-card">
           <h3 class="blue-color">The Close Review</h3>
-          <p>One tap opens Jennifer&#39;s close as a comparison (<code>GET /dailyclose/{id}/review</code>): opening values the server derived from her most recent prior close, the closing values she counted, and the <b>Diferença Caixa</b> row flagged as system-calculated. Maria approves — or rejects with a reason, leaving it <b>Rejected</b>; the next permitted item edit returns it to Draft for resubmission (§6.13).</p>
+          <p>One tap opens Jennifer&#39;s close as a comparison (<code>GET /dailyclose/{id}/review</code>): every active product plus any retired product already counted on this close, server-derived openings, nullable not-yet-entered closings, Jennifer&#39;s Notes, and the <b>Diferença Caixa</b> row flagged as system-calculated. Maria approves — or rejects with a reason, leaving it <b>Rejected</b>; the next permitted item edit returns it to Draft for resubmission (§6.13).</p>
         </div>
       </div>
       <div class="intro-col">
@@ -892,7 +892,7 @@ function renderIntro(s,i){
         </div>
         <div class="intro-card">
           <h3 class="in-color">Previews That Never Commit</h3>
-          <p>Before a risky edit or a new row is saved, impact previews forecast the receivable, fiado, and cash-variance movement <em>without persisting anything</em> — guaranteed by construction (no unit of work) and pinned by architecture tests.</p>
+          <p>Before a risky edit or a new row is saved, impact previews forecast the receivable, fiado, and cash-variance movement. The close-day candidate preview also recalculates the operator&#39;s live variance while they type. Every preview is <em>non-persisting</em> by construction (no unit of work) and pinned by architecture tests.</p>
         </div>
         <div class="intro-highlight">Every screen above exists so one number can be trusted: <b>CashVariance = TotalClosing − TotalOpening − TotalTransactions</b>. The story ends where the day began — with the drawer, counted.</div>
       </div>

@@ -18,6 +18,7 @@ public static class DailyCloseSharedMapper
             return new ResponseDailyCloseJson
             {
                 Id = close.Id,
+                Version = close.Version,
                 Date = close.Date,
                 Status = close.Status,
                 AccountId = close.AccountId,
@@ -54,6 +55,7 @@ public static class DailyCloseSharedMapper
             return new ResponseDailyCloseJson
             {
                 Id = close.Id,
+                Version = close.Version,
                 Date = close.Date,
                 Status = close.Status,
                 AccountId = close.AccountId,
@@ -85,6 +87,7 @@ public static class DailyCloseSharedMapper
             return new ResponseDailyCloseJson
             {
                 Id = close.Id,
+                Version = close.Version,
                 Date = close.Date,
                 Status = close.Status,
                 AccountId = close.AccountId,

@@ -83,7 +83,8 @@ public class ArchitectureTest
         "server.Application.UseCases.Transactions.CreatePreview",
         // M7.5 Phase 4 catch-up: the daily-close review context (GET /dailyclose/{id}/review)
         // is a read surface like the report use cases — it must never be able to commit.
-        "server.Application.UseCases.DailyCloses.Review"
+        "server.Application.UseCases.DailyCloses.Review",
+        "server.Application.UseCases.DailyCloses.VariancePreview"
     ];
 
     [Fact]

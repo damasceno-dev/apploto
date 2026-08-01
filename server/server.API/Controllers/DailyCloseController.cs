@@ -7,6 +7,7 @@ using server.Application.UseCases.DailyCloses.PutItems;
 using server.Application.UseCases.DailyCloses.Reject;
 using server.Application.UseCases.DailyCloses.Review;
 using server.Application.UseCases.DailyCloses.Submit;
+using server.Application.UseCases.DailyCloses.VariancePreview;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
@@ -143,6 +144,24 @@ public class DailyCloseController : ControllerBase
         [FromRoute] Guid dailyCloseId)
     {
         var response = await useCase.Execute(dailyCloseId);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{dailyCloseId:guid}/variance-preview")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseVariancePreviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> VariancePreview(
+        [FromServices] PreviewDailyCloseVarianceUseCase useCase,
+        [FromRoute] Guid dailyCloseId,
+        [FromBody] RequestDailyCloseVariancePreviewJson request)
+    {
+        var response = await useCase.Execute(dailyCloseId, request);
         return Ok(response);
     }
 }

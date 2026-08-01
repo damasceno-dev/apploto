@@ -55,6 +55,68 @@ public class PutDailyCloseItemsUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldPersistNotesVerbatim_WhenDraft()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        ctx.Request = new RequestPutDailyCloseItemsJson
+        {
+            Version = ctx.DailyClose.Version,
+            Notes = "  Caixa R$ 20 curto; PIX indisponível às 17h.  ",
+            Items = ctx.Request.Items
+        };
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
+
+        response.Notes.ShouldBe(ctx.Request.Notes);
+        ctx.DailyClose.Notes.ShouldBe(ctx.Request.Notes);
+        await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldClearNotes_WhenDraftReceivesEmptyString()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        ctx.DailyClose = new DailyCloseBuilder()
+            .WithId(ctx.DailyClose.Id)
+            .WithVersion(ctx.DailyClose.Version)
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithAccount(ctx.DailyClose.Account)
+            .WithNotes("old note")
+            .Build();
+        RewireDailyCloseRepository(ctx);
+        ctx.Request = new RequestPutDailyCloseItemsJson
+        {
+            Version = ctx.DailyClose.Version,
+            Notes = string.Empty,
+            Items = ctx.Request.Items
+        };
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
+
+        ctx.DailyClose.Notes.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectStaleCloseVersion()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        ctx.Request = new RequestPutDailyCloseItemsJson
+        {
+            Version = ctx.DailyClose.Version + 1,
+            Items = ctx.Request.Items
+        };
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.DailyClose.Id, ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_STALE_WRITE);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldUpdateExistingActiveItem_WhenProductIdAlreadyPresentOnClose()
     {
         var ctx = BuildHappyPathContext(Role.Manager);
@@ -118,6 +180,7 @@ public class PutDailyCloseItemsUseCaseTest
         // Payload: B (update) + C (insert) — A and CashVariance omitted
         ctx.Request = new RequestPutDailyCloseItemsJson
         {
+            Version = ctx.DailyClose.Version,
             Items =
             [
                 new RequestUpsertDailyCloseItemJson { ProductId = productB.Id, Value = 99m },
@@ -206,6 +269,39 @@ public class PutDailyCloseItemsUseCaseTest
         ctx.DailyClose.UpdatedAt.ShouldBe(ctx.Now);
         ctx.DailyClose.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
         await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectSubmittedNotesChange_AndLeaveRecallUnapplied()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        ctx.DailyClose = new DailyCloseBuilder()
+            .WithId(ctx.DailyClose.Id)
+            .WithVersion(ctx.DailyClose.Version)
+            .WithStatus(DailyCloseStatus.Submitted)
+            .WithSubmittedAt(DateTime.UtcNow.AddHours(-1))
+            .WithNotes("submitted note")
+            .WithAccount(ctx.DailyClose.Account)
+            .Build();
+        RewireDailyCloseRepository(ctx);
+        ctx.WorkflowGuard
+            .EnsureCanEditItems(Arg.Any<DailyClose>(), Arg.Any<BranchUser>(), Arg.Any<Operator?>())
+            .Returns(DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft);
+        ctx.Request = new RequestPutDailyCloseItemsJson
+        {
+            Version = ctx.DailyClose.Version,
+            Notes = "attempted overwrite",
+            Items = ctx.Request.Items
+        };
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.DailyClose.Id, ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOTES_FROZEN);
+        ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
+        ctx.DailyClose.Notes.ShouldBe("submitted note");
+        await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]
@@ -359,6 +455,7 @@ public class PutDailyCloseItemsUseCaseTest
         // Payload contains the system-managed CashVariance product id
         ctx.Request = new RequestPutDailyCloseItemsJson
         {
+            Version = ctx.DailyClose.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = ctx.CashVarianceProductId, Value = 10m }]
         };
 
@@ -454,6 +551,7 @@ public class PutDailyCloseItemsUseCaseTest
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
         };
 

@@ -8,6 +8,7 @@ public class ProductBuilder
     private string _name = $"Product {Guid.NewGuid():N}";
     private int _displayOrder = 1;
     private Guid _branchId = Guid.NewGuid();
+    private bool _active = true;
 
     public ProductBuilder WithId(Guid id)
     {
@@ -33,6 +34,12 @@ public class ProductBuilder
         return this;
     }
 
+    public ProductBuilder WithActive(bool active)
+    {
+        _active = active;
+        return this;
+    }
+
     public Product Build()
     {
         return new Product
@@ -40,7 +47,8 @@ public class ProductBuilder
             Id = _id,
             Name = _name,
             DisplayOrder = _displayOrder,
-            BranchId = _branchId
+            BranchId = _branchId,
+            Active = _active
         };
     }
 }

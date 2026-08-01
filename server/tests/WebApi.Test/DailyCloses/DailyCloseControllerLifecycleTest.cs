@@ -147,10 +147,13 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
     private async Task PutItemsAsync(Guid closeId, Guid productId, decimal value, string token)
     {
+        var close = await factory.ReloadAsync<DailyClose>(closeId);
+        close.ShouldNotBeNull();
         var response = await _client.PutAuthAsync(
             $"/dailyclose/{closeId}/items",
             new RequestPutDailyCloseItemsJson
             {
+                Version = close.Version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = productId, Value = value }]
             },
             token);

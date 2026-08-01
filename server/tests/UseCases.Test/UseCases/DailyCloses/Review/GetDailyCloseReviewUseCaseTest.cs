@@ -18,6 +18,46 @@ namespace UseCases.Test.UseCases.DailyCloses.Review;
 public class GetDailyCloseReviewUseCaseTest
 {
     [Fact]
+    public async Task Execute_ShouldEnumerateEveryActiveProductWithNullClosings_WhenCloseIsFresh()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var firstProduct = new ProductBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDisplayOrder(10)
+            .Build();
+        var secondProduct = new ProductBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDisplayOrder(20)
+            .Build();
+        var cashVarianceProduct = new ProductBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithName(CashVarianceProductResolver.CashVarianceProductName)
+            .WithDisplayOrder(30)
+            .Build();
+        var currentClose = new DailyCloseBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .Build();
+        var context = BuildContext(
+            branchUser,
+            currentClose,
+            priorClose: null,
+            activeProducts: [secondProduct, cashVarianceProduct, firstProduct]);
+        var useCase = CreateUseCase(context);
+
+        var response = await useCase.Execute(currentClose.Id);
+
+        response.Items.Select(item => item.ProductId).ShouldBe([
+            firstProduct.Id,
+            secondProduct.Id,
+            cashVarianceProduct.Id
+        ]);
+        response.Items.ShouldAllBe(item => item.ClosingValue == null);
+        response.Items.Single(item => item.ProductId == cashVarianceProduct.Id).OpeningValue.ShouldBeNull();
+        response.Items.Where(item => item.ProductId != cashVarianceProduct.Id)
+            .ShouldAllBe(item => item.OpeningValue == 0m);
+    }
+
+    [Fact]
     public async Task Execute_ShouldUseZeroOpeningValue_WhenNoPriorCloseExists()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
@@ -38,9 +78,45 @@ public class GetDailyCloseReviewUseCaseTest
         var item = response.Items.ShouldHaveSingleItem();
         item.ProductId.ShouldBe(product.Id);
         item.ProductName.ShouldBe(product.Name);
+        item.DisplayOrder.ShouldBe(product.DisplayOrder);
         item.OpeningValue.ShouldBe(0m);
         item.ClosingValue.ShouldBe(125m);
         item.IsCashVarianceProduct.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldKeepInactiveProduct_WhenCurrentCloseHasPersistedValue()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var retiredProduct = new ProductBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDisplayOrder(15)
+            .WithActive(false)
+            .Build();
+        var currentClose = new DailyCloseBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithItems([
+                new DailyCloseItemBuilder()
+                    .WithProduct(retiredProduct)
+                    .WithValue(50m)
+                    .Build()
+            ])
+            .Build();
+        var context = BuildContext(
+            branchUser,
+            currentClose,
+            priorClose: null,
+            activeProducts: []);
+        var useCase = CreateUseCase(context);
+
+        var response = await useCase.Execute(currentClose.Id);
+
+        var item = response.Items.ShouldHaveSingleItem();
+        item.ProductId.ShouldBe(retiredProduct.Id);
+        item.ProductName.ShouldBe(retiredProduct.Name);
+        item.DisplayOrder.ShouldBe(retiredProduct.DisplayOrder);
+        item.OpeningValue.ShouldBe(0m);
+        item.ClosingValue.ShouldBe(50m);
     }
 
     [Fact]
@@ -182,7 +258,7 @@ public class GetDailyCloseReviewUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldOrderItemsByProductNameThenProductId()
+    public async Task Execute_ShouldOrderItemsByDisplayOrderThenProductId()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var firstProductId = Guid.Parse("00000000-0000-0000-0000-000000000001");
@@ -190,16 +266,19 @@ public class GetDailyCloseReviewUseCaseTest
         var zuluProduct = new ProductBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithName("Zulu")
+            .WithDisplayOrder(2)
             .Build();
         var alphaSecondProduct = new ProductBuilder()
             .WithId(secondProductId)
             .WithBranchId(branchUser.BranchId)
             .WithName("Alpha")
+            .WithDisplayOrder(1)
             .Build();
         var alphaFirstProduct = new ProductBuilder()
             .WithId(firstProductId)
             .WithBranchId(branchUser.BranchId)
             .WithName("Alpha")
+            .WithDisplayOrder(1)
             .Build();
         var currentClose = new DailyCloseBuilder()
             .WithBranchId(branchUser.BranchId)
@@ -343,14 +422,17 @@ public class GetDailyCloseReviewUseCaseTest
         return new GetDailyCloseReviewUseCase(
             context.AuthenticationService,
             context.DailyClosesRepository,
-            memberAccountScopeResolver);
+            context.ProductsRepository,
+            memberAccountScopeResolver,
+            context.CashVarianceProductResolver);
     }
 
     private static TestContext BuildContext(
         BranchUser branchUser,
         DailyClose? currentClose,
         DailyClose? priorClose,
-        Guid? dailyCloseId = null)
+        Guid? dailyCloseId = null,
+        IReadOnlyList<Product>? activeProducts = null)
     {
         var id = dailyCloseId ?? currentClose?.Id ?? Guid.NewGuid();
         var repositoryBuilder = new DailyClosesRepositoryBuilder()
@@ -365,12 +447,31 @@ public class GetDailyCloseReviewUseCaseTest
                 priorClose);
         }
 
+        activeProducts ??= currentClose?.Items
+            .Where(item => item.Product is not null)
+            .Select(item => item.Product!)
+            .DistinctBy(product => product.Id)
+            .OrderBy(product => product.DisplayOrder)
+            .ThenBy(product => product.Id)
+            .ToList() ?? [];
+        var cashVarianceProductId = activeProducts
+            .FirstOrDefault(product => product.Name == CashVarianceProductResolver.CashVarianceProductName)
+            ?.Id ?? Guid.NewGuid();
+        var cashVarianceProductResolver = Substitute.For<ICashVarianceProductResolver>();
+        cashVarianceProductResolver
+            .GetIdAsync(branchUser.BranchId, Arg.Any<CancellationToken>())
+            .Returns(cashVarianceProductId);
+
         return new TestContext
         {
             AuthenticationService = new AuthenticationServiceBuilder()
                 .GetAuthenticatedBranchUser(branchUser)
                 .Build(),
             DailyClosesRepository = repositoryBuilder.Build(),
+            ProductsRepository = new ProductsRepositoryBuilder()
+                .ListActiveByBranchIdAsNoTracking(branchUser.BranchId, activeProducts)
+                .Build(),
+            CashVarianceProductResolver = cashVarianceProductResolver,
             OperatorsRepository = new OperatorsRepositoryBuilder().Build(),
             OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder().Build()
         };
@@ -380,6 +481,8 @@ public class GetDailyCloseReviewUseCaseTest
     {
         public required IAuthenticationService AuthenticationService { get; init; }
         public required IDailyClosesRepository DailyClosesRepository { get; init; }
+        public required IProductsRepository ProductsRepository { get; init; }
+        public required ICashVarianceProductResolver CashVarianceProductResolver { get; init; }
         public required IOperatorsRepository OperatorsRepository { get; set; }
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
     }

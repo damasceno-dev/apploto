@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using server.Domain.Entities;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
@@ -31,6 +32,12 @@ internal static class PostgresExceptionHandler
 
     public static Exception Normalize(Exception exception)
     {
+        if (exception is DbUpdateConcurrencyException concurrencyException
+            && concurrencyException.Entries.Any(entry => entry.Entity is DailyClose))
+        {
+            return new ConflictException(ResourcesErrorMessages.DAILYCLOSE_STALE_WRITE);
+        }
+
         // Only rewrite known Postgres unique-violation cases. Everything else
         // flows through unchanged so the generic API exception handler can decide
         if (exception is ServerException || exception is not DbUpdateException

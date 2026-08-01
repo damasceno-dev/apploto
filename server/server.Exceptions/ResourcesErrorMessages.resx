@@ -366,6 +366,18 @@
     <data name="DAILYCLOSE_ITEM_PRODUCT_NOT_FOUND" xml:space="preserve">
         <value>Um ou mais produtos informados não foram encontrados ou não pertencem a esta filial</value>
     </data>
+    <data name="DAILYCLOSE_NOTES_LENGTH" xml:space="preserve">
+        <value>As observações do fechamento diário devem conter no máximo {0} caracteres</value>
+    </data>
+    <data name="DAILYCLOSE_NOTES_FROZEN" xml:space="preserve">
+        <value>As observações do fechamento diário não podem ser alteradas após o envio</value>
+    </data>
+    <data name="DAILYCLOSE_VERSION_REQUIRED" xml:space="preserve">
+        <value>A versão do fechamento diário deve ser informada</value>
+    </data>
+    <data name="DAILYCLOSE_STALE_WRITE" xml:space="preserve">
+        <value>O fechamento diário foi alterado por outra pessoa; recarregue os dados e tente novamente</value>
+    </data>
     <data name="DAILYCLOSE_BRANCH_MISMATCH" xml:space="preserve">
         <value>Os dados do fechamento diário devem pertencer à mesma filial</value>
     </data>

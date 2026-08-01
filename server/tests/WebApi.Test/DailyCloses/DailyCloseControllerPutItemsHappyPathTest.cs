@@ -4,6 +4,7 @@ using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
+using server.Exceptions;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -43,6 +44,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         // Payload: A (update) + B (insert). C and CashVariance are omitted.
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items =
             [
                 new RequestUpsertDailyCloseItemJson { ProductId = productA.Id, Value = 200m },
@@ -80,6 +82,133 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         reloadedCv!.Active.ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task PutItems_ShouldRoundTripNotesThroughSubmitAndReview_AndFreezeSubmittedNote()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcPutNotesRoundTrip",
+            Role.Manager);
+        await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName,
+            displayOrder: 20);
+        var product = await factory.SeedProductAsync(branch.Id, displayOrder: 10);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
+        const string notes = "  Diferença conferida; terminal PIX caiu às 17h.  ";
+        var items =
+            new[]
+            {
+                new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }
+            };
+
+        var putResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Items = items,
+                Notes = notes
+            },
+            token);
+
+        putResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var putPayload = await putResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        putPayload.Notes.ShouldBe(notes);
+        putPayload.Version.ShouldNotBe(close.Version);
+
+        var submitResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+        submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var submitted = await submitResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        submitted.Notes.ShouldBe(notes);
+
+        var reviewResponse = await _client.GetAuthAsync($"/dailyclose/{close.Id}/review", token);
+        reviewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var review = await reviewResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
+        review.Notes.ShouldBe(notes);
+
+        var getResponse = await _client.GetAuthAsync($"/dailyclose/{close.Id}", token);
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var getPayload = await getResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        getPayload.Notes.ShouldBe(notes);
+
+        var frozenNoteResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = submitted.Version,
+                Items = items,
+                Notes = "attempted overwrite while submitted"
+            },
+            token);
+        frozenNoteResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var frozenNoteError = await frozenNoteResponse.ReadContentAsync<TestResponseErrorJson>();
+        frozenNoteError.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOTES_FROZEN);
+        var stillSubmitted = await factory.ReloadAsync<DailyClose>(close.Id);
+        stillSubmitted.ShouldNotBeNull();
+        stillSubmitted.Status.ShouldBe(DailyCloseStatus.Submitted);
+        stillSubmitted.Notes.ShouldBe(notes);
+
+        var recallResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = submitted.Version,
+                Items = items
+            },
+            token);
+        recallResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var recalled = await recallResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        recalled.Status.ShouldBe(DailyCloseStatus.Draft);
+        recalled.Notes.ShouldBe(notes);
+    }
+
+    [Fact]
+    public async Task PutItems_ShouldClearNotes_WhenDraftReceivesEmptyString()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcPutNotesClear",
+            Role.Admin);
+        await factory.SeedProductAsync(branch.Id, CashVarianceProductResolver.CashVarianceProductName);
+        var product = await factory.SeedProductAsync(branch.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
+        var items =
+            new[]
+            {
+                new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 10m }
+            };
+
+        var firstResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Items = items,
+                Notes = "temporary note"
+            },
+            token);
+        firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var firstPayload = await firstResponse.ReadContentAsync<ResponseDailyCloseJson>();
+
+        var clearResponse = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = firstPayload.Version,
+                Items = items,
+                Notes = string.Empty
+            },
+            token);
+
+        clearResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var clearPayload = await clearResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        clearPayload.Notes.ShouldBeNull();
+        var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
+        persisted.ShouldNotBeNull();
+        persisted.Notes.ShouldBeNull();
+    }
+
     // ──────────────────────────────────────────────
     // Rejected → Draft auto-transition
     // ──────────────────────────────────────────────
@@ -96,6 +225,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
         };
 
@@ -147,6 +277,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
         };
 
@@ -195,6 +326,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var request = new RequestPutDailyCloseItemsJson
         {
+            Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
         };
 

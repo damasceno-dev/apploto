@@ -4,6 +4,7 @@ namespace server.Domain.Entities;
 
 public class DailyClose : EntityBase
 {
+    public uint Version { get; set; }
     public DateTime Date { get; init; }
     public DailyCloseStatus Status { get; set; } = DailyCloseStatus.Draft;
 

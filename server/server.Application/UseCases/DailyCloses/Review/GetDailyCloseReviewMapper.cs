@@ -1,4 +1,3 @@
-using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities;
 
@@ -8,16 +7,30 @@ internal static class GetDailyCloseReviewMapper
 {
     extension(DailyClose close)
     {
-        public ResponseDailyCloseReviewJson ToReviewResponse(DailyClose? priorClose)
+        public ResponseDailyCloseReviewJson ToReviewResponse(
+            DailyClose? priorClose,
+            IReadOnlyList<Product> activeProducts,
+            Guid cashVarianceProductId)
         {
             var priorValuesByProductId = priorClose?.Items
                 .Where(item => item.Active)
                 .ToDictionary(item => item.ProductId, item => item.Value)
                 ?? [];
+            var closingValuesByProductId = close.Items
+                .Where(item => item.Active)
+                .ToDictionary(item => item.ProductId, item => item.Value);
+            var productsToReview = activeProducts
+                .Concat(close.Items
+                    .Where(item => item.Active)
+                    .Select(item => item.Product))
+                .DistinctBy(product => product.Id)
+                .OrderBy(product => product.DisplayOrder)
+                .ThenBy(product => product.Id);
 
             return new ResponseDailyCloseReviewJson
             {
                 Id = close.Id,
+                Version = close.Version,
                 Date = close.Date,
                 Status = close.Status,
                 AccountId = close.AccountId,
@@ -34,24 +47,22 @@ internal static class GetDailyCloseReviewMapper
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
-                Items = close.Items
-                    .Where(item => item.Active)
-                    .OrderBy(item => item.Product?.Name, StringComparer.Ordinal)
-                    .ThenBy(item => item.ProductId)
-                    .Select(item =>
+                Items = productsToReview
+                    .Select(product =>
                     {
-                        var isCashVarianceProduct = item.Product?.Name.Equals(
-                            CashVarianceProductResolver.CashVarianceProductName,
-                            StringComparison.Ordinal) is true;
+                        var isCashVarianceProduct = product.Id == cashVarianceProductId;
 
                         return new ResponseDailyCloseReviewItemJson
                         {
-                            ProductId = item.ProductId,
-                            ProductName = item.Product?.Name ?? string.Empty,
+                            ProductId = product.Id,
+                            ProductName = product.Name,
+                            DisplayOrder = product.DisplayOrder,
                             OpeningValue = isCashVarianceProduct
                                 ? null
-                                : priorValuesByProductId.GetValueOrDefault(item.ProductId),
-                            ClosingValue = item.Value,
+                                : priorValuesByProductId.GetValueOrDefault(product.Id),
+                            ClosingValue = closingValuesByProductId.TryGetValue(product.Id, out var closingValue)
+                                ? closingValue
+                                : null,
                             IsCashVarianceProduct = isCashVarianceProduct
                         };
                     })

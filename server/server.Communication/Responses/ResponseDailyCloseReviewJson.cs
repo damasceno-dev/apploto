@@ -17,6 +17,7 @@ namespace server.Communication.Responses;
 public class ResponseDailyCloseReviewJson
 {
     public Guid Id { get; init; }
+    public uint Version { get; init; }
     public DateTime Date { get; init; }
     public DailyCloseStatus Status { get; init; }
     public Guid AccountId { get; init; }

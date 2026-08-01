@@ -7,6 +7,7 @@ namespace CommonTestUtilities.Entities;
 public class DailyCloseBuilder
 {
     private Guid _id = Guid.NewGuid();
+    private uint _version = 1;
     private DateTime _createdAt = DateTime.UtcNow;
     private bool _active = true;
     private DateTime _date = DateTime.Today;
@@ -30,6 +31,12 @@ public class DailyCloseBuilder
     public DailyCloseBuilder WithId(Guid id)
     {
         _id = id;
+        return this;
+    }
+
+    public DailyCloseBuilder WithVersion(uint version)
+    {
+        _version = version;
         return this;
     }
 
@@ -149,6 +156,7 @@ public class DailyCloseBuilder
         return new DailyClose
         {
             Id = _id,
+            Version = _version,
             CreatedAt = _createdAt,
             Active = _active,
             Date = _date,

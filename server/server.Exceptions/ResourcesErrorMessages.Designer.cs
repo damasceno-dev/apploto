@@ -741,6 +741,30 @@ namespace server.Exceptions {
             }
         }
 
+        public static string DAILYCLOSE_NOTES_LENGTH {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOTES_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOTES_FROZEN {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOTES_FROZEN", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_VERSION_REQUIRED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_VERSION_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_STALE_WRITE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_STALE_WRITE", resourceCulture);
+            }
+        }
+
         public static string DAILYCLOSE_BRANCH_MISMATCH {
             get {
                 return ResourceManager.GetString("DAILYCLOSE_BRANCH_MISMATCH", resourceCulture);

@@ -81,6 +81,16 @@ public class PostgresExceptionHandlerTest
         normalized.ShouldBeSameAs(exception);
     }
 
+    [Fact]
+    public void Normalize_ShouldReturnOriginalException_WhenConcurrencyExceptionHasNoDailyCloseEntry()
+    {
+        var exception = new DbUpdateConcurrencyException("Non-DailyClose concurrency failure");
+
+        var normalized = PostgresExceptionHandler.Normalize(exception);
+
+        normalized.ShouldBeSameAs(exception);
+    }
+
     private static DbUpdateException BuildUniqueViolation(string constraintName)
     {
         return BuildPostgresDbUpdateException("23505", constraintName);

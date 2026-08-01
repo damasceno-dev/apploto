@@ -58,7 +58,10 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.UseEnvironment("Testing");
+        // OpenAPI is intentionally exposed only in Development by Program.cs. The test
+        // host uses that supported environment so contract tests exercise the production
+        // predicate without adding a test-only branch to the application pipeline.
+        builder.UseEnvironment("Development");
 
         builder.ConfigureServices(services =>
         {

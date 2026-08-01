@@ -392,7 +392,8 @@ internal static class TestSeeder
         public async Task<Product> SeedProductAsync(
             Guid branchId,
             string? name = null,
-            int displayOrder = 1)
+            int displayOrder = 1,
+            bool active = true)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -402,7 +403,8 @@ internal static class TestSeeder
                 Id = Guid.NewGuid(),
                 Name = name ?? $"Product {Guid.NewGuid():N}",
                 DisplayOrder = displayOrder,
-                BranchId = branchId
+                BranchId = branchId,
+                Active = active
             };
             dbContext.Products.Add(product);
             await dbContext.SaveChangesAsync();
