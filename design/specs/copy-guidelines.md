@@ -24,6 +24,7 @@
 - Destructive or irreversible confirmations state the consequence in the body: "A transação será cancelada e deixará de contar nos totais. Essa ação não pode ser desfeita."
 - **Reason-required flows** (reject a close — `RequestRejectDailyCloseJson`; cancel a transaction — `RequestCancelTransactionJson`): the reason field is labeled "Motivo" and required; the helper copy says who reads it — "O operador verá este motivo" / "O motivo fica no histórico da transação".
 - Drafts: "Salvar como rascunho" (create), "Finalizar rascunho" (promote Draft → Active).
+- Daily-close undo actions stay distinct: **"Desfazer envio"** is the operator-facing label for explicit `Recall` (`Submitted → Draft`); **"Reabrir fechamento"** is the Manager/Admin correction action for `Reopen` (`Approved → Draft`). Never translate Recall as "Recolher"/"Recolhido", and do not call either action "Cancelar".
 
 ## 4. Terminology glossary
 
@@ -49,6 +50,7 @@ Canonical UI terms, mapped from the domain spec and the backend's own pt-BR erro
 | data da transação / data de vencimento / data de pagamento | the three-date model: `Date` / `DueDate` / `PaidAt`                                                                        | §1; backend errors use these exact labels |
 | em aberto                                                  | unpaid (`PaidAt = null`) — "parcelas em aberto", "fiado em aberto"                                                         | §6.14                                     |
 | rascunho                                                   | `Draft` status (transaction or close) — excluded from totals                                                               | §6.1                                      |
+| desfazer envio                                             | explicit DailyClose `Recall`: return an Enviado close to Rascunho; success copy "Envio desfeito"                           | §6.13                                     |
 | data de bloqueio / período bloqueado                       | `LockDate` and its effect — "A data da transação está bloqueada pelo fechamento" is the backend's own wording              | §6.6                                      |
 | banco de horas                                             | hour-balance system; "folga" (DayOff, hours owed), "abonado" (excused — no hours owed)                                     | §6.7, `TimeEntryStatus`                   |
 | ponto                                                      | clock in/out context — "bater o ponto", "registro de ponto"                                                                | §6.7                                      |
@@ -99,7 +101,7 @@ The backend is the single source of error-message truth. Every API error is `Res
 
 - **Empty states:** one statement + the next action. "Nenhuma transação hoje." + button "Nova transação". "Tudo certo — nada pendente de aprovação." for the work queue's all-clear.
 - **Loading:** prefer skeletons (M3) over text; where text is unavoidable, "Carregando…" (with ellipsis character).
-- **Success confirmations:** short, past participle, name the object: "Transação salva", "Fechamento enviado", "Fechamento aprovado". No exclamation marks.
+- **Success confirmations:** short, past participle, name the object: "Transação salva", "Fechamento enviado", "Envio desfeito", "Fechamento reaberto", "Fechamento aprovado". No exclamation marks.
 - **Pending/waiting:** "Aguardando aprovação do gerente" (submitted close), "Rascunho — não conta nos totais" (draft rows).
 - **System-calculated values** are labeled as such where the distinction matters (§6.12 / review screen): "calculado pelo sistema" vs "informado pelo operador".
 
@@ -110,6 +112,7 @@ The backend is the single source of error-message truth. Every API error is `Res
 | "Enviar para aprovação"                                                                | "ENVIAR PARA APROVAÇÃO" / "Enviar Para Aprovação"   |
 | "Não foi possível salvar a transação"                                                  | "Ops! Algo deu errado :("                           |
 | "Rejeitar fechamento" + motivo obrigatório                                             | "Rejeitar" with no reason field                     |
+| "Desfazer envio" (`Submitted → Draft`)                                              | "Recolher" / "Cancelar fechamento"                 |
 | "Falta de R$ 20,00 no caixa" *(−R$ 20,00)*                                             | "Diferença: -20"                                    |
 | Render "Este tipo de transação exige uma conta fiado e um cliente informado" as received | Rewriting backend errors "to sound friendlier"    |
 | "Fechamento enviado"                                                                   | "Sucesso!!! Seu fechamento foi enviado com sucesso" |

@@ -638,6 +638,8 @@ public class Product : EntityBase
 
 ### 3.14 DailyClose
 
+> ⚠ **Pending M7.7 change (Phase 3; signed 2026-08-11, not yet implemented — [M7.7 Phase 3](../server/docs/milestones.md)):** the expanded first Phase 3 delivery adds immutable-once-set `ItemsFirstRecordedAt` plus nullable opening-recheck timestamp, triggering-close self-reference, and triggering-user audit fields. Because this contract first ships against an empty development database, every close follows the new first-save eligibility rule and there is no legacy-close initialization path. The entity/table below remains the committed v34 contract until Phase 3 ships.
+
 The daily register closing session. One row per account per day. Tracks the submission/approval workflow.
 
 ```csharp
@@ -1126,7 +1128,7 @@ WHERE AccountId = @tabAccountId
 
 ### 6.5 Daily closing
 
-> ⚠ **Pending M7.7 changes (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** the silent `Submitted → Draft` recall-on-item-save (item 6 below) is replaced by an explicit **Recall** action; submitting seals the `(account, date)` ledger (freeze-at-submit) and is blocked while `Draft` rows exist; the close-day form's member fiado reference (gap A) is available **only** to an operator holding the paired Tab's explicit `OperatorAccount(Tab)` assignment — Terminal-only operators cannot see it. The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 changes (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** the silent `Submitted → Draft` recall-on-item-save (item 6 below) is replaced by explicit **Recall**; submitting seals the same-day ledger and is blocked by Draft rows or an unrecorded count; Terminal creates require an open close; an intervening active-transaction day without a counted close blocks Submit; and a real predecessor count change explicitly returns only the next eligible opening-chain successor to Draft for re-submit/re-approval, never silently recomputing its official variance. Counted-source eligibility, the explicit affected-successor item-save response, account-wide bounded/cancellable coordination, and Draft CashVariance suppression ship in the same first Phase 3 delivery. The close-day form's member fiado reference (gap A) remains Phase 5 work and is available only to an operator holding the paired Tab's explicit `OperatorAccount(Tab)` assignment. The text below describes the pre-decision contract.
 
 1. Operator opens DailyClose (creates with Status=Draft)
 2. Operator enters DailyCloseItems (one per product — cash count, ticket values, etc.)
@@ -1151,7 +1153,7 @@ WHERE AccountId = @tabAccountId
 
 ### 6.6 Date locking
 
-> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `LockDate` becomes read-only via `PUT /setting`; the only lock path is an atomic `POST /setting/lock-month` with server-enforced readiness (activity-based expected closers, whole-interval validation, current/unfinished month not lockable). The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 change (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** **Phase 4 clause:** `LockDate` becomes read-only via `PUT /setting`; the only lock path is an atomic `POST /setting/lock-month` with server-enforced readiness (activity-based expected closers, whole-interval validation, current/unfinished month not lockable). **Phase 3 clause:** before Phase 4 adds the month-level lock, Open, item-save, Submit, Approve, Reject, Recall, Reopen, and Terminal-ledger mutations serialize on one transaction-scoped `(BranchId, AccountId)` advisory key; acquisition is cancellation-aware and bounded by transaction-local PostgreSQL `lock_timeout = 5s`, and SQLSTATE `55P03` becomes retryable `409 DAILYCLOSE_LEDGER_COORDINATION_BUSY`. Phase 3 trims only its clause when it ships; Phase 4 owns removal of the remaining marker. The text below describes the pre-decision contract.
 
 `Setting.LockDate` defines the cutoff. Transactions on or before this date cannot be created, edited, or cancelled. Every DailyClose workflow transition on or before this date is blocked: open, edit items, submit, approve, reject, `Rejected -> Draft` auto-transition, and `Submitted -> Draft` recall. The lock date is advanced by the manager after month-end reconciliation.
 
@@ -1373,7 +1375,7 @@ The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious
 
 ### 6.11 Transaction mutation contract
 
-> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** financial creates (`POST /transaction`, `/transaction/installment`, the *Receber pagamento* command) honor a client `Idempotency-Key`; mutating endpoints carry an optimistic-concurrency precondition via Postgres `xmin` → `409` on stale writes. The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 change (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** **Phase 6 clause:** financial creates (`POST /transaction`, `/transaction/installment`, the *Receber pagamento* command) honor a client `Idempotency-Key`; mutating endpoints carry an optimistic-concurrency precondition via Postgres `xmin` → `409` on stale writes. **Phase 3 clause:** a Terminal `POST /transaction` or `/transaction/installment` requires an active same-day DailyClose (`TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE`); Tab and Bank remain exempt; an active non-Draft close continues to reject create/installment/finalize/cancel with the frozen-ledger key; and finalize/cancel stay null-tolerant for rows created before this rule. Phase 3 trims only its clause when it ships; Phase 6 owns removal of the remaining marker. The text below describes the pre-decision contract.
 
 Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`. Cancellation is a terminal state transition: the client sends a required `CancellationReason`, and the server moves a `Draft` or `Active` row to `Cancelled` with an explicit cancellation audit trail. All three operations share the same member account scope, mutation permission matrix, lock-date behavior, and generic update audit convention.
 
@@ -1446,6 +1448,8 @@ The read/list rules in §6.10 and the mutation rules here intentionally share th
 
 ### 6.12 CashVariance calculation
 
+> ⚠ **Pending M7.7 change (Phase 3; signed 2026-08-11, not yet implemented — [M7.7 Phase 3](../server/docs/milestones.md)):** the opening source becomes the most recent prior active **counted** close (`ItemsFirstRecordedAt != null`), regardless of workflow state. A real predecessor count/first-eligibility change demotes exactly the next eligible `Submitted`/`Approved`/`Rejected` successor to Draft with an opening-recheck audit; it is recalculated only on re-submit. Every close follows the new first-save eligibility rule, and the active-transaction sum also requires `Transaction.Active = true`. The v34 formula/text below remains operative until implementation lands.
+
 CashVariance (Diferença de Caixa) is **system-calculated, not operator-entered**. The operator enters closing product values (Dinheiro, Telesena, etc.); the system computes the variance and persists it as a DailyCloseItem.
 
 ```
@@ -1469,7 +1473,7 @@ The pre-submit preview uses the same calculator with an alternate current-closin
 
 ### 6.13 DailyClose contract
 
-> ⚠ **Pending M7.7 changes (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `Approved` is no longer terminal — a manager **Reopen** returns it to `Draft` for re-approval; a `Rejected` close is editable by the recording operator until the period locks (and by any Manager/Admin), not only on its own local day; the `Submitted → Draft` recall becomes an explicit action. The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 changes (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `Approved` is no longer terminal — Manager/Admin **Reopen** returns it to Draft for re-approval; `Submitted → Draft` becomes explicit **Recall**; the recording operator may correct Rejected or opening-recheck-demoted closes until lock; direct prior-day elevated Recall/Reopen remains Manager-owned; and ordinary Draft responses hide retained CashVariance. Open becomes Terminal/date constrained, Submit requires a recorded count and a gap-free counted activity chain, all eleven ledger/close-history participants coordinate account-wide, and `PUT /items` explicitly reports any one successor returned to Draft. Recall is user-facing **Desfazer envio** in pt-BR; same-day Member Recall denial is `403`, while state/lock conflicts are `409`. The text below describes the pre-decision contract.
 
 **Workflow states.** The state machine is `Draft -> Submitted -> Approved | Rejected`, with two automatic edit-time transitions: `Rejected -> Draft` for resubmission after manager feedback, and `Submitted -> Draft` for same-day soft-final recall. `Approved` is terminal.
 
@@ -1502,6 +1506,8 @@ All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`,
 ---
 
 ### 6.14 Reporting Surface
+
+> ⚠ **Pending M7.7 change (Phase 3; signed 2026-08-11, not yet implemented — [M7.7 Phase 3](../server/docs/milestones.md)):** review, dashboard, cash-variance summary, and monthly reconciliation continue to treat persisted non-Draft CashVariance as the official snapshot. If a predecessor correction changes a close's opening, account-wide coordination first returns the affected successor to Draft, immediately suppressing its retained variance from every official and ordinary Draft projection; live recomputation may be shown only as a separate divergence/hypothetical value.
 
 **Read-only contract.** All Milestone 7 and Milestone 7.5 reporting endpoints are read-only. None call `Add`, none mutate persisted state, none open a unit of work. The four preview endpoints (`POST /transaction/installment/preview`, `POST /transaction/{id}/edit-preview`, `POST /transaction/preview`, `POST /dailyclose/{id}/variance-preview`) are compute-only and never persist; the "preview cannot commit" invariant is enforced by construction (no `IUnitOfWork` dependency) and pinned by WebApi.Test reload / row-count assertions that verify persisted state is unchanged after a 200 response. The architecture-level never-commits scan covers the report namespaces, the daily-close review context (`UseCases.DailyCloses.Review`), and the candidate variance preview (`UseCases.DailyCloses.VariancePreview`).
 
