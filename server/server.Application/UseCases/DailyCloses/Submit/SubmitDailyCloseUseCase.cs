@@ -1,3 +1,4 @@
+using System.Globalization;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
@@ -14,72 +15,133 @@ namespace server.Application.UseCases.DailyCloses.Submit;
 public class SubmitDailyCloseUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
+    IDailyCloseItemsRepository dailyCloseItemsRepository,
+    ITransactionsRepository transactionsRepository,
     IMemberAccountScopeResolver memberAccountScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
     IDailyCloseWorkflowGuard workflowGuard,
+    ILockDateReader lockDateReader,
     LockDateGuard lockDateGuard,
     ICashVarianceProductResolver cashVarianceProductResolver,
     ICashVarianceCalculator cashVarianceCalculator,
     IBranchClock branchClock,
+    IDailyCloseLedgerGuard dailyCloseLedgerGuard,
+    IDailyCloseAccountCoordination accountCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId)
+    public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId, CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
+        var closeKey = await dailyClosesRepository.GetByIdAndBranchIdAsNoTracking(
+            dailyCloseId,
+            branchUser.BranchId,
+            ct)
+            ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
 
-        var close = await dailyClosesRepository.GetByIdAndBranchId(dailyCloseId, branchUser.BranchId)
+        await using var coordination = await accountCoordination.Acquire(
+            branchUser.BranchId,
+            closeKey.AccountId,
+            ct);
+
+        var close = await dailyClosesRepository.GetByIdAndBranchId(dailyCloseId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
 
-        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
-        var callerOperator = memberScope.LinkedOperator;
-
         memberAccountScopeGuard.EnsureMemberCanActOnAccount(branchUser.Role, memberScope, close.AccountId);
+        workflowGuard.EnsureCanSubmit(close, branchUser, memberScope.LinkedOperator);
 
-        workflowGuard.EnsureCanSubmit(close, branchUser, callerOperator);
-
-        await lockDateGuard.EnsureNotLocked(
-            branchUser.BranchId,
+        var openingSource = await dailyClosesRepository
+            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
+                branchUser.BranchId,
+                close.AccountId,
+                close.Date,
+                ct);
+        var lockDate = await lockDateReader.Read(branchUser.BranchId, ct);
+        lockDateGuard.EnsureNotLocked(
             close.Date,
+            lockDate,
             ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
 
-        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
-        var cashVariance = await cashVarianceCalculator.CalculateAsync(
+        if (close.ItemsFirstRecordedAt is null)
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_ITEMS_NOT_RECORDED);
+
+        await dailyCloseLedgerGuard.EnsureNoOutstandingDraftTransactions(
+            branchUser.BranchId,
+            close.AccountId,
+            close.Date,
+            ct);
+
+        var rangeStartExclusive = openingSource?.Date.Date ?? DateTime.MinValue;
+        if (lockDate.Date > rangeStartExclusive)
+            rangeStartExclusive = lockDate.Date;
+
+        var uncountedActivityDate = await transactionsRepository
+            .GetEarliestUncountedActivityDateByAccountAsNoTracking(
+                branchUser.BranchId,
+                close.AccountId,
+                rangeStartExclusive,
+                close.Date.Date,
+                ct);
+
+        if (uncountedActivityDate is { } blockingDate)
+        {
+            var formattedDate = blockingDate.ToString("dd/MM/yyyy", CultureInfo.GetCultureInfo("pt-BR"));
+            throw new ConflictException(string.Format(
+                CultureInfo.InvariantCulture,
+                ResourcesErrorMessages.DAILYCLOSE_PRIOR_DAY_NOT_COUNTED,
+                formattedDate));
+        }
+
+        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
+        var cashVariance = await cashVarianceCalculator.CalculateWithOpeningSourceAsync(
             branchUser.BranchId,
             close.AccountId,
             close.Date,
             close.Id,
             cashVarianceProductId,
-            CancellationToken.None);
+            openingSource,
+            ct);
 
-        var existing = close.Items.FirstOrDefault(item =>
-            item.ProductId == cashVarianceProductId &&
-            item.Active);
-
-        if (existing is not null)
+        var existingVariance = close.Items.FirstOrDefault(item =>
+            item.Active && item.ProductId == cashVarianceProductId);
+        if (existingVariance is null)
         {
-            existing.Value = cashVariance;
-        }
-        else
-        {
-            close.Items.Add(new DailyCloseItem
+            var varianceItem = new DailyCloseItem
             {
-                Id = Guid.Empty,
                 DailyCloseId = close.Id,
                 ProductId = cashVarianceProductId,
                 Value = cashVariance
-            });
+            };
+            await dailyCloseItemsRepository.Add(varianceItem, ct);
+        }
+        else
+        {
+            existingVariance.Value = cashVariance;
         }
 
         var now = branchClock.UtcNow();
-
-        close.SubmittedByOperatorId = callerOperator?.Id;
+        close.SubmittedByUserId = branchUser.UserId;
+        close.SubmittedByOperatorId = memberScope.LinkedOperator?.Id;
         close.Status = DailyCloseStatus.Submitted;
         close.SubmittedAt = now;
+        close.ApprovedAt = null;
+        close.ApprovedByUserId = null;
+        close.ApprovedByUser = null;
+        close.RejectionReason = null;
+        close.OpeningRecheckRequiredAt = null;
+        close.OpeningRecheckTriggeredByDailyCloseId = null;
+        close.OpeningRecheckTriggeredByDailyClose = null;
+        close.OpeningRecheckTriggeredByUserId = null;
         close.UpdatedAt = now;
         close.UpdatedByUserId = branchUser.UserId;
 
-        await unitOfWork.Commit();
+        await unitOfWork.Commit(ct);
+        await coordination.Complete(ct);
 
-        return close.ToResponse();
+        return close.ToResponse(
+            cashVarianceProductId,
+            branchUser.User,
+            memberScope.LinkedOperator);
     }
 }

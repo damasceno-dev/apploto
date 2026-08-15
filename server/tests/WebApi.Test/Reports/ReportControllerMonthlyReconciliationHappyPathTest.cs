@@ -61,7 +61,7 @@ public class ReportControllerMonthlyReconciliationHappyPathTest(ServerWebApplica
         payload.Days.Count.ShouldBe(31);
         payload.Days[0].ActiveTransactionCount.ShouldBe(1);
         payload.Days[0].NetVariance.ShouldBe(11m);
-        payload.Days[1].NetVariance.ShouldBe(-7m);
+        payload.Days[1].NetVariance.ShouldBe(0m);
         payload.Days[1].Closes.Single().Status.ShouldBe(DailyCloseStatus.Draft);
     }
 

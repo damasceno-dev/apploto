@@ -90,9 +90,10 @@ public class ReportController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CashVarianceSummary(
         [FromServices] GetCashVarianceSummaryUseCase useCase,
-        [FromQuery] RequestCashVarianceSummaryJson request)
+        [FromQuery] RequestCashVarianceSummaryJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellationToken);
         return Ok(response);
     }
 
@@ -109,13 +110,14 @@ public class ReportController : ControllerBase
     public async Task<IActionResult> MonthlyReconciliation(
         [FromServices] GetMonthlyReconciliationUseCase useCase,
         [FromRoute] int year,
-        [FromRoute] int month)
+        [FromRoute] int month,
+        CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(new RequestMonthlyReconciliationJson
         {
             Year = year,
             Month = month
-        });
+        }, cancellationToken);
         return Ok(response);
     }
 
@@ -128,9 +130,10 @@ public class ReportController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Dashboard(
         [FromServices] GetDashboardUseCase useCase,
-        [FromQuery] RequestDashboardJson request)
+        [FromQuery] RequestDashboardJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellationToken);
         return Ok(response);
     }
 

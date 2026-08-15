@@ -1,4 +1,5 @@
 using System.Net;
+using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -18,6 +19,9 @@ public class DailyCloseControllerApproveHappyPathTest(ServerWebApplicationFactor
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcApproveHappy", Role.Manager);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName);
         var close = await factory.SeedDailyCloseAsync(
             branch.Id,
             account.Id,

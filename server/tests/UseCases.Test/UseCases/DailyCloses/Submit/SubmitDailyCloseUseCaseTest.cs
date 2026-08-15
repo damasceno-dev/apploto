@@ -40,24 +40,38 @@ public class SubmitDailyCloseUseCaseTest
         ctx.DailyClose.UpdatedAt.ShouldBe(ctx.Now);
         ctx.DailyClose.SubmittedAt.ShouldBe(ctx.DailyClose.UpdatedAt);
         ctx.DailyClose.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
+        ctx.DailyClose.SubmittedByUserId.ShouldBe(ctx.BranchUser.UserId);
         ctx.DailyClose.SubmittedByOperatorId.ShouldBe(ctx.CallerOperator!.Id);
 
-        var cashVarianceItem = ctx.DailyClose.Items.Single(item =>
-            item.ProductId == ctx.CashVarianceProductId &&
-            item.Active);
-        cashVarianceItem.Value.ShouldBe(ctx.ComputedVariance);
-        cashVarianceItem.DailyCloseId.ShouldBe(ctx.DailyClose.Id);
+        await ctx.DailyCloseItemsRepository.Received(1).Add(
+            Arg.Is<DailyCloseItem>(item =>
+                item.ProductId == ctx.CashVarianceProductId &&
+                item.Active &&
+                item.Value == ctx.ComputedVariance &&
+                item.DailyCloseId == ctx.DailyClose.Id),
+            Arg.Any<CancellationToken>());
 
         ctx.WorkflowGuard.Received(1)
             .EnsureCanSubmit(ctx.DailyClose, ctx.BranchUser, ctx.CallerOperator);
-        await ctx.CashVarianceCalculator.Received(1).CalculateAsync(
+        await ctx.CashVarianceCalculator.Received(1).CalculateWithOpeningSourceAsync(
             Arg.Is<Guid>(id => id == ctx.BranchUser.BranchId),
             Arg.Is<Guid>(id => id == ctx.DailyClose.AccountId),
             Arg.Is<DateTime>(date => date == ctx.DailyClose.Date),
             Arg.Is<Guid>(id => id == ctx.DailyClose.Id),
             Arg.Is<Guid>(id => id == ctx.CashVarianceProductId),
+            Arg.Any<DailyClose?>(),
+            Arg.Any<CancellationToken>());
+        await ctx.DailyCloseLedgerGuard.Received(1).EnsureNoOutstandingDraftTransactions(
+            ctx.BranchUser.BranchId,
+            ctx.DailyClose.AccountId,
+            ctx.DailyClose.Date.Date,
+            Arg.Any<CancellationToken>());
+        await ctx.DailyCloseLedgerCoordination.Received(1).Acquire(
+            ctx.BranchUser.BranchId,
+            ctx.DailyClose.AccountId,
             Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -72,6 +86,7 @@ public class SubmitDailyCloseUseCaseTest
             .WithValue(12m)
             .Build();
         ctx.DailyClose = CloneClose(ctx.DailyClose, status: DailyCloseStatus.Rejected, items: [existingCashVariance]);
+        ctx.DailyClose.RejectionReason = "Corrija o fechamento";
         RewireDailyCloseRepository(ctx);
 
         var useCase = CreateUseCase(ctx);
@@ -79,6 +94,7 @@ public class SubmitDailyCloseUseCaseTest
         await useCase.Execute(ctx.DailyClose.Id);
 
         ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
+        ctx.DailyClose.RejectionReason.ShouldBeNull();
         ctx.DailyClose.Items.Count(item => item.ProductId == ctx.CashVarianceProductId && item.Active).ShouldBe(1);
         existingCashVariance.Id.ShouldBe(existingItemId);
         existingCashVariance.Value.ShouldBe(ctx.ComputedVariance);
@@ -86,24 +102,28 @@ public class SubmitDailyCloseUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldOverwriteSubmittedByOperatorId_WithCurrentLinkedOperator()
+    public async Task Execute_ShouldStampSubmitterWithoutChangingRecorder_WhenManagerSubmitsMemberCount()
     {
-        var ctx = BuildContext(Role.Member);
-        var staleOperator = new OperatorBuilder()
+        var ctx = BuildContext(Role.Manager);
+        var recordingUser = new UserBuilder().Build();
+        var recordingOperator = new OperatorBuilder()
             .WithBranchId(ctx.BranchUser.BranchId)
+            .WithUser(recordingUser)
             .Build();
-        ctx.DailyClose = CloneClose(
-            ctx.DailyClose,
-            submittedByOperator: staleOperator,
-            status: DailyCloseStatus.Draft);
+        ctx.DailyClose.RecordedByUserId = recordingUser.Id;
+        ctx.DailyClose.RecordedByUser = recordingUser;
+        ctx.DailyClose.RecordedByOperatorId = recordingOperator.Id;
+        ctx.DailyClose.RecordedByOperator = recordingOperator;
         RewireDailyCloseRepository(ctx);
 
         var useCase = CreateUseCase(ctx);
 
         await useCase.Execute(ctx.DailyClose.Id);
 
+        ctx.DailyClose.RecordedByUserId.ShouldBe(recordingUser.Id);
+        ctx.DailyClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
+        ctx.DailyClose.SubmittedByUserId.ShouldBe(ctx.BranchUser.UserId);
         ctx.DailyClose.SubmittedByOperatorId.ShouldBe(ctx.CallerOperator!.Id);
-        ctx.DailyClose.SubmittedByOperatorId.ShouldNotBe(staleOperator.Id);
         await ctx.UnitOfWork.Received(1).Commit();
     }
 
@@ -192,6 +212,30 @@ public class SubmitDailyCloseUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldRejectOutstandingDraftTransactions_BeforeVarianceCalculation()
+    {
+        var ctx = BuildContext(Role.Manager, linkedOperator: false);
+        ctx.DailyCloseLedgerGuard
+            .EnsureNoOutstandingDraftTransactions(
+                ctx.BranchUser.BranchId,
+                ctx.DailyClose.AccountId,
+                ctx.DailyClose.Date.Date,
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromException(new ConflictException(
+                ResourcesErrorMessages.DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS)));
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.DailyClose.Id));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS);
+        await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
+            .CalculateAsync(Guid.Empty, Guid.Empty, default, Guid.Empty, Guid.Empty, CancellationToken.None);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+        await ctx.DailyCloseLedgerCoordinationScope.DidNotReceive()
+            .Complete(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowForbidden_WhenWorkflowGuardRejectsMemberOlderDay()
     {
         var ctx = BuildContext(Role.Member);
@@ -214,24 +258,104 @@ public class SubmitDailyCloseUseCaseTest
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldRejectCloseWithoutSuccessfulItemSave()
+    {
+        var ctx = BuildContext(Role.Manager);
+        ctx.DailyClose = CloneClose(ctx.DailyClose, clearItemsFirstRecordedAt: true);
+        RewireDailyCloseRepository(ctx);
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() =>
+            useCase.Execute(ctx.DailyClose.Id));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_ITEMS_NOT_RECORDED);
+        await ctx.DailyCloseLedgerGuard.DidNotReceiveWithAnyArgs()
+            .EnsureNoOutstandingDraftTransactions(Guid.Empty, Guid.Empty, default, CancellationToken.None);
+        await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
+            .CalculateWithOpeningSourceAsync(
+                Guid.Empty,
+                Guid.Empty,
+                default,
+                Guid.Empty,
+                Guid.Empty,
+                null,
+                CancellationToken.None);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldResolveOpeningSourceAndLockDateExactlyOnceAndReuseSource()
+    {
+        var ctx = BuildContext(Role.Manager);
+        var openingSource = new DailyCloseBuilder()
+            .WithBranchId(ctx.BranchUser.BranchId)
+            .WithAccountId(ctx.DailyClose.AccountId)
+            .WithDate(ctx.DailyClose.Date.AddDays(-1))
+            .WithItemsFirstRecordedAt(ctx.Now.AddDays(-1))
+            .Build();
+        ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.DailyClose.Id, ctx.BranchUser.BranchId, ctx.DailyClose)
+            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
+                ctx.BranchUser.BranchId,
+                ctx.DailyClose.AccountId,
+                ctx.DailyClose.Date,
+                openingSource)
+            .Build();
+        var setting = new Setting
+        {
+            BranchId = ctx.BranchUser.BranchId,
+            LockDate = ctx.DailyClose.Date.AddDays(-10)
+        };
+        ctx.SettingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdAsNoTrackingReturns(ctx.BranchUser.BranchId, setting)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.DailyClose.Id);
+
+        await ctx.DailyClosesRepository.Received(1)
+            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
+                ctx.BranchUser.BranchId,
+                ctx.DailyClose.AccountId,
+                ctx.DailyClose.Date,
+                Arg.Any<CancellationToken>());
+        await ctx.SettingsRepository.Received(1)
+            .GetByBranchIdAsNoTracking(ctx.BranchUser.BranchId, Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.Received(1)
+            .CalculateWithOpeningSourceAsync(
+                ctx.BranchUser.BranchId,
+                ctx.DailyClose.AccountId,
+                ctx.DailyClose.Date,
+                ctx.DailyClose.Id,
+                ctx.CashVarianceProductId,
+                openingSource,
+                Arg.Any<CancellationToken>());
+    }
+
     private static SubmitDailyCloseUseCase CreateUseCase(TestContext ctx)
     {
         var memberAccountScopeResolver = new MemberAccountScopeResolver(
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
 
         return new SubmitDailyCloseUseCase(
             ctx.AuthenticationService,
             ctx.DailyClosesRepository,
+            ctx.DailyCloseItemsRepository,
+            ctx.TransactionsRepository,
             memberAccountScopeResolver,
             memberAccountScopeGuard,
             ctx.WorkflowGuard,
+            new LockDateReader(ctx.SettingsRepository),
             lockDateGuard,
             ctx.CashVarianceProductResolver,
             ctx.CashVarianceCalculator,
             ctx.BranchClock,
+            ctx.DailyCloseLedgerGuard,
+            ctx.DailyCloseLedgerCoordination,
             ctx.UnitOfWork);
     }
 
@@ -259,7 +383,8 @@ public class SubmitDailyCloseUseCaseTest
             .WithStatus(status)
             .WithAccount(account)
             .WithDate(today)
-            .WithSubmittedByOperator(callerOperator)
+            .WithRecordedBy(branchUser.User, callerOperator)
+            .WithItemsFirstRecordedAt(now.AddMinutes(-1))
             .Build();
         var cashVarianceProductId = Guid.NewGuid();
         const decimal computedVariance = 123.45m;
@@ -294,14 +419,19 @@ public class SubmitDailyCloseUseCaseTest
             .Returns(cashVarianceProductId);
         var cashVarianceCalculator = Substitute.For<ICashVarianceCalculator>();
         cashVarianceCalculator
-            .CalculateAsync(
+            .CalculateWithOpeningSourceAsync(
                 Arg.Any<Guid>(),
                 Arg.Any<Guid>(),
                 Arg.Any<DateTime>(),
                 Arg.Any<Guid>(),
                 Arg.Any<Guid>(),
+                Arg.Any<DailyClose?>(),
                 Arg.Any<CancellationToken>())
             .Returns(computedVariance);
+        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var dailyCloseItemsRepository = new DailyCloseItemsRepositoryBuilder().Build();
+        var transactionsRepository = new TransactionsRepositoryBuilder().Build();
+        var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         return new TestContext
         {
@@ -316,11 +446,16 @@ public class SubmitDailyCloseUseCaseTest
             OperatorsRepository = operatorsRepository,
             OperatorAccountsRepository = operatorAccountsRepository,
             DailyClosesRepository = dailyClosesRepository,
+            DailyCloseItemsRepository = dailyCloseItemsRepository,
+            TransactionsRepository = transactionsRepository,
             SettingsRepository = settingsRepository,
             WorkflowGuard = workflowGuard,
             CashVarianceProductResolver = cashVarianceProductResolver,
             CashVarianceCalculator = cashVarianceCalculator,
             BranchClock = new FixedBranchClock(now),
+            DailyCloseLedgerGuard = dailyCloseLedgerGuard,
+            DailyCloseLedgerCoordination = coordinationBuilder.Build(),
+            DailyCloseLedgerCoordinationScope = coordinationBuilder.Scope,
             UnitOfWork = new UnitOfWorkBuilder().Build()
         };
     }
@@ -337,17 +472,24 @@ public class SubmitDailyCloseUseCaseTest
         DailyCloseStatus? status = null,
         DateTime? date = null,
         Operator? submittedByOperator = null,
-        IReadOnlyList<DailyCloseItem>? items = null)
+        IReadOnlyList<DailyCloseItem>? items = null,
+        bool clearItemsFirstRecordedAt = false)
     {
-        return new DailyCloseBuilder()
+        var builder = new DailyCloseBuilder()
             .WithId(source.Id)
             .WithCreatedAt(source.CreatedAt)
             .WithStatus(status ?? source.Status)
             .WithAccount(source.Account)
             .WithDate(date ?? source.Date)
-            .WithSubmittedByOperator(submittedByOperator ?? source.SubmittedByOperator)
-            .WithItems(items ?? source.Items.ToList())
-            .Build();
+            .WithOpenedByUser(source.OpenedByUser)
+            .WithSubmittedBy(source.SubmittedByUser, submittedByOperator ?? source.SubmittedByOperator)
+            .WithItemsFirstRecordedAt(clearItemsFirstRecordedAt ? null : source.ItemsFirstRecordedAt)
+            .WithItems(items ?? source.Items.ToList());
+
+        if (clearItemsFirstRecordedAt is false && source.RecordedByUser is not null)
+            builder.WithRecordedBy(source.RecordedByUser, source.RecordedByOperator);
+
+        return builder.Build();
     }
 
     private sealed class FixedBranchClock(DateTime now) : IBranchClock
@@ -372,11 +514,16 @@ public class SubmitDailyCloseUseCaseTest
         public required IOperatorsRepository OperatorsRepository { get; init; }
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; init; }
         public required IDailyClosesRepository DailyClosesRepository { get; set; }
+        public required IDailyCloseItemsRepository DailyCloseItemsRepository { get; init; }
+        public required ITransactionsRepository TransactionsRepository { get; init; }
         public required ISettingsRepository SettingsRepository { get; set; }
         public required IDailyCloseWorkflowGuard WorkflowGuard { get; set; }
         public required ICashVarianceProductResolver CashVarianceProductResolver { get; init; }
         public required ICashVarianceCalculator CashVarianceCalculator { get; init; }
         public required IBranchClock BranchClock { get; init; }
+        public required IDailyCloseLedgerGuard DailyCloseLedgerGuard { get; init; }
+        public required IDailyCloseAccountCoordination DailyCloseLedgerCoordination { get; init; }
+        public required IDailyCloseAccountCoordinationScope DailyCloseLedgerCoordinationScope { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }
 }

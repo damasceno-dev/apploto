@@ -297,7 +297,7 @@ public class PreviewEditTransactionUseCaseTest
 
     private static PreviewEditTransactionUseCase CreateUseCase(TestContext ctx)
     {
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
         var projector = new TransactionEditImpactProjector(
             ctx.DailyClosesRepository,
             ctx.ClientsRepository,

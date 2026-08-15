@@ -8,6 +8,7 @@ using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using server.Exceptions;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -139,7 +140,7 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
         // End-to-end determinism test: preview rows must match persisted rows position-for-position.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPreviewParity", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,
@@ -270,7 +271,7 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
         // group once the identical payload is committed.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevOcaDet", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount, "Banco");
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);
@@ -399,7 +400,7 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
     }
 
     [Fact]
-    public async Task PreviewInstallment_CashVariance_ShouldMatchRecompute_AgainstSeededClose()
+    public async Task PreviewInstallment_CashVariance_ShouldRemainHypothetical_WhenSubmittedCloseFreezesWrite()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevCvDet", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
@@ -435,10 +436,12 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
         preview.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(800m);
 
         var createResponse = await _client.PostAuthAsync("/transaction/installment", request, token);
-        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await createResponse.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
 
         var actualVariance = await CalculateCashVarianceAsync(branch.Id, terminal.Id, date, close.Id);
-        actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.ProjectedVariance.GetValueOrDefault());
+        actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.CurrentVariance.GetValueOrDefault());
     }
 
     [Fact]
@@ -474,7 +477,7 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevDraftDet", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount, "Banco");
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);

@@ -4,6 +4,7 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Holidays;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
@@ -77,7 +78,14 @@ public class CreateTransactionInstallmentUseCaseTest
 
         await ctx.TransactionsRepository.Received(1)
             .AddRange(Arg.Is<IEnumerable<Transaction>>(rows => rows.Count() == 3));
+        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerAcceptsNewRow(
+            ctx.BranchUser.BranchId,
+            ctx.Request.AccountId,
+            ctx.Account.Type,
+            ctx.Request.Date.Date,
+            Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -392,7 +400,7 @@ public class CreateTransactionInstallmentUseCaseTest
             ctx.OperatorsRepository,
             ctx.ClientsRepository,
             ctx.TransactionTypesRepository);
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
         var memberAccountScopeResolver = new MemberAccountScopeResolver(
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
@@ -411,6 +419,8 @@ public class CreateTransactionInstallmentUseCaseTest
             transactionCreatePreamble,
             installmentPlanBuilder,
             ctx.TransactionsRepository,
+            ctx.DailyCloseLedgerGuard,
+            ctx.DailyCloseLedgerCoordination,
             ctx.UnitOfWork);
     }
 
@@ -474,6 +484,8 @@ public class CreateTransactionInstallmentUseCaseTest
             .ListActiveByOperatorIdAsNoTracking(callerOperator.Id, [operatorAccount])
             .Build();
         var transactionsRepository = new TransactionsRepositoryBuilder().Build();
+        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
         var unitOfWork = new UnitOfWorkBuilder().Build();
         var branchHolidaySource = Substitute.For<IBranchHolidaySource>();
         branchHolidaySource.GetHolidayDatesAsync(branchUser.BranchId).Returns(new HashSet<DateOnly>());
@@ -493,6 +505,9 @@ public class CreateTransactionInstallmentUseCaseTest
             SettingsRepository = settingsRepository,
             OperatorAccountsRepository = operatorAccountsRepository,
             TransactionsRepository = transactionsRepository,
+            DailyCloseLedgerGuard = dailyCloseLedgerGuard,
+            DailyCloseLedgerCoordination = coordinationBuilder.Build(),
+            DailyCloseLedgerCoordinationScope = coordinationBuilder.Scope,
             UnitOfWork = unitOfWork,
             BranchHolidaySource = branchHolidaySource
         };
@@ -525,6 +540,9 @@ public class CreateTransactionInstallmentUseCaseTest
         public required ISettingsRepository SettingsRepository { get; set; }
         public required IOperatorAccountsRepository OperatorAccountsRepository { get; set; }
         public required ITransactionsRepository TransactionsRepository { get; set; }
+        public required IDailyCloseLedgerGuard DailyCloseLedgerGuard { get; set; }
+        public required IDailyCloseAccountCoordination DailyCloseLedgerCoordination { get; set; }
+        public required IDailyCloseAccountCoordinationScope DailyCloseLedgerCoordinationScope { get; set; }
         public required IUnitOfWork UnitOfWork { get; set; }
         public required IBranchHolidaySource BranchHolidaySource { get; set; }
     }

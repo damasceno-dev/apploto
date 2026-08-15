@@ -23,7 +23,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreateMgr", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Entradas", Direction.In);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.SameDay);
 
@@ -60,7 +60,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreateDraft", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Entradas", Direction.In);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.SameDay);
 
@@ -83,7 +83,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreateMemberLinked", Role.Member);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         await factory.SeedOperatorAccountAsync(op.Id, account.Id);
         var category = await factory.SeedCategoryAsync(branch.Id, "Entradas");
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.SameDay);
@@ -110,7 +110,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnInstallment", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,
@@ -166,7 +166,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnInstallmentManualDraft", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,
@@ -205,7 +205,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnInstallmentAutoDraft", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,
@@ -241,7 +241,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
         // persisted due date to Tuesday.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreateHolidayNext", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Entradas", Direction.In);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.NextBusinessDay);
 
@@ -274,7 +274,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
         // moves it forward to the next non-weekend, non-holiday business day.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnInstallmentHoliday", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,

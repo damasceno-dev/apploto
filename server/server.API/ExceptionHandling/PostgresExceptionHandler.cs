@@ -14,6 +14,7 @@ namespace server.ExceptionHandling;
 internal static class PostgresExceptionHandler
 {
     private const string PostgresUniqueViolationSqlState = "23505";
+    private const string PostgresLockNotAvailableSqlState = "55P03";
 
     private static readonly Dictionary<string, string> UniqueConstraintMessages =
         new(StringComparer.Ordinal)
@@ -32,6 +33,10 @@ internal static class PostgresExceptionHandler
 
     public static Exception Normalize(Exception exception)
     {
+        var postgresException = FindPostgresException(exception);
+        if (postgresException is { SqlState: PostgresLockNotAvailableSqlState })
+            return new ConflictException(ResourcesErrorMessages.DAILYCLOSE_LEDGER_COORDINATION_BUSY);
+
         if (exception is DbUpdateConcurrencyException concurrencyException
             && concurrencyException.Entries.Any(entry => entry.Entity is DailyClose))
         {
@@ -40,13 +45,10 @@ internal static class PostgresExceptionHandler
 
         // Only rewrite known Postgres unique-violation cases. Everything else
         // flows through unchanged so the generic API exception handler can decide
-        if (exception is ServerException || exception is not DbUpdateException
+        if (exception is ServerException || exception is not DbUpdateException || postgresException is not
             {
-                InnerException: PostgresException
-                {
-                    SqlState: PostgresUniqueViolationSqlState,
-                    ConstraintName: not null
-                } postgresException
+                SqlState: PostgresUniqueViolationSqlState,
+                ConstraintName: not null
             })
         {
             return exception;
@@ -55,5 +57,16 @@ internal static class PostgresExceptionHandler
         return UniqueConstraintMessages.TryGetValue(postgresException.ConstraintName, out var conflictMessage)
             ? new ConflictException(conflictMessage)
             : exception;
+    }
+
+    private static PostgresException? FindPostgresException(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException postgresException)
+                return postgresException;
+        }
+
+        return null;
     }
 }

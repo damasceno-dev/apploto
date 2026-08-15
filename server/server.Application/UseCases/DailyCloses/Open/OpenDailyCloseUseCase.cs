@@ -3,6 +3,7 @@ using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -17,56 +18,62 @@ public class OpenDailyCloseUseCase(
     IDailyCloseWorkflowGuard workflowGuard,
     LockDateGuard lockDateGuard,
     IDailyClosesRepository dailyClosesRepository,
+    IDailyCloseAccountCoordination accountCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseDailyCloseJson> Execute(RequestOpenDailyCloseJson request)
+    public async Task<ResponseDailyCloseJson> Execute(
+        RequestOpenDailyCloseJson request,
+        CancellationToken ct = default)
     {
         Validate(request);
+        ct.ThrowIfCancellationRequested();
 
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
-
-        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
         var callerOperator = memberScope.LinkedOperator;
 
-        var account = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(
+        var accountKey = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(
             request.AccountId,
-            branchUser.BranchId);
+            branchUser.BranchId,
+            ct)
+            ?? throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
 
-        if (account is null)
-            throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+        await using var coordination = await accountCoordination.Acquire(
+            branchUser.BranchId,
+            accountKey.Id,
+            ct);
 
-        memberAccountScopeGuard.EnsureMemberCanActOnAccount(
-            branchUser.Role,
-            memberScope,
-            request.AccountId);
-
-        workflowGuard.EnsureCanOpen(
-            branchUser,
-            callerOperator,
+        var account = await accountsRepository.GetActiveByIdAndBranchId(
             request.AccountId,
-            request.Date);
+            branchUser.BranchId,
+            ct)
+            ?? throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+
+        memberAccountScopeGuard.EnsureMemberCanActOnAccount(branchUser.Role, memberScope, account.Id);
+
+        if (account.Type != AccountType.Terminal)
+            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_ACCOUNT_NOT_TERMINAL);
+
+        workflowGuard.EnsureCanOpen(branchUser, callerOperator, request.Date);
 
         await lockDateGuard.EnsureNotLocked(
             branchUser.BranchId,
             request.Date,
-            ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
+            ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION,
+            ct);
 
-        var dailyClose = request.ToDomain(
-            branchId: branchUser.BranchId,
-            submittedByOperatorId: callerOperator?.Id);
+        var dailyClose = request.ToDomain(branchUser.BranchId, branchUser.UserId);
+        await dailyClosesRepository.Add(dailyClose, ct);
+        await unitOfWork.Commit(ct);
+        await coordination.Complete(ct);
 
-        await dailyClosesRepository.Add(dailyClose);
-        await unitOfWork.Commit();
-
-        return dailyClose.ToResponse(account, callerOperator);
+        return dailyClose.ToResponse(account, branchUser.User);
     }
 
     private static void Validate(RequestOpenDailyCloseJson request)
     {
         var result = new OpenDailyCloseFluentValidation().Validate(request);
         if (result.IsValid is false)
-        {
             throw new OnValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
-        }
     }
 }

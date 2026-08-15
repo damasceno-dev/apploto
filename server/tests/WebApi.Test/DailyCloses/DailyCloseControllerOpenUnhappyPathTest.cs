@@ -68,7 +68,7 @@ public class DailyCloseControllerOpenUnhappyPathTest(ServerWebApplicationFactory
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
 
         var request = new RequestOpenDailyCloseJsonBuilder()
-            .WithDate(DateTime.Today)
+            .WithDate(LocalToday())
             .WithAccountId(account.Id)
             .Build();
 
@@ -88,7 +88,7 @@ public class DailyCloseControllerOpenUnhappyPathTest(ServerWebApplicationFactory
         // Operator has no OperatorAccount link to this account.
 
         var request = new RequestOpenDailyCloseJsonBuilder()
-            .WithDate(DateTime.Today)
+            .WithDate(LocalToday())
             .WithAccountId(account.Id)
             .Build();
 
@@ -167,5 +167,78 @@ public class DailyCloseControllerOpenUnhappyPathTest(ServerWebApplicationFactory
         var conflictResponse = responses.Single(r => r.StatusCode == HttpStatusCode.Conflict);
         var payload = await conflictResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_DATE_CONFLICT);
+    }
+
+    [Theory]
+    [InlineData(AccountType.Tab)]
+    [InlineData(AccountType.BankAccount)]
+    public async Task Open_ShouldReturn409_WhenAccountIsNotTerminal(AccountType accountType)
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            $"DcOpenType{accountType}",
+            Role.Manager);
+        var account = await factory.SeedAccountAsync(branch.Id, accountType);
+        var request = new RequestOpenDailyCloseJsonBuilder()
+            .WithDate(LocalToday())
+            .WithAccountId(account.Id)
+            .Build();
+
+        var response = await _client.PostAuthAsync("/dailyclose", request, token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await response.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_ACCOUNT_NOT_TERMINAL);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    public async Task Open_ShouldReturn409_WhenMemberUsesNonCurrentDate(int dayOffset)
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            $"DcOpenMemberDate{dayOffset}",
+            Role.Member);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(op.Id, account.Id);
+        var request = new RequestOpenDailyCloseJsonBuilder()
+            .WithDate(LocalToday().AddDays(dayOffset))
+            .WithAccountId(account.Id)
+            .Build();
+
+        var response = await _client.PostAuthAsync("/dailyclose", request, token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await response.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(dayOffset > 0
+            ? ResourcesErrorMessages.DAILYCLOSE_FUTURE_DATE_NOT_ALLOWED
+            : ResourcesErrorMessages.DAILYCLOSE_MEMBER_OPEN_REQUIRES_TODAY);
+    }
+
+    [Theory]
+    [InlineData(Role.Manager)]
+    [InlineData(Role.Admin)]
+    public async Task Open_ShouldReturn409_WhenElevatedRoleUsesFutureDate(Role role)
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            $"DcOpenFuture{role}",
+            role);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var request = new RequestOpenDailyCloseJsonBuilder()
+            .WithDate(LocalToday().AddDays(1))
+            .WithAccountId(account.Id)
+            .Build();
+
+        var response = await _client.PostAuthAsync("/dailyclose", request, token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await response.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_FUTURE_DATE_NOT_ALLOWED);
+    }
+
+    private static DateTime LocalToday()
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone).Date;
     }
 }

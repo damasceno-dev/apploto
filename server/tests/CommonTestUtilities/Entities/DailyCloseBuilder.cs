@@ -14,6 +14,14 @@ public class DailyCloseBuilder
     private DailyCloseStatus _status = DailyCloseStatus.Draft;
     private Guid _accountId = Guid.NewGuid();
     private Account? _account;
+    private Guid _openedByUserId = Guid.NewGuid();
+    private User? _openedByUser;
+    private Guid? _recordedByUserId;
+    private User? _recordedByUser;
+    private Guid? _recordedByOperatorId;
+    private Operator? _recordedByOperator;
+    private Guid? _submittedByUserId;
+    private User? _submittedByUser;
     private Guid? _submittedByOperatorId;
     private Operator? _submittedByOperator;
     private DateTime? _submittedAt;
@@ -22,6 +30,11 @@ public class DailyCloseBuilder
     private User? _approvedByUser;
     private string? _rejectionReason;
     private string? _notes;
+    private DateTime? _itemsFirstRecordedAt;
+    private DateTime? _openingRecheckRequiredAt;
+    private Guid? _openingRecheckTriggeredByDailyCloseId;
+    private DailyClose? _openingRecheckTriggeredByDailyClose;
+    private Guid? _openingRecheckTriggeredByUserId;
     private DateTime? _updatedAt;
     private Guid? _updatedByUserId;
     private Guid _branchId = Guid.NewGuid();
@@ -101,6 +114,31 @@ public class DailyCloseBuilder
         return this;
     }
 
+    public DailyCloseBuilder WithOpenedByUser(User openedByUser)
+    {
+        _openedByUser = openedByUser;
+        _openedByUserId = openedByUser.Id;
+        return this;
+    }
+
+    public DailyCloseBuilder WithRecordedBy(User recordedByUser, Operator? recordedByOperator = null)
+    {
+        _recordedByUser = recordedByUser;
+        _recordedByUserId = recordedByUser.Id;
+        _recordedByOperator = recordedByOperator;
+        _recordedByOperatorId = recordedByOperator?.Id;
+        return this;
+    }
+
+    public DailyCloseBuilder WithSubmittedBy(User? submittedByUser, Operator? submittedByOperator = null)
+    {
+        _submittedByUser = submittedByUser;
+        _submittedByUserId = submittedByUser?.Id;
+        _submittedByOperator = submittedByOperator;
+        _submittedByOperatorId = submittedByOperator?.Id;
+        return this;
+    }
+
     public DailyCloseBuilder WithSubmittedAt(DateTime? submittedAt)
     {
         _submittedAt = submittedAt;
@@ -132,6 +170,24 @@ public class DailyCloseBuilder
         return this;
     }
 
+    public DailyCloseBuilder WithItemsFirstRecordedAt(DateTime? itemsFirstRecordedAt)
+    {
+        _itemsFirstRecordedAt = itemsFirstRecordedAt;
+        return this;
+    }
+
+    public DailyCloseBuilder WithOpeningRecheck(
+        DateTime? requiredAt,
+        DailyClose? triggeredByDailyClose,
+        Guid? triggeredByUserId)
+    {
+        _openingRecheckRequiredAt = requiredAt;
+        _openingRecheckTriggeredByDailyClose = triggeredByDailyClose;
+        _openingRecheckTriggeredByDailyCloseId = triggeredByDailyClose?.Id;
+        _openingRecheckTriggeredByUserId = triggeredByUserId;
+        return this;
+    }
+
     public DailyCloseBuilder WithItems(IReadOnlyList<DailyCloseItem> items)
     {
         _items = items;
@@ -152,6 +208,14 @@ public class DailyCloseBuilder
             .WithId(_accountId)
             .WithBranch(branch)
             .Build();
+        var openedByUser = _openedByUser ?? new UserBuilder().WithId(_openedByUserId).Build();
+        var recordedByUser = _recordedByUser;
+        if (_itemsFirstRecordedAt is not null && recordedByUser is null)
+        {
+            recordedByUser = _recordedByOperator?.User
+                ?? new UserBuilder().WithId(_recordedByUserId ?? _recordedByOperator?.UserId ?? openedByUser.Id).Build();
+            _recordedByUserId = recordedByUser.Id;
+        }
 
         return new DailyClose
         {
@@ -163,6 +227,14 @@ public class DailyCloseBuilder
             Status = _status,
             AccountId = _accountId,
             Account = account,
+            OpenedByUserId = _openedByUserId,
+            OpenedByUser = openedByUser,
+            RecordedByUserId = _recordedByUserId,
+            RecordedByUser = recordedByUser,
+            RecordedByOperatorId = _recordedByOperatorId,
+            RecordedByOperator = _recordedByOperator,
+            SubmittedByUserId = _submittedByUserId,
+            SubmittedByUser = _submittedByUser,
             SubmittedByOperatorId = _submittedByOperatorId,
             SubmittedByOperator = _submittedByOperator,
             SubmittedAt = _submittedAt,
@@ -171,6 +243,11 @@ public class DailyCloseBuilder
             ApprovedByUser = _approvedByUser,
             RejectionReason = _rejectionReason,
             Notes = _notes,
+            ItemsFirstRecordedAt = _itemsFirstRecordedAt,
+            OpeningRecheckRequiredAt = _openingRecheckRequiredAt,
+            OpeningRecheckTriggeredByDailyCloseId = _openingRecheckTriggeredByDailyCloseId,
+            OpeningRecheckTriggeredByDailyClose = _openingRecheckTriggeredByDailyClose,
+            OpeningRecheckTriggeredByUserId = _openingRecheckTriggeredByUserId,
             UpdatedAt = _updatedAt,
             UpdatedByUserId = _updatedByUserId,
             BranchId = _branchId,

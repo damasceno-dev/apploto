@@ -50,8 +50,9 @@ public class ListDailyClosesUseCaseTest
             .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 42)
             .Build();
         var useCase = CreateUseCase(ctx);
+        using var cancellation = new CancellationTokenSource();
 
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellation.Token);
 
         response.Items.Count.ShouldBe(3);
         response.TotalCount.ShouldBe(42);
@@ -59,10 +60,12 @@ public class ListDailyClosesUseCaseTest
         response.PageSize.ShouldBe(3);
         await ctx.DailyClosesRepository.Received(1).ListByBranchIdAsNoTracking(
             branchUser.BranchId,
-            Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+            Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(expectedFilter, actual)),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
         await ctx.DailyClosesRepository.Received(1).CountByBranchIdAsNoTracking(
             branchUser.BranchId,
-            Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+            Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(expectedFilter, actual)),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
     }
 
     [Fact]

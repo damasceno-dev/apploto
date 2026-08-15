@@ -1,4 +1,5 @@
 using System.Net;
+using server.Application.Services.DailyCloses;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -19,6 +20,9 @@ public class DailyCloseControllerRejectHappyPathTest(ServerWebApplicationFactory
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcRejectHappy", Role.Manager);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName);
         var close = await factory.SeedDailyCloseAsync(
             branch.Id,
             account.Id,

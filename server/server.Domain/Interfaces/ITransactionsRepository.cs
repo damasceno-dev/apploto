@@ -7,15 +7,31 @@ namespace server.Domain.Interfaces;
 
 public interface ITransactionsRepository
 {
-    Task Add(Transaction transaction);
-    Task AddRange(IEnumerable<Transaction> transactions);
-    Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId);
-    Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId);
+    Task Add(Transaction transaction, CancellationToken ct = default);
+    Task AddRange(IEnumerable<Transaction> transactions, CancellationToken ct = default);
+    Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default);
+    Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
     Task<Transaction?> GetByIdAndBranchIdAsNoTrackingWithTransactionType(Guid id, Guid branchId);
     Task<IReadOnlyList<Transaction>> ListByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<IReadOnlyList<Transaction>> ListByOriginTransactionIdAndBranchIdAsNoTracking(Guid originId, Guid branchId);
-    Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(Guid branchId, Guid accountId, DateTime date, Direction? direction = null);
+    Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime date,
+        Direction? direction = null,
+        CancellationToken ct = default);
+    Task<bool> ExistsDraftByAccountAndDateAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime date,
+        CancellationToken ct = default);
+    Task<DateTime?> GetEarliestUncountedActivityDateByAccountAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime afterDateExclusive,
+        DateTime beforeDateExclusive,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<Transaction>> ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
     Task<int> CountByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
@@ -44,5 +60,5 @@ public interface ITransactionsRepository
     /// the database without materializing every row and cannot silently drop rows past a page boundary.
     /// </summary>
     Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
-        Guid branchId, int year, int month);
+        Guid branchId, int year, int month, CancellationToken ct = default);
 }

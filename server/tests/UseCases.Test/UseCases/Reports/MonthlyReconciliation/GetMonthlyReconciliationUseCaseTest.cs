@@ -121,31 +121,36 @@ public class GetMonthlyReconciliationUseCaseTest
         var productId = Guid.NewGuid();
 
         var ctx = BuildContext(branchUser, productId: productId, closes: [], varianceRows: [], statusCounts: []);
+        using var cancellation = new CancellationTokenSource();
 
-        await CreateUseCase(ctx).Execute(BuildRequest());
+        await CreateUseCase(ctx).Execute(BuildRequest(), cancellation.Token);
 
         await ctx.DailyClosesRepository.Received(1).ListByBranchIdAndYearMonthAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<int>(v => v == Year),
-            Arg.Is<int>(v => v == Month));
+            Arg.Is<int>(v => v == Month),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.DailyCloseItemsRepository.Received(1).ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<Guid>(v => v == productId),
             Arg.Is<Guid?>(v => v == null),
             Arg.Is<DateTime>(v => v == DateFrom),
-            Arg.Is<DateTime>(v => v == DateTo));
+            Arg.Is<DateTime>(v => v == DateTo),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.TransactionsRepository.Received(1).CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<int>(v => v == Year),
-            Arg.Is<int>(v => v == Month));
+            Arg.Is<int>(v => v == Month),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.TransactionsRepository.DidNotReceive()
             .CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
                 Arg.Is<Guid>(v => v == otherBranchId),
                 Arg.Any<int>(),
-                Arg.Any<int>());
+                Arg.Any<int>(),
+                Arg.Any<CancellationToken>());
     }
 
     [Fact]

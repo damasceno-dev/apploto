@@ -22,6 +22,7 @@ internal class BranchUsersRepository(ServerDbContext dbContext) : IBranchUsersRe
     {
         return await dbContext.BranchUsers
             .AsNoTracking()
+            .Include(branchUser => branchUser.User)
             .FirstOrDefaultAsync(branchUser =>
                 branchUser.Id == branchUserId &&
                 branchUser.Active &&

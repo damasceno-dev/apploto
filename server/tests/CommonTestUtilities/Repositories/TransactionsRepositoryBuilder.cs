@@ -21,7 +21,13 @@ public class TransactionsRepositoryBuilder
     {
         _repository.GetByIdAndBranchId(
                 Arg.Is<Guid>(value => value == id),
-                Arg.Is<Guid>(value => value == branchId))
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        _repository.GetByIdAndBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == id),
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -85,7 +91,8 @@ public class TransactionsRepositoryBuilder
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid>(value => value == accountId),
                 Arg.Is<DateTime>(value => value == date),
-                Arg.Is<Direction?>(value => value == direction))
+                Arg.Is<Direction?>(value => value == direction),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -282,7 +289,8 @@ public class TransactionsRepositoryBuilder
         _repository.CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<int>(value => value == year),
-                Arg.Is<int>(value => value == month))
+                Arg.Is<int>(value => value == month),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }

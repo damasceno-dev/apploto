@@ -201,6 +201,7 @@ public class GetDailyCloseReviewUseCaseTest
         var currentClose = new DailyCloseBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithAccount(account)
+            .WithStatus(DailyCloseStatus.Submitted)
             .WithItems([
                 new DailyCloseItemBuilder().WithProduct(cashVarianceProduct).WithValue(-12m).Build()
             ])

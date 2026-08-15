@@ -1,4 +1,5 @@
 using server.Application.Services.Members;
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
@@ -18,20 +19,33 @@ public class CancelTransactionUseCase(
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
     LockDateGuard lockDateGuard,
     IBranchClock branchClock,
+    IDailyCloseLedgerGuard dailyCloseLedgerGuard,
+    IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseTransactionJson> Execute(Guid transactionId, RequestCancelTransactionJson request)
+    public async Task<ResponseTransactionJson> Execute(Guid transactionId,RequestCancelTransactionJson request,CancellationToken ct = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         Validate(request);
 
-        var transaction = await transactionsRepository.GetByIdAndBranchId(transactionId, branchUser.BranchId)
+        var transactionKey = await transactionsRepository.GetByIdAndBranchIdAsNoTracking(
+            transactionId,
+            branchUser.BranchId,
+            ct)
+            ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
+
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
+
+        await using var coordination = await dailyCloseAccountCoordination.Acquire(
+            branchUser.BranchId,
+            transactionKey.AccountId,
+            ct);
+
+        var transaction = await transactionsRepository.GetByIdAndBranchId(transactionId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         if (transaction.Status == TransactionStatus.Cancelled)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_ALREADY_CANCELLED);
-
-        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
 
         if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
         {
@@ -55,7 +69,14 @@ public class CancelTransactionUseCase(
         await lockDateGuard.EnsureNotLocked(
             branchUser.BranchId,
             transaction.Date,
-            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
+            ct);
+
+        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(
+            branchUser.BranchId,
+            transaction.AccountId,
+            transaction.Date.Date,
+            ct);
 
         // Cancellation never touches installment siblings: the loaded row is the only
         // entity mutated. The installment-sibling-isolation Web API test in 7.9 is the
@@ -67,7 +88,8 @@ public class CancelTransactionUseCase(
         transaction.UpdatedAt = utcNow;
         transaction.UpdatedByUserId = branchUser.UserId;
 
-        await unitOfWork.Commit();
+        await unitOfWork.Commit(ct);
+        await coordination.Complete(ct);
 
         return transaction.ToTransactionResponse();
     }

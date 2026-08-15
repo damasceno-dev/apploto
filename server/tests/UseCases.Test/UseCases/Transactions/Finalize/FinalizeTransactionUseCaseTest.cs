@@ -2,6 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
@@ -60,7 +61,13 @@ public class FinalizeTransactionUseCaseTest
             ctx.BranchUser.Role,
             ctx.CallerOperator,
             Arg.Any<DateTime>());
+        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerIsMutable(
+            ctx.BranchUser.BranchId,
+            ctx.Transaction.AccountId,
+            ctx.Transaction.Date.Date,
+            Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
     [Theory]
@@ -99,7 +106,10 @@ public class FinalizeTransactionUseCaseTest
             () => useCase.Execute(transactionId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
-        await ctx.TransactionsRepository.Received(1).GetByIdAndBranchId(transactionId, ctx.BranchUser.BranchId);
+        await ctx.TransactionsRepository.Received(1)
+            .GetByIdAndBranchIdAsNoTracking(transactionId, ctx.BranchUser.BranchId);
+        await ctx.TransactionsRepository.DidNotReceive()
+            .GetByIdAndBranchId(transactionId, ctx.BranchUser.BranchId);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -230,7 +240,7 @@ public class FinalizeTransactionUseCaseTest
     private static FinalizeTransactionUseCase CreateUseCase(TestContext ctx)
     {
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
 
         return new FinalizeTransactionUseCase(
             ctx.AuthenticationService,
@@ -240,6 +250,8 @@ public class FinalizeTransactionUseCaseTest
             ctx.MutationPermissionGuard,
             lockDateGuard,
             new BranchClock(),
+            ctx.DailyCloseLedgerGuard,
+            ctx.DailyCloseLedgerCoordination,
             ctx.UnitOfWork);
     }
 
@@ -289,6 +301,8 @@ public class FinalizeTransactionUseCaseTest
                 AllowedAccountIds: [transaction.AccountId]));
 
         var mutationPermissionGuard = Substitute.For<ITransactionMutationPermissionGuard>();
+        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         return new TestContext
         {
@@ -300,6 +314,9 @@ public class FinalizeTransactionUseCaseTest
             SettingsRepository = settingsRepository,
             MemberAccountScopeResolver = memberAccountScopeResolver,
             MutationPermissionGuard = mutationPermissionGuard,
+            DailyCloseLedgerGuard = dailyCloseLedgerGuard,
+            DailyCloseLedgerCoordination = coordinationBuilder.Build(),
+            DailyCloseLedgerCoordinationScope = coordinationBuilder.Scope,
             UnitOfWork = unitOfWork
         };
     }
@@ -337,6 +354,9 @@ public class FinalizeTransactionUseCaseTest
         public required ISettingsRepository SettingsRepository { get; set; }
         public required IMemberAccountScopeResolver MemberAccountScopeResolver { get; init; }
         public required ITransactionMutationPermissionGuard MutationPermissionGuard { get; set; }
+        public required IDailyCloseLedgerGuard DailyCloseLedgerGuard { get; set; }
+        public required IDailyCloseAccountCoordination DailyCloseLedgerCoordination { get; set; }
+        public required IDailyCloseAccountCoordinationScope DailyCloseLedgerCoordinationScope { get; set; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }
 }

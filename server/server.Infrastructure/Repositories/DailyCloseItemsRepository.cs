@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models.Projections;
 
@@ -7,28 +8,26 @@ namespace server.Infrastructure.Repositories;
 
 internal class DailyCloseItemsRepository(ServerDbContext dbContext) : IDailyCloseItemsRepository
 {
-    public async Task Add(DailyCloseItem dailyCloseItem)
+    public async Task Add(DailyCloseItem dailyCloseItem, CancellationToken ct = default)
     {
-        await dbContext.DailyCloseItems.AddAsync(dailyCloseItem);
+        await dbContext.DailyCloseItems.AddAsync(dailyCloseItem, ct);
     }
 
-    public async Task AddRange(IEnumerable<DailyCloseItem> dailyCloseItems)
-    {
-        await dbContext.DailyCloseItems.AddRangeAsync(dailyCloseItems);
-    }
-
-    public async Task<IReadOnlyList<DailyCloseItem>> ListActiveByDailyCloseIdAsNoTracking(Guid dailyCloseId)
+    public async Task<IReadOnlyList<DailyCloseItem>> ListActiveByDailyCloseIdAsNoTracking(
+        Guid dailyCloseId,
+        CancellationToken ct = default)
     {
         return await dbContext.DailyCloseItems
             .AsNoTracking()
             .Where(item =>
                 item.DailyCloseId == dailyCloseId &&
                 item.Active)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<VarianceTimeSeriesRow>> ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
-        Guid branchId, Guid productId, Guid? accountId, DateTime dateFrom, DateTime dateTo)
+        Guid branchId, Guid productId, Guid? accountId, DateTime dateFrom, DateTime dateTo,
+        CancellationToken ct = default)
     {
         return await dbContext.DailyCloseItems
             .AsNoTracking()
@@ -37,6 +36,7 @@ internal class DailyCloseItemsRepository(ServerDbContext dbContext) : IDailyClos
                 item.ProductId == productId &&
                 item.DailyClose.BranchId == branchId &&
                 item.DailyClose.Active &&
+                item.DailyClose.Status != DailyCloseStatus.Draft &&
                 item.DailyClose.Date >= dateFrom &&
                 item.DailyClose.Date <= dateTo &&
                 (accountId == null || item.DailyClose.AccountId == accountId))
@@ -48,6 +48,6 @@ internal class DailyCloseItemsRepository(ServerDbContext dbContext) : IDailyClos
                 item.DailyClose.Account.Name,
                 item.Value,
                 item.DailyClose.Status))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 }

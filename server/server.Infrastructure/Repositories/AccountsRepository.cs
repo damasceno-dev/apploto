@@ -13,17 +13,18 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
         await dbContext.Accounts.AddAsync(account);
     }
 
-    public async Task<Account?> GetActiveByIdAndBranchId(Guid id, Guid branchId)
+    public async Task<Account?> GetActiveByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Accounts
             .FirstOrDefaultAsync(a =>
                 a.Id == id &&
                 a.BranchId == branchId &&
                 a.Active &&
-                a.Branch.Active);
+                a.Branch.Active,
+                ct);
     }
 
-    public async Task<Account?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId)
+    public async Task<Account?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Accounts
             .AsNoTracking()
@@ -31,7 +32,8 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                 a.Id == id &&
                 a.BranchId == branchId &&
                 a.Active &&
-                a.Branch.Active);
+                a.Branch.Active,
+                ct);
     }
 
     public async Task<Guid?> GetActiveTerminalIdByTabAccountId(Guid tabAccountId, Guid branchId)
@@ -81,7 +83,8 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
             .ToDictionaryAsync(a => a.TabAccountId!.Value, a => a.Id);
     }
 
-    public async Task<IReadOnlyList<ExpectedCloserRow>> ListExpectedClosersByBranchIdAsNoTracking(Guid branchId)
+    public async Task<IReadOnlyList<ExpectedCloserRow>> ListExpectedClosersByBranchIdAsNoTracking(
+        Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Accounts
             .AsNoTracking()
@@ -110,6 +113,6 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                     .ThenBy(link => link.OperatorId)
                     .Select(link => link.Operator.Name)
                     .First()))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 }

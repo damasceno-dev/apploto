@@ -371,7 +371,7 @@ public class PreviewInstallmentPlanUseCaseTest
             ctx.OperatorsRepository,
             ctx.ClientsRepository,
             ctx.TransactionTypesRepository);
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
         var memberAccountScopeResolver = new MemberAccountScopeResolver(
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);

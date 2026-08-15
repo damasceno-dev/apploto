@@ -94,12 +94,12 @@ public class DailyCloseWorkflowGuardTest
                 DailyCloseEditItemsOutcome.EditOnRejectedAutoTransitionToDraft
             },
             {
-                "Submitted_MemberOwnOperatorSameDay_ReturnsRecallToDraft",
+                "Submitted_MemberOwnOperatorSameDay_DeniedWithoutExplicitRecall",
                 DailyCloseStatus.Submitted,
                 Role.Member,
                 CallerOperatorCase.RecordingOperator,
                 BusinessDayCase.SameLocalBusinessDay,
-                DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft
+                null
             },
             {
                 "Submitted_MemberOtherOperator_Denied",
@@ -118,20 +118,20 @@ public class DailyCloseWorkflowGuardTest
                 null
             },
             {
-                "Submitted_Manager_ReturnsRecallToDraft",
+                "Submitted_Manager_DeniedWithoutExplicitRecall",
                 DailyCloseStatus.Submitted,
                 Role.Manager,
                 CallerOperatorCase.NoLinkedOperator,
                 BusinessDayCase.OlderLocalBusinessDay,
-                DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft
+                null
             },
             {
-                "Submitted_Admin_ReturnsRecallToDraft",
+                "Submitted_Admin_DeniedWithoutExplicitRecall",
                 DailyCloseStatus.Submitted,
                 Role.Admin,
                 CallerOperatorCase.NoLinkedOperator,
                 BusinessDayCase.OlderLocalBusinessDay,
-                DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft
+                null
             },
             {
                 "Approved_Member_Denied",
@@ -196,7 +196,6 @@ public class DailyCloseWorkflowGuardTest
         Should.NotThrow(() => guard.EnsureCanOpen(
             branchUser,
             callerOperator: null,
-            Guid.NewGuid(),
             LocalToday()));
     }
 
@@ -213,7 +212,6 @@ public class DailyCloseWorkflowGuardTest
         Should.NotThrow(() => guard.EnsureCanOpen(
             branchUser,
             callerOperator,
-            Guid.NewGuid(),
             LocalToday()));
     }
 
@@ -226,10 +224,50 @@ public class DailyCloseWorkflowGuardTest
         var exception = Should.Throw<TokenWithoutPermissionException>(() => guard.EnsureCanOpen(
             branchUser,
             callerOperator: null,
-            Guid.NewGuid(),
             LocalToday()));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
+    }
+
+    [Fact]
+    public void EnsureCanOpen_ShouldRejectMember_WhenDateIsOlderThanBranchLocalToday()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var guard = BuildGuard();
+
+        var exception = Should.Throw<ConflictException>(() => guard.EnsureCanOpen(
+            branchUser,
+            callerOperator,
+            LocalToday().AddDays(-1)));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_MEMBER_OPEN_REQUIRES_TODAY);
+    }
+
+    [Theory]
+    [InlineData(Role.Member)]
+    [InlineData(Role.Manager)]
+    [InlineData(Role.Admin)]
+    public void EnsureCanOpen_ShouldRejectFutureDate_ForEveryRole(Role role)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(role).Build();
+        var callerOperator = role == Role.Member
+            ? new OperatorBuilder()
+                .WithBranchId(branchUser.BranchId)
+                .WithUserId(branchUser.UserId)
+                .Build()
+            : null;
+        var guard = BuildGuard();
+
+        var exception = Should.Throw<ConflictException>(() => guard.EnsureCanOpen(
+            branchUser,
+            callerOperator,
+            LocalToday().AddDays(1)));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_FUTURE_DATE_NOT_ALLOWED);
     }
 
     [Theory]
@@ -261,7 +299,7 @@ public class DailyCloseWorkflowGuardTest
     }
 
     [Fact]
-    public void EnsureCanEditItems_ShouldUseSaoPauloLocalDay_WhenUtcDateCrossesMidnight()
+    public void EnsureCanRecall_ShouldUseSaoPauloLocalDay_WhenUtcDateCrossesMidnight()
     {
         var utcNowAfterMidnight = new DateTime(2026, 4, 26, 2, 30, 0, DateTimeKind.Utc);
         var clock = new FixedSaoPauloBranchClock(utcNowAfterMidnight);
@@ -277,9 +315,89 @@ public class DailyCloseWorkflowGuardTest
             localBusinessDate);
         var guard = BuildGuard(clock);
 
-        var outcome = guard.EnsureCanEditItems(close, branchUser, callerOperator);
+        Should.NotThrow(() => guard.EnsureCanRecall(close, branchUser, callerOperator));
+    }
 
-        outcome.ShouldBe(DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft);
+    [Fact]
+    public void EnsureCanEditItems_ShouldAllowRecordingOperatorToCorrectRejectedCloseOnLaterDay()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var close = new DailyCloseBuilder()
+            .WithStatus(DailyCloseStatus.Rejected)
+            .WithRecordedBy(branchUser.User, callerOperator)
+            .WithItemsFirstRecordedAt(StandardUtcNow.AddHours(-1))
+            .WithDate(LocalToday().AddDays(-1))
+            .WithRejectionReason("Corrija o fechamento")
+            .Build();
+        var guard = BuildGuard();
+
+        guard.EnsureCanEditItems(close, branchUser, callerOperator)
+            .ShouldBe(DailyCloseEditItemsOutcome.EditOnRejectedAutoTransitionToDraft);
+    }
+
+    [Fact]
+    public void EnsureCanEditItems_ShouldAllowLinkedMemberToClaimUncountedBackdatedClose()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var unclaimed = new DailyCloseBuilder()
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithOpenedByUser(new UserBuilder().Build())
+            .WithDate(LocalToday().AddDays(-10))
+            .Build();
+
+        BuildGuard().EnsureCanEditItems(unclaimed, branchUser, callerOperator)
+            .ShouldBe(DailyCloseEditItemsOutcome.EditOnDraft);
+    }
+
+    [Fact]
+    public void EnsureCanEditItems_ShouldRejectDifferentLinkedMemberAfterCloseIsClaimed()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var recordingUser = new UserBuilder().Build();
+        var recordingOperator = new OperatorBuilder().WithUser(recordingUser).Build();
+        var claimed = new DailyCloseBuilder()
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithRecordedBy(recordingUser, recordingOperator)
+            .WithItemsFirstRecordedAt(StandardUtcNow.AddHours(-1))
+            .WithDate(LocalToday())
+            .Build();
+
+        var exception = Should.Throw<ConflictException>(() =>
+            BuildGuard().EnsureCanEditItems(claimed, branchUser, callerOperator));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+    }
+
+    [Fact]
+    public void EnsureCanSubmit_ShouldAllowRecordingOperatorToResubmitRejectedCorrectionOnLaterDay()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var close = new DailyCloseBuilder()
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithRecordedBy(branchUser.User, callerOperator)
+            .WithItemsFirstRecordedAt(StandardUtcNow.AddHours(-1))
+            .WithDate(LocalToday().AddDays(-1))
+            .WithRejectionReason("Corrija o fechamento")
+            .Build();
+        var guard = BuildGuard();
+
+        Should.NotThrow(() => guard.EnsureCanSubmit(close, branchUser, callerOperator));
     }
 
     [Theory]
@@ -452,6 +570,88 @@ public class DailyCloseWorkflowGuardTest
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_REJECTABLE);
     }
 
+    [Theory]
+    [MemberData(nameof(ElevatedRoles))]
+    public void EnsureCanRecall_ShouldAllowManagerAndAdmin_WhenSubmitted(string _, Role role)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(role).Build();
+        var close = BuildClose(DailyCloseStatus.Submitted, Guid.NewGuid(), LocalToday().AddDays(-2));
+        var guard = BuildGuard();
+
+        Should.NotThrow(() => guard.EnsureCanRecall(close, branchUser, callerOperator: null));
+    }
+
+    [Fact]
+    public void EnsureCanRecall_ShouldAllowRecordingOperatorMemberOnlyOnSameLocalDay()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var guard = BuildGuard();
+
+        var todayClose = BuildClose(DailyCloseStatus.Submitted, callerOperator.Id, LocalToday());
+        Should.NotThrow(() => guard.EnsureCanRecall(todayClose, branchUser, callerOperator));
+
+        var olderClose = BuildClose(DailyCloseStatus.Submitted, callerOperator.Id, LocalToday().AddDays(-1));
+        var exception = Should.Throw<TokenWithoutPermissionException>(() =>
+            guard.EnsureCanRecall(olderClose, branchUser, callerOperator));
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_RECALL_REQUIRES_SAME_DAY);
+    }
+
+    [Theory]
+    [InlineData(DailyCloseStatus.Draft)]
+    [InlineData(DailyCloseStatus.Approved)]
+    [InlineData(DailyCloseStatus.Rejected)]
+    public void EnsureCanRecall_ShouldRejectNonSubmittedState(DailyCloseStatus status)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var close = BuildClose(status, Guid.NewGuid(), LocalToday());
+        var guard = BuildGuard();
+
+        var exception = Should.Throw<ConflictException>(() =>
+            guard.EnsureCanRecall(close, branchUser, callerOperator: null));
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_RECALLABLE);
+    }
+
+    [Theory]
+    [MemberData(nameof(ElevatedRoles))]
+    public void EnsureCanReopen_ShouldAllowManagerAndAdmin_WhenApproved(string _, Role role)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(role).Build();
+        var close = BuildClose(DailyCloseStatus.Approved, Guid.NewGuid(), LocalToday());
+        var guard = BuildGuard();
+
+        Should.NotThrow(() => guard.EnsureCanReopen(close, branchUser));
+    }
+
+    [Fact]
+    public void EnsureCanReopen_ShouldRejectMember()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var close = BuildClose(DailyCloseStatus.Approved, Guid.NewGuid(), LocalToday());
+        var guard = BuildGuard();
+
+        var exception = Should.Throw<TokenWithoutPermissionException>(() =>
+            guard.EnsureCanReopen(close, branchUser));
+        exception.Message.ShouldBe(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
+    }
+
+    [Theory]
+    [InlineData(DailyCloseStatus.Draft)]
+    [InlineData(DailyCloseStatus.Submitted)]
+    [InlineData(DailyCloseStatus.Rejected)]
+    public void EnsureCanReopen_ShouldRejectNonApprovedState(DailyCloseStatus status)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var close = BuildClose(status, Guid.NewGuid(), LocalToday());
+        var guard = BuildGuard();
+
+        var exception = Should.Throw<ConflictException>(() => guard.EnsureCanReopen(close, branchUser));
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_REOPENABLE);
+    }
+
     private static DailyCloseWorkflowGuard BuildGuard()
         => BuildGuard(new FixedSaoPauloBranchClock(StandardUtcNow));
 
@@ -492,12 +692,19 @@ public class DailyCloseWorkflowGuardTest
 
     private static DailyClose BuildClose(
         DailyCloseStatus status,
-        Guid submittedByOperatorId,
+        Guid recordedByOperatorId,
         DateTime date)
     {
+        var recordedByUser = new UserBuilder().Build();
+        var recordedByOperator = new OperatorBuilder()
+            .WithId(recordedByOperatorId)
+            .WithUser(recordedByUser)
+            .Build();
+
         return new DailyCloseBuilder()
             .WithStatus(status)
-            .WithSubmittedByOperator(new OperatorBuilder().WithId(submittedByOperatorId).Build())
+            .WithRecordedBy(recordedByUser, recordedByOperator)
+            .WithItemsFirstRecordedAt(StandardUtcNow.AddHours(-1))
             .WithDate(date)
             .Build();
     }

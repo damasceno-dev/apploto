@@ -17,8 +17,11 @@ public class GetDashboardUseCase(
     ICashVarianceProductResolver cashVarianceProductResolver,
     IBranchClock branchClock)
 {
-    public async Task<ResponseDashboardJson> Execute(RequestDashboardJson request)
+    public async Task<ResponseDashboardJson> Execute(
+        RequestDashboardJson request,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         if (branchUser.Role != Role.Manager && branchUser.Role != Role.Admin)
@@ -28,15 +31,16 @@ public class GetDashboardUseCase(
 
         var date = request.Date.Date;
 
-        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
+        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
         var closes = await dailyClosesRepository.ListDashboardClosesByBranchIdAndDateAsNoTracking(
-            branchUser.BranchId, date);
+            branchUser.BranchId, date, ct);
 
         var varianceRows = await dailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
-            branchUser.BranchId, cashVarianceProductId, accountId: null, dateFrom: date, dateTo: date);
+            branchUser.BranchId, cashVarianceProductId, accountId: null, dateFrom: date, dateTo: date, ct);
 
-        var expectedClosers = await accountsRepository.ListExpectedClosersByBranchIdAsNoTracking(branchUser.BranchId);
+        var expectedClosers = await accountsRepository.ListExpectedClosersByBranchIdAsNoTracking(
+            branchUser.BranchId, ct);
 
         // Keyed by (Date, AccountId): each account's close carries its own variance row for the day;
         // keying by date alone would collapse sibling accounts.
@@ -53,6 +57,12 @@ public class GetDashboardUseCase(
                 DailyCloseId = c.DailyCloseId,
                 AccountId = c.AccountId,
                 AccountName = c.AccountName,
+                RecordedByUserId = c.RecordedByUserId,
+                RecordedByUserName = c.RecordedByUserName,
+                RecordedByOperatorId = c.RecordedByOperatorId,
+                RecordedByOperatorName = c.RecordedByOperatorName,
+                SubmittedByUserId = c.SubmittedByUserId,
+                SubmittedByUserName = c.SubmittedByUserName,
                 SubmittedByOperatorId = c.SubmittedByOperatorId,
                 SubmittedByOperatorName = c.SubmittedByOperatorName,
                 Status = c.Status,

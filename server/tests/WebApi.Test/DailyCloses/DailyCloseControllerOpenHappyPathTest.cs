@@ -22,7 +22,7 @@ public class DailyCloseControllerOpenHappyPathTest(ServerWebApplicationFactory f
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
 
         var request = new RequestOpenDailyCloseJsonBuilder()
-            .WithDate(DateTime.Today)
+            .WithDate(LocalToday())
             .WithAccountId(account.Id)
             .Build();
 
@@ -35,7 +35,11 @@ public class DailyCloseControllerOpenHappyPathTest(ServerWebApplicationFactory f
         payload.AccountId.ShouldBe(account.Id);
         payload.AccountName.ShouldBe(account.Name);
         payload.BranchId.ShouldBe(branch.Id);
-        payload.SubmittedByOperatorId.ShouldBe(op.Id);
+        payload.OpenedByUserId.ShouldBe(user.Id);
+        payload.RecordedByUserId.ShouldBeNull();
+        payload.RecordedByOperatorId.ShouldBeNull();
+        payload.SubmittedByUserId.ShouldBeNull();
+        payload.SubmittedByOperatorId.ShouldBeNull();
         payload.SubmittedAt.ShouldBeNull();
         payload.Items.ShouldBeEmpty();
 
@@ -45,17 +49,21 @@ public class DailyCloseControllerOpenHappyPathTest(ServerWebApplicationFactory f
         persisted.AccountId.ShouldBe(account.Id);
         persisted.Date.ShouldBe(request.Date);
         persisted.Status.ShouldBe(DailyCloseStatus.Draft);
-        persisted.SubmittedByOperatorId.ShouldBe(op.Id);
+        persisted.OpenedByUserId.ShouldBe(user.Id);
+        persisted.RecordedByUserId.ShouldBeNull();
+        persisted.RecordedByOperatorId.ShouldBeNull();
+        persisted.SubmittedByUserId.ShouldBeNull();
+        persisted.SubmittedByOperatorId.ShouldBeNull();
     }
 
     [Fact]
     public async Task Open_ShouldReturn201WithNullOperatorId_WhenManagerHasNoLinkedOperator()
     {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DcOpenMgrNoOp", Role.Manager);
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcOpenMgrNoOp", Role.Manager);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
 
         var request = new RequestOpenDailyCloseJsonBuilder()
-            .WithDate(DateTime.Today)
+            .WithDate(LocalToday())
             .WithAccountId(account.Id)
             .Build();
 
@@ -64,10 +72,14 @@ public class DailyCloseControllerOpenHappyPathTest(ServerWebApplicationFactory f
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
         payload.Status.ShouldBe(DailyCloseStatus.Draft);
+        payload.OpenedByUserId.ShouldBe(user.Id);
+        payload.RecordedByUserId.ShouldBeNull();
         payload.SubmittedByOperatorId.ShouldBeNull();
 
         var persisted = await factory.ReloadAsync<DailyClose>(payload.Id);
         persisted.ShouldNotBeNull();
+        persisted.OpenedByUserId.ShouldBe(user.Id);
+        persisted.RecordedByUserId.ShouldBeNull();
         persisted.SubmittedByOperatorId.ShouldBeNull();
     }
 
@@ -80,7 +92,7 @@ public class DailyCloseControllerOpenHappyPathTest(ServerWebApplicationFactory f
         await factory.SeedOperatorAccountAsync(op.Id, account.Id);
 
         var request = new RequestOpenDailyCloseJsonBuilder()
-            .WithDate(DateTime.Today)
+            .WithDate(LocalToday())
             .WithAccountId(account.Id)
             .Build();
 
@@ -88,10 +100,41 @@ public class DailyCloseControllerOpenHappyPathTest(ServerWebApplicationFactory f
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
-        payload.SubmittedByOperatorId.ShouldBe(op.Id);
+        payload.OpenedByUserId.ShouldBe(user.Id);
+        payload.RecordedByOperatorId.ShouldBeNull();
+        payload.SubmittedByOperatorId.ShouldBeNull();
 
         var persisted = await factory.ReloadAsync<DailyClose>(payload.Id);
         persisted.ShouldNotBeNull();
-        persisted.SubmittedByOperatorId.ShouldBe(op.Id);
+        persisted.OpenedByUserId.ShouldBe(user.Id);
+        persisted.RecordedByOperatorId.ShouldBeNull();
+        persisted.SubmittedByOperatorId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Open_ShouldReturn201_WhenManagerBackdatesTerminalCloseBeforeLock()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcOpenMgrBackdate",
+            Role.Manager);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var targetDate = LocalToday().AddDays(-10);
+        var request = new RequestOpenDailyCloseJsonBuilder()
+            .WithDate(targetDate)
+            .WithAccountId(account.Id)
+            .Build();
+
+        var response = await _client.PostAuthAsync("/dailyclose", request, token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var payload = await response.ReadContentAsync<ResponseDailyCloseJson>();
+        payload.Date.ShouldBe(targetDate);
+        payload.Status.ShouldBe(DailyCloseStatus.Draft);
+    }
+
+    private static DateTime LocalToday()
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone).Date;
     }
 }

@@ -11,6 +11,14 @@ public class ResponseDailyCloseJson
     public Guid AccountId { get; init; }
     public string AccountName { get; init; } = string.Empty;
     public Guid BranchId { get; init; }
+    public Guid OpenedByUserId { get; init; }
+    public string OpenedByUserName { get; init; } = string.Empty;
+    public Guid? RecordedByUserId { get; init; }
+    public string? RecordedByUserName { get; init; }
+    public Guid? RecordedByOperatorId { get; init; }
+    public string? RecordedByOperatorName { get; init; }
+    public Guid? SubmittedByUserId { get; init; }
+    public string? SubmittedByUserName { get; init; }
     public Guid? SubmittedByOperatorId { get; init; }
     public string? SubmittedByOperatorName { get; init; }
     public DateTime? SubmittedAt { get; init; }
@@ -19,6 +27,10 @@ public class ResponseDailyCloseJson
     public string? ApprovedByUserName { get; init; }
     public string? RejectionReason { get; init; }
     public string? Notes { get; init; }
+    public DateTime? ItemsFirstRecordedAt { get; init; }
+    public DateTime? OpeningRecheckRequiredAt { get; init; }
+    public Guid? OpeningRecheckTriggeredByDailyCloseId { get; init; }
+    public Guid? OpeningRecheckTriggeredByUserId { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public Guid? UpdatedByUserId { get; init; }

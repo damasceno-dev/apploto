@@ -54,6 +54,82 @@ public class PutDailyCloseItemsUseCaseTest
         await ctx.UnitOfWork.Received(1).Commit();
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task Execute_ShouldLetScopedMemberClaimUncountedClose_OnFirstSave(int dateOffsetDays)
+    {
+        var ctx = BuildHappyPathContext(Role.Member);
+        ctx.DailyClose = new DailyCloseBuilder()
+            .WithId(ctx.DailyClose.Id)
+            .WithVersion(ctx.DailyClose.Version)
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithAccount(ctx.DailyClose.Account)
+            .WithOpenedByUser(new UserBuilder().Build())
+            .WithDate(ctx.Now.Date.AddDays(dateOffsetDays))
+            .Build();
+        RewireDailyCloseRepository(ctx);
+        ctx.WorkflowGuard = new DailyCloseWorkflowGuard(new FixedBranchClock(ctx.Now));
+
+        var response = await CreateUseCase(ctx).Execute(ctx.DailyClose.Id, ctx.Request);
+
+        ctx.DailyClose.ItemsFirstRecordedAt.ShouldBe(ctx.Now);
+        ctx.DailyClose.RecordedByUserId.ShouldBe(ctx.BranchUser.UserId);
+        ctx.DailyClose.RecordedByOperatorId.ShouldBe(ctx.CallerOperator.Id);
+        response.DailyClose.RecordedByUserId.ShouldBe(ctx.BranchUser.UserId);
+        response.DailyClose.RecordedByOperatorId.ShouldBe(ctx.CallerOperator.Id);
+        await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldEstablishMemberClaim_WhenFirstSaveIsExplicitlyEmpty()
+    {
+        var ctx = BuildHappyPathContext(Role.Member);
+        ctx.Request = new RequestPutDailyCloseItemsJson
+        {
+            Version = ctx.DailyClose.Version,
+            Items = []
+        };
+        ctx.ProductsRepository = new ProductsRepositoryBuilder()
+            .ListActiveByIdsAndBranchIdAsNoTrackingReturns([], ctx.BranchUser.BranchId, [])
+            .Build();
+        ctx.WorkflowGuard = new DailyCloseWorkflowGuard(new FixedBranchClock(ctx.Now));
+
+        await CreateUseCase(ctx).Execute(ctx.DailyClose.Id, ctx.Request);
+
+        ctx.DailyClose.ItemsFirstRecordedAt.ShouldBe(ctx.Now);
+        ctx.DailyClose.RecordedByUserId.ShouldBe(ctx.BranchUser.UserId);
+        ctx.DailyClose.RecordedByOperatorId.ShouldBe(ctx.CallerOperator.Id);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRejectDifferentScopedMemberAfterFirstClaim_WithRealGuard()
+    {
+        var ctx = BuildHappyPathContext(Role.Member);
+        var recordingUser = new UserBuilder().Build();
+        var recordingOperator = new OperatorBuilder()
+            .WithBranchId(ctx.BranchUser.BranchId)
+            .WithUser(recordingUser)
+            .Build();
+        ctx.DailyClose = new DailyCloseBuilder()
+            .WithId(ctx.DailyClose.Id)
+            .WithVersion(ctx.DailyClose.Version)
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithAccount(ctx.DailyClose.Account)
+            .WithRecordedBy(recordingUser, recordingOperator)
+            .WithItemsFirstRecordedAt(ctx.Now.AddMinutes(-1))
+            .WithDate(ctx.Now.Date)
+            .Build();
+        RewireDailyCloseRepository(ctx);
+        ctx.WorkflowGuard = new DailyCloseWorkflowGuard(new FixedBranchClock(ctx.Now));
+
+        var exception = await Should.ThrowAsync<ConflictException>(() =>
+            CreateUseCase(ctx).Execute(ctx.DailyClose.Id, ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
     [Fact]
     public async Task Execute_ShouldPersistNotesVerbatim_WhenDraft()
     {
@@ -68,7 +144,7 @@ public class PutDailyCloseItemsUseCaseTest
 
         var response = await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
 
-        response.Notes.ShouldBe(ctx.Request.Notes);
+        response.DailyClose.Notes.ShouldBe(ctx.Request.Notes);
         ctx.DailyClose.Notes.ShouldBe(ctx.Request.Notes);
         await ctx.UnitOfWork.Received(1).Commit();
     }
@@ -229,6 +305,7 @@ public class PutDailyCloseItemsUseCaseTest
         ctx.DailyClose = new DailyCloseBuilder()
             .WithId(ctx.DailyClose.Id)
             .WithStatus(DailyCloseStatus.Rejected)
+            .WithRejectionReason("Corrija o fechamento")
             .WithAccount(ctx.DailyClose.Account)
             .Build();
         RewireDailyCloseRepository(ctx);
@@ -240,13 +317,80 @@ public class PutDailyCloseItemsUseCaseTest
         await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
 
         ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Draft);
+        ctx.DailyClose.RejectionReason.ShouldBe("Corrija o fechamento");
         ctx.DailyClose.UpdatedAt.ShouldBe(ctx.Now);
         ctx.DailyClose.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
         await ctx.UnitOfWork.Received(1).Commit();
     }
 
+    [Theory]
+    [InlineData("retry")]
+    [InlineData("notes-only")]
+    [InlineData("rejected-correction")]
+    [InlineData("opening-recheck")]
+    public async Task Execute_ShouldNeverReassignFirstCountRecorder_OnLaterSaves(string scenario)
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        var recordedAt = ctx.Now.AddDays(-2);
+        var recordingUser = new UserBuilder().Build();
+        var recordingOperator = new OperatorBuilder()
+            .WithBranchId(ctx.BranchUser.BranchId)
+            .WithUser(recordingUser)
+            .Build();
+        var existingItem = new DailyCloseItemBuilder()
+            .WithProductId(ctx.Product.Id)
+            .WithValue(100m)
+            .Build();
+        var builder = new DailyCloseBuilder()
+            .WithId(ctx.DailyClose.Id)
+            .WithVersion(ctx.DailyClose.Version)
+            .WithStatus(scenario == "rejected-correction"
+                ? DailyCloseStatus.Rejected
+                : DailyCloseStatus.Draft)
+            .WithAccount(ctx.DailyClose.Account)
+            .WithRecordedBy(recordingUser, recordingOperator)
+            .WithItemsFirstRecordedAt(recordedAt)
+            .WithItems([existingItem]);
+        if (scenario == "rejected-correction")
+            builder.WithRejectionReason("Corrija a contagem");
+        if (scenario == "opening-recheck")
+        {
+            builder.WithOpeningRecheck(
+                ctx.Now.AddHours(-1),
+                new DailyCloseBuilder().WithAccount(ctx.DailyClose.Account).Build(),
+                Guid.NewGuid());
+        }
+
+        ctx.DailyClose = builder.Build();
+        RewireDailyCloseRepository(ctx);
+        ctx.Request = new RequestPutDailyCloseItemsJson
+        {
+            Version = ctx.DailyClose.Version,
+            Notes = scenario == "notes-only" ? "explicação atualizada" : null,
+            Items =
+            [
+                new RequestUpsertDailyCloseItemJson
+                {
+                    ProductId = ctx.Product.Id,
+                    Value = scenario is "rejected-correction" or "opening-recheck" ? 125m : 100m
+                }
+            ]
+        };
+        ctx.WorkflowGuard
+            .EnsureCanEditItems(Arg.Any<DailyClose>(), Arg.Any<BranchUser>(), Arg.Any<Operator?>())
+            .Returns(scenario == "rejected-correction"
+                ? DailyCloseEditItemsOutcome.EditOnRejectedAutoTransitionToDraft
+                : DailyCloseEditItemsOutcome.EditOnDraft);
+
+        await CreateUseCase(ctx).Execute(ctx.DailyClose.Id, ctx.Request);
+
+        ctx.DailyClose.ItemsFirstRecordedAt.ShouldBe(recordedAt);
+        ctx.DailyClose.RecordedByUserId.ShouldBe(recordingUser.Id);
+        ctx.DailyClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
+    }
+
     [Fact]
-    public async Task Execute_ShouldRecallSubmittedToDraftAndClearSubmittedAt_WhenRecordingOperatorMemberOnSameDay()
+    public async Task Execute_ShouldRejectOrdinaryItemSaveWithoutRecalling_WhenSubmittedMember()
     {
         var ctx = BuildHappyPathContext(Role.Member);
 
@@ -254,21 +398,21 @@ public class PutDailyCloseItemsUseCaseTest
             .WithId(ctx.DailyClose.Id)
             .WithStatus(DailyCloseStatus.Submitted)
             .WithSubmittedAt(DateTime.UtcNow.AddHours(-1))
+            .WithSubmittedByOperator(ctx.CallerOperator)
+            .WithDate(ctx.Now.Date)
             .WithAccount(ctx.DailyClose.Account)
             .Build();
         RewireDailyCloseRepository(ctx);
-        ctx.WorkflowGuard
-            .EnsureCanEditItems(Arg.Any<DailyClose>(), Arg.Any<BranchUser>(), Arg.Any<Operator?>())
-            .Returns(DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft);
+        ctx.WorkflowGuard = new DailyCloseWorkflowGuard(new FixedBranchClock(ctx.Now));
 
         var useCase = CreateUseCase(ctx);
-        await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
+        var exception = await Should.ThrowAsync<ConflictException>(() =>
+            useCase.Execute(ctx.DailyClose.Id, ctx.Request));
 
-        ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Draft);
-        ctx.DailyClose.SubmittedAt.ShouldBeNull();
-        ctx.DailyClose.UpdatedAt.ShouldBe(ctx.Now);
-        ctx.DailyClose.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
-        await ctx.UnitOfWork.Received(1).Commit();
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+        ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
+        ctx.DailyClose.SubmittedAt.ShouldNotBeNull();
+        await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]
@@ -284,9 +428,7 @@ public class PutDailyCloseItemsUseCaseTest
             .WithAccount(ctx.DailyClose.Account)
             .Build();
         RewireDailyCloseRepository(ctx);
-        ctx.WorkflowGuard
-            .EnsureCanEditItems(Arg.Any<DailyClose>(), Arg.Any<BranchUser>(), Arg.Any<Operator?>())
-            .Returns(DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft);
+        ctx.WorkflowGuard = new DailyCloseWorkflowGuard(new FixedBranchClock(ctx.Now));
         ctx.Request = new RequestPutDailyCloseItemsJson
         {
             Version = ctx.DailyClose.Version,
@@ -298,14 +440,14 @@ public class PutDailyCloseItemsUseCaseTest
         var exception = await Should.ThrowAsync<ConflictException>(
             () => useCase.Execute(ctx.DailyClose.Id, ctx.Request));
 
-        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOTES_FROZEN);
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
         ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
         ctx.DailyClose.Notes.ShouldBe("submitted note");
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]
-    public async Task Execute_ShouldRecallSubmittedToDraft_WhenManager()
+    public async Task Execute_ShouldRejectOrdinaryItemSaveWithoutRecalling_WhenSubmittedManager()
     {
         var ctx = BuildHappyPathContext(Role.Manager);
 
@@ -316,16 +458,16 @@ public class PutDailyCloseItemsUseCaseTest
             .WithAccount(ctx.DailyClose.Account)
             .Build();
         RewireDailyCloseRepository(ctx);
-        ctx.WorkflowGuard
-            .EnsureCanEditItems(Arg.Any<DailyClose>(), Arg.Any<BranchUser>(), Arg.Any<Operator?>())
-            .Returns(DailyCloseEditItemsOutcome.EditOnSubmittedRecallToDraft);
+        ctx.WorkflowGuard = new DailyCloseWorkflowGuard(new FixedBranchClock(ctx.Now));
 
         var useCase = CreateUseCase(ctx);
-        await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
+        var exception = await Should.ThrowAsync<ConflictException>(() =>
+            useCase.Execute(ctx.DailyClose.Id, ctx.Request));
 
-        ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Draft);
-        ctx.DailyClose.SubmittedAt.ShouldBeNull();
-        await ctx.UnitOfWork.Received(1).Commit();
+        exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+        ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
+        ctx.DailyClose.SubmittedAt.ShouldNotBeNull();
+        await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
     // ──────────────────────────────────────────────
@@ -490,7 +632,12 @@ public class PutDailyCloseItemsUseCaseTest
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
+        var draftTransition = new DailyCloseDraftTransition();
+        var successorInvalidator = new DailyCloseSuccessorInvalidator(
+            ctx.DailyClosesRepository,
+            draftTransition);
+        var accountCoordination = new DailyCloseAccountCoordinationBuilder().Build();
 
         return new PutDailyCloseItemsUseCase(
             ctx.AuthenticationService,
@@ -500,9 +647,12 @@ public class PutDailyCloseItemsUseCaseTest
             memberAccountScopeResolver,
             memberAccountScopeGuard,
             ctx.WorkflowGuard,
+            draftTransition,
+            successorInvalidator,
             ctx.CashVarianceProductResolver,
             lockDateGuard,
             new FixedBranchClock(ctx.Now),
+            accountCoordination,
             ctx.UnitOfWork);
     }
 

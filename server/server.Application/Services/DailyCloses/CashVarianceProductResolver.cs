@@ -8,7 +8,10 @@ public class CashVarianceProductResolver(IProductsRepository productsRepository)
 
     public async Task<Guid> GetIdAsync(Guid branchId, CancellationToken ct = default)
     {
-        var product = await productsRepository.GetActiveByBranchIdAndNameAsNoTracking(branchId, CashVarianceProductName);
+        var product = await productsRepository.GetActiveByBranchIdAndNameAsNoTracking(
+            branchId,
+            CashVarianceProductName,
+            ct);
 
         if (product is null)
         {

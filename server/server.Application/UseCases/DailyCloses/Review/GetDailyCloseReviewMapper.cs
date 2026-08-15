@@ -1,5 +1,6 @@
 using server.Communication.Responses;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 
 namespace server.Application.UseCases.DailyCloses.Review;
 
@@ -36,6 +37,14 @@ internal static class GetDailyCloseReviewMapper
                 AccountId = close.AccountId,
                 AccountName = close.Account?.Name ?? string.Empty,
                 BranchId = close.BranchId,
+                OpenedByUserId = close.OpenedByUserId,
+                OpenedByUserName = close.OpenedByUser?.Name ?? string.Empty,
+                RecordedByUserId = close.RecordedByUserId,
+                RecordedByUserName = close.RecordedByUser?.Name,
+                RecordedByOperatorId = close.RecordedByOperatorId,
+                RecordedByOperatorName = close.RecordedByOperator?.Name,
+                SubmittedByUserId = close.SubmittedByUserId,
+                SubmittedByUserName = close.SubmittedByUser?.Name,
                 SubmittedByOperatorId = close.SubmittedByOperatorId,
                 SubmittedByOperatorName = close.SubmittedByOperator?.Name,
                 SubmittedAt = close.SubmittedAt,
@@ -44,6 +53,10 @@ internal static class GetDailyCloseReviewMapper
                 ApprovedByUserName = close.ApprovedByUser?.Name,
                 RejectionReason = close.RejectionReason,
                 Notes = close.Notes,
+                ItemsFirstRecordedAt = close.ItemsFirstRecordedAt,
+                OpeningRecheckRequiredAt = close.OpeningRecheckRequiredAt,
+                OpeningRecheckTriggeredByDailyCloseId = close.OpeningRecheckTriggeredByDailyCloseId,
+                OpeningRecheckTriggeredByUserId = close.OpeningRecheckTriggeredByUserId,
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
@@ -60,9 +73,14 @@ internal static class GetDailyCloseReviewMapper
                             OpeningValue = isCashVarianceProduct
                                 ? null
                                 : priorValuesByProductId.GetValueOrDefault(product.Id),
-                            ClosingValue = closingValuesByProductId.TryGetValue(product.Id, out var closingValue)
-                                ? closingValue
-                                : null,
+                            // Reopened or recalled closes keep their old variance record in the database for audit history.
+                            // However, while in Draft state, we hide this old variance (returning null) so it isn't mistaken
+                            // for the new submission's actual variance.
+                            ClosingValue = isCashVarianceProduct && close.Status == DailyCloseStatus.Draft
+                                ? null
+                                : closingValuesByProductId.TryGetValue(product.Id, out var closingValue)
+                                    ? closingValue
+                                    : null,
                             IsCashVarianceProduct = isCashVarianceProduct
                         };
                     })

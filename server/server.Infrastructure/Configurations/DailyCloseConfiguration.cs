@@ -18,12 +18,37 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.Property(dailyClose => dailyClose.ApprovedAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(dailyClose => dailyClose.RejectionReason).HasMaxLength(500).IsRequired(false);
         builder.Property(dailyClose => dailyClose.Notes).HasMaxLength(1000).IsRequired(false);
+        builder.Property(dailyClose => dailyClose.ItemsFirstRecordedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+        builder.Property(dailyClose => dailyClose.OpeningRecheckRequiredAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(dailyClose => dailyClose.UpdatedAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(dailyClose => dailyClose.UpdatedByUserId).IsRequired(false);
 
         builder.HasOne(dailyClose => dailyClose.Account)
             .WithMany()
             .HasForeignKey(dailyClose => dailyClose.AccountId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.OpenedByUser)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.OpenedByUserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.RecordedByUser)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.RecordedByUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.RecordedByOperator)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.RecordedByOperatorId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.SubmittedByUser)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.SubmittedByUserId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(dailyClose => dailyClose.SubmittedByOperator)
@@ -35,6 +60,18 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.HasOne(dailyClose => dailyClose.ApprovedByUser)
             .WithMany()
             .HasForeignKey(dailyClose => dailyClose.ApprovedByUserId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.OpeningRecheckTriggeredByDailyClose)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.OpeningRecheckTriggeredByDailyCloseId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.OpeningRecheckTriggeredByUser)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.OpeningRecheckTriggeredByUserId)
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
@@ -51,5 +88,10 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.Date, dailyClose.AccountId });
         builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.Status });
         builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.AccountId, dailyClose.Status });
+
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_DailyCloses_RecordingIdentityMatchesFirstCount",
+            "(\"ItemsFirstRecordedAt\" IS NULL AND \"RecordedByUserId\" IS NULL AND \"RecordedByOperatorId\" IS NULL) OR " +
+            "(\"ItemsFirstRecordedAt\" IS NOT NULL AND \"RecordedByUserId\" IS NOT NULL)"));
     }
 }

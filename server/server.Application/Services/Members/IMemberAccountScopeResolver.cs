@@ -23,5 +23,5 @@ public interface IMemberAccountScopeResolver
     /// "No operator" and "operator with no accounts" look similar but are
     /// not the same — callers treat them differently.
     /// </returns>
-    Task<MemberAccountScope> Resolve(Guid userId, Guid branchId);
+    Task<MemberAccountScope> Resolve(Guid userId, Guid branchId, CancellationToken ct = default);
 }

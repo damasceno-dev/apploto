@@ -9,33 +9,35 @@ namespace server.Infrastructure.Repositories;
 
 internal class TransactionsRepository(ServerDbContext dbContext) : ITransactionsRepository
 {
-    public async Task Add(Transaction transaction)
+    public async Task Add(Transaction transaction, CancellationToken ct = default)
     {
-        await dbContext.Transactions.AddAsync(transaction);
+        await dbContext.Transactions.AddAsync(transaction, ct);
     }
 
-    public async Task AddRange(IEnumerable<Transaction> transactions)
+    public async Task AddRange(IEnumerable<Transaction> transactions, CancellationToken ct = default)
     {
-        await dbContext.Transactions.AddRangeAsync(transactions);
+        await dbContext.Transactions.AddRangeAsync(transactions, ct);
     }
 
-    public async Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId)
+    public async Task<Transaction?> GetByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Transactions
             .Include(transaction => transaction.TransactionType)
             .ThenInclude(transactionType => transactionType.Category)
             .FirstOrDefaultAsync(transaction =>
                 transaction.Id == id &&
-                transaction.BranchId == branchId);
+                transaction.BranchId == branchId,
+                ct);
     }
 
-    public async Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId)
+    public async Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Transactions
             .AsNoTracking()
             .FirstOrDefaultAsync(transaction =>
                 transaction.Id == id &&
-                transaction.BranchId == branchId);
+                transaction.BranchId == branchId,
+                ct);
     }
 
     public async Task<Transaction?> GetByIdAndBranchIdAsNoTrackingWithTransactionType(Guid id, Guid branchId)
@@ -99,7 +101,8 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         Guid branchId,
         Guid accountId,
         DateTime date,
-        Direction? direction = null)
+        Direction? direction = null,
+        CancellationToken ct = default)
     {
         var query = dbContext.Transactions
             .AsNoTracking()
@@ -107,6 +110,7 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 transaction.BranchId == branchId &&
                 transaction.AccountId == accountId &&
                 transaction.Date == date &&
+                transaction.Active &&
                 transaction.Status == TransactionStatus.Active);
 
         if (direction is { } selectedDirection)
@@ -114,7 +118,51 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             query = query.Where(transaction => transaction.Direction == selectedDirection);
         }
 
-        return await query.Select(transaction => (decimal?)transaction.Value).SumAsync() ?? 0m;
+        return await query.Select(transaction => (decimal?)transaction.Value).SumAsync(ct) ?? 0m;
+    }
+
+    public async Task<DateTime?> GetEarliestUncountedActivityDateByAccountAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime afterDateExclusive,
+        DateTime beforeDateExclusive,
+        CancellationToken ct = default)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(transaction =>
+                transaction.BranchId == branchId &&
+                transaction.AccountId == accountId &&
+                transaction.Active &&
+                transaction.Status == TransactionStatus.Active &&
+                transaction.Date > afterDateExclusive &&
+                transaction.Date < beforeDateExclusive &&
+                !dbContext.DailyCloses.Any(close =>
+                    close.BranchId == branchId &&
+                    close.AccountId == accountId &&
+                    close.Date == transaction.Date &&
+                    close.Active &&
+                    close.ItemsFirstRecordedAt != null))
+            .OrderBy(transaction => transaction.Date)
+            .Select(transaction => (DateTime?)transaction.Date)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<bool> ExistsDraftByAccountAndDateAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        DateTime date,
+        CancellationToken ct = default)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .AnyAsync(transaction =>
+                transaction.BranchId == branchId &&
+                transaction.AccountId == accountId &&
+                transaction.Date == date &&
+                transaction.Active &&
+                transaction.Status == TransactionStatus.Draft,
+                ct);
     }
 
     public async Task<IReadOnlyList<Transaction>> ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(
@@ -453,7 +501,7 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     }
 
     public async Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
-        Guid branchId, int year, int month)
+        Guid branchId, int year, int month, CancellationToken ct = default)
     {
         return await dbContext.Transactions
             .AsNoTracking()
@@ -466,7 +514,7 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .OrderBy(g => g.Key.Date)
             .ThenBy(g => g.Key.Status)
             .Select(g => new MonthlyTransactionCountRow(g.Key.Date, g.Key.Status, g.Count()))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     private IQueryable<Transaction> BuildOpenChequeBaseQuery(

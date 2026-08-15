@@ -165,7 +165,9 @@ public class HolidayControllerImportBrazilianUnhappyPathTest(ServerWebApplicatio
         public Task<Holiday?> GetActiveByBranchIdAndDate(Guid branchId, DateTime date) => inner.GetActiveByBranchIdAndDate(branchId, date);
         public Task<IReadOnlyList<Holiday>> ListByBranchIdAsNoTracking(Guid branchId, HolidayListFilter filter) => inner.ListByBranchIdAsNoTracking(branchId, filter);
         public Task<int> CountByBranchIdAsNoTracking(Guid branchId, HolidayListFilter filter) => inner.CountByBranchIdAsNoTracking(branchId, filter);
-        public Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAsNoTracking(Guid branchId) => inner.ListActiveDatesByBranchIdAsNoTracking(branchId);
+        public Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAsNoTracking(
+            Guid branchId,
+            CancellationToken ct = default) => inner.ListActiveDatesByBranchIdAsNoTracking(branchId, ct);
         public Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAndYearAsNoTracking(Guid branchId, int year)
             => Task.FromResult<IReadOnlyList<DateOnly>>([]);
     }

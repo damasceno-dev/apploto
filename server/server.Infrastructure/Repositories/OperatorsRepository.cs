@@ -21,7 +21,7 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
                 op.Branch.Active);
     }
 
-    public async Task<Operator?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId)
+    public async Task<Operator?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Operators
             .AsNoTracking()
@@ -29,7 +29,8 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
                 op.Id == id &&
                 op.BranchId == branchId &&
                 op.Active &&
-                op.Branch.Active);
+                op.Branch.Active,
+                ct);
     }
 
     public async Task<IReadOnlyList<Operator>> ListActiveByBranchId(Guid branchId)
@@ -44,7 +45,10 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
             .ToListAsync();
     }
 
-    public async Task<Operator?> GetActiveLinkedByUserIdAndBranchIdAsNoTracking(Guid userId, Guid branchId)
+    public async Task<Operator?> GetActiveLinkedByUserIdAndBranchIdAsNoTracking(
+        Guid userId,
+        Guid branchId,
+        CancellationToken ct = default)
     {
         return await dbContext.Operators
             .AsNoTracking()
@@ -54,7 +58,7 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
                 op.Active &&
                 op.Branch.Active)
             .OrderBy(op => op.Id)
-            .SingleOrDefaultAsync();
+            .SingleOrDefaultAsync(ct);
     }
 
     public async Task<bool> ExistsActiveLinkedByUserIdAndBranchId(

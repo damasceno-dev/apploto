@@ -60,9 +60,10 @@ public class TransactionController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromServices] CreateTransactionUseCase createTransactionUseCase,
-        [FromBody] RequestCreateTransactionJson request)
+        [FromBody] RequestCreateTransactionJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await createTransactionUseCase.Execute(request);
+        var response = await createTransactionUseCase.Execute(request, cancellationToken);
         return Created(string.Empty, response);
     }
 
@@ -96,9 +97,10 @@ public class TransactionController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateInstallment(
         [FromServices] CreateTransactionInstallmentUseCase createTransactionInstallmentUseCase,
-        [FromBody] RequestCreateTransactionInstallmentJson request)
+        [FromBody] RequestCreateTransactionInstallmentJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await createTransactionInstallmentUseCase.Execute(request);
+        var response = await createTransactionInstallmentUseCase.Execute(request, cancellationToken);
         return Created(string.Empty, response);
     }
 
@@ -131,9 +133,10 @@ public class TransactionController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Finalize(
         [FromServices] FinalizeTransactionUseCase finalizeTransactionUseCase,
-        [FromRoute] Guid transactionId)
+        [FromRoute] Guid transactionId,
+        CancellationToken cancellationToken)
     {
-        var response = await finalizeTransactionUseCase.Execute(transactionId);
+        var response = await finalizeTransactionUseCase.Execute(transactionId, cancellationToken);
         return Ok(response);
     }
 
@@ -149,9 +152,10 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Cancel(
         [FromServices] CancelTransactionUseCase cancelTransactionUseCase,
         [FromRoute] Guid transactionId,
-        [FromBody] RequestCancelTransactionJson request)
+        [FromBody] RequestCancelTransactionJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await cancelTransactionUseCase.Execute(transactionId, request);
+        var response = await cancelTransactionUseCase.Execute(transactionId, request, cancellationToken);
         return Ok(response);
     }
 

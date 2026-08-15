@@ -29,32 +29,38 @@ internal class ProductsRepository(ServerDbContext dbContext) : IProductsReposito
             .FirstOrDefaultAsync(p => p.Id == id && p.BranchId == branchId && p.Active);
     }
 
-    public async Task<IReadOnlyList<Product>> ListActiveByBranchIdAsNoTracking(Guid branchId)
+    public async Task<IReadOnlyList<Product>> ListActiveByBranchIdAsNoTracking(
+        Guid branchId,
+        CancellationToken ct = default)
     {
         return await dbContext.Products
             .AsNoTracking()
             .Where(p => p.BranchId == branchId && p.Active)
             .OrderBy(p => p.DisplayOrder)
             .ThenBy(p => p.Id)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<Product>> ListActiveByIdsAndBranchIdAsNoTracking(
         IEnumerable<Guid> productIds,
-        Guid branchId)
+        Guid branchId,
+        CancellationToken ct = default)
     {
         var idList = productIds.ToList();
         return await dbContext.Products
             .AsNoTracking()
             .Where(p => p.BranchId == branchId && p.Active && idList.Contains(p.Id))
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
-    public async Task<Product?> GetActiveByBranchIdAndNameAsNoTracking(Guid branchId, string name)
+    public async Task<Product?> GetActiveByBranchIdAndNameAsNoTracking(
+        Guid branchId,
+        string name,
+        CancellationToken ct = default)
     {
         return await dbContext.Products
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.BranchId == branchId && p.Active && p.Name == name);
+            .FirstOrDefaultAsync(p => p.BranchId == branchId && p.Active && p.Name == name, ct);
     }
 
     public async Task<bool> ExistsActiveByBranchIdAndName(Guid branchId, string name, Guid? exceptId = null)

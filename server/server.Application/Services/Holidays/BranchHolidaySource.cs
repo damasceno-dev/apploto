@@ -9,7 +9,7 @@ public class BranchHolidaySource(IHolidaysRepository holidaysRepository) : IBran
 {
     public async Task<IReadOnlySet<DateOnly>> GetHolidayDatesAsync(Guid branchId, CancellationToken ct = default)
     {
-        var dates = await holidaysRepository.ListActiveDatesByBranchIdAsNoTracking(branchId);
+        var dates = await holidaysRepository.ListActiveDatesByBranchIdAsNoTracking(branchId, ct);
         return dates.ToHashSet();
     }
 }

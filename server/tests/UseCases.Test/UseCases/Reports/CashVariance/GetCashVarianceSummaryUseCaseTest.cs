@@ -104,12 +104,13 @@ public class GetCashVarianceSummaryUseCaseTest
             .WithDateFrom(DateFrom)
             .WithDateTo(DateTo)
             .Build();
+        using var cancellation = new CancellationTokenSource();
 
-        await useCase.Execute(request);
+        await useCase.Execute(request, cancellation.Token);
 
         await ctx.CashVarianceProductResolver.Received(1).GetIdAsync(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
-            Arg.Any<CancellationToken>());
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.DailyCloseItemsRepository.Received(1)
             .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
@@ -117,7 +118,8 @@ public class GetCashVarianceSummaryUseCaseTest
                 Arg.Is<Guid>(v => v == productId),
                 Arg.Any<Guid?>(),
                 Arg.Any<DateTime>(),
-                Arg.Any<DateTime>());
+                Arg.Any<DateTime>(),
+                Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.DailyCloseItemsRepository.DidNotReceive()
             .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
@@ -125,7 +127,8 @@ public class GetCashVarianceSummaryUseCaseTest
                 Arg.Any<Guid>(),
                 Arg.Any<Guid?>(),
                 Arg.Any<DateTime>(),
-                Arg.Any<DateTime>());
+                Arg.Any<DateTime>(),
+                Arg.Any<CancellationToken>());
     }
 
     // -------------------------------------------------------------------------

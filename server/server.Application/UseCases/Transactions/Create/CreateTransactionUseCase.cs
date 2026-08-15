@@ -1,8 +1,8 @@
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Interfaces;
-using server.Exceptions;
 using server.Exceptions.Exceptions;
 
 namespace server.Application.UseCases.Transactions.Create;
@@ -10,13 +10,29 @@ namespace server.Application.UseCases.Transactions.Create;
 public class CreateTransactionUseCase(
     TransactionCreatePreamble transactionCreatePreamble,
     ITransactionsRepository transactionsRepository,
+    IDailyCloseLedgerGuard dailyCloseLedgerGuard,
+    IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseCreateTransactionJson> Execute(RequestCreateTransactionJson request)
+    public async Task<ResponseCreateTransactionJson> Execute(
+        RequestCreateTransactionJson request,
+        CancellationToken ct = default)
     {
         Validate(request);
 
-        var createContext = await transactionCreatePreamble.Resolve(request);
+        var createContext = await transactionCreatePreamble.Resolve(request, ct);
+
+        await using var coordination = await dailyCloseAccountCoordination.Acquire(
+            createContext.BranchUser.BranchId,
+            request.AccountId,
+            ct);
+
+        await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(
+            createContext.BranchUser.BranchId,
+            request.AccountId,
+            createContext.Account!.Type,
+            request.Date.Date,
+            ct);
 
         var transaction = request.ToTransaction(
             transactionType: createContext.TransactionType,
@@ -25,8 +41,9 @@ public class CreateTransactionUseCase(
             createdByUserId: createContext.BranchUser.UserId,
             branchId: createContext.BranchUser.BranchId);
 
-        await transactionsRepository.Add(transaction);
-        await unitOfWork.Commit();
+        await transactionsRepository.Add(transaction, ct);
+        await unitOfWork.Commit(ct);
+        await coordination.Complete(ct);
 
         return transaction.ToCreateResponse();
     }

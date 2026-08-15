@@ -26,7 +26,7 @@ public class ReportControllerOpenChequeAgingHappyPathTest(ServerWebApplicationFa
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("OCAHappy1", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id, settlementRule: SettlementRule.OperatorEnteredCheque);

@@ -22,7 +22,7 @@ namespace UseCases.Test.UseCases.DailyCloses.Open;
 public class OpenDailyCloseUseCaseTest
 {
     [Fact]
-    public async Task Execute_ShouldCreateDraftWithOperatorId_WhenManagerWithLinkedOperator()
+    public async Task Execute_ShouldCreateUnclaimedDraftWithOpener_WhenManagerHasLinkedOperator()
     {
         var ctx = BuildHappyPathContext(Role.Manager);
         var useCase = CreateUseCase(ctx);
@@ -32,25 +32,30 @@ public class OpenDailyCloseUseCaseTest
         response.Status.ShouldBe(DailyCloseStatus.Draft);
         response.AccountId.ShouldBe(ctx.Request.AccountId);
         response.BranchId.ShouldBe(ctx.BranchUser.BranchId);
-        response.SubmittedByOperatorId.ShouldBe(ctx.CallerOperator.Id);
+        response.OpenedByUserId.ShouldBe(ctx.BranchUser.UserId);
+        response.RecordedByUserId.ShouldBeNull();
+        response.RecordedByOperatorId.ShouldBeNull();
+        response.SubmittedByUserId.ShouldBeNull();
+        response.SubmittedByOperatorId.ShouldBeNull();
 
         await ctx.DailyClosesRepository.Received(1).Add(Arg.Is<DailyClose>(dc =>
             dc.BranchId == ctx.BranchUser.BranchId &&
             dc.AccountId == ctx.Request.AccountId &&
             dc.Date == ctx.Request.Date &&
             dc.Status == DailyCloseStatus.Draft &&
-            dc.SubmittedByOperatorId == ctx.CallerOperator.Id));
+            dc.OpenedByUserId == ctx.BranchUser.UserId &&
+            dc.RecordedByUserId == null &&
+            dc.SubmittedByUserId == null));
         await ctx.UnitOfWork.Received(1).Commit();
 
         ctx.WorkflowGuard.Received(1).EnsureCanOpen(
             ctx.BranchUser,
             ctx.CallerOperator,
-            ctx.Request.AccountId,
             ctx.Request.Date);
     }
 
     [Fact]
-    public async Task Execute_ShouldCreateDraftWithNullOperatorId_WhenAdminHasNoLinkedOperator()
+    public async Task Execute_ShouldCreateUnclaimedDraft_WhenAdminHasNoLinkedOperator()
     {
         var ctx = BuildHappyPathContext(Role.Admin);
         ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
@@ -63,6 +68,8 @@ public class OpenDailyCloseUseCaseTest
         var response = await useCase.Execute(ctx.Request);
 
         response.Status.ShouldBe(DailyCloseStatus.Draft);
+        response.OpenedByUserId.ShouldBe(ctx.BranchUser.UserId);
+        response.RecordedByUserId.ShouldBeNull();
         response.SubmittedByOperatorId.ShouldBeNull();
 
         await ctx.DailyClosesRepository.Received(1).Add(Arg.Is<DailyClose>(dc =>
@@ -81,7 +88,6 @@ public class OpenDailyCloseUseCaseTest
         ctx.WorkflowGuard.Received(1).EnsureCanOpen(
             ctx.BranchUser,
             ctx.CallerOperator,
-            ctx.Request.AccountId,
             ctx.Request.Date);
     }
 
@@ -165,7 +171,15 @@ public class OpenDailyCloseUseCaseTest
         await ctx.OperatorsRepository.Received(1)
             .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId);
         await ctx.AccountsRepository.Received(1)
-            .GetActiveByIdAndBranchIdAsNoTracking(ctx.Request.AccountId, ctx.BranchUser.BranchId);
+            .GetActiveByIdAndBranchIdAsNoTracking(
+                ctx.Request.AccountId,
+                ctx.BranchUser.BranchId,
+                Arg.Any<CancellationToken>());
+        await ctx.AccountsRepository.Received(1)
+            .GetActiveByIdAndBranchId(
+                ctx.Request.AccountId,
+                ctx.BranchUser.BranchId,
+                Arg.Any<CancellationToken>());
     }
 
     private static OpenDailyCloseUseCase CreateUseCase(HappyPathContext ctx)
@@ -174,7 +188,8 @@ public class OpenDailyCloseUseCaseTest
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
+        var coordination = new DailyCloseAccountCoordinationBuilder().Build();
 
         return new OpenDailyCloseUseCase(
             ctx.AuthenticationService,
@@ -184,6 +199,7 @@ public class OpenDailyCloseUseCaseTest
             ctx.WorkflowGuard,
             lockDateGuard,
             ctx.DailyClosesRepository,
+            coordination,
             ctx.UnitOfWork);
     }
 

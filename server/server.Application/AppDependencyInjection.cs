@@ -95,6 +95,8 @@ using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
 using server.Application.UseCases.DailyCloses.Reject;
+using server.Application.UseCases.DailyCloses.Recall;
+using server.Application.UseCases.DailyCloses.Reopen;
 using server.Application.UseCases.DailyCloses.Review;
 using server.Application.UseCases.DailyCloses.Submit;
 using server.Application.UseCases.DailyCloses.VariancePreview;
@@ -166,6 +168,7 @@ public static class AppDependencyInjection
         services.AddScoped<DueDateCalculator>();
         services.AddScoped<IBranchClock, BranchClock>();
         services.AddScoped<IMemberAccountScopeResolver, MemberAccountScopeResolver>();
+        services.AddScoped<ILockDateReader, LockDateReader>();
         services.AddScoped<LockDateGuard>();
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<ITimeEntryCalculationService, TimeEntryCalculationService>();
@@ -175,6 +178,9 @@ public static class AppDependencyInjection
         services.AddSingleton<IBrazilianHolidayCalendar, BrazilianHolidayCalendar>();
         services.AddSingleton<IBrazilianHolidayCalendarResolver, BrazilianHolidayCalendarResolver>();
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
+        services.AddScoped<IDailyCloseDraftTransition, DailyCloseDraftTransition>();
+        services.AddScoped<IDailyCloseSuccessorInvalidator, DailyCloseSuccessorInvalidator>();
+        services.AddScoped<IDailyCloseLedgerGuard, DailyCloseLedgerGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
         services.AddScoped<ICashVarianceProductResolver, CashVarianceProductResolver>();
         services.AddScoped<ITransactionMutationPermissionGuard, TransactionMutationPermissionGuard>();
@@ -211,6 +217,8 @@ public static class AppDependencyInjection
         services.AddScoped<SubmitDailyCloseUseCase>();
         services.AddScoped<ApproveDailyCloseUseCase>();
         services.AddScoped<RejectDailyCloseUseCase>();
+        services.AddScoped<RecallDailyCloseUseCase>();
+        services.AddScoped<ReopenDailyCloseUseCase>();
         services.AddScoped<GetDailyLedgerUseCase>();
         services.AddScoped<GetFiadoBalancesUseCase>();
         services.AddScoped<GetFiadoAgingUseCase>();

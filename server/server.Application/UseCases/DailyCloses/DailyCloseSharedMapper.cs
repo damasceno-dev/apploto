@@ -1,3 +1,4 @@
+using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using Operator = server.Domain.Entities.Operator;
@@ -13,7 +14,10 @@ public static class DailyCloseSharedMapper
         /// from a tracked <c>GetByIdAndBranchId</c> or read-only <c>...AsNoTracking</c>
         /// query with Includes) to the rich response DTO.
         /// </summary>
-        public ResponseDailyCloseJson ToResponse()
+        public ResponseDailyCloseJson ToResponse(
+            Guid cashVarianceProductId,
+            User? submittedByUserOverride = null,
+            Operator? submittedByOperatorOverride = null)
         {
             return new ResponseDailyCloseJson
             {
@@ -24,19 +28,31 @@ public static class DailyCloseSharedMapper
                 AccountId = close.AccountId,
                 AccountName = close.Account?.Name ?? string.Empty,
                 BranchId = close.BranchId,
+                OpenedByUserId = close.OpenedByUserId,
+                OpenedByUserName = close.OpenedByUser?.Name ?? string.Empty,
+                RecordedByUserId = close.RecordedByUserId,
+                RecordedByUserName = close.RecordedByUser?.Name,
+                RecordedByOperatorId = close.RecordedByOperatorId,
+                RecordedByOperatorName = close.RecordedByOperator?.Name,
+                SubmittedByUserId = close.SubmittedByUserId,
+                SubmittedByUserName = submittedByUserOverride?.Name ?? close.SubmittedByUser?.Name,
                 SubmittedByOperatorId = close.SubmittedByOperatorId,
-                SubmittedByOperatorName = close.SubmittedByOperator?.Name,
+                SubmittedByOperatorName = submittedByOperatorOverride?.Name ?? close.SubmittedByOperator?.Name,
                 SubmittedAt = close.SubmittedAt,
                 ApprovedAt = close.ApprovedAt,
                 ApprovedByUserId = close.ApprovedByUserId,
                 ApprovedByUserName = close.ApprovedByUser?.Name,
                 RejectionReason = close.RejectionReason,
                 Notes = close.Notes,
+                ItemsFirstRecordedAt = close.ItemsFirstRecordedAt,
+                OpeningRecheckRequiredAt = close.OpeningRecheckRequiredAt,
+                OpeningRecheckTriggeredByDailyCloseId = close.OpeningRecheckTriggeredByDailyCloseId,
+                OpeningRecheckTriggeredByUserId = close.OpeningRecheckTriggeredByUserId,
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
                 Items = close.Items
-                    .Where(item => item.Active)
+                    .Where(item => close.IsVisible(item, cashVarianceProductId))
                     .Select(item => item.ToItemResponse())
                     .ToList()
             };
@@ -45,12 +61,12 @@ public static class DailyCloseSharedMapper
         /// <summary>
         /// Maps a newly-persisted <see cref="DailyClose"/> to the rich response. The caller
         /// supplies the already-resolved <paramref name="account"/> and
-        /// <paramref name="submittedByOperator"/> so navigation properties do not need to be
+        /// <paramref name="openedByUser"/> so navigation properties do not need to be
         /// populated on the entity.
         /// </summary>
         public ResponseDailyCloseJson ToResponse(
             Account account,
-            Operator? submittedByOperator)
+            User openedByUser)
         {
             return new ResponseDailyCloseJson
             {
@@ -61,14 +77,26 @@ public static class DailyCloseSharedMapper
                 AccountId = close.AccountId,
                 AccountName = account.Name,
                 BranchId = close.BranchId,
+                OpenedByUserId = close.OpenedByUserId,
+                OpenedByUserName = openedByUser.Name,
+                RecordedByUserId = null,
+                RecordedByUserName = null,
+                RecordedByOperatorId = null,
+                RecordedByOperatorName = null,
+                SubmittedByUserId = null,
+                SubmittedByUserName = null,
                 SubmittedByOperatorId = close.SubmittedByOperatorId,
-                SubmittedByOperatorName = submittedByOperator?.Name,
+                SubmittedByOperatorName = null,
                 SubmittedAt = close.SubmittedAt,
                 ApprovedAt = close.ApprovedAt,
                 ApprovedByUserId = close.ApprovedByUserId,
                 ApprovedByUserName = null,
                 RejectionReason = close.RejectionReason,
                 Notes = close.Notes,
+                ItemsFirstRecordedAt = close.ItemsFirstRecordedAt,
+                OpeningRecheckRequiredAt = close.OpeningRecheckRequiredAt,
+                OpeningRecheckTriggeredByDailyCloseId = close.OpeningRecheckTriggeredByDailyCloseId,
+                OpeningRecheckTriggeredByUserId = close.OpeningRecheckTriggeredByUserId,
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
@@ -82,7 +110,11 @@ public static class DailyCloseSharedMapper
         /// loaded (e.g. items newly inserted within the current unit of work).
         /// DB-loaded items fall back to their populated <c>item.Product</c> navigation.
         /// </summary>
-        public ResponseDailyCloseJson ToResponse(IReadOnlyDictionary<Guid, Product> productMap)
+        public ResponseDailyCloseJson ToResponse(
+            IReadOnlyDictionary<Guid, Product> productMap,
+            Guid cashVarianceProductId,
+            User? recordedByUserOverride = null,
+            Operator? recordedByOperatorOverride = null)
         {
             return new ResponseDailyCloseJson
             {
@@ -93,6 +125,14 @@ public static class DailyCloseSharedMapper
                 AccountId = close.AccountId,
                 AccountName = close.Account?.Name ?? string.Empty,
                 BranchId = close.BranchId,
+                OpenedByUserId = close.OpenedByUserId,
+                OpenedByUserName = close.OpenedByUser?.Name ?? string.Empty,
+                RecordedByUserId = close.RecordedByUserId,
+                RecordedByUserName = recordedByUserOverride?.Name ?? close.RecordedByUser?.Name,
+                RecordedByOperatorId = close.RecordedByOperatorId,
+                RecordedByOperatorName = recordedByOperatorOverride?.Name ?? close.RecordedByOperator?.Name,
+                SubmittedByUserId = close.SubmittedByUserId,
+                SubmittedByUserName = close.SubmittedByUser?.Name,
                 SubmittedByOperatorId = close.SubmittedByOperatorId,
                 SubmittedByOperatorName = close.SubmittedByOperator?.Name,
                 SubmittedAt = close.SubmittedAt,
@@ -101,14 +141,25 @@ public static class DailyCloseSharedMapper
                 ApprovedByUserName = close.ApprovedByUser?.Name,
                 RejectionReason = close.RejectionReason,
                 Notes = close.Notes,
+                ItemsFirstRecordedAt = close.ItemsFirstRecordedAt,
+                OpeningRecheckRequiredAt = close.OpeningRecheckRequiredAt,
+                OpeningRecheckTriggeredByDailyCloseId = close.OpeningRecheckTriggeredByDailyCloseId,
+                OpeningRecheckTriggeredByUserId = close.OpeningRecheckTriggeredByUserId,
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
                 Items = close.Items
-                    .Where(item => item.Active)
+                    .Where(item => close.IsVisible(item, cashVarianceProductId))
                     .Select(item => item.ToItemResponse(productMap))
                     .ToList()
             };
+        }
+
+        private bool IsVisible(DailyCloseItem item, Guid cashVarianceProductId)
+        {
+            return item.Active &&
+                   (close.Status != Domain.Entities.Enums.DailyCloseStatus.Draft ||
+                    item.ProductId != cashVarianceProductId);
         }
     }
 

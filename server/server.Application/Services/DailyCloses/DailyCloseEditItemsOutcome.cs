@@ -15,12 +15,5 @@ public enum DailyCloseEditItemsOutcome
      /// Editing a session in the Rejected state; the session is automatically 
      /// transitioned back to Draft to allow resubmission.
      /// </summary>
-     EditOnRejectedAutoTransitionToDraft = 1,
-
-     /// <summary>
-     /// Editing a session in the Submitted state that qualifies for a "soft-final" recall.
-     /// Session is automatically transitioned to Draft, and the submission 
-     /// timestamp is cleared.
-     /// </summary>
-     EditOnSubmittedRecallToDraft = 2
+     EditOnRejectedAutoTransitionToDraft = 1
 }

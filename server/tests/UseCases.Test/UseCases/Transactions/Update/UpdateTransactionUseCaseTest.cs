@@ -349,7 +349,7 @@ public class UpdateTransactionUseCaseTest
     private static UpdateTransactionUseCase CreateUseCase(TestContext ctx)
     {
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
 
         return new UpdateTransactionUseCase(
             ctx.AuthenticationService,

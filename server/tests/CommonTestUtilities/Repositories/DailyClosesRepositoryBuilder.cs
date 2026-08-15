@@ -13,7 +13,8 @@ public class DailyClosesRepositoryBuilder
     public DailyClosesRepositoryBuilder()
     {
         _repository
-            .ListDashboardClosesByBranchIdAndDateAsNoTracking(Arg.Any<Guid>(), Arg.Any<DateTime>())
+            .ListDashboardClosesByBranchIdAndDateAsNoTracking(
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<DashboardCloseRow>());
     }
 
@@ -24,7 +25,8 @@ public class DailyClosesRepositoryBuilder
     {
         _repository.ListDashboardClosesByBranchIdAndDateAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
-                Arg.Is<DateTime>(value => value == date))
+                Arg.Is<DateTime>(value => value == date),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -36,7 +38,13 @@ public class DailyClosesRepositoryBuilder
     {
         _repository.GetByIdAndBranchId(
                 Arg.Is<Guid>(value => value == id),
-                Arg.Is<Guid>(value => value == branchId))
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        _repository.GetByIdAndBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == id),
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -48,7 +56,8 @@ public class DailyClosesRepositoryBuilder
     {
         _repository.GetByIdAndBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == id),
-                Arg.Is<Guid>(value => value == branchId))
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -77,7 +86,23 @@ public class DailyClosesRepositoryBuilder
         _repository.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid>(value => value == accountId),
-                Arg.Is<DateTime>(value => value == beforeDate))
+                Arg.Is<DateTime>(value => value == beforeDate),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public DailyClosesRepositoryBuilder GetNextEligibleAfterDateByBranchIdAndAccountIdReturns(
+        Guid branchId,
+        Guid accountId,
+        DateTime afterDate,
+        DailyClose? result)
+    {
+        _repository.GetNextEligibleAfterDateByBranchIdAndAccountId(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == accountId),
+                Arg.Is<DateTime>(value => value == afterDate),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -89,7 +114,8 @@ public class DailyClosesRepositoryBuilder
     {
         _repository.ListByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
-                Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(filter, actual)))
+                Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(filter, actual)),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -103,7 +129,8 @@ public class DailyClosesRepositoryBuilder
         _repository.ListByBranchIdAndYearMonthAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<int>(value => value == year),
-                Arg.Is<int>(value => value == month))
+                Arg.Is<int>(value => value == month),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -115,7 +142,8 @@ public class DailyClosesRepositoryBuilder
     {
         _repository.CountByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
-                Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(filter, actual)))
+                Arg.Is<DailyCloseListFilter>(actual => MatchesFilter(filter, actual)),
+                Arg.Any<CancellationToken>())
             .Returns(count);
         return this;
     }

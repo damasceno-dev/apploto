@@ -159,7 +159,8 @@ public class RejectDailyCloseUseCaseTest
 
     private static RejectDailyCloseUseCase CreateUseCase(TestContext ctx)
     {
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
+        var coordination = new DailyCloseAccountCoordinationBuilder().Build();
 
         return new RejectDailyCloseUseCase(
             ctx.AuthenticationService,
@@ -167,6 +168,10 @@ public class RejectDailyCloseUseCaseTest
             ctx.WorkflowGuard,
             lockDateGuard,
             ctx.BranchClock,
+            new CashVarianceProductResolverBuilder()
+                .ReturnsId(ctx.BranchUser.BranchId, Guid.NewGuid())
+                .Build(),
+            coordination,
             ctx.UnitOfWork);
     }
 

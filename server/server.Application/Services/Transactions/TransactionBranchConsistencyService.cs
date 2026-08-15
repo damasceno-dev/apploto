@@ -22,23 +22,25 @@ public class TransactionBranchConsistencyService(IAccountsRepository accountsRep
         Guid accountId,
         Guid recordedByOperatorId,
         Guid? clientId,
-        Guid transactionTypeId)
+        Guid transactionTypeId,
+        CancellationToken ct = default)
     {
-        var account = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(accountId, branchId)
+        ct.ThrowIfCancellationRequested();
+        var account = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(accountId, branchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
 
-        _ = await operatorsRepository.GetActiveByIdAndBranchIdAsNoTracking(recordedByOperatorId, branchId)
+        _ = await operatorsRepository.GetActiveByIdAndBranchIdAsNoTracking(recordedByOperatorId, branchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
 
         Client? client = null;
         if (clientId is { } resolvedClientId)
         {
-            client = await clientsRepository.GetActiveByIdAndBranchIdAsNoTracking(resolvedClientId, branchId)
+            client = await clientsRepository.GetActiveByIdAndBranchIdAsNoTracking(resolvedClientId, branchId, ct)
                 ?? throw new NotFoundException(ResourcesErrorMessages.CLIENT_NOT_FOUND);
         }
 
         var transactionType =
-            await transactionTypesRepository.GetActiveByIdAndBranchIdWithCategoryAsNoTracking(transactionTypeId, branchId)
+            await transactionTypesRepository.GetActiveByIdAndBranchIdWithCategoryAsNoTracking(transactionTypeId, branchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_TYPE_NOT_FOUND);
 
         if (transactionType.RequiresTabAccountAndClient &&

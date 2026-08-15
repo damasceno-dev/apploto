@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md (this file is canonical; derived artifacts: docs/loto_presentation.html, docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-Lotero mapping.
-Spec revision: v34
+Spec revision: v35
 -->
 
-> **Status:** Revised spec (v34) — M7.7 Phase 2 review hardening. The review still enumerates every active product, but now also preserves any retired product whose saved value belongs to the close being reviewed, so a submitted variance remains reconcilable after catalog retirement. An attempted Notes change on a Submitted close rejects the entire item-save with 409 instead of silently recalling while discarding the field. DailyClose concurrency translation is entity-scoped and a real two-context PostgreSQL regression pins the `xmin` race. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission remains in M7.6; the current regression now explicitly covers the Phase 2 `Version`, `Notes`, preview request/response, and nullable closing shapes.
+> **Status:** Revised spec (v35) — the expanded first M7.7 Phase 3 delivery preserves freeze-at-submit and adds the counted opening chain, explicit Recall/Reopen/correction ownership, Terminal/open-day enforcement, account-wide bounded coordination, one-node opening recheck, Draft CashVariance suppression, and distinct opener/immutable-recorder/current-submitter identities. Persisted non-Draft variance remains the official snapshot; no workflow silently recomputes it in place. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission remains in M7.6.
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -43,6 +43,7 @@ Spec revision: v34
 > v32: CashVariance Direction-semantics clarification — §6.12 gains a "Direction semantics on terminals" paragraph: `In`/`Out` records value entering/leaving the operator's custody (counted drawer cash + product stock); observed terminal days are almost entirely `Out` rows (cash-to-bank deposits, PIX/card cash-outs, prize/surplus payouts); the exactly-once invariant is stated (each value is a ledger row or a counted asset, never both), while the representation of ordinary product sales (count-only vs product-transaction-explained) is deferred to the Milestone 9.5 semantics audit. Verified against the original Access system: `FrmCaixa.AtualizarDiferenca` computed `DifCaixa = Lançamentos + TotalFinal − TotalInicial` with effectively all-`Negativo` terminal rows (116 of 118 real rows; `lco_valor` stored positive, `lco_sinal` carrying direction — the same value+direction model as this port), so the §6.12 formula and `CashVarianceCalculator` are **confirmed correct and unchanged**. New Access-faithful regression tests pin the convention end-to-end (−R$20 on a realistic all-`Out` day). The presentation's UC1/UC2/UC6 stories were corrected to the outflow reading and the UC6 worked example restored. No contract or schema changes.
 > v33: M7.7 Phase 2 (items 2.1–2.5) — §6.5/§6.12/§6.13/§6.14 now define the one-call active-product review projection (`ProductId`, `ProductName`, `DisplayOrder`, `OpeningValue?`, nullable `ClosingValue`, `IsCashVarianceProduct`), the candidate-driven non-persisting `POST /dailyclose/{id}/variance-preview`, and Draft item-save Notes (`max 1000`, empty clears, frozen at submit) guarded by the DailyClose row's PostgreSQL `xmin` `Version`. The breaking `ClosingValue: decimal → decimal?` change is explicitly pinned in emitted OpenAPI. The §6.5 pending marker drops only its now-implemented Notes clause; freeze/recall and paired-Tab gap-A clauses remain pending their M7.7 Phases 3/5. No user-defined database column was added: `xmin` is a PostgreSQL system column, checkpointed only as EF concurrency metadata.
 > v34: M7.7 Phase 2 review follow-up — the active-product review projection is unioned with the current close's own active saved items, preserving retired products only when needed to reconcile that close while still omitting prior-only retired products. A Submitted-close request that attempts to change frozen Notes now rejects atomically with 409 `DAILYCLOSE_NOTES_FROZEN`; omission (or the unchanged value) may still accompany the legacy recall until Phase 3 replaces it. `DbUpdateConcurrencyException` translation is scoped to entries whose entity is `DailyClose`, and real PostgreSQL two-context regressions prove both the `xmin` conflict and that a RefreshToken delete race is not mislabeled. The OpenAPI regression now also pins the Phase 2 `Version`, nullable `Notes`, and preview request/response schemas; project-wide `required` emission remains deferred to M7.6.
+> v35: Expanded M7.7 Phase 3 (items 3.1–3.13) — freeze-at-submit now covers create/installment/finalize/cancel under one account-wide transaction-scoped advisory lock shared by all eleven ledger/close mutations. DailyClose gains first-count eligibility, distinct opener/immutable-recorder/current-submitter identities, and restricted opening-recheck relations. The first successful item save (including empty) atomically claims the recorder; an unclaimed unlocked close may be claimed by any account-scoped Member, and coordination makes the first claim win. Submit stamps only the current submitter and never reassigns the recorder. Submit also requires a recorded count, no Draft rows, and no intervening active-activity day without a counted close. A real predecessor count change demotes exactly the next eligible official successor to Draft with explicit audit and response metadata. Recall and Reopen are explicit, Rejected/opening-recheck corrections retain their recorder ownership, every ordinary Draft response hides the retained CashVariance row, and official reads use only the persisted snapshot. Open is Terminal/date constrained; Terminal create/installment requires an open close while Tab/Bank remain exempt from that prerequisite. Coordination is stable-keyed, cancellable, and bounded to five seconds with retryable 409.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -638,9 +639,7 @@ public class Product : EntityBase
 
 ### 3.14 DailyClose
 
-> ⚠ **Pending M7.7 change (Phase 3; signed 2026-08-11, not yet implemented — [M7.7 Phase 3](../server/docs/milestones.md)):** the expanded first Phase 3 delivery adds immutable-once-set `ItemsFirstRecordedAt` plus nullable opening-recheck timestamp, triggering-close self-reference, and triggering-user audit fields. Because this contract first ships against an empty development database, every close follows the new first-save eligibility rule and there is no legacy-close initialization path. The entity/table below remains the committed v34 contract until Phase 3 ships.
-
-The daily register closing session. One row per account per day. Tracks the submission/approval workflow.
+The daily register closing session. One row per account per day. Tracks the submission/approval workflow and counted-opening lineage. Every close starts ineligible as an opening source; its first successful item save, including an explicit empty save, stamps `ItemsFirstRecordedAt` once. There is no legacy initialization path.
 
 ```csharp
 public class DailyClose : EntityBase
@@ -650,6 +649,18 @@ public class DailyClose : EntityBase
 
     public Guid AccountId { get; init; }
     public Account Account { get; init; } = null!;
+
+    public Guid OpenedByUserId { get; init; }
+    public User OpenedByUser { get; init; } = null!;
+
+    public Guid? RecordedByUserId { get; set; }
+    public User? RecordedByUser { get; set; }
+
+    public Guid? RecordedByOperatorId { get; set; }
+    public Operator? RecordedByOperator { get; set; }
+
+    public Guid? SubmittedByUserId { get; set; }
+    public User? SubmittedByUser { get; set; }
 
     public Guid? SubmittedByOperatorId { get; set; }
     public Operator? SubmittedByOperator { get; set; }
@@ -663,6 +674,15 @@ public class DailyClose : EntityBase
     public string? RejectionReason { get; set; }
     public string? Notes { get; set; }
 
+    public DateTime? ItemsFirstRecordedAt { get; set; }
+    public DateTime? OpeningRecheckRequiredAt { get; set; }
+
+    public Guid? OpeningRecheckTriggeredByDailyCloseId { get; set; }
+    public DailyClose? OpeningRecheckTriggeredByDailyClose { get; set; }
+
+    public Guid? OpeningRecheckTriggeredByUserId { get; set; }
+    public User? OpeningRecheckTriggeredByUser { get; set; }
+
     public DateTime? UpdatedAt { get; set; }
     public Guid? UpdatedByUserId { get; set; }
 
@@ -674,25 +694,35 @@ public class DailyClose : EntityBase
 }
 ```
 
-| Column                | Type          | Null     | Notes                                              |
-|-----------------------|---------------|----------|----------------------------------------------------|
-| Id                    | uuid          | PK       |                                                    |
-| Date                  | date          | NOT NULL | The business day being closed                      |
-| Status                | smallint      | NOT NULL | Enum: Draft=0, Submitted=1, Approved=2, Rejected=3 |
-| AccountId             | uuid          | NOT NULL | FK → Account                                       |
-| SubmittedByOperatorId | uuid          | NULL     | FK → Operator                                      |
-| SubmittedAt           | timestamptz   | NULL     |                                                    |
-| ApprovedAt            | timestamptz   | NULL     |                                                    |
-| ApprovedByUserId      | uuid          | NULL     | FK → User (manager/admin who approved)             |
-| RejectionReason       | varchar(500)  | NULL     |                                                    |
-| Notes                 | varchar(1000) | NULL     | Operator notes about the day                       |
-| UpdatedAt             | timestamptz   | NULL     | Generic workflow mutation audit timestamp          |
-| UpdatedByUserId       | uuid          | NULL     | User who last changed the workflow/item state      |
-| BranchId              | uuid          | NOT NULL | FK → Branch                                        |
-| CreatedAt             | timestamptz   | NOT NULL |                                                    |
-| Active                | boolean       | NOT NULL |                                                    |
+| Column                                    | Type          | Null     | Notes                                                       |
+|-------------------------------------------|---------------|----------|-------------------------------------------------------------|
+| Id                                        | uuid          | PK       |                                                             |
+| Date                                      | date          | NOT NULL | The business day being closed                               |
+| Status                                    | smallint      | NOT NULL | Enum: Draft=0, Submitted=1, Approved=2, Rejected=3          |
+| AccountId                                 | uuid          | NOT NULL | FK → Account                                                |
+| OpenedByUserId                            | uuid          | NOT NULL | Restricted FK → User who opened the close                   |
+| RecordedByUserId                          | uuid          | NULL     | Restricted FK → User who made the first successful count    |
+| RecordedByOperatorId                      | uuid          | NULL     | Restricted FK → that user's Operator, when one exists        |
+| SubmittedByUserId                         | uuid          | NULL     | Restricted FK → User for the current submission             |
+| SubmittedByOperatorId                     | uuid          | NULL     | Restricted FK → that submitter's Operator, when one exists  |
+| SubmittedAt                               | timestamptz   | NULL     |                                                             |
+| ApprovedAt                                | timestamptz   | NULL     |                                                             |
+| ApprovedByUserId                          | uuid          | NULL     | FK → User (manager/admin who approved)                      |
+| RejectionReason                           | varchar(500)  | NULL     | Retained through a Rejected correction/opening recheck      |
+| Notes                                     | varchar(1000) | NULL     | Operator notes about the day                                |
+| ItemsFirstRecordedAt                      | timestamptz   | NULL     | Immutable-once-set first successful item-save timestamp     |
+| OpeningRecheckRequiredAt                  | timestamptz   | NULL     | When a predecessor correction invalidated this opening      |
+| OpeningRecheckTriggeredByDailyCloseId     | uuid          | NULL     | Restricted self-FK → DailyClose that changed                |
+| OpeningRecheckTriggeredByUserId           | uuid          | NULL     | Restricted FK → User who changed the predecessor            |
+| UpdatedAt                                 | timestamptz   | NULL     | Generic workflow mutation audit timestamp                   |
+| UpdatedByUserId                           | uuid          | NULL     | User who last changed the workflow/item state               |
+| BranchId                                  | uuid          | NOT NULL | FK → Branch                                                 |
+| CreatedAt                                 | timestamptz   | NOT NULL |                                                             |
+| Active                                    | boolean       | NOT NULL |                                                             |
 
 **Unique constraint:** filtered unique index `(BranchId, AccountId, Date) WHERE Active = true` — one active closing per account per day.
+
+`OpenedByUserId` is immutable creation audit. `RecordedByUserId` and optional `RecordedByOperatorId` are stamped atomically with `ItemsFirstRecordedAt` on the first successful item save and never reassigned; a Manager/Admin without an Operator therefore remains a reachable user recorder with a null operator. `SubmittedByUserId` and optional `SubmittedByOperatorId` describe only the current submission and are cleared whenever the close returns to Draft. The recording-identity check constraint requires all recorder fields to be null before first count and a non-null recorder user after first count. All identity and opening-recheck foreign keys use restricted deletion. The rich close and review responses expose opener, recorder, and submitter identities; list and dashboard rows expose recorder and submitter separately.
 
 ### 3.15 DailyCloseItem
 
@@ -1128,34 +1158,39 @@ WHERE AccountId = @tabAccountId
 
 ### 6.5 Daily closing
 
-> ⚠ **Pending M7.7 changes (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** the silent `Submitted → Draft` recall-on-item-save (item 6 below) is replaced by explicit **Recall**; submitting seals the same-day ledger and is blocked by Draft rows or an unrecorded count; Terminal creates require an open close; an intervening active-transaction day without a counted close blocks Submit; and a real predecessor count change explicitly returns only the next eligible opening-chain successor to Draft for re-submit/re-approval, never silently recomputing its official variance. Counted-source eligibility, the explicit affected-successor item-save response, account-wide bounded/cancellable coordination, and Draft CashVariance suppression ship in the same first Phase 3 delivery. The close-day form's member fiado reference (gap A) remains Phase 5 work and is available only to an operator holding the paired Tab's explicit `OperatorAccount(Tab)` assignment. The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 change (Phase 5; signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** the close-day form's member fiado reference (gap A) becomes available only to an operator holding the paired Tab's explicit `OperatorAccount(Tab)` assignment. Until Phase 5 ships, the text below retains the existing query-time reference statement without a Member read endpoint.
 
-1. Operator opens DailyClose (creates with Status=Draft)
-2. Operator enters DailyCloseItems (one per product — cash count, ticket values, etc.)
-3. Operator submits (Status=Submitted, SubmittedAt=now)
+1. A user opens a Terminal DailyClose (creates with Status=Draft), stamping immutable `OpenedByUserId` while leaving the close unclaimed. A Member may open branch-local today; Manager/Admin may open today or a pre-lock past date; nobody may open a future date.
+2. A permitted user saves the complete count. The first successful `PUT /items`, including an explicit empty list, atomically stamps immutable-once-set `ItemsFirstRecordedAt`, `RecordedByUserId`, and nullable `RecordedByOperatorId`. Before that save, any Member scoped to the account may claim an unlocked close, including one backdated and opened by an elevated user; account coordination makes the first claim win. Later/retry/notes-only/correction saves never reassign the recorder.
+3. A permitted user submits only after the count exists, with no matching Draft transaction and no intervening active-activity date lacking an active counted close. Submit stamps the current `SubmittedByUserId` and nullable `SubmittedByOperatorId` without changing the recorder, computes and persists CashVariance, then freezes the same account/day ledger. A Member who claims a fresh backdated close still cannot submit it because the ordinary same-day Submit gate is unchanged; Manager/Admin submits it instead.
 4. Manager reviews:
    - Approve (Status=Approved, ApprovedAt=now)
    - Reject with reason (Status=Rejected, RejectionReason filled)
-5. If rejected, the next item edit automatically transitions `Rejected -> Draft`; the operator edits and resubmits.
-6. If submitted by mistake, the next item edit can automatically recall `Submitted -> Draft` when the editing caller is the recording operator Member on the same branch-local business day, or any Manager/Admin. The recall clears `SubmittedAt`, keeps the existing system-managed CashVariance row, and stamps the generic audit pair.
+5. If rejected, direct resubmit is allowed; the first permitted correction save transitions `Rejected -> Draft`, retains `RejectionReason`, and remains editable by the recording operator until lock or by Manager/Admin.
+6. If submitted by mistake, explicit `POST /dailyclose/{id}/recall` (**Desfazer envio**) returns it to Draft. The recording Member may Recall only on the same branch-local day; Manager/Admin may Recall pre-lock. Ordinary item-save against Submitted returns `DAILYCLOSE_NOT_EDITABLE`.
+7. Manager/Admin may `POST /dailyclose/{id}/reopen` an Approved close. Reopen returns it to Draft, clears submission/approval fields, retains counted eligibility and the physical CashVariance row, unfreezes the ledger, and requires submit + approval again.
 
-**Opening values** for the current day = closing values (DailyCloseItems) from the most recent prior DailyClose for the same account. The system queries the top row where `BranchId = @branchId AND AccountId = @accountId AND Date < @today`, ordered by `Date DESC, CreatedAt DESC, Id DESC`. This handles weekends, holidays, and missing close days without a holiday calendar dependency.
+**Opening values** for the current day = closing values from the most recent prior active **counted** close for the same account: `ItemsFirstRecordedAt != null`, regardless of Draft/Submitted/Approved/Rejected state. The backward query orders `Date DESC, CreatedAt DESC, Id DESC`; the mirrored forward successor query orders `Date ASC, CreatedAt ASC, Id ASC`. Both use the identical `Active && ItemsFirstRecordedAt != null` eligibility predicate, handling weekends, holidays, never-counted closes, and missing days without an operating calendar.
+
+**Submit prerequisites and interval.** Submit resolves `LockDate` and the opening source once while holding account coordination. It rejects the current close without `ItemsFirstRecordedAt` using `DAILYCLOSE_ITEMS_NOT_RECORDED`, and rejects same-day Draft transactions using `DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS`. It then finds the earliest date in `(max(opening-source date or DateTime.MinValue, LockDate), close date)` that has an active, non-soft-deleted `Transaction` with `Status = Active` but no active counted close and rejects with `DAILYCLOSE_PRIOR_DAY_NOT_COUNTED`. Both endpoints are exclusive; Draft/Cancelled/soft-deleted transactions do not create a gap, and counting the blocking date provides the escape path.
 
 **Close-day review context.** `GET /dailyclose/{dailyCloseId}/review` enumerates **every active branch product**, even when the close has no saved items, plus any retired product that still has an active saved item on the current close; rows are ordered by `DisplayOrder ASC, ProductId ASC`. Each `ResponseDailyCloseReviewItemJson` is `{ ProductId, ProductName, DisplayOrder, OpeningValue?, ClosingValue?, IsCashVarianceProduct }`. A missing prior product maps to `OpeningValue = 0`; a not-yet-entered current product maps to `ClosingValue = null`. Products that exist only on the prior close are not resurrected, while a retired product already counted on the current close remains visible so its persisted total and variance can be reconciled; newly-active products appear with opening zero and a null closing. The `"Diferença Caixa"` row is always present and flagged by server-resolved product id, with `OpeningValue = null`; its `ClosingValue` is null before calculation and is the persisted submitted value when such a row exists.
 
-**CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.12 for the calculation formula. The operator does not enter this value directly.
+**CashVariance** (Diferença Caixa) is system-calculated and persisted as a DailyCloseItem with the "Diferença Caixa" product. See rule 6.12 for the calculation formula. The operator does not enter this value directly. Recall, Reopen, Rejected correction, and opening recheck retain that physical row and `ItemsFirstRecordedAt`, but every ordinary Draft `ResponseDailyCloseJson.Items` and official Draft projection hides it until a successful resubmit updates the same row in place.
 
 **Pre-submit variance.** `POST /dailyclose/{dailyCloseId}/variance-preview` accepts the complete candidate item list currently in the form and computes §6.12 through the same `ICashVarianceCalculator` used by Submit. Candidate values are authoritative for the preview — saved Draft items are never substituted. It reuses Submit's DailyClose read/edit scope, status and lock checks plus the item validation rules (active in-branch products only; no duplicate ids; non-negative `numeric(14,2)` values; the reserved variance product forbidden). It returns `ResponseDailyCloseVariancePreviewJson { CashVariance }` and never persists.
 
-**Draft notes.** `PUT /dailyclose/{dailyCloseId}/items` accepts optional `Notes` alongside `Items` and the close's `Version` precondition. Omitted Notes preserve the current value; an empty string clears it; non-empty text is stored verbatim with a 1000-character maximum. Notes are editable on the Draft save path (including a rejected close returning to Draft) and frozen once submitted. While the legacy same-save recall remains until Phase 3, omitting Notes (or sending the unchanged value) may recall the close; attempting to change the submitted note rejects the **entire** request with 409 `DAILYCLOSE_NOTES_FROZEN`, leaving status, items, and Notes untouched. `GET /dailyclose/{id}` and `/review` return the stored Notes.
+**Item-save response, first claim, change detection, and Notes.** `PUT /dailyclose/{dailyCloseId}/items` accepts the normalized complete non-variance item set, optional `Notes`, and the close's `Version` precondition. It discovers the key without tracking, acquires account coordination, reloads, and only then authorizes the tracked state. An unclaimed close (`RecordedByUserId == null`) is the sole item-edit exception that lets any account-scoped Member make the first count; it is deliberately absent from Submit and Recall. Omitted Notes preserve the current value; an empty string clears it; non-empty text is stored verbatim with a 1000-character maximum. Notes are editable on a permitted Draft/Rejected-correction path and frozen once submitted. The response is `ResponsePutDailyCloseItemsJson { DailyClose, AffectedSuccessor? }`; an affected successor carries `{ DailyCloseId, Date, PreviousStatus, NewStatus, OpeningRecheckRequiredAt }`. Notes-only, identical, reordered, and retried saves do not invalidate a successor or change recorder identity. Add/remove/value changes and first-count eligibility do. Exactly the earliest later eligible Submitted/Approved/Rejected close returns to Draft with opening-recheck audit; Draft/none is a no-op and no official snapshot is recomputed in place.
 
 **Fiado balance** is NOT stored as a DailyCloseItem — it is always calculated at query time from Tab account transactions (see rule 6.4). The daily close form displays it for reference but does not persist it as a snapshot value.
 
 ### 6.6 Date locking
 
-> ⚠ **Pending M7.7 change (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** **Phase 4 clause:** `LockDate` becomes read-only via `PUT /setting`; the only lock path is an atomic `POST /setting/lock-month` with server-enforced readiness (activity-based expected closers, whole-interval validation, current/unfinished month not lockable). **Phase 3 clause:** before Phase 4 adds the month-level lock, Open, item-save, Submit, Approve, Reject, Recall, Reopen, and Terminal-ledger mutations serialize on one transaction-scoped `(BranchId, AccountId)` advisory key; acquisition is cancellation-aware and bounded by transaction-local PostgreSQL `lock_timeout = 5s`, and SQLSTATE `55P03` becomes retryable `409 DAILYCLOSE_LEDGER_COORDINATION_BUSY`. Phase 3 trims only its clause when it ships; Phase 4 owns removal of the remaining marker. The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 change (Phase 4; signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `LockDate` becomes read-only via `PUT /setting`; the only lock path is an atomic `POST /setting/lock-month` with server-enforced readiness (activity-based expected closers, whole-interval validation, current/unfinished month not lockable). Phase 4 owns removal of this marker.
 
-`Setting.LockDate` defines the cutoff. Transactions on or before this date cannot be created, edited, or cancelled. Every DailyClose workflow transition on or before this date is blocked: open, edit items, submit, approve, reject, `Rejected -> Draft` auto-transition, and `Submitted -> Draft` recall. The lock date is advanced by the manager after month-end reconciliation.
+`Setting.LockDate` defines the cutoff. Transactions on or before this date cannot be created, edited, or cancelled. Every DailyClose workflow transition on or before this date is blocked: open, edit items, submit, approve, reject, Rejected correction, Recall, and Reopen. The lock date is advanced by the manager after month-end reconciliation.
+
+Open, item-save, Submit, Approve, Reject, Recall, Reopen, transaction create, installment create, finalize, and cancel serialize on one transaction-scoped `(BranchId, AccountId)` advisory key. The key is computed in application code from `$"{branchId:N}:{accountId:N}"` using the first eight SHA-256 bytes in pinned big-endian order. Acquisition propagates request cancellation and uses transaction-local PostgreSQL `lock_timeout = 5s`; SQLSTATE `55P03` becomes retryable 409 `DAILYCLOSE_LEDGER_COORDINATION_BUSY`. No partial state is committed on timeout/cancellation.
 
 ### 6.7 Time entry calculation
 
@@ -1351,7 +1386,7 @@ All entities referenced by a Transaction must belong to the same Branch. This is
 - `Transaction.BranchId` must equal `Client.BranchId` (when ClientId is present)
 - `Transaction.BranchId` must equal `TransactionType.Category.BranchId` (follow the chain: TransactionType → Category → BranchId)
 
-The same principle applies to DailyClose: `DailyClose.BranchId` must equal `Account.BranchId` and `SubmittedByOperator.BranchId`.
+The same principle applies to DailyClose: `DailyClose.BranchId` must equal `Account.BranchId`, and any non-null `RecordedByOperator` / `SubmittedByOperator` must belong to that branch.
 
 This prevents cross-branch data leakage in a multi-tenant system. In EF Core, implement as a shared validation method called by all relevant use cases, not as a DB trigger (keeps the logic testable and explicit).
 
@@ -1375,9 +1410,11 @@ The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious
 
 ### 6.11 Transaction mutation contract
 
-> ⚠ **Pending M7.7 change (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** **Phase 6 clause:** financial creates (`POST /transaction`, `/transaction/installment`, the *Receber pagamento* command) honor a client `Idempotency-Key`; mutating endpoints carry an optimistic-concurrency precondition via Postgres `xmin` → `409` on stale writes. **Phase 3 clause:** a Terminal `POST /transaction` or `/transaction/installment` requires an active same-day DailyClose (`TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE`); Tab and Bank remain exempt; an active non-Draft close continues to reject create/installment/finalize/cancel with the frozen-ledger key; and finalize/cancel stay null-tolerant for rows created before this rule. Phase 3 trims only its clause when it ships; Phase 6 owns removal of the remaining marker. The text below describes the pre-decision contract.
+> ⚠ **Pending M7.7 change (Phase 6; signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** financial creates (`POST /transaction`, `/transaction/installment`, the *Receber pagamento* command) honor a client `Idempotency-Key`; mutating endpoints carry an optimistic-concurrency precondition via Postgres `xmin` → `409` on stale writes. Phase 6 owns removal of this marker.
 
 Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`. Cancellation is a terminal state transition: the client sends a required `CancellationReason`, and the server moves a `Draft` or `Active` row to `Cancelled` with an explicit cancellation audit trail. All three operations share the same member account scope, mutation permission matrix, lock-date behavior, and generic update audit convention.
+
+**DailyClose ledger binding.** A Terminal `POST /transaction` or `/transaction/installment` requires an active same-day DailyClose. Missing close returns 409 `TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE`; Draft is writable; Submitted/Approved/Rejected returns 409 `TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN`. Tab and Bank are exempt only from the missing-close prerequisite: if an active non-Draft close does exist for their exact account/day, the same freeze applies. Finalize and cancel remain null-tolerant for legacy/existing rows with no close, but reject any active non-Draft close. These four mutation families share §6.6 account coordination with the close workflow.
 
 **Editable fields:**
 
@@ -1448,8 +1485,6 @@ The read/list rules in §6.10 and the mutation rules here intentionally share th
 
 ### 6.12 CashVariance calculation
 
-> ⚠ **Pending M7.7 change (Phase 3; signed 2026-08-11, not yet implemented — [M7.7 Phase 3](../server/docs/milestones.md)):** the opening source becomes the most recent prior active **counted** close (`ItemsFirstRecordedAt != null`), regardless of workflow state. A real predecessor count/first-eligibility change demotes exactly the next eligible `Submitted`/`Approved`/`Rejected` successor to Draft with an opening-recheck audit; it is recalculated only on re-submit. Every close follows the new first-save eligibility rule, and the active-transaction sum also requires `Transaction.Active = true`. The v34 formula/text below remains operative until implementation lands.
-
 CashVariance (Diferença de Caixa) is **system-calculated, not operator-entered**. The operator enters closing product values (Dinheiro, Telesena, etc.); the system computes the variance and persists it as a DailyCloseItem.
 
 ```
@@ -1457,59 +1492,63 @@ CashVariance = TotalClosing - TotalOpening - TotalTransactions
 
 Where:
   TotalClosing  = sum of today's DailyCloseItems (excluding CashVariance itself)
-  TotalOpening  = sum of the most recent prior DailyCloseItems for the same account
-                  where Date < today, excluding CashVariance
+  TotalOpening  = sum of the most recent prior active counted close's items
+                  for the same account where Date < today and ItemsFirstRecordedAt != null,
+                  excluding CashVariance
   TotalTransactions = SumActive(Direction.In) - SumActive(Direction.Out)
-                      for today's Active transactions for the same account
+                      for today's transactions for the same account where
+                      Transaction.Active = true and Status = Active
 ```
 
-The calculator reads `Direction.In` and `Direction.Out` with two explicit calls to `SumActiveValueByAccountAndDateAsNoTracking(branchId, accountId, date, direction)`, then subtracts `In - Out`. It never relies on an unfiltered transaction sum for CashVariance.
+The calculator reads `Direction.In` and `Direction.Out` with two explicit calls to `SumActiveValueByAccountAndDateAsNoTracking(branchId, accountId, date, direction)`, then subtracts `In - Out`. It never relies on an unfiltered transaction sum for CashVariance. Both calls require `Transaction.Active && Status == Active`.
 
 **Direction semantics on terminals (Access-verified).** On a Terminal account, `In`/`Out` records value entering/leaving the operator's custody — the counted assets (drawer cash + product stock). Observed terminal days are almost entirely `Out` rows: cash deposited to the bank, PIX/card cash-outs, prize and surplus payouts. The invariant is that **each value is represented exactly once** — as a ledger row or inside the counted assets, never both; a sale represented twice (a product-typed `Out` row *and* its proceeds counted in the drawer) inflates the variance by +V. Whether ordinary product sales are **count-only** (the stock/cash swap nets to zero inside the counted assets, no row) or **product-transaction-explained** (a product-typed row with the proceeds kept out of the count) is a representation choice deferred to the Milestone 9.5 semantics audit — both reconcile when used consistently. The formula's expected-movement term (`In − Out`) mirrors the original Access conferência (`FrmCaixa.AtualizarDiferenca`: `DifCaixa = Lançamentos + TotalFinal − TotalInicial`, with terminal rows effectively all `Negativo`/Out — `lco_valor` was stored positive and `lco_sinal` carried direction, the same value+direction model as this port), which reconciled daily in production use. The new model keeps the same conservation structure but tracks fiado balances query-time on the Tab account (§6.4) instead of inside the close totals. Worked example: opening counts R$5,800; the day records R$3,000 of `Out` rows; the operator counts R$2,780 → `2,780 − 5,800 − (0 − 3,000) = −20` — the drawer is R$20 short.
 
-The CashVariance DailyCloseItem is written by the system when the operator submits the daily close, and updated in place if the close is rejected and resubmitted or recalled and submitted again. The operator cannot directly type a variance value.
+The CashVariance DailyCloseItem is written by the system when the operator submits the daily close, and updated in place if the close is rejected and resubmitted or recalled/reopened and submitted again. The operator cannot directly type a variance value. Review, ordinary non-Draft close responses, dashboard, cash-variance summary, and monthly reconciliation use this persisted official value. Live recomputation is divergence/hypothetical data only.
+
+If a real counted-input or first-eligibility change affects a later opening, account coordination selects only the earliest later active counted close (`Date ASC, CreatedAt ASC, Id ASC`). A Submitted, Approved, or Rejected successor moves to Draft with `OpeningRecheckRequiredAt`, triggering-close, and triggering-user audit; a Rejected reason is retained. Draft/none is a no-op. The successor's persisted variance is not changed in place and is suppressed while Draft; re-submit recalculates it and clears the recheck lineage. No successor-wide cascade occurs unless that demoted node's own counts are later changed.
 
 The pre-submit preview uses the same calculator with an alternate current-closing source: the request's candidate `{ ProductId, Value }` rows replace the saved Draft-item read for `TotalClosing`; prior-close and active-transaction reads are identical to Submit. Thus saving those exact candidates and submitting produces the same variance, while unsaved changes immediately change the preview.
 
 ### 6.13 DailyClose contract
 
-> ⚠ **Pending M7.7 changes (signed 2026-07-27; expanded 2026-08-11; not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** `Approved` is no longer terminal — Manager/Admin **Reopen** returns it to Draft for re-approval; `Submitted → Draft` becomes explicit **Recall**; the recording operator may correct Rejected or opening-recheck-demoted closes until lock; direct prior-day elevated Recall/Reopen remains Manager-owned; and ordinary Draft responses hide retained CashVariance. Open becomes Terminal/date constrained, Submit requires a recorded count and a gap-free counted activity chain, all eleven ledger/close-history participants coordinate account-wide, and `PUT /items` explicitly reports any one successor returned to Draft. Recall is user-facing **Desfazer envio** in pt-BR; same-day Member Recall denial is `403`, while state/lock conflicts are `409`. The text below describes the pre-decision contract.
-
-**Workflow states.** The state machine is `Draft -> Submitted -> Approved | Rejected`, with two automatic edit-time transitions: `Rejected -> Draft` for resubmission after manager feedback, and `Submitted -> Draft` for same-day soft-final recall. `Approved` is terminal.
+**Workflow states.** The state machine is `Draft -> Submitted -> Approved | Rejected`. `Rejected` may be directly resubmitted; its first permitted correction save applies `Rejected -> Draft` while retaining the reason. Explicit Recall applies `Submitted -> Draft`; Manager/Admin Reopen applies `Approved -> Draft`. A predecessor correction may apply a distinct opening-recheck demotion from Submitted/Approved/Rejected to Draft. None of these transitions silently recomputes the official snapshot.
 
 **Role x state x local-day matrix.**
 
-| Operation  | Draft                                                               | Submitted                                                                                       | Approved        | Rejected                                       |
-|------------|---------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|-----------------|------------------------------------------------|
-| Open       | Member with account in scope, Manager, Admin                        | n/a                                                                                             | n/a             | n/a                                            |
-| Edit items | Member who recorded it on the same branch-local day, Manager, Admin | Recall allowed for recording-operator Member on the same branch-local day, or any Manager/Admin | Not editable    | Same rules as Draft; auto-transitions to Draft |
-| Submit     | Member who recorded it on the same branch-local day, Manager, Admin | Not submittable                                                                                 | Not submittable | Same rules as Draft                            |
-| Approve    | n/a                                                                 | Manager/Admin only                                                                              | Not approvable  | Not approvable                                 |
-| Reject     | n/a                                                                 | Manager/Admin only                                                                              | Not rejectable  | Not rejectable                                 |
+| Operation  | Draft                                                                                                                                                | Submitted                                                                                                  | Approved                    | Rejected                                                                 |
+|------------|------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|-----------------------------|--------------------------------------------------------------------------|
+| Open       | Terminal only: scoped Member for branch-local today; Manager/Admin today or pre-lock past; every role rejects future                                 | n/a                                                                                                        | n/a                         | n/a                                                                      |
+| Edit items | Unclaimed: any account-scoped Member pre-lock may first-count; claimed: recording Member same local day for a plain Draft or until lock for opening recheck; Manager/Admin pre-lock | Never; returns `DAILYCLOSE_NOT_EDITABLE`                                                                   | Never                       | Recording operator until lock or Manager/Admin; first correction → Draft |
+| Submit     | Same ownership as the applicable Draft correction lineage; requires count, no same-day Draft rows, and no intervening uncounted active-activity date | Not submittable                                                                                            | Not submittable             | Direct resubmit permitted under Rejected correction ownership            |
+| Recall     | n/a                                                                                                                                                  | Recording Member same local day; Manager/Admin pre-lock. Member-window denial is 403; state/lock is 409     | n/a                         | n/a                                                                      |
+| Reopen     | n/a                                                                                                                                                  | n/a                                                                                                        | Manager/Admin pre-lock only | n/a                                                                      |
+| Approve    | n/a                                                                                                                                                  | Manager/Admin only (controller filter plus workflow defence)                                               | Not approvable              | Not approvable                                                           |
+| Reject     | n/a                                                                                                                                                  | Manager/Admin only (controller filter plus workflow defence)                                               | Not rejectable              | Not rejectable                                                           |
 
 All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`, never `DateTime.UtcNow.Date`.
 
 **Account scope.** Get uses `404` for missing/cross-branch ids, `403 TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK` for Members without a linked operator, and `403 TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE` when a linked Member targets an account outside `AllowedAccountIds`. List uses the same server-resolved `AllowedAccountIds`; empty scope or explicit out-of-scope account filters return an empty page without leaking row existence. Writes use `MemberAccountScopeGuard` and surface the same two `403` keys.
 
-**Open ordering.** `POST /dailyclose` runs in this order: request validation -> account branch lookup -> `MemberAccountScopeGuard` -> `DailyCloseWorkflowGuard.EnsureCanOpen` -> `LockDateGuard` -> repository add/commit. `EnsureCanOpen` owns only the role/linked-operator part of the Open matrix: Manager/Admin are allowed even without a linked Operator; Member must have a linked Operator. Account membership belongs to `MemberAccountScopeGuard`, and duplicate active closes for `(BranchId, AccountId, Date)` are enforced by the filtered unique constraint plus PostgreSQL `23505` translation.
+**Open ordering.** `POST /dailyclose` validates, discovers the immutable Terminal account key no-tracking, applies member account scope, acquires account coordination, reloads/revalidates the account and workflow/date/lock conditions, then adds and commits. `EnsureCanOpen` owns role/date/linked-operator rules and no longer accepts an unused account id. Duplicate active closes for `(BranchId, AccountId, Date)` remain enforced by the filtered unique constraint plus PostgreSQL `23505` translation.
 
-**Audit stamping.** Every workflow mutation stamps `UpdatedAt` and `UpdatedByUserId`. Submit, approve, reject, `Rejected -> Draft`, and `Submitted -> Draft` recall capture one `branchClock.UtcNow()` instant and use that same value for the workflow timestamp (`SubmittedAt` or `ApprovedAt`, where applicable) and `UpdatedAt`.
+**Identity, audit stamping, and correction ownership.** Open stamps only immutable `OpenedByUserId`. The first successful item save stamps `ItemsFirstRecordedAt` plus immutable `RecordedByUserId` / nullable `RecordedByOperatorId`; this recorder identity owns Member correction windows. Submit stamps the current `SubmittedByUserId` / nullable `SubmittedByOperatorId` and never changes the recorder. Every workflow mutation stamps `UpdatedAt` and `UpdatedByUserId` from one captured branch-clock instant. Recall/Reopen and opening-recheck demotion clear current submission/approval identity and timestamps while retaining first-count eligibility and recorder identity; opening recheck stamps its three dedicated fields. A direct prior-day Manager/Admin Recall/Reopen creates a Manager-owned plain Draft by permission lineage, not by overwriting the recorder or synthesizing Member correction access.
 
 **Lock-date behavior.** `LockDateGuard` applies to every transition listed in §6.6. DailyClose callers pass `DAILYCLOSE_LOCK_DATE_VIOLATION`.
 
 **Sibling-account isolation.** Submit computes and persists CashVariance for exactly one `(BranchId, AccountId, Date)` close. It reads transactions and prior close rows for that account only; sibling accounts never contribute to the variance.
 
-**System-only product.** The `"Diferença Caixa"` product is resolved by display name and is owned by Submit. It is never accepted in client `PUT /items` payloads (`DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN`), never deleted on rejection or recall, and is updated in place on resubmission or submit-after-recall.
+**System-only product.** The `"Diferença Caixa"` product is resolved by display name and is owned by Submit. It is never accepted in client `PUT /items` payloads (`DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN`), never deleted on correction/Recall/Reopen/opening recheck, and is updated in place on resubmission. Every ordinary Draft `ResponseDailyCloseJson.Items` omits the retained row; review flags it but returns a null Draft closing value.
 
-**Draft item-save concurrency and Notes.** `ResponseDailyCloseJson` and `ResponseDailyCloseReviewJson` carry `Version`, mapped to PostgreSQL's `xmin` system column. `PUT /dailyclose/{id}/items` requires that version in `RequestPutDailyCloseItemsJson`; a stale precondition returns 409 `DAILYCLOSE_STALE_WRITE`, and EF's concurrency check guards a race after the initial comparison. Translation of the EF concurrency exception is limited to `DailyClose` entries; unrelated persistence races are not mislabeled. A real two-context PostgreSQL test pins the generated `xmin` predicate and losing-write behavior. This is the DailyClose-specific M7.7 Phase 2 path; Phase 6 generalizes the wire convention across the remaining mutation families. The same request carries optional `Notes` (max 1000, verbatim; empty string clears), editable while Draft and frozen at submit; an attempted Submitted-state change rejects the whole request with 409 `DAILYCLOSE_NOTES_FROZEN`.
+**Draft item-save concurrency and Notes.** `ResponseDailyCloseJson` and `ResponseDailyCloseReviewJson` carry `Version`, mapped to PostgreSQL's `xmin` system column. `PUT /dailyclose/{id}/items` performs no-track key discovery, account coordination, tracked reload/revalidation, then mutation/commit. This ordering also serializes first claim: after one scoped Member commits the recorder identity, a competing scoped Member reloads a claimed close and receives `DAILYCLOSE_NOT_EDITABLE`. It requires the request version; a stale precondition returns 409 `DAILYCLOSE_STALE_WRITE`, and EF's concurrency check guards the post-comparison race. Translation remains limited to `DailyClose` entries. The request's optional `Notes` is max 1000, verbatim, empty-clearing, and frozen at submit. Phase 6 generalizes the wire convention across remaining mutation families.
 
 ---
 
 ### 6.14 Reporting Surface
 
-> ⚠ **Pending M7.7 change (Phase 3; signed 2026-08-11, not yet implemented — [M7.7 Phase 3](../server/docs/milestones.md)):** review, dashboard, cash-variance summary, and monthly reconciliation continue to treat persisted non-Draft CashVariance as the official snapshot. If a predecessor correction changes a close's opening, account-wide coordination first returns the affected successor to Draft, immediately suppressing its retained variance from every official and ordinary Draft projection; live recomputation may be shown only as a separate divergence/hypothetical value.
-
 **Read-only contract.** All Milestone 7 and Milestone 7.5 reporting endpoints are read-only. None call `Add`, none mutate persisted state, none open a unit of work. The four preview endpoints (`POST /transaction/installment/preview`, `POST /transaction/{id}/edit-preview`, `POST /transaction/preview`, `POST /dailyclose/{id}/variance-preview`) are compute-only and never persist; the "preview cannot commit" invariant is enforced by construction (no `IUnitOfWork` dependency) and pinned by WebApi.Test reload / row-count assertions that verify persisted state is unchanged after a 200 response. The architecture-level never-commits scan covers the report namespaces, the daily-close review context (`UseCases.DailyCloses.Review`), and the candidate variance preview (`UseCases.DailyCloses.VariancePreview`).
+
+**Official variance authority.** Review, dashboard, cash-variance summary, monthly reconciliation, and ordinary non-Draft close responses expose the persisted CashVariance snapshot. A predecessor correction first demotes the one affected successor to Draft under account coordination; every official/Draft projection then suppresses its retained physical variance row. Live recalculation is permitted only as separately labelled divergence/hypothetical data.
 
 **Permission buckets.**
 
@@ -1696,9 +1735,9 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 | `ActiveTransactionCount`    | Count of active, non-soft-deleted transactions on the day                                                        |
 | `DraftTransactionCount`     | Count of draft, non-soft-deleted transactions on the day                                                         |
 | `CancelledTransactionCount` | Count of cancelled, non-soft-deleted transactions on the day                                                     |
-| `NetVariance`               | Sum of the day's `"Diferença Caixa"` DailyCloseItem values across all accounts; zero when no variance row exists |
+| `NetVariance`               | Sum of the day's persisted `"Diferença Caixa"` values from non-Draft closes; zero when none is official          |
 
-*Per-close contract (`ResponseMonthlyReconciliationDayCloseJson`):* `{ DailyCloseId, AccountId, AccountName, Status, VarianceValue }`. `VarianceValue` is looked up by `(Date, AccountId)`, not by Date alone, so multiple account closes on the same day keep their distinct cash-variance values.
+*Per-close contract (`ResponseMonthlyReconciliationDayCloseJson`):* `{ DailyCloseId, AccountId, AccountName, Status, VarianceValue }`. `VarianceValue` is the persisted official value looked up by `(Date, AccountId)`, not by Date alone, so multiple account closes on the same day keep distinct values. It is `0` while the close is Draft even if a retained physical row exists.
 
 *Transaction counts:* the repository groups non-soft-deleted transactions by `(Date, Status)` for the requested branch/month. Counts intentionally include all three statuses — Active, Draft, and Cancelled — because Draft rows block lock readiness and Canceled-only days still need to be visible in the calendar.
 
@@ -1734,10 +1773,10 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 |----------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `Closes`                         | Submitted-or-later close rows for the day. `Draft` closes never appear here — they surface in `NotSubmitted` carrying their close id. Ordered `AccountName ASC, Id ASC`.  |
 | `PendingApprovalCount`           | Count of `Closes` rows with `Status = Submitted`. `Approved` and `Rejected` closes are not pending.                                                                       |
-| `TotalVariance` / `MeanVariance` | Sum / mean of the day's `"Diferença Caixa"` variance rows. The mean divides by the number of variance rows, not the number of closes; both are `0` when the day has none. |
+| `TotalVariance` / `MeanVariance` | Sum / mean of the day's persisted non-Draft `"Diferença Caixa"` rows. Retained Draft rows do not participate; both values are `0` when none is official.            |
 | `NotSubmitted`                   | Expected closers with no submitted-or-later close for the date (see the expected-closer rule below). Ordered `AccountName ASC, AccountId ASC`.                            |
 
-*Per-close contract (`ResponseDashboardCloseJson`):* `{ DailyCloseId, AccountId, AccountName, SubmittedByOperatorId?, SubmittedByOperatorName?, Status, SubmittedAt?, ApprovedAt?, VarianceValue? }`. `VarianceValue` is the close-day `"Diferença Caixa"` DailyCloseItem value joined by `(Date, AccountId)` — never by date alone, so sibling accounts on the same day keep distinct variances (the same rule as the monthly-reconciliation per-close variance). `null` when no variance row exists for the close.
+*Per-close contract (`ResponseDashboardCloseJson`):* `{ DailyCloseId, AccountId, AccountName, RecordedByUserId?, RecordedByUserName?, RecordedByOperatorId?, RecordedByOperatorName?, SubmittedByUserId?, SubmittedByUserName?, SubmittedByOperatorId?, SubmittedByOperatorName?, Status, SubmittedAt?, ApprovedAt?, VarianceValue? }`. Recorder fields identify who first counted; submitter fields identify only the current submission. `VarianceValue` is the close-day `"Diferença Caixa"` DailyCloseItem value joined by `(Date, AccountId)` — never by date alone, so sibling accounts on the same day keep distinct variances (the same rule as the monthly-reconciliation per-close variance). `null` when no variance row exists for the close.
 
 *Expected-closer rule (M7.5 item 1.2):* active `AccountType.Terminal` accounts with at least one active `OperatorAccount` link to an active `Operator` are expected to close. Bank and Tab accounts are never expected — §6.5 daily closing covers terminal cash counts and §6.4 keeps fiado balances query-time. Each `ResponseDashboardNotSubmittedJson` row is `{ AccountId, AccountName, OperatorId, OperatorName, DailyCloseId?, Status? }`; the surfaced operator is the account's primary active link, falling back to the first active link by operator name (`IsPrimary DESC, Operator.Name ASC, OperatorId ASC`). When a `Draft` close exists for the account the row carries its `DailyCloseId` + `Status` so the UI can deep-link into the open draft. A `date` after branch-local today (`IBranchClock.LocalBusinessDate(UtcNow())`) has no expected closers — `NotSubmitted` is empty for future dates.
 
@@ -1745,15 +1784,15 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 
 *Permission:* reuses the existing DailyClose read-scope semantics — missing or cross-branch id → 404 `DAILYCLOSE_NOT_FOUND` (checked before member-scope resolution); Member without a linked operator → 403 `TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK`; Member with the close's account out of scope → 403 `TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE`; Manager/Admin elevated. Declared status set: `{200, 401, 403, 404}` (no request body or query → no 400 path). The prior-close lookup is branch-scoped, so opening values can never leak cross-branch prior-close existence.
 
-*Response (`ResponseDailyCloseReviewJson`):* a dedicated review DTO — the header fields mirror `ResponseDailyCloseJson` (id, PostgreSQL `xmin`-backed `Version`, date, status, account, submitted/approved audit pair, rejection reason, notes, update audit) while `Items` is review-specific. It is intentionally a separate shape: `ResponseDailyCloseJson` is also returned by write operations, where computing review-only opening values would make the shared contract context-dependent.
+*Response (`ResponseDailyCloseReviewJson`):* a dedicated review DTO — the header fields mirror `ResponseDailyCloseJson` (id, PostgreSQL `xmin`-backed `Version`, date, status, account, opener user, immutable recorder user/operator, current submitter user/operator, approval audit, rejection reason, notes, `ItemsFirstRecordedAt`, opening-recheck timestamp/source-close/user ids, and update audit) while `Items` is review-specific. It is intentionally a separate shape: `ResponseDailyCloseJson` is also returned by write operations, where computing review-only opening values would make the shared contract context-dependent.
 
 *Per-item contract (`ResponseDailyCloseReviewItemJson`):* `{ ProductId, ProductName, DisplayOrder, OpeningValue?, ClosingValue?, IsCashVarianceProduct }`. This is a deliberate breaking change from v31's non-nullable `ClosingValue`: rows come from every active product plus retired products with an active saved item on the current close, ordered `DisplayOrder ASC, ProductId ASC`, so active products with no saved item carry a null closing while historical counted values remain reconcilable. The emitted OpenAPI schema pins `closingValue` as nullable.
 
-*Opening-value projection (§6.5):* the opening source is the most recent prior active close for the same `(BranchId, AccountId)`, ordered `Date DESC, CreatedAt DESC, Id DESC` — weekends and holidays are skipped naturally by most-recent-prior ordering. Prior active items are mapped by `ProductId`; a displayed product with no prior item (or no prior close at all) gets `OpeningValue = 0`. Products that existed only on the prior close are not resurrected; newly-active products appear; a retired product is retained only when the current close has its own active saved value. The `"Diferença Caixa"` product is flagged by the server-resolved reserved product id and its `OpeningValue` is always `null`; its `ClosingValue` is null before the first calculation and uses the persisted submitted variance when present.
+*Opening-value projection (§6.5):* the opening source is the most recent prior active **counted** close (`ItemsFirstRecordedAt != null`) for the same `(BranchId, AccountId)`, ordered `Date DESC, CreatedAt DESC, Id DESC` — weekends, holidays, missing dates, and never-counted closes are skipped naturally. Prior active items are mapped by `ProductId`; a displayed product with no prior item (or no prior counted close) gets `OpeningValue = 0`. Products that existed only on the prior close are not resurrected; newly-active products appear; a retired product is retained only when the current close has its own active saved value. The `"Diferença Caixa"` product is flagged by the server-resolved reserved product id, its `OpeningValue` is always `null`, and its `ClosingValue` is null whenever the current close is Draft even if the physical row is retained.
 
 **Daily-close variance preview.** `POST /dailyclose/{dailyCloseId}/variance-preview` — same branch/account/recording-operator, status, local-day, and lock rules as Submit. Body: `RequestDailyCloseVariancePreviewJson { Items }`; response: `ResponseDailyCloseVariancePreviewJson { CashVariance }`. Candidate items are validated with the item-save rules and drive `TotalClosing` directly; existing Draft items are irrelevant. The use case loads the close and products no-tracking, injects no `IUnitOfWork`, and is included in the architecture never-commits invariant. A WebApi reload assertion pins the close header, `xmin` version, and saved items unchanged after a 200 response; parity tests save and submit the same candidates and compare the persisted variance.
 
-**DailyClose list enrichment (M7.5 Phase 3 gate) — deferred.** The paginated daily-close list item (`ResponseListDailyCloseItemJson`, §6.13) intentionally does **not** carry `VarianceValue`. The manager work queue reads inline variance from the dashboard's `Closes` rows and the approval screen reads the flagged cash-variance item from the review context, so no cataloged screen needs variance on the multi-date paginated list. The gate reopens only if a future list/history screen needs inline variance per row.
+**DailyClose list enrichment (M7.5 Phase 3 gate) — variance deferred.** The paginated `ResponseListDailyCloseItemJson` exposes recorder user/operator and current submitter user/operator separately; its `operatorId` filter selects the immutable recording operator. It intentionally does **not** carry `VarianceValue`. The manager work queue reads inline variance from the dashboard's `Closes` rows and the approval screen reads the flagged cash-variance item from the review context, so no cataloged screen needs variance on the multi-date paginated list. The gate reopens only if a future list/history screen needs inline variance per row.
 
 ---
 

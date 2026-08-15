@@ -81,7 +81,7 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCancelInstallmentSibling", Role.Manager);
         await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas Cheque", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,

@@ -13,7 +13,8 @@ public class DailyCloseItemsRepositoryBuilder
     {
         _repository
             .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
-                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid?>(), Arg.Any<DateTime>(), Arg.Any<DateTime>())
+                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid?>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(),
+                Arg.Any<CancellationToken>())
             .Returns(new List<VarianceTimeSeriesRow>());
     }
 
@@ -40,7 +41,8 @@ public class DailyCloseItemsRepositoryBuilder
                 Arg.Is<Guid>(v => v == productId),
                 Arg.Is<Guid?>(v => v == accountId),
                 Arg.Is<DateTime>(v => v == dateFrom),
-                Arg.Is<DateTime>(v => v == dateTo))
+                Arg.Is<DateTime>(v => v == dateTo),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }

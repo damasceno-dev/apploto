@@ -15,8 +15,11 @@ public class GetMonthlyReconciliationUseCase(
     IDailyCloseItemsRepository dailyCloseItemsRepository,
     ICashVarianceProductResolver cashVarianceProductResolver)
 {
-    public async Task<ResponseMonthlyReconciliationJson> Execute(RequestMonthlyReconciliationJson request)
+    public async Task<ResponseMonthlyReconciliationJson> Execute(
+        RequestMonthlyReconciliationJson request,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         if (branchUser.Role != Role.Manager && branchUser.Role != Role.Admin)
@@ -31,19 +34,19 @@ public class GetMonthlyReconciliationUseCase(
         var dateTo = dateFrom.AddMonths(1).AddDays(-1);
 
         var closes = await dailyClosesRepository.ListByBranchIdAndYearMonthAsNoTracking(
-            branchUser.BranchId, year, month);
+            branchUser.BranchId, year, month, ct);
 
         // Cash variance ("Diferença Caixa") is the counted-minus-expected cash difference recorded as a
         // DailyCloseItem line; resolve that product's id for the branch before reading its values.
-        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
+        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
         // One row per (close, account) carrying that close's cash-variance value across the month window.
         var cashVarianceRows = await dailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
-            branchUser.BranchId, cashVarianceProductId, accountId: null, dateFrom, dateTo);
+            branchUser.BranchId, cashVarianceProductId, accountId: null, dateFrom, dateTo, ct);
 
         // Per-(Date, Status) transaction counts for the branch/month, spanning Active/Draft/Cancelled.
         var statusCounts = await transactionsRepository.CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
-            branchUser.BranchId, year, month);
+            branchUser.BranchId, year, month, ct);
 
         // Each account's OWN cash variance for a day. Keyed by (Date, AccountId) because one day can have
         // several closes — one per account/terminal — each with its own value. Keying by Date alone would

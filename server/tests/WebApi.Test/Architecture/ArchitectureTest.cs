@@ -198,6 +198,37 @@ public class ArchitectureTest
     }
 
     [Fact]
+    public void DailyCloseAccountCoordination_HasExactlyTheElevenDeclaredMutationParticipants()
+    {
+        var expected = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "server.Application.UseCases.DailyCloses.Open.OpenDailyCloseUseCase",
+            "server.Application.UseCases.DailyCloses.PutItems.PutDailyCloseItemsUseCase",
+            "server.Application.UseCases.DailyCloses.Submit.SubmitDailyCloseUseCase",
+            "server.Application.UseCases.DailyCloses.Approve.ApproveDailyCloseUseCase",
+            "server.Application.UseCases.DailyCloses.Reject.RejectDailyCloseUseCase",
+            "server.Application.UseCases.DailyCloses.Recall.RecallDailyCloseUseCase",
+            "server.Application.UseCases.DailyCloses.Reopen.ReopenDailyCloseUseCase",
+            "server.Application.UseCases.Transactions.Create.CreateTransactionUseCase",
+            "server.Application.UseCases.Transactions.CreateInstallment.CreateTransactionInstallmentUseCase",
+            "server.Application.UseCases.Transactions.Finalize.FinalizeTransactionUseCase",
+            "server.Application.UseCases.Transactions.Cancel.CancelTransactionUseCase"
+        };
+        var actual = typeof(AppDependencyInjection).Assembly.GetTypes()
+            .Where(type => type is { IsClass: true, IsAbstract: false })
+            .Where(type => type.GetConstructors()
+                .SelectMany(constructor => constructor.GetParameters())
+                .Any(parameter => parameter.ParameterType == typeof(IDailyCloseAccountCoordination)))
+            .Select(type => type.FullName!)
+            .ToHashSet(StringComparer.Ordinal);
+
+        actual.OrderBy(name => name).ShouldBe(expected.OrderBy(name => name));
+        typeof(IDailyCloseAccountCoordination).Assembly
+            .GetType("server.Domain.Interfaces.IDailyCloseLedgerCoordination")
+            .ShouldBeNull();
+    }
+
+    [Fact]
     public void AllPublicServicesAndExceptionHandlers_AreResolvableFromConfiguredRootContainer()
     {
         var services = new ServiceCollection();

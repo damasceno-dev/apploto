@@ -52,6 +52,8 @@ public class GetDashboardUseCaseTest
         var submittedRow = response.Closes.Single(c => c.AccountId == submitted.AccountId);
         submittedRow.DailyCloseId.ShouldBe(submitted.DailyCloseId);
         submittedRow.AccountName.ShouldBe("Terminal A");
+        submittedRow.RecordedByOperatorId.ShouldBe(submitted.RecordedByOperatorId);
+        submittedRow.RecordedByOperatorName.ShouldBe(submitted.RecordedByOperatorName);
         submittedRow.SubmittedByOperatorId.ShouldBe(submitted.SubmittedByOperatorId);
         submittedRow.SubmittedByOperatorName.ShouldBe(submitted.SubmittedByOperatorName);
         submittedRow.Status.ShouldBe(DailyCloseStatus.Submitted);
@@ -208,20 +210,24 @@ public class GetDashboardUseCaseTest
         var productId = Guid.NewGuid();
 
         var ctx = BuildContext(branchUser, closes: [], varianceRows: [], expectedClosers: [], productId: productId);
-        await CreateUseCase(ctx).Execute(BuildRequest());
+        using var cancellation = new CancellationTokenSource();
+        await CreateUseCase(ctx).Execute(BuildRequest(), cancellation.Token);
 
         await ctx.DailyClosesRepository.Received(1).ListDashboardClosesByBranchIdAndDateAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
-            Arg.Is<DateTime>(v => v == Date));
+            Arg.Is<DateTime>(v => v == Date),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
         await ctx.AccountsRepository.Received(1).ListExpectedClosersByBranchIdAsNoTracking(
-            Arg.Is<Guid>(v => v == branchUser.BranchId));
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
         await ctx.CashVarianceProductResolver.Received(1).GetIdAsync(
-            Arg.Is<Guid>(v => v == branchUser.BranchId), Arg.Any<CancellationToken>());
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.DailyClosesRepository.DidNotReceive().ListDashboardClosesByBranchIdAndDateAsNoTracking(
-            Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>());
+            Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
         await ctx.AccountsRepository.DidNotReceive().ListExpectedClosersByBranchIdAsNoTracking(
-            Arg.Is<Guid>(v => v == otherBranchId));
+            Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -267,12 +273,19 @@ public class GetDashboardUseCaseTest
         DateTime? submittedAt = null,
         DateTime? approvedAt = null)
     {
+        var hasIdentity = status != DailyCloseStatus.Draft;
         return new DashboardCloseRow(
             Guid.NewGuid(),
             Guid.NewGuid(),
             accountName,
-            status == DailyCloseStatus.Draft ? null : Guid.NewGuid(),
-            status == DailyCloseStatus.Draft ? null : $"Operator {accountName}",
+            hasIdentity ? Guid.NewGuid() : null,
+            hasIdentity ? $"Recorder user {accountName}" : null,
+            hasIdentity ? Guid.NewGuid() : null,
+            hasIdentity ? $"Operator {accountName}" : null,
+            hasIdentity ? Guid.NewGuid() : null,
+            hasIdentity ? $"Submitter user {accountName}" : null,
+            hasIdentity ? Guid.NewGuid() : null,
+            hasIdentity ? $"Submitter operator {accountName}" : null,
             status,
             submittedAt,
             approvedAt);
@@ -285,8 +298,8 @@ public class GetDashboardUseCaseTest
         return new ExpectedCloserRow(
             close.AccountId,
             close.AccountName,
-            close.SubmittedByOperatorId ?? Guid.NewGuid(),
-            close.SubmittedByOperatorName ?? $"Operator {close.AccountName}");
+            close.RecordedByOperatorId ?? Guid.NewGuid(),
+            close.RecordedByOperatorName ?? $"Operator {close.AccountName}");
     }
 
     private static GetDashboardUseCase CreateUseCase(TestContext ctx)

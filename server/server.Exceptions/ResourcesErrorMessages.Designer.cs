@@ -428,6 +428,18 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TRANSACTION_DATE_LOCKED", resourceCulture);
             }
         }
+
+        public static string TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN {
+            get {
+                return ResourceManager.GetString("TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE", resourceCulture);
+            }
+        }
         
         public static string TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE {
             get {
@@ -651,6 +663,24 @@ namespace server.Exceptions {
             }
         }
 
+        public static string DAILYCLOSE_ACCOUNT_NOT_TERMINAL {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_ACCOUNT_NOT_TERMINAL", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_FUTURE_DATE_NOT_ALLOWED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_FUTURE_DATE_NOT_ALLOWED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_MEMBER_OPEN_REQUIRES_TODAY {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_MEMBER_OPEN_REQUIRES_TODAY", resourceCulture);
+            }
+        }
+
         public static string DAILYCLOSE_LOCK_DATE_VIOLATION {
             get {
                 return ResourceManager.GetString("DAILYCLOSE_LOCK_DATE_VIOLATION", resourceCulture);
@@ -690,6 +720,48 @@ namespace server.Exceptions {
         public static string DAILYCLOSE_NOT_REJECTABLE {
             get {
                 return ResourceManager.GetString("DAILYCLOSE_NOT_REJECTABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOT_RECALLABLE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_RECALLABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_NOT_REOPENABLE {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_NOT_REOPENABLE", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_RECALL_REQUIRES_SAME_DAY {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_RECALL_REQUIRES_SAME_DAY", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_ITEMS_NOT_RECORDED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_ITEMS_NOT_RECORDED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_PRIOR_DAY_NOT_COUNTED {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_PRIOR_DAY_NOT_COUNTED", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_LEDGER_COORDINATION_BUSY {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_LEDGER_COORDINATION_BUSY", resourceCulture);
             }
         }
 

@@ -54,16 +54,16 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await httpResponse.Content.ReadAsStringAsync());
 
-        var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var payload = (await httpResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
         payload.Status.ShouldBe(DailyCloseStatus.Draft);
         payload.UpdatedAt.ShouldNotBeNull();
-        // Response: A (updated) + B (inserted) + CashVariance (preserved, omitted from payload)
-        payload.Items.Count.ShouldBe(3);
+        // Draft responses suppress CashVariance even though the physical row is preserved.
+        payload.Items.Count.ShouldBe(2);
         payload.Items.ShouldContain(i => i.ProductId == productA.Id && i.Value == 200m);
         payload.Items.ShouldContain(i => i.ProductId == productB.Id && i.Value == 75m);
-        payload.Items.ShouldContain(i => i.ProductId == cvProduct.Id && i.Value == 5m);
+        payload.Items.ShouldNotContain(i => i.ProductId == cvProduct.Id);
 
         // A: updated in-place
         var reloadedA = await factory.ReloadAsync<DailyCloseItem>(itemA.Id);
@@ -113,7 +113,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             token);
 
         putResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var putPayload = await putResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var putPayload = (await putResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
         putPayload.Notes.ShouldBe(notes);
         putPayload.Version.ShouldNotBe(close.Version);
 
@@ -143,20 +143,13 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             token);
         frozenNoteResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var frozenNoteError = await frozenNoteResponse.ReadContentAsync<TestResponseErrorJson>();
-        frozenNoteError.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOTES_FROZEN);
+        frozenNoteError.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
         var stillSubmitted = await factory.ReloadAsync<DailyClose>(close.Id);
         stillSubmitted.ShouldNotBeNull();
         stillSubmitted.Status.ShouldBe(DailyCloseStatus.Submitted);
         stillSubmitted.Notes.ShouldBe(notes);
 
-        var recallResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
-            {
-                Version = submitted.Version,
-                Items = items
-            },
-            token);
+        var recallResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
         recallResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var recalled = await recallResponse.ReadContentAsync<ResponseDailyCloseJson>();
         recalled.Status.ShouldBe(DailyCloseStatus.Draft);
@@ -189,7 +182,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             },
             token);
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var firstPayload = await firstResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var firstPayload = (await firstResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
 
         var clearResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
@@ -202,7 +195,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             token);
 
         clearResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var clearPayload = await clearResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var clearPayload = (await clearResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
         clearPayload.Notes.ShouldBeNull();
         var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
         persisted.ShouldNotBeNull();
@@ -232,7 +225,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var payload = (await httpResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
         payload.Status.ShouldBe(DailyCloseStatus.Draft);
 
         var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
@@ -241,105 +234,4 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         persisted.UpdatedAt.ShouldNotBeNull();
     }
 
-    // ──────────────────────────────────────────────
-    // Submitted → Draft recall (recording-operator Member, same business day)
-    // ──────────────────────────────────────────────
-
-    [Fact]
-    public async Task PutItems_ShouldReturn200AndClearSubmittedAtAndPreserveCashVariance_WhenRecordingOperatorMemberSameDay()
-    {
-        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcPutMemberRecall", Role.Member);
-
-        // Seed the CashVariance product — the resolver needs exactly this name.
-        var cvProduct = await factory.SeedProductAsync(
-            branch.Id, name: CashVarianceProductResolver.CashVarianceProductName);
-
-        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
-        await factory.SeedOperatorAccountAsync(op.Id, account.Id);
-
-        // Use the São Paulo local date so IsSameLocalDay always passes during the test.
-        var spTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        var spLocalDate = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, spTimeZone).Date;
-
-        var close = await factory.SeedDailyCloseAsync(
-            branch.Id,
-            account.Id,
-            date: spLocalDate,
-            status: DailyCloseStatus.Submitted,
-            submittedByOperatorId: op.Id,
-            submittedAt: DateTime.UtcNow.AddHours(-1));
-
-        // Pre-seed a CashVariance item to verify it survives the recall.
-        var cvItem = await factory.SeedDailyCloseItemAsync(close.Id, cvProduct.Id, value: 5m);
-
-        var product = await factory.SeedProductAsync(branch.Id);
-
-        var request = new RequestPutDailyCloseItemsJson
-        {
-            Version = close.Version,
-            Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
-        };
-
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
-        payload.Status.ShouldBe(DailyCloseStatus.Draft);
-        payload.SubmittedAt.ShouldBeNull();
-
-        // CashVariance item was omitted from the payload but must be preserved.
-        var reloadedCv = await factory.ReloadAsync<DailyCloseItem>(cvItem.Id);
-        reloadedCv.ShouldNotBeNull();
-        reloadedCv!.Active.ShouldBeTrue();
-
-        var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
-        persisted.ShouldNotBeNull();
-        persisted!.Status.ShouldBe(DailyCloseStatus.Draft);
-        persisted.SubmittedAt.ShouldBeNull();
-        persisted.UpdatedAt.ShouldNotBeNull();
-    }
-
-    // ──────────────────────────────────────────────
-    // Submitted → Draft recall (Manager — always allowed, any day)
-    // ──────────────────────────────────────────────
-
-    [Fact]
-    public async Task PutItems_ShouldReturn200AndRecall_WhenManagerAndSubmittedOnOlderDay()
-    {
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DcPutMgrRecallOld", Role.Manager);
-        await factory.SeedProductAsync(branch.Id, name: CashVarianceProductResolver.CashVarianceProductName);
-
-        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
-
-        var spTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-        var olderDay = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, spTimeZone).Date.AddDays(-2);
-
-        var close = await factory.SeedDailyCloseAsync(
-            branch.Id,
-            account.Id,
-            date: olderDay,
-            status: DailyCloseStatus.Submitted,
-            submittedAt: DateTime.UtcNow.AddDays(-2));
-
-        var product = await factory.SeedProductAsync(branch.Id);
-
-        var request = new RequestPutDailyCloseItemsJson
-        {
-            Version = close.Version,
-            Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
-        };
-
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
-        payload.Status.ShouldBe(DailyCloseStatus.Draft);
-        payload.SubmittedAt.ShouldBeNull();
-
-        var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
-        persisted.ShouldNotBeNull();
-        persisted!.Status.ShouldBe(DailyCloseStatus.Draft);
-        persisted.SubmittedAt.ShouldBeNull();
-    }
 }

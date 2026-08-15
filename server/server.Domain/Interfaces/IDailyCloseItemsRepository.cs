@@ -5,8 +5,9 @@ namespace server.Domain.Interfaces;
 
 public interface IDailyCloseItemsRepository
 {
-    Task Add(DailyCloseItem dailyCloseItem);
-    Task<IReadOnlyList<DailyCloseItem>> ListActiveByDailyCloseIdAsNoTracking(Guid dailyCloseId);
+    Task Add(DailyCloseItem dailyCloseItem, CancellationToken ct = default);
+    Task<IReadOnlyList<DailyCloseItem>> ListActiveByDailyCloseIdAsNoTracking(Guid dailyCloseId, CancellationToken ct = default);
     Task<IReadOnlyList<VarianceTimeSeriesRow>> ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
-        Guid branchId, Guid productId, Guid? accountId, DateTime dateFrom, DateTime dateTo);
+        Guid branchId, Guid productId, Guid? accountId, DateTime dateFrom, DateTime dateTo,
+        CancellationToken ct = default);
 }

@@ -36,7 +36,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
 
         var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await httpResponse.Content.ReadAsStringAsync());
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
         payload.Status.ShouldBe(DailyCloseStatus.Submitted);
         payload.SubmittedAt.ShouldNotBeNull();
@@ -139,6 +139,8 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
             .Single(item => item.ProductId == cvProduct.Id);
         firstCashVariance.Value.ShouldBe(100m);
 
+        var recall = await _client.PostAuthAsync($"/dailyclose/{opened.Id}/recall", token);
+        recall.StatusCode.ShouldBe(HttpStatusCode.OK);
         await PutItemsAsync(opened.Id, product.Id, 150m, token);
         var secondSubmit = await _client.PostAuthAsync($"/dailyclose/{opened.Id}/submit", token);
 
@@ -244,6 +246,57 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         persisted.Status.ShouldBe(DailyCloseStatus.Submitted);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
         items.Single(item => item.ProductId == cvProduct.Id).Value.ShouldBe(90m);
+    }
+
+    [Fact]
+    public async Task Submit_ShouldIgnoreOutstandingDraftsOutsideExactAccountDay()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcSubmitDraftTupleIsolation",
+            Role.Manager);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var siblingAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        var cashVarianceProduct = await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName);
+        var product = await factory.SeedProductAsync(branch.Id);
+        var category = await factory.SeedCategoryAsync(branch.Id, defaultDirection: Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+        var date = LocalToday();
+        var close = await factory.SeedDailyCloseAsync(
+            branch.Id,
+            account.Id,
+            date,
+            DailyCloseStatus.Draft);
+        await factory.SeedDailyCloseItemAsync(close.Id, product.Id, 100m);
+        await factory.SeedTransactionAsync(
+            branch.Id,
+            siblingAccount.Id,
+            transactionType.Id,
+            category.Id,
+            Direction.In,
+            op.Id,
+            user.Id,
+            date,
+            status: TransactionStatus.Draft);
+        await factory.SeedTransactionAsync(
+            branch.Id,
+            account.Id,
+            transactionType.Id,
+            category.Id,
+            Direction.In,
+            op.Id,
+            user.Id,
+            date.AddDays(-1),
+            status: TransactionStatus.Draft);
+
+        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var submitted = await response.ReadContentAsync<ResponseDailyCloseJson>();
+        submitted.Status.ShouldBe(DailyCloseStatus.Submitted);
+        submitted.Items.Single(item => item.ProductId == cashVarianceProduct.Id).Value.ShouldBe(100m);
     }
 
     /// <summary>

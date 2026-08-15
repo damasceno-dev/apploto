@@ -2,5 +2,5 @@ namespace server.Domain.Interfaces;
 
 public interface IUnitOfWork
 {
-    Task Commit();
+    Task Commit(CancellationToken ct = default);
 }

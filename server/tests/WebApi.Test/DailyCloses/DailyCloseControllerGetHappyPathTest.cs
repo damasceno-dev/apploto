@@ -1,4 +1,5 @@
 using System.Net;
+using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using Shouldly;
@@ -18,6 +19,9 @@ public class DailyCloseControllerGetHappyPathTest(ServerWebApplicationFactory fa
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcGetMgr", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName);
         var product = await factory.SeedProductAsync(branch.Id, name: "Mega-Sena");
         var dailyClose = await factory.SeedDailyCloseAsync(
             branch.Id,
@@ -56,6 +60,9 @@ public class DailyCloseControllerGetHappyPathTest(ServerWebApplicationFactory fa
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         await factory.SeedOperatorAccountAsync(op.Id, account.Id);
+        await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName);
         var dailyClose = await factory.SeedDailyCloseAsync(branch.Id, account.Id, date: DateTime.Today);
 
         var httpResponse = await _client.GetAuthAsync($"/dailyclose/{dailyClose.Id}", token);

@@ -92,7 +92,7 @@ public class DailyCloseControllerReviewHappyPathTest(ServerWebApplicationFactory
         var cashVarianceItem = payload.Items.Single(item => item.ProductId == cashVarianceProduct.Id);
         cashVarianceItem.DisplayOrder.ShouldBe(cashVarianceProduct.DisplayOrder);
         cashVarianceItem.OpeningValue.ShouldBeNull();
-        cashVarianceItem.ClosingValue.ShouldBe(-5m);
+        cashVarianceItem.ClosingValue.ShouldBeNull();
         cashVarianceItem.IsCashVarianceProduct.ShouldBeTrue();
         payload.Items.ShouldNotContain(item => item.ProductId == removedProduct.Id);
     }

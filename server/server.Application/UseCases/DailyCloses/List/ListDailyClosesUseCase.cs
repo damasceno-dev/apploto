@@ -14,8 +14,11 @@ public class ListDailyClosesUseCase(
     IDailyClosesRepository dailyClosesRepository,
     IMemberAccountScopeResolver memberAccountScopeResolver)
 {
-    public async Task<ResponseListDailyClosesJson> Execute(RequestListDailyClosesJson request)
+    public async Task<ResponseListDailyClosesJson> Execute(
+        RequestListDailyClosesJson request,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         Validate(request);
 
@@ -34,7 +37,8 @@ public class ListDailyClosesUseCase(
         IReadOnlyList<Guid> allowedAccountIds = [];
         if (needsScope)
         {
-            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+            var memberScope = await memberAccountScopeResolver.Resolve(
+                branchUser.UserId, branchUser.BranchId, ct);
             callerOperator = memberScope.LinkedOperator;
             allowedAccountIds = memberScope.AllowedAccountIds;
         }
@@ -66,8 +70,10 @@ public class ListDailyClosesUseCase(
         }
 
         // List returns only the requested page; count returns the full filtered set for pagination metadata.
-        var items = await dailyClosesRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, filter);
-        var totalCount = await dailyClosesRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, filter);
+        var items = await dailyClosesRepository.ListByBranchIdAsNoTracking(
+            branchUser.BranchId, filter, ct);
+        var totalCount = await dailyClosesRepository.CountByBranchIdAsNoTracking(
+            branchUser.BranchId, filter, ct);
 
         return items.ToListResponse(filter, totalCount);
     }

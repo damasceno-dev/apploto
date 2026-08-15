@@ -332,7 +332,8 @@ internal static class TestSeeder
             Guid? originTransactionId = null,
             TransactionStatus status = TransactionStatus.Active,
             DateTime? createdAt = null,
-            Guid? id = null)
+            Guid? id = null,
+            bool active = true)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -357,6 +358,7 @@ internal static class TestSeeder
                 CreatedByUserId = createdByUserId,
                 Status = status,
                 BranchId = branchId,
+                Active = active,
                 CreatedAt = ServerWebApplicationFactory.AsUtc(createdAt ?? DateTime.UtcNow)
             };
 
@@ -491,11 +493,60 @@ internal static class TestSeeder
             DateTime? submittedAt = null,
             Guid? approvedByUserId = null,
             DateTime? approvedAt = null,
+            string? rejectionReason = null,
+            string? notes = null,
             DateTime? createdAt = null,
-            Guid? id = null)
+            Guid? id = null,
+            DateTime? itemsFirstRecordedAt = null,
+            bool itemsRecorded = true,
+            DateTime? openingRecheckRequiredAt = null,
+            Guid? openingRecheckTriggeredByDailyCloseId = null,
+            Guid? openingRecheckTriggeredByUserId = null,
+            Guid? openedByUserId = null,
+            Guid? recordedByUserId = null,
+            Guid? recordedByOperatorId = null,
+            Guid? submittedByUserId = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var fallbackUserId = await dbContext.BranchUsers
+                .AsNoTracking()
+                .Where(branchUser => branchUser.BranchId == branchId && branchUser.Active)
+                .OrderBy(branchUser => branchUser.CreatedAt)
+                .ThenBy(branchUser => branchUser.Id)
+                .Select(branchUser => (Guid?)branchUser.UserId)
+                .FirstOrDefaultAsync()
+                ?? await dbContext.Users
+                    .AsNoTracking()
+                    .OrderBy(user => user.CreatedAt)
+                    .ThenBy(user => user.Id)
+                    .Select(user => user.Id)
+                    .FirstAsync();
+            var effectiveOpenedByUserId = openedByUserId ?? fallbackUserId;
+            DateTime? effectiveItemsFirstRecordedAt = itemsFirstRecordedAt is null
+                ? itemsRecorded ? DateTime.UtcNow : null
+                : AsUtc(itemsFirstRecordedAt.Value);
+            Guid? effectiveRecordedByOperatorId = effectiveItemsFirstRecordedAt is null
+                ? null
+                : recordedByOperatorId ?? submittedByOperatorId;
+            var recorderOperatorUserId = effectiveRecordedByOperatorId is null
+                ? null
+                : await dbContext.Operators
+                    .AsNoTracking()
+                    .Where(op => op.Id == effectiveRecordedByOperatorId)
+                    .Select(op => op.UserId)
+                    .FirstOrDefaultAsync();
+            Guid? effectiveRecordedByUserId = effectiveItemsFirstRecordedAt is null
+                ? null
+                : recordedByUserId ?? recorderOperatorUserId ?? effectiveOpenedByUserId;
+            var submitterOperatorUserId = submittedByOperatorId is null
+                ? null
+                : await dbContext.Operators
+                    .AsNoTracking()
+                    .Where(op => op.Id == submittedByOperatorId)
+                    .Select(op => op.UserId)
+                    .FirstOrDefaultAsync();
 
             var dailyClose = new DailyClose
             {
@@ -505,10 +556,22 @@ internal static class TestSeeder
                 AccountId = accountId,
                 Date = date ?? DateTime.Today,
                 Status = status,
+                OpenedByUserId = effectiveOpenedByUserId,
+                RecordedByUserId = effectiveRecordedByUserId,
+                RecordedByOperatorId = effectiveRecordedByOperatorId,
+                SubmittedByUserId = submittedByUserId ?? submitterOperatorUserId,
                 SubmittedByOperatorId = submittedByOperatorId,
                 SubmittedAt = submittedAt is null ? null : AsUtc(submittedAt.Value),
                 ApprovedByUserId = approvedByUserId,
-                ApprovedAt = approvedAt is null ? null : AsUtc(approvedAt.Value)
+                ApprovedAt = approvedAt is null ? null : AsUtc(approvedAt.Value),
+                RejectionReason = rejectionReason,
+                Notes = notes,
+                ItemsFirstRecordedAt = effectiveItemsFirstRecordedAt,
+                OpeningRecheckRequiredAt = openingRecheckRequiredAt is null
+                    ? null
+                    : AsUtc(openingRecheckRequiredAt.Value),
+                OpeningRecheckTriggeredByDailyCloseId = openingRecheckTriggeredByDailyCloseId,
+                OpeningRecheckTriggeredByUserId = openingRecheckTriggeredByUserId
             };
 
             dbContext.DailyCloses.Add(dailyClose);

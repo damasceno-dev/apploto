@@ -66,11 +66,11 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
     }
 
     // ──────────────────────────────────────────────
-    // 409 — Submitted recall denied (other operator)
+    // 409 — Submitted is unconditionally non-editable through ordinary item save
     // ──────────────────────────────────────────────
 
     [Fact]
-    public async Task PutItems_ShouldReturn409_WhenMemberIsNotTheRecordingOperatorOnSubmitted()
+    public async Task PutItems_ShouldReturn409_WhenSubmittedAndMemberIsNotRecordingOperator()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcPutOtherOp", Role.Member);
 
@@ -100,11 +100,11 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
     }
 
     // ──────────────────────────────────────────────
-    // 409 — Submitted recall denied (recording operator, older day)
+    // 409 — ordinary item save never doubles as Recall
     // ──────────────────────────────────────────────
 
     [Fact]
-    public async Task PutItems_ShouldReturn409_WhenMemberIsRecordingOperatorButSubmittedOnOlderDay()
+    public async Task PutItems_ShouldReturn409_WhenSubmittedEvenForRecordingMemberOnOlderDay()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DcPutOlderDay", Role.Member);
 
@@ -134,6 +134,41 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+    }
+
+    [Fact]
+    public async Task PutItems_ShouldReturn409_WhenSubmittedEvenForRecordingMemberOnSameDay()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcPutSubmittedSameDayMember",
+            Role.Member);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(op.Id, account.Id);
+        var close = await factory.SeedDailyCloseAsync(
+            branch.Id,
+            account.Id,
+            date: LocalToday(),
+            status: DailyCloseStatus.Submitted,
+            submittedByOperatorId: op.Id,
+            submittedAt: DateTime.UtcNow.AddMinutes(-10));
+
+        var response = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
+            },
+            token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await response.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
+        var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
+        persisted.ShouldNotBeNull();
+        persisted.Status.ShouldBe(DailyCloseStatus.Submitted);
+        persisted.SubmittedAt.ShouldNotBeNull();
     }
 
     // ──────────────────────────────────────────────
@@ -266,7 +301,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             },
             token);
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var firstPayload = await firstResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var firstPayload = (await firstResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
 
         var staleResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
@@ -316,5 +351,51 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         error.ErrorMessages.ShouldContain(string.Format(
             ResourcesErrorMessages.DAILYCLOSE_NOTES_LENGTH,
             DailyCloseValidationExtensions.NotesMaxLength));
+    }
+
+    [Fact]
+    public async Task PutItems_ShouldReturn409_WhenRejectedCorrectionDateIsLocked()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "DcPutRejectedLocked",
+            Role.Member);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
+        await factory.SeedOperatorAccountAsync(op.Id, account.Id);
+        await factory.SeedProductAsync(
+            branch.Id,
+            CashVarianceProductResolver.CashVarianceProductName);
+        var product = await factory.SeedProductAsync(branch.Id);
+        var date = LocalToday().AddDays(-1);
+        var close = await factory.SeedDailyCloseAsync(
+            branch.Id,
+            account.Id,
+            date,
+            DailyCloseStatus.Rejected,
+            submittedByOperatorId: op.Id,
+            rejectionReason: "corrigir");
+        await factory.SeedSettingAsync(branch.Id, lockDate: date);
+
+        var response = await _client.PutAuthAsync(
+            $"/dailyclose/{close.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = close.Version,
+                Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 10m }]
+            },
+            token);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await response.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
+        var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
+        persisted.ShouldNotBeNull();
+        persisted.Status.ShouldBe(DailyCloseStatus.Rejected);
+    }
+
+    private static DateTime LocalToday()
+    {
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZone).Date;
     }
 }

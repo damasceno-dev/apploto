@@ -11,6 +11,6 @@ public interface IHolidaysRepository
     Task<Holiday?> GetActiveByBranchIdAndDate(Guid branchId, DateTime date);
     Task<IReadOnlyList<Holiday>> ListByBranchIdAsNoTracking(Guid branchId, HolidayListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, HolidayListFilter filter);
-    Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAsNoTracking(Guid branchId);
+    Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default);
     Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAndYearAsNoTracking(Guid branchId, int year);
 }

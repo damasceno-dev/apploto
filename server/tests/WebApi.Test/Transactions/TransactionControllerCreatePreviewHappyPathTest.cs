@@ -6,6 +6,7 @@ using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
+using server.Exceptions;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -180,7 +181,7 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
     }
 
     [Fact]
-    public async Task CreatePreview_AllImpactPredictions_ShouldMatchPostCreateReportsAndVariance()
+    public async Task CreatePreview_AllImpactPredictions_ShouldRemainHypothetical_WhenSubmittedCloseFreezesWrite()
     {
         // End-to-end determinism: each previewed impact must equal the real state once the identical
         // payload is committed via POST /transaction.
@@ -226,35 +227,21 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         preview.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(150m);
         preview.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(650m);
 
-        // 2) Commit the same payload X via the write twin.
+        // 2) The identical write twin is frozen once the close is Submitted. Preview remains
+        // a hypothetical divergence display; it does not authorize a stale ledger mutation.
         var createResponse = await _client.PostAuthAsync("/transaction", payloadX, token);
-        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var created = await createResponse.ReadContentAsync<ResponseCreateTransactionJson>();
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var error = await createResponse.ReadContentAsync<TestResponseErrorJson>();
+        error.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
+        (await CountBranchTransactionsAsync(branch.Id)).ShouldBe(0);
 
-        // 3) Receivable impact: read the created row from the fiado aging report at the same as-of date.
-        var agingResponse = await _client.GetAuthAsync(
-            $"/report/fiado/aging?asOfDate={asOfDate:yyyy-MM-dd}&page=1&pageSize=50", token);
-        agingResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var aging = await agingResponse.ReadContentAsync<ResponseFiadoAgingJson>();
-
-        var row = aging.Items.SingleOrDefault(item => item.TransactionId == created.Id);
-        row.ShouldNotBeNull();
-        row.Bucket.ShouldBe(predictedBucket!.Value);
-
-        // 4) Fiado impact: the post-create balance for the selected client equals the previewed delta.
-        var balanceResponse = await _client.GetAuthAsync($"/report/fiado/balance?asOfDate={asOfDate:yyyy-MM-dd}", token);
-        balanceResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var balance = await balanceResponse.ReadContentAsync<ResponseFiadoBalanceJson>();
-        var clientBalance = balance.Items.Single(item => item.ClientId == client.Id);
-        clientBalance.OutstandingTotal.ShouldBe(predictedFiadoDelta.OutstandingDelta);
-
-        // 5) Cash variance impact: the real recompute after the write equals the previewed projection.
+        // 3) No write occurred, so a diagnostic recompute still equals the frozen current snapshot.
         var actualVariance = await CalculateCashVarianceAsync(
             branch.Id,
             tabAccount.Id,
             transactionDate,
             close.Id);
-        actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.ProjectedVariance.GetValueOrDefault());
+        actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.CurrentVariance.GetValueOrDefault());
     }
 
     private async Task<int> CountBranchTransactionsAsync(Guid branchId)

@@ -252,7 +252,7 @@ public class UpdateTimeEntrySegmentUseCaseTest
         return new UpdateTimeEntrySegmentUseCase(
             ctx.AuthenticationService,
             ctx.TimeEntrySegmentsRepository,
-            new LockDateGuard(ctx.SettingsRepository),
+            new LockDateGuard(new LockDateReader(ctx.SettingsRepository)),
             new TimeEntrySegmentMutationService(ctx.SettingsRepository, new TimeEntryCalculationService()),
             ctx.BranchClock,
             ctx.UnitOfWork);

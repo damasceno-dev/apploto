@@ -14,7 +14,7 @@ public static class OpenDailyCloseMapper
     public static DailyClose ToDomain(
         this RequestOpenDailyCloseJson request,
         Guid branchId,
-        Guid? submittedByOperatorId)
+        Guid openedByUserId)
     {
         return new DailyClose
         {
@@ -22,7 +22,7 @@ public static class OpenDailyCloseMapper
             Status = DailyCloseStatus.Draft,
             AccountId = request.AccountId,
             BranchId = branchId,
-            SubmittedByOperatorId = submittedByOperatorId
+            OpenedByUserId = openedByUserId
         };
     }
 }

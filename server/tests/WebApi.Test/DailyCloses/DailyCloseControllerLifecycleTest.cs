@@ -90,12 +90,17 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
         var openReload = await factory.ReloadAsync<DailyClose>(opened.Id);
         openReload.ShouldNotBeNull();
         openReload.Status.ShouldBe(DailyCloseStatus.Draft);
-        openReload.SubmittedByOperatorId.ShouldBe(op.Id);
+        openReload.RecordedByUserId.ShouldBeNull();
+        openReload.RecordedByOperatorId.ShouldBeNull();
+        openReload.SubmittedByUserId.ShouldBeNull();
+        openReload.SubmittedByOperatorId.ShouldBeNull();
 
         await PutItemsAsync(opened.Id, product.Id, 100m, memberToken);
         var afterFirstPut = await factory.ReloadAsync<DailyClose>(opened.Id);
         afterFirstPut.ShouldNotBeNull();
         afterFirstPut.Status.ShouldBe(DailyCloseStatus.Draft);
+        afterFirstPut.RecordedByUserId.ShouldBe(member.Id);
+        afterFirstPut.RecordedByOperatorId.ShouldBe(op.Id);
         afterFirstPut.UpdatedAt.ShouldNotBeNull();
 
         await SubmitAsync(opened.Id, memberToken);
@@ -107,10 +112,29 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
         var firstCashVariance = await GetCashVarianceAsync(opened.Id, cvProduct.Id);
         firstCashVariance.Value.ShouldBe(100m);
 
+        var ordinaryItemSave = await _client.PutAuthAsync(
+            $"/dailyclose/{opened.Id}/items",
+            new RequestPutDailyCloseItemsJson
+            {
+                Version = afterFirstSubmit.Version,
+                Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 150m }]
+            },
+            memberToken);
+        ordinaryItemSave.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var stillFrozen = await factory.ReloadAsync<DailyClose>(opened.Id);
+        stillFrozen.ShouldNotBeNull();
+        stillFrozen.Status.ShouldBe(DailyCloseStatus.Submitted);
+        stillFrozen.SubmittedAt.ShouldNotBeNull();
+
+        await RecallAsync(opened.Id, memberToken);
         await PutItemsAsync(opened.Id, product.Id, 150m, memberToken);
         var afterRecallPut = await factory.ReloadAsync<DailyClose>(opened.Id);
         afterRecallPut.ShouldNotBeNull();
         afterRecallPut.Status.ShouldBe(DailyCloseStatus.Draft);
+        afterRecallPut.RecordedByUserId.ShouldBe(member.Id);
+        afterRecallPut.RecordedByOperatorId.ShouldBe(op.Id);
+        afterRecallPut.SubmittedByUserId.ShouldBeNull();
+        afterRecallPut.SubmittedByOperatorId.ShouldBeNull();
         afterRecallPut.SubmittedAt.ShouldBeNull();
         afterRecallPut.UpdatedAt.ShouldNotBeNull();
         var unchangedCashVariance = await GetCashVarianceAsync(opened.Id, cvProduct.Id);
@@ -172,6 +196,12 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
             $"/dailyclose/{closeId}/reject",
             new RequestRejectDailyCloseJson { RejectionReason = rejectionReason },
             token);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    private async Task RecallAsync(Guid closeId, string token)
+    {
+        var response = await _client.PostAuthAsync($"/dailyclose/{closeId}/recall", token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 

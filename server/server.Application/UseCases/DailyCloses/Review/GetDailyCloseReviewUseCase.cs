@@ -15,17 +15,20 @@ public class GetDailyCloseReviewUseCase(
     IMemberAccountScopeResolver memberAccountScopeResolver,
     ICashVarianceProductResolver cashVarianceProductResolver)
 {
-    public async Task<ResponseDailyCloseReviewJson> Execute(Guid dailyCloseId)
+    public async Task<ResponseDailyCloseReviewJson> Execute(
+        Guid dailyCloseId,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         var dailyClose = await dailyClosesRepository
-            .GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchUser.BranchId)
+            .GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
 
         if (branchUser.Role is Role.Member)
         {
-            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
 
             if (memberScope.LinkedOperator is null)
                 throw new TokenWithoutPermissionException(
@@ -40,9 +43,10 @@ public class GetDailyCloseReviewUseCase(
             .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
                 branchUser.BranchId,
                 dailyClose.AccountId,
-                dailyClose.Date);
-        var activeProducts = await productsRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId);
-        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
+                dailyClose.Date,
+                ct);
+        var activeProducts = await productsRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId, ct);
+        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
         return dailyClose.ToReviewResponse(priorClose, activeProducts, cashVarianceProductId);
     }

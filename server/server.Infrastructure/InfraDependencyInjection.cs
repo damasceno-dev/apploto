@@ -14,12 +14,13 @@ public static class InfraDependencyInjection
     private const string BrasilApiDefaultBaseUrl = "https://brasilapi.com.br";
     private const string NagerDateDefaultBaseUrl = "https://date.nager.at";
     private const int DefaultExternalHolidayTimeoutSeconds = 5;
+    private const int DefaultDailyCloseAccountCoordinationLockTimeoutSeconds = 5;
 
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         AddDbContext(services, configuration);
         AddToken(services, configuration);
-        AddRepositories(services);
+        AddRepositories(services, configuration);
         AddExternalHolidayProviders(services, configuration);
     }
 
@@ -73,8 +74,19 @@ public static class InfraDependencyInjection
         services.AddScoped<ITokenServices>(_ => new JwtTokenService(signingKey, expirationTimeInMinutes.Value));
     }
 
-    private static void AddRepositories(IServiceCollection services)
+    private static void AddRepositories(IServiceCollection services, IConfiguration configuration)
     {
+        var coordinationLockTimeoutSeconds = configuration.GetValue<int?>(
+            "DailyCloseAccountCoordination:LockTimeoutSeconds")
+            ?? DefaultDailyCloseAccountCoordinationLockTimeoutSeconds;
+        if (coordinationLockTimeoutSeconds <= 0)
+        {
+            throw new InvalidOperationException(
+                "DailyCloseAccountCoordination:LockTimeoutSeconds must be greater than zero.");
+        }
+
+        services.AddSingleton(new DailyCloseAccountCoordinationOptions(
+            TimeSpan.FromSeconds(coordinationLockTimeoutSeconds)));
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IBranchesRepository, BranchesRepository>();
@@ -94,6 +106,7 @@ public static class InfraDependencyInjection
         services.AddScoped<ITimeEntrySegmentsRepository, TimeEntrySegmentsRepository>();
         services.AddScoped<IHolidaysRepository, HolidaysRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IDailyCloseAccountCoordination, DailyCloseAccountCoordination>();
     }
 
     private static void AddDbContext(IServiceCollection services, IConfiguration configuration)

@@ -17,10 +17,10 @@ internal class SettingsRepository(ServerDbContext dbContext) : ISettingsReposito
             .FirstOrDefaultAsync(setting => setting.BranchId == branchId);
     }
 
-    public async Task<Setting?> GetByBranchIdAsNoTracking(Guid branchId)
+    public async Task<Setting?> GetByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Settings
             .AsNoTracking()
-            .FirstOrDefaultAsync(setting => setting.BranchId == branchId);
+            .FirstOrDefaultAsync(setting => setting.BranchId == branchId, ct);
     }
 }

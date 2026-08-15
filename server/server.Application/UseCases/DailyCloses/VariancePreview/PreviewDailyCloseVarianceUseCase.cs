@@ -27,17 +27,20 @@ public class PreviewDailyCloseVarianceUseCase(
 {
     public async Task<ResponseDailyCloseVariancePreviewJson> Execute(
         Guid dailyCloseId,
-        RequestDailyCloseVariancePreviewJson request)
+        RequestDailyCloseVariancePreviewJson request,
+        CancellationToken ct = default)
     {
         var items = Validate(request);
+        ct.ThrowIfCancellationRequested();
 
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         var close = await dailyClosesRepository.GetByIdAndBranchIdAsNoTracking(
             dailyCloseId,
-            branchUser.BranchId)
+            branchUser.BranchId,
+            ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
 
-        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
         var callerOperator = memberScope.LinkedOperator;
 
         memberAccountScopeGuard.EnsureMemberCanActOnAccount(branchUser.Role, memberScope, close.AccountId);
@@ -46,17 +49,19 @@ public class PreviewDailyCloseVarianceUseCase(
         await lockDateGuard.EnsureNotLocked(
             branchUser.BranchId,
             close.Date,
-            ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
+            ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION,
+            ct);
 
         var payloadProductIds = items.Select(item => item.ProductId).ToList();
         var resolvedProducts = await productsRepository.ListActiveByIdsAndBranchIdAsNoTracking(
             payloadProductIds,
-            branchUser.BranchId);
+            branchUser.BranchId,
+            ct);
 
         if (resolvedProducts.Count != payloadProductIds.Distinct().Count())
             throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_ITEM_PRODUCT_NOT_FOUND);
 
-        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
+        var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
         if (payloadProductIds.Contains(cashVarianceProductId))
             throw new OnValidationException([ResourcesErrorMessages.DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN]);
@@ -67,7 +72,7 @@ public class PreviewDailyCloseVarianceUseCase(
             close.Date,
             items,
             cashVarianceProductId,
-            CancellationToken.None);
+            ct);
 
         return new ResponseDailyCloseVariancePreviewJson
         {

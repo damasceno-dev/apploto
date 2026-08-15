@@ -13,25 +13,36 @@ public class AccountsRepositoryBuilder
     {
         _repository.ListActiveTerminalIdsByTabAccountIds(Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>())
             .Returns(new Dictionary<Guid, Guid>());
-        _repository.ListExpectedClosersByBranchIdAsNoTracking(Arg.Any<Guid>())
+        _repository.ListExpectedClosersByBranchIdAsNoTracking(
+                Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(new List<ExpectedCloserRow>());
     }
 
     public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Account? account)
     {
-        _repository.GetActiveByIdAndBranchId(id, branchId).Returns(account);
+        _repository.GetActiveByIdAndBranchId(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
         return this;
     }
 
     public AccountsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Account? account)
     {
-        _repository.GetActiveByIdAndBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<Guid>()).Returns(account);
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<CancellationToken>())
+            .Returns(account);
+        _repository.GetActiveByIdAndBranchId(
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<CancellationToken>())
+            .Returns(account);
         return this;
     }
 
     public AccountsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Account? account)
     {
-        _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId).Returns(account);
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
+        _repository.GetActiveByIdAndBranchId(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
         return this;
     }
 
@@ -70,7 +81,9 @@ public class AccountsRepositoryBuilder
         Guid branchId,
         IReadOnlyList<ExpectedCloserRow> result)
     {
-        _repository.ListExpectedClosersByBranchIdAsNoTracking(Arg.Is<Guid>(value => value == branchId))
+        _repository.ListExpectedClosersByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }

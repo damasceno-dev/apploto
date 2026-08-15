@@ -55,7 +55,12 @@ public class ApproveDailyCloseUseCaseTest
         ctx.DailyClose.UpdatedByUserId.ShouldBe(ctx.BranchUser.UserId);
 
         ctx.WorkflowGuard.Received(1).EnsureCanApprove(ctx.DailyClose, ctx.BranchUser);
+        await ctx.DailyCloseLedgerCoordination.Received(1).Acquire(
+            ctx.BranchUser.BranchId,
+            ctx.DailyClose.AccountId,
+            Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -129,7 +134,7 @@ public class ApproveDailyCloseUseCaseTest
 
     private static ApproveDailyCloseUseCase CreateUseCase(TestContext ctx)
     {
-        var lockDateGuard = new LockDateGuard(ctx.SettingsRepository);
+        var lockDateGuard = new LockDateGuard(new LockDateReader(ctx.SettingsRepository));
 
         return new ApproveDailyCloseUseCase(
             ctx.AuthenticationService,
@@ -137,6 +142,10 @@ public class ApproveDailyCloseUseCaseTest
             ctx.WorkflowGuard,
             lockDateGuard,
             ctx.BranchClock,
+            new CashVarianceProductResolverBuilder()
+                .ReturnsId(ctx.BranchUser.BranchId, Guid.NewGuid())
+                .Build(),
+            ctx.DailyCloseLedgerCoordination,
             ctx.UnitOfWork);
     }
 
@@ -167,6 +176,7 @@ public class ApproveDailyCloseUseCaseTest
         var settingsRepository = new SettingsRepositoryBuilder()
             .GetByBranchIdAsNoTrackingReturns(branchUser.BranchId, null)
             .Build();
+        var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         return new TestContext
         {
@@ -178,6 +188,8 @@ public class ApproveDailyCloseUseCaseTest
             SettingsRepository = settingsRepository,
             WorkflowGuard = Substitute.For<IDailyCloseWorkflowGuard>(),
             BranchClock = new FixedBranchClock(now),
+            DailyCloseLedgerCoordination = coordinationBuilder.Build(),
+            DailyCloseLedgerCoordinationScope = coordinationBuilder.Scope,
             UnitOfWork = new UnitOfWorkBuilder().Build()
         };
     }
@@ -201,6 +213,8 @@ public class ApproveDailyCloseUseCaseTest
         public required ISettingsRepository SettingsRepository { get; set; }
         public required IDailyCloseWorkflowGuard WorkflowGuard { get; set; }
         public required IBranchClock BranchClock { get; init; }
+        public required IDailyCloseAccountCoordination DailyCloseLedgerCoordination { get; init; }
+        public required IDailyCloseAccountCoordinationScope DailyCloseLedgerCoordinationScope { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }
 }

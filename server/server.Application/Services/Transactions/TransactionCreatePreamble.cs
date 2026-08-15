@@ -73,18 +73,21 @@ public class TransactionCreatePreamble(
     /// <exception cref="NotFoundException">Thrown when the account, recorded operator, client, or transaction type is missing from the authenticated branch.</exception>
     /// <exception cref="TokenUnauthorizedException">Thrown by authentication when the request has no valid branch user context.</exception>
     /// <exception cref="TokenWithoutPermissionException">Thrown when a Member caller targets an account outside their linked account scope.</exception>
-    public async Task<TransactionCreateContext> Resolve(RequestCreateTransactionJson request)
+    public async Task<TransactionCreateContext> Resolve(
+        RequestCreateTransactionJson request,
+        CancellationToken ct = default)
     {
         var context = await ResolveCommon(
             requestedRecordedByOperatorId: request.RecordedByOperatorId,
             accountId: request.AccountId,
             clientId: request.ClientId,
-            transactionTypeId: request.TransactionTypeId);
+            transactionTypeId: request.TransactionTypeId,
+            ct: ct);
 
         if (context.TransactionType.SettlementRule == SettlementRule.OperatorEnteredCheque && request.DueDate is null)
             throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_CHEQUE_REQUIRES_DUE_DATE]);
 
-        var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId);
+        var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId, ct);
 
         var dueDate = DueDateCalculator.Compute(
             context.TransactionType.SettlementRule,
@@ -95,7 +98,8 @@ public class TransactionCreatePreamble(
         await lockDateGuard.EnsureNotLocked(
             context.BranchUser.BranchId,
             request.Date,
-            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
+            ct);
 
         return context with { DueDate = dueDate, BranchHolidays = holidayDates };
     }
@@ -114,20 +118,24 @@ public class TransactionCreatePreamble(
     /// <exception cref="NotFoundException">Thrown when the account, recorded operator, client, or transaction type is missing from the authenticated branch.</exception>
     /// <exception cref="TokenUnauthorizedException">Thrown by authentication when the request has no valid branch user context.</exception>
     /// <exception cref="TokenWithoutPermissionException">Thrown when a Member caller targets an account outside their linked account scope.</exception>
-    public async Task<TransactionCreateContext> Resolve(RequestCreateTransactionInstallmentJson request)
+    public async Task<TransactionCreateContext> Resolve(
+        RequestCreateTransactionInstallmentJson request,
+        CancellationToken ct = default)
     {
         var context = await ResolveCommon(
             requestedRecordedByOperatorId: request.RecordedByOperatorId,
             accountId: request.AccountId,
             clientId: request.ClientId,
-            transactionTypeId: request.TransactionTypeId);
+            transactionTypeId: request.TransactionTypeId,
+            ct: ct);
 
         await lockDateGuard.EnsureNotLocked(
             context.BranchUser.BranchId,
             request.Date,
-            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
+            ct);
 
-        var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId);
+        var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId, ct);
 
         return context with { BranchHolidays = holidayDates };
     }
@@ -155,11 +163,13 @@ public class TransactionCreatePreamble(
         Guid? requestedRecordedByOperatorId,
         Guid accountId,
         Guid? clientId,
-        Guid transactionTypeId)
+        Guid transactionTypeId,
+        CancellationToken ct)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
-        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
         var callerOperator = memberScope.LinkedOperator;
 
         var recordedByOperatorId = recordedByOperatorResolver.Resolve(
@@ -172,7 +182,8 @@ public class TransactionCreatePreamble(
             accountId: accountId,
             recordedByOperatorId: recordedByOperatorId,
             clientId: clientId,
-            transactionTypeId: transactionTypeId);
+            transactionTypeId: transactionTypeId,
+            ct: ct);
 
         memberAccountScopeGuard.EnsureMemberCanActOnAccount(
             branchUser.Role,

@@ -1,9 +1,8 @@
-using server.Domain.Interfaces;
 using server.Exceptions.Exceptions;
 
 namespace server.Application.Services.Settings;
 
-public class LockDateGuard(ISettingsRepository settingsRepository)
+public class LockDateGuard(ILockDateReader lockDateReader)
 {
     public async Task EnsureNotLocked(
         Guid branchId,
@@ -11,13 +10,13 @@ public class LockDateGuard(ISettingsRepository settingsRepository)
         string conflictResourceKey,
         CancellationToken ct = default)
     {
-        ct.ThrowIfCancellationRequested();
+        var lockDate = await lockDateReader.Read(branchId, ct);
+        EnsureNotLocked(targetDate, lockDate, conflictResourceKey);
+    }
 
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchId);
-
-        if (setting?.LockDate is { } lockDate && targetDate <= lockDate)
-        {
+    public void EnsureNotLocked(DateTime targetDate, DateTime resolvedLockDate, string conflictResourceKey)
+    {
+        if (targetDate <= resolvedLockDate)
             throw new ConflictException(conflictResourceKey);
-        }
     }
 }

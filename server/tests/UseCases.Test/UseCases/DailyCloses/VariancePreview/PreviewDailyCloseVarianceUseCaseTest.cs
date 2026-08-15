@@ -103,7 +103,7 @@ public class PreviewDailyCloseVarianceUseCaseTest
             scopeResolver,
             new MemberAccountScopeGuard(),
             context.WorkflowGuard,
-            new LockDateGuard(context.SettingsRepository),
+            new LockDateGuard(new LockDateReader(context.SettingsRepository)),
             context.CashVarianceProductResolver,
             context.CashVarianceCalculator);
     }

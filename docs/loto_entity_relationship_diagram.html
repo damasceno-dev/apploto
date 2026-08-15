@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v34
+Spec revision: v35
 -->
 <html lang="en">
 <head>
@@ -239,7 +239,11 @@ Spec revision: v34
     '  User o|--o{ Operator : "logs in as"\n' +
     '  User ||--o{ Transaction : "created by"\n' +
     '  User o|--o{ Transaction : "cancelled by"\n' +
+    '  User ||--o{ DailyClose : "opened by"\n' +
+    '  User o|--o{ DailyClose : "recorded by"\n' +
+    '  User o|--o{ DailyClose : "submitted by"\n' +
     '  User o|--o{ DailyClose : "updated by"\n' +
+    '  User o|--o{ DailyClose : "opening recheck triggered by"\n' +
     '\n' +
     '  BranchUser {\n' +
     '    uuid id PK\n' +
@@ -251,6 +255,8 @@ Spec revision: v34
     '  Operator ||--o{ OperatorAccount : assigned\n' +
     '  Operator ||--o{ TimeEntry : records\n' +
     '  Operator ||--o{ Transaction : "recorded by"\n' +
+    '  Operator o|--o{ DailyClose : "recorded by"\n' +
+    '  Operator o|--o{ DailyClose : "submitted by"\n' +
     '\n' +
     '  Account ||--o{ OperatorAccount : assigned\n' +
     '  Account ||--o{ Transaction : holds\n' +
@@ -266,8 +272,8 @@ Spec revision: v34
     '  Transaction o|--o{ Transaction : "installment origin"\n' +
     '\n' +
     '  DailyClose ||--o{ DailyCloseItem : contains\n' +
+    '  DailyClose o|--o{ DailyClose : "opening recheck source"\n' +
     '  Product ||--o{ DailyCloseItem : measured\n' +
-    '  Operator o|--o{ DailyClose : "submitted by"\n' +
     '  User o|--o{ DailyClose : "approved by"\n' +
     '\n' +
     '  Branch {\n' +
@@ -375,12 +381,20 @@ Spec revision: v34
     '    date date\n' +
     '    enum status\n' +
     '    uuid accountId FK\n' +
+    '    uuid openedByUserId FK\n' +
+    '    uuid recordedByUserId FK\n' +
+    '    uuid recordedByOperatorId FK\n' +
+    '    uuid submittedByUserId FK\n' +
     '    uuid submittedByOperatorId FK\n' +
     '    timestamp submittedAt\n' +
     '    timestamp approvedAt\n' +
     '    uuid approvedByUserId FK\n' +
     '    string rejectionReason\n' +
     '    string notes\n' +
+    '    timestamp itemsFirstRecordedAt\n' +
+    '    timestamp openingRecheckRequiredAt\n' +
+    '    uuid openingRecheckTriggeredByDailyCloseId FK\n' +
+    '    uuid openingRecheckTriggeredByUserId FK\n' +
     '    timestamp updatedAt\n' +
     '    uuid updatedByUserId FK\n' +
     '    uuid branchId FK\n' +

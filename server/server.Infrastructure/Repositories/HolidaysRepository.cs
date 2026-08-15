@@ -62,13 +62,15 @@ internal class HolidaysRepository(ServerDbContext dbContext) : IHolidaysReposito
             .CountAsync();
     }
 
-    public async Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAsNoTracking(Guid branchId)
+    public async Task<IReadOnlyList<DateOnly>> ListActiveDatesByBranchIdAsNoTracking(
+        Guid branchId,
+        CancellationToken ct = default)
     {
         var dates = await dbContext.Holidays
             .AsNoTracking()
             .Where(h => h.BranchId == branchId && h.Active)
             .Select(h => h.Date)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return dates.Select(DateOnly.FromDateTime).ToList();
     }

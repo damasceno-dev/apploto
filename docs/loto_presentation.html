@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v34
+Spec revision: v35
 -->
 <html lang="en">
 <head>
@@ -588,7 +588,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Open Day: Opening Values',
-   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. One review call enumerates <b>every active Product by DisplayOrder</b>, even though this fresh close has no saved items: opening values come from the most recent prior close for the same account, while not-yet-entered closing values are null. The reserved Diferença Caixa row is flagged by the server, with both opening and closing null before calculation.<br><br><b>TotalOpening = R$5,800</b> (R$5,000 + R$500 + R$300).<br><br>Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> (every individual event) and the <b>DailyClose snapshot</b> (physical count at end of day). The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
+   narrative:'The operator starts by creating a <b>DailyClose</b> with Status=Draft. A close can be opened only for a <b>Terminal</b>: Jennifer, as a Member, may open branch-local today; Manager/Admin may backdate before the period lock, and nobody may open a future date. One review call enumerates <b>every active Product by DisplayOrder</b>. Opening values come from the most recent prior active <b>counted</b> close (<code>ItemsFirstRecordedAt != null</code>), while not-yet-entered closing values are null. The reserved Diferença Caixa row is flagged by the server, with both opening and closing null before calculation.<br><br><b>TotalOpening = R$5,800</b> (R$5,000 + R$500 + R$300). Terminal movement now requires this open Draft close first; Tab and Bank do not. Lotero tracks the same financial reality from <b>two angles</b>: the <b>Transaction ledger</b> and the <b>DailyClose snapshot</b>. The <b>CashVariance</b> is the gap between them — <em>the single most important number in the system</em>.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -641,7 +641,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Close Day: Physical Count',
-   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. As she types, <code>POST /dailyclose/{id}/variance-preview</code> sends those unsaved candidate values through the same calculator Submit uses, so the displayed <b>−R$20</b> variance updates before any save and the preview never persists. She can add a Notes explanation on the Draft item-save; the close\'s PostgreSQL <code>xmin</code> Version prevents a stale tab from overwriting it.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged on this simple day. The cash fell from R$5,000 to a counted R$1,980 after the day\'s R$3,000 of Saídas.<br><br>Jennifer does <b>not</b> enter Diferença Caixa — the system computes it from the candidates and persists it only on submit.',
+   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. As she types, <code>POST /dailyclose/{id}/variance-preview</code> sends those unsaved candidates through the same calculator Submit uses, so the displayed <b>−R$20</b> updates before any save and preview never persists. Her first successful complete item-save atomically stamps <code>ItemsFirstRecordedAt</code>, <code>RecordedByUserId</code>, and <code>RecordedByOperatorId</code>; even an explicit empty save counts and claims the recorder. An elevated-opened close starts unclaimed, so the first account-scoped Member to save may claim it; account coordination makes that first claim win. Retry, Notes-only, and correction saves never reassign the recorder. The <code>xmin</code> Version prevents a stale tab from overwriting values or Notes.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged. Jennifer does <b>not</b> enter Diferença Caixa — the system persists it only on submit. A true later change reports and demotes only the next eligible official successor for opening recheck; identical, reordered, retry, and Notes-only saves do not cascade.',
    activeTables:['Product','DailyCloseItem','DailyClose'],
    activeArrows:['prod-dci','dci-dc'],
    data:[
@@ -649,11 +649,13 @@ const SLIDES=[
     {entity:'DailyCloseItem #2',fields:[{n:'ProductId',v:'→ Telesena'},{n:'Value',v:'"R$ 500.00"'}]},
     {entity:'DailyCloseItem #3',fields:[{n:'ProductId',v:'→ Raspadinha'},{n:'Value',v:'"R$ 300.00"'}]},
     {entity:'Totals',fields:[
-     {n:'TotalClosing',v:'"R$ 2,780.00"  (1,980 + 500 + 300)',hl:'hl'}
+     {n:'TotalClosing',v:'"R$ 2,780.00"  (1,980 + 500 + 300)',hl:'hl'},
+     {n:'ItemsFirstRecordedAt',v:'first successful save',hl:'hl-blue'},
+     {n:'RecordedByUserId / OperatorId',v:'→ Jennifer (immutable recorder)',hl:'hl-blue'}
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. The system computes <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>The day\'s Saídas were expected to leave the counted assets R$3,000 lighter — but the drawer came up <b>R$20 lighter still</b> (R$1,980 counted vs R$2,000 expected cash). The system persists this as a <b>Diferença Caixa</b> DailyCloseItem — Jennifer never types this value. On rejected resubmits or submit-after-recall, that same system row is updated in place. Maria will see this close in her <b>pending review queue</b> the next morning.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -665,12 +667,13 @@ const SLIDES=[
     {entity:'DailyClose (updated)',fields:[
      {n:'Status',v:'"Submitted"',hl:'hl'},
      {n:'SubmittedAt',v:'"2025-03-15T18:30:00Z"',hl:'hl'},
-     {n:'SubmittedByOperatorId',v:'→ Jennifer'},
+     {n:'RecordedByOperatorId',v:'→ Jennifer (unchanged)'},
+     {n:'SubmittedByUserId / OperatorId',v:'→ Jennifer (current submitter)'},
      {n:'UpdatedAt',v:'same instant as SubmittedAt'}
     ]}
    ]},
   {title:'Manager Approves',
-   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission: compares DailyCloseItems against the transaction ledger, reads Jennifer\'s frozen <b>Notes</b> explaining the cause, checks the system-computed <b>Diferença Caixa</b> (<b>−R$ 20.00</b>), and <b>Approves</b>. If a product is retired after Jennifer counted it, its saved row remains in this review so Maria can still reconcile the submitted variance.<br><br>Status=Approved, ApprovedAt, ApprovedByUserId, UpdatedAt, and UpdatedByUserId are set from the same workflow action. If issues were found, Maria would <b>Reject</b> with a reason; the next edit auto-transitions <b>Rejected → Draft</b>. A same-day mistaken Submit can also be recalled by editing: <b>Submitted → Draft</b> for the recording operator, or any Manager/Admin — but an attempt to change the frozen Notes rejects the whole recall-save. This workflow replaces the paper-based process that lottery houses currently use.',
+   narrative:'Maria (Manager — see UC3) reviews Jennifer\'s submission against the frozen ledger, reads the frozen <b>Notes</b>, checks the authoritative persisted <b>Diferença Caixa</b> (<b>−R$ 20.00</b>), and <b>Approves</b>. If a product is retired after Jennifer counted it, its saved row remains visible for reconciliation.<br><br>If Maria rejects, the recording operator may correct it until the period locks; the first correction returns it to Draft while retaining the reason. A mistaken Submit is undone only through explicit <b>Desfazer envio</b> (<code>POST /dailyclose/{id}/recall</code>), same-day for the recording Member. Ordinary item-save cannot Recall. If an Approved close needs correction, Manager/Admin uses <code>POST /dailyclose/{id}/reopen</code>; the retained variance row is hidden while Draft and updated only on fresh submit, followed by approval again. A direct prior-day Recall/Reopen remains Manager-owned.',
    activeTables:['DailyClose'],
    activeArrows:[],
    data:[
@@ -875,7 +878,7 @@ function renderIntro(s,i){
     <p class="intro-sub">Sunday, March 16 — everything the six stories produced, on one screen</p>
     <div class="intro-cols">
       <div class="intro-col">
-        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with per-account variance (Jennifer&#39;s close carries its <b style="color:#ef5350">−R$ 20.00</b>), the pending-approval count, and the expected terminals that have not submitted. Close rows are ordered by account name.</p>
+        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. Dashboard, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
         <div class="intro-card">
           <h3 class="accent-color">The Work Queue</h3>
           <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. A terminal with an open Draft close deep-links straight into it.</p>
@@ -910,7 +913,7 @@ function renderClosing(i){
     {t:'Fiado Isolation',d:'Terminal and Tab accounts keep customer credit out of cash drawer counts. Fiado balance is queried from Tab transactions.'},
     {t:'Branch Consistency',d:'Transaction and DailyClose references must resolve to the same Branch. The service layer blocks cross-tenant mixes.'},
     {t:'Transaction Scope',d:'Members work only with linked-account, same-day rows they recorded. Managers and Admins review broader branch workflows.'},
-    {t:'DailyClose Recall',d:'Rejected closes return to Draft for resubmission. Same-day Submitted closes can be recalled, and CashVariance is reused on submit.'},
+    {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft.'},
     {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
     {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'}

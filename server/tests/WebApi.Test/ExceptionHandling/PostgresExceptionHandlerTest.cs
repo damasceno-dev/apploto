@@ -91,6 +91,19 @@ public class PostgresExceptionHandlerTest
         normalized.ShouldBeSameAs(exception);
     }
 
+    [Fact]
+    public void Normalize_ShouldReturnRetryableConflict_WhenLockTimeoutIsWrappedByDbUpdateException()
+    {
+        var exception = BuildPostgresDbUpdateException(
+            sqlState: "55P03",
+            constraintName: "not_applicable");
+
+        var normalized = PostgresExceptionHandler.Normalize(exception);
+
+        normalized.ShouldBeOfType<ConflictException>().Message.ShouldBe(
+            ResourcesErrorMessages.DAILYCLOSE_LEDGER_COORDINATION_BUSY);
+    }
+
     private static DbUpdateException BuildUniqueViolation(string constraintName)
     {
         return BuildPostgresDbUpdateException("23505", constraintName);

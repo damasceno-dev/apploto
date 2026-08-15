@@ -260,7 +260,7 @@ public class AddTimeEntrySegmentUseCaseTest
             ctx.AuthenticationService,
             ctx.TimeEntriesRepository,
             ctx.TimeEntrySegmentsRepository,
-            new LockDateGuard(ctx.SettingsRepository),
+            new LockDateGuard(new LockDateReader(ctx.SettingsRepository)),
             new TimeEntrySegmentMutationService(ctx.SettingsRepository, new TimeEntryCalculationService()),
             ctx.BranchClock,
             ctx.UnitOfWork);

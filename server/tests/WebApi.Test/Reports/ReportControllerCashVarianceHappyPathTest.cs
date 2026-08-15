@@ -46,11 +46,11 @@ public class ReportControllerCashVarianceHappyPathTest(ServerWebApplicationFacto
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseCashVarianceSummaryJson>();
 
-        payload.TotalCount.ShouldBe(3);
-        payload.Items.Count.ShouldBe(3);
-        payload.TotalVariance.ShouldBe(320m);
-        payload.MeanVariance.ShouldBe(320m / 3m);
-        payload.MaxVariance.ShouldBe(200m);
+        payload.TotalCount.ShouldBe(2);
+        payload.Items.Count.ShouldBe(2);
+        payload.TotalVariance.ShouldBe(120m);
+        payload.MeanVariance.ShouldBe(60m);
+        payload.MaxVariance.ShouldBe(150m);
         payload.MinVariance.ShouldBe(-30m);
         payload.TotalPages.ShouldBe(1);
         payload.HasNext.ShouldBeFalse();
@@ -58,7 +58,7 @@ public class ReportControllerCashVarianceHappyPathTest(ServerWebApplicationFacto
 
         payload.Items.Any(i => i.DailyCloseStatus == DailyCloseStatus.Approved).ShouldBeTrue();
         payload.Items.Any(i => i.DailyCloseStatus == DailyCloseStatus.Submitted).ShouldBeTrue();
-        payload.Items.Any(i => i.DailyCloseStatus == DailyCloseStatus.Draft).ShouldBeTrue();
+        payload.Items.Any(i => i.DailyCloseStatus == DailyCloseStatus.Draft).ShouldBeFalse();
     }
 
     // -------------------------------------------------------------------------

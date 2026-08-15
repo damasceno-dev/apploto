@@ -14,10 +14,10 @@ public sealed class MemberAccountScopeResolver(
     IOperatorAccountsRepository operatorAccountsRepository)
     : IMemberAccountScopeResolver
 {
-    public async Task<MemberAccountScope> Resolve(Guid userId, Guid branchId)
+    public async Task<MemberAccountScope> Resolve(Guid userId, Guid branchId, CancellationToken ct = default)
     {
         var linkedOperator = await operatorsRepository
-            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(userId, branchId);
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(userId, branchId, ct);
 
         if (linkedOperator is null)
         {
@@ -25,7 +25,7 @@ public sealed class MemberAccountScopeResolver(
         }
 
         var linkedAccounts = await operatorAccountsRepository
-            .ListActiveByOperatorIdAsNoTracking(linkedOperator.Id);
+            .ListActiveByOperatorIdAsNoTracking(linkedOperator.Id, ct);
 
         return new MemberAccountScope(
             linkedOperator,

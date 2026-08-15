@@ -249,9 +249,30 @@ namespace server.Infrastructure.Migrations
                     b.Property<DateTime>("Date")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("ItemsFirstRecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("OpenedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("OpeningRecheckRequiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("OpeningRecheckTriggeredByDailyCloseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OpeningRecheckTriggeredByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecordedByOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(500)
@@ -264,6 +285,9 @@ namespace server.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("SubmittedByOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SubmittedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -284,7 +308,19 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("ApprovedByUserId");
 
+                    b.HasIndex("OpenedByUserId");
+
+                    b.HasIndex("OpeningRecheckTriggeredByDailyCloseId");
+
+                    b.HasIndex("OpeningRecheckTriggeredByUserId");
+
+                    b.HasIndex("RecordedByOperatorId");
+
+                    b.HasIndex("RecordedByUserId");
+
                     b.HasIndex("SubmittedByOperatorId");
+
+                    b.HasIndex("SubmittedByUserId");
 
                     b.HasIndex("BranchId", "Status");
 
@@ -297,7 +333,10 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("BranchId", "Date", "AccountId");
 
-                    b.ToTable("DailyCloses", (string)null);
+                    b.ToTable("DailyCloses", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DailyCloses_RecordingIdentityMatchesFirstCount", "(\"ItemsFirstRecordedAt\" IS NULL AND \"RecordedByUserId\" IS NULL AND \"RecordedByOperatorId\" IS NULL) OR (\"ItemsFirstRecordedAt\" IS NOT NULL AND \"RecordedByUserId\" IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("server.Domain.Entities.DailyCloseItem", b =>
@@ -893,9 +932,40 @@ namespace server.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("server.Domain.Entities.User", "OpenedByUser")
+                        .WithMany()
+                        .HasForeignKey("OpenedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "OpeningRecheckTriggeredByDailyClose")
+                        .WithMany()
+                        .HasForeignKey("OpeningRecheckTriggeredByDailyCloseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", "OpeningRecheckTriggeredByUser")
+                        .WithMany()
+                        .HasForeignKey("OpeningRecheckTriggeredByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Operator", "RecordedByOperator")
+                        .WithMany()
+                        .HasForeignKey("RecordedByOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", "RecordedByUser")
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("server.Domain.Entities.Operator", "SubmittedByOperator")
                         .WithMany()
                         .HasForeignKey("SubmittedByOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", "SubmittedByUser")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Account");
@@ -904,7 +974,19 @@ namespace server.Infrastructure.Migrations
 
                     b.Navigation("Branch");
 
+                    b.Navigation("OpenedByUser");
+
+                    b.Navigation("OpeningRecheckTriggeredByDailyClose");
+
+                    b.Navigation("OpeningRecheckTriggeredByUser");
+
+                    b.Navigation("RecordedByOperator");
+
+                    b.Navigation("RecordedByUser");
+
                     b.Navigation("SubmittedByOperator");
+
+                    b.Navigation("SubmittedByUser");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.DailyCloseItem", b =>

@@ -2,6 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Application.UseCases.DailyCloses.Get;
 using server.Domain.Entities;
@@ -49,6 +50,36 @@ public class GetDailyCloseUseCaseTest
         response.SubmittedByOperatorName.ShouldBe(callerOperator.Name);
         response.Items.ShouldHaveSingleItem();
         response.Items[0].Id.ShouldBe(item.Id);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldSuppressDraftCashVarianceByResolvedId_WhenProductNavigationIsNotLoaded()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var cashVarianceProductId = Guid.NewGuid();
+        var cashVarianceItem = new DailyCloseItem
+        {
+            ProductId = cashVarianceProductId,
+            Product = null!,
+            DailyCloseId = Guid.NewGuid(),
+            DailyClose = null!,
+            Value = 91m
+        };
+        var visibleItem = new DailyCloseItemBuilder().Build();
+        var dailyClose = new DailyCloseBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithStatus(DailyCloseStatus.Draft)
+            .WithItems([cashVarianceItem, visibleItem])
+            .Build();
+        var ctx = BuildContext(
+            branchUser,
+            dailyClose,
+            cashVarianceProductId: cashVarianceProductId);
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(dailyClose.Id);
+
+        response.Items.ShouldHaveSingleItem().Id.ShouldBe(visibleItem.Id);
     }
 
     [Fact]
@@ -194,13 +225,17 @@ public class GetDailyCloseUseCaseTest
         return new GetDailyCloseUseCase(
             ctx.AuthenticationService,
             ctx.DailyClosesRepository,
-            memberAccountScopeResolver);
+            memberAccountScopeResolver,
+            new CashVarianceProductResolverBuilder()
+                .ReturnsId(ctx.BranchUser.BranchId, ctx.CashVarianceProductId)
+                .Build());
     }
 
     private static TestContext BuildContext(
         BranchUser branchUser,
         DailyClose? dailyClose,
-        Guid? dailyCloseId = null)
+        Guid? dailyCloseId = null,
+        Guid? cashVarianceProductId = null)
     {
         var id = dailyCloseId ?? dailyClose?.Id ?? Guid.NewGuid();
         var authenticationService = new AuthenticationServiceBuilder()
@@ -212,6 +247,8 @@ public class GetDailyCloseUseCaseTest
 
         return new TestContext
         {
+            BranchUser = branchUser,
+            CashVarianceProductId = cashVarianceProductId ?? Guid.NewGuid(),
             AuthenticationService = authenticationService,
             DailyClosesRepository = dailyClosesRepository,
             OperatorsRepository = new OperatorsRepositoryBuilder().Build(),
@@ -221,6 +258,8 @@ public class GetDailyCloseUseCaseTest
 
     private class TestContext
     {
+        public required BranchUser BranchUser { get; init; }
+        public required Guid CashVarianceProductId { get; init; }
         public required IAuthenticationService AuthenticationService { get; init; }
         public required IDailyClosesRepository DailyClosesRepository { get; init; }
         public required IOperatorsRepository OperatorsRepository { get; set; }

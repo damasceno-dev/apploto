@@ -14,8 +14,11 @@ public class GetCashVarianceSummaryUseCase(
     IDailyCloseItemsRepository dailyCloseItemsRepository,
     ICashVarianceProductResolver cashVarianceProductResolver)
 {
-    public async Task<ResponseCashVarianceSummaryJson> Execute(RequestCashVarianceSummaryJson request)
+    public async Task<ResponseCashVarianceSummaryJson> Execute(
+        RequestCashVarianceSummaryJson request,
+        CancellationToken ct = default)
     {
+        ct.ThrowIfCancellationRequested();
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
         if (branchUser.Role != Role.Manager && branchUser.Role != Role.Admin)
@@ -25,15 +28,16 @@ public class GetCashVarianceSummaryUseCase(
 
         if (request.AccountId is { } accountId)
         {
-            var account = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId);
+            var account = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(
+                accountId, branchUser.BranchId, ct);
             if (account is null)
                 throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
         }
 
-        var productId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId);
+        var productId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
         var rows = await dailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
-            branchUser.BranchId, productId, request.AccountId, request.DateFrom, request.DateTo);
+            branchUser.BranchId, productId, request.AccountId, request.DateFrom, request.DateTo, ct);
 
         var totalVariance = rows.Sum(r => r.Value);
         var meanVariance = rows.Count > 0 ? totalVariance / rows.Count : 0m;
