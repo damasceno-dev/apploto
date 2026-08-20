@@ -122,6 +122,33 @@ public class TimeEntryControllerUpsertUnhappyPathTest(ServerWebApplicationFactor
     }
 
     [Fact]
+    public async Task Upsert_AdminSnapshot_ShouldReturn409_WhenEntryDateIsLocked()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertLocked", Role.Manager);
+        var date = new DateTime(2026, 5, 20);
+        await factory.SeedSettingAsync(branch.Id, lockDate: new DateTime(2026, 5, 31));
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var request = new RequestUpsertTimeEntryJsonBuilder()
+            .WithOperatorId(op.Id)
+            .WithDate(date)
+            .WithStatus(TimeEntryStatus.Present)
+            .BuildAdminSnapshot(new RequestTimeEntrySegmentJsonBuilder()
+                .WithClockIn(date.AddHours(8))
+                .WithClockOut(date.AddHours(17))
+                .Build());
+
+        var httpResponse = await _client.PutAuthAsync("/timeentry", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+        (await dbContext.TimeEntries.CountAsync(entry => entry.BranchId == branch.Id && entry.Date == date))
+            .ShouldBe(0);
+    }
+
+    [Fact]
     public async Task Upsert_AdminClockInEditAttempt_ShouldReturn400()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEUpsertAdminClockInLocked", Role.Manager);

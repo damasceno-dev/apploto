@@ -171,9 +171,10 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Update(
         [FromServices] UpdateTransactionUseCase updateTransactionUseCase,
         [FromRoute] Guid transactionId,
-        [FromBody] RequestUpdateTransactionJson request)
+        [FromBody] RequestUpdateTransactionJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await updateTransactionUseCase.Execute(transactionId, request);
+        var response = await updateTransactionUseCase.Execute(transactionId, request, cancellationToken);
         return Ok(response);
     }
 

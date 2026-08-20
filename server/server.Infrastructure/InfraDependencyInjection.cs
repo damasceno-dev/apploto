@@ -15,6 +15,7 @@ public static class InfraDependencyInjection
     private const string NagerDateDefaultBaseUrl = "https://date.nager.at";
     private const int DefaultExternalHolidayTimeoutSeconds = 5;
     private const int DefaultDailyCloseAccountCoordinationLockTimeoutSeconds = 5;
+    private const int DefaultMonthLockCoordinationLockTimeoutSeconds = 5;
 
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
@@ -87,6 +88,18 @@ public static class InfraDependencyInjection
 
         services.AddSingleton(new DailyCloseAccountCoordinationOptions(
             TimeSpan.FromSeconds(coordinationLockTimeoutSeconds)));
+
+        var monthLockTimeoutSeconds = configuration.GetValue<int?>(
+            "MonthLockCoordination:LockTimeoutSeconds")
+            ?? DefaultMonthLockCoordinationLockTimeoutSeconds;
+        if (monthLockTimeoutSeconds <= 0)
+        {
+            throw new InvalidOperationException(
+                "MonthLockCoordination:LockTimeoutSeconds must be greater than zero.");
+        }
+
+        services.AddSingleton(new MonthLockCoordinationOptions(
+            TimeSpan.FromSeconds(monthLockTimeoutSeconds)));
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IBranchesRepository, BranchesRepository>();
@@ -106,6 +119,7 @@ public static class InfraDependencyInjection
         services.AddScoped<ITimeEntrySegmentsRepository, TimeEntrySegmentsRepository>();
         services.AddScoped<IHolidaysRepository, HolidaysRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IMonthLockCoordination, MonthLockCoordination>();
         services.AddScoped<IDailyCloseAccountCoordination, DailyCloseAccountCoordination>();
     }
 

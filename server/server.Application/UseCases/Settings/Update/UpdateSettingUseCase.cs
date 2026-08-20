@@ -24,12 +24,6 @@ public class UpdateSettingUseCase(
         var setting = await settingsRepository.GetByBranchId(branchUser.BranchId)
             ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
 
-        if (request.LockDate is { } newLockDate && newLockDate < setting.LockDate)
-            throw new OnValidationException([ResourcesErrorMessages.SETTING_LOCK_DATE_RETREAT]);
-
-        if (request.LockDate.HasValue)
-            setting.LockDate = request.LockDate.Value;
-
         if (request.DailyTargetHours.HasValue)
             setting.DailyTargetHours = request.DailyTargetHours.Value;
 

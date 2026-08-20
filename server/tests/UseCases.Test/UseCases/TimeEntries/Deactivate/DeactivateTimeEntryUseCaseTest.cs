@@ -2,6 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.TimeEntries.Deactivate;
 using server.Domain.Entities.Enums;
@@ -46,7 +47,7 @@ public class DeactivateTimeEntryUseCaseTest
         branchClock.UtcNow().Returns(FixedNow);
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = new DeactivateTimeEntryUseCase(
+        var useCase = CreateUseCase(
             authenticationService, timeEntriesRepository, branchClock, unitOfWork);
 
         var response = await useCase.Execute(timeEntry.Id);
@@ -75,7 +76,7 @@ public class DeactivateTimeEntryUseCaseTest
         var branchClock = Substitute.For<IBranchClock>();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = new DeactivateTimeEntryUseCase(
+        var useCase = CreateUseCase(
             authenticationService, timeEntriesRepository, branchClock, unitOfWork);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
@@ -94,7 +95,7 @@ public class DeactivateTimeEntryUseCaseTest
         var branchClock = Substitute.For<IBranchClock>();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = new DeactivateTimeEntryUseCase(
+        var useCase = CreateUseCase(
             authenticationService, timeEntriesRepository, branchClock, unitOfWork);
 
         var exception = await Should.ThrowAsync<OnValidationException>(
@@ -121,7 +122,7 @@ public class DeactivateTimeEntryUseCaseTest
         var branchClock = Substitute.For<IBranchClock>();
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = new DeactivateTimeEntryUseCase(
+        var useCase = CreateUseCase(
             authenticationService, timeEntriesRepository, branchClock, unitOfWork);
 
         var exception = await Should.ThrowAsync<NotFoundException>(
@@ -151,7 +152,7 @@ public class DeactivateTimeEntryUseCaseTest
         branchClock.UtcNow().Returns(FixedNow);
         var unitOfWork = new UnitOfWorkBuilder().Build();
 
-        var useCase = new DeactivateTimeEntryUseCase(
+        var useCase = CreateUseCase(
             authenticationService, timeEntriesRepository, branchClock, unitOfWork);
 
         await useCase.Execute(timeEntry.Id);
@@ -160,5 +161,53 @@ public class DeactivateTimeEntryUseCaseTest
             .GetByIdAndBranchId(timeEntry.Id, branchUser.BranchId);
         await timeEntriesRepository.DidNotReceive()
             .GetByIdAndBranchId(timeEntry.Id, Arg.Is<Guid>(g => g != branchUser.BranchId));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReject_WhenTimeEntryDateIsLocked()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var timeEntry = new TimeEntryBuilder().WithOperator(op).WithActive(true).Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var timeEntriesRepository = new TimeEntriesRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(timeEntry.Id, branchUser.BranchId, timeEntry)
+            .Build();
+        var branchClock = Substitute.For<IBranchClock>();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var useCase = CreateUseCase(
+            authenticationService,
+            timeEntriesRepository,
+            branchClock,
+            unitOfWork,
+            timeEntry.Date);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(timeEntry.Id));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED);
+        timeEntry.Active.ShouldBeTrue();
+        await unitOfWork.DidNotReceive().Commit(Arg.Any<CancellationToken>());
+    }
+
+    private static DeactivateTimeEntryUseCase CreateUseCase(
+        IAuthenticationService authenticationService,
+        ITimeEntriesRepository timeEntriesRepository,
+        IBranchClock branchClock,
+        IUnitOfWork unitOfWork,
+        DateTime? lockDate = null)
+    {
+        var lockDateReader = Substitute.For<ILockDateReader>();
+        lockDateReader.Read(Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(lockDate ?? DateTime.MinValue);
+
+        return new DeactivateTimeEntryUseCase(
+            authenticationService,
+            timeEntriesRepository,
+            branchClock,
+            new LockDateGuard(lockDateReader),
+            new MonthLockCoordinationBuilder().Build(),
+            unitOfWork);
     }
 }

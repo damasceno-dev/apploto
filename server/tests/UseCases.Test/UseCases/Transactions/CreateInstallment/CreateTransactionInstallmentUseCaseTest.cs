@@ -421,6 +421,7 @@ public class CreateTransactionInstallmentUseCaseTest
             ctx.TransactionsRepository,
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            lockDateGuard,
             ctx.UnitOfWork);
     }
 

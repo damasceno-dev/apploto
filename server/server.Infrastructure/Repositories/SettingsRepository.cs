@@ -11,10 +11,10 @@ internal class SettingsRepository(ServerDbContext dbContext) : ISettingsReposito
         await dbContext.Settings.AddAsync(setting);
     }
 
-    public async Task<Setting?> GetByBranchId(Guid branchId)
+    public async Task<Setting?> GetByBranchId(Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Settings
-            .FirstOrDefaultAsync(setting => setting.BranchId == branchId);
+            .FirstOrDefaultAsync(setting => setting.BranchId == branchId, ct);
     }
 
     public async Task<Setting?> GetByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)

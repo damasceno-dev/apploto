@@ -115,11 +115,11 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
     }
 
     [Fact]
-    public async Task Update_ShouldReturn400_WhenLockDateMovesBackward()
+    public async Task Update_ShouldReturn400AndNotMutate_WhenLockDateIsProvided()
     {
         var lockDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingLockBackward");
-        await factory.SeedSettingAsync(branch.Id, lockDate: lockDate);
+        var seeded = await factory.SeedSettingAsync(branch.Id, lockDate: lockDate);
         var request = new RequestUpdateSettingJsonBuilder()
             .WithLockDate(lockDate.AddDays(-1))
             .Build();
@@ -128,6 +128,9 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_RETREAT);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
+        var persisted = await factory.ReloadAsync<server.Domain.Entities.Setting>(seeded.Id);
+        persisted.ShouldNotBeNull();
+        persisted.LockDate.ShouldBe(DateTime.SpecifyKind(lockDate, DateTimeKind.Unspecified));
     }
 }

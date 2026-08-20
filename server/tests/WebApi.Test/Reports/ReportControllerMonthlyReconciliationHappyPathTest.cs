@@ -100,4 +100,42 @@ public class ReportControllerMonthlyReconciliationHappyPathTest(ServerWebApplica
         payload.Blockers.ShouldBeEmpty();
         payload.Days.Sum(d => d.DraftTransactionCount).ShouldBe(0);
     }
+
+    [Fact]
+    public async Task MonthlyReconciliation_ShouldProjectMissingExpectedClose_FromDirectTerminalActivity()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync(
+            "MonthlyReconMissingExpectedClose",
+            Role.Manager);
+        await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
+        var terminal = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Terminal sem fechamento");
+        var operatorRow = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Monthly Recon Direct Activity", Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id, "Direct Terminal Activity");
+        var activityDate = new DateTime(2025, 10, 7);
+        await factory.SeedTransactionAsync(
+            branch.Id,
+            terminal.Id,
+            transactionType.Id,
+            category.Id,
+            Direction.In,
+            operatorRow.Id,
+            user.Id,
+            date: activityDate,
+            status: TransactionStatus.Active);
+
+        var httpResponse = await _client.GetAuthAsync("/report/monthly-reconciliation/2025/10", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await httpResponse.Content.ReadAsStringAsync());
+        var payload = await httpResponse.ReadContentAsync<ResponseMonthlyReconciliationJson>();
+        payload.LockReady.ShouldBeFalse();
+        var blocker = payload.Blockers.ShouldHaveSingleItem();
+        blocker.Type.ShouldBe(MonthlyReconciliationBlockerType.MissingExpectedClose);
+        blocker.Day.ShouldBe(activityDate.Day);
+        blocker.AccountId.ShouldBe(terminal.Id);
+        blocker.AccountName.ShouldBe("Terminal sem fechamento");
+        blocker.DailyCloseId.ShouldBeNull();
+        blocker.CloseStatus.ShouldBeNull();
+        payload.Days[activityDate.Day - 1].ActiveTransactionCount.ShouldBe(1);
+    }
 }

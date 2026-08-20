@@ -1239,9 +1239,75 @@ namespace server.Exceptions {
             }
         }
 
-        public static string SETTING_LOCK_DATE_RETREAT {
+        public static string SETTING_LOCK_DATE_READ_ONLY {
             get {
-                return ResourceManager.GetString("SETTING_LOCK_DATE_RETREAT", resourceCulture);
+                return ResourceManager.GetString("SETTING_LOCK_DATE_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_YEAR_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_YEAR_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_INVALID {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_INVALID", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_CURRENT_OR_FUTURE {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_CURRENT_OR_FUTURE", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_ALREADY_LOCKED {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_ALREADY_LOCKED", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_BEFORE_BRANCH_FLOOR {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_BEFORE_BRANCH_FLOOR", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_UNAPPROVED_CLOSE {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_UNAPPROVED_CLOSE", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_DRAFT_TRANSACTIONS {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_DRAFT_TRANSACTIONS", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_MISSING_EXPECTED_CLOSE {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_MISSING_EXPECTED_CLOSE", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_NO_CLOSE_WITH_EXPECTED_ACTIVITY {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_NO_CLOSE_WITH_EXPECTED_ACTIVITY", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED", resourceCulture);
+            }
+        }
+
+        public static string SETTING_LOCK_MONTH_COORDINATION_BUSY {
+            get {
+                return ResourceManager.GetString("SETTING_LOCK_MONTH_COORDINATION_BUSY", resourceCulture);
             }
         }
 

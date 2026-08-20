@@ -23,10 +23,11 @@ internal static class TestSeeder
     {
         public async Task<(User User, Branch Branch, BranchUser Membership, string Token)> SeedFullBranchContextAsync(
             string label,
-            Role role = Role.Admin)
+            Role role = Role.Admin,
+            DateTime? branchCreatedAt = null)
         {
             var user = await factory.SeedUserAsync();
-            var branch = await factory.SeedBranchAsync($"{label} {Guid.NewGuid():N}");
+            var branch = await factory.SeedBranchAsync($"{label} {Guid.NewGuid():N}", branchCreatedAt);
             var membership = await factory.SeedBranchUserAsync(user.Id, branch.Id, role);
             var token = factory.IssueBranchToken(membership);
 
@@ -53,7 +54,7 @@ internal static class TestSeeder
             return user;
         }
 
-        private async Task<Branch> SeedBranchAsync(string? name = null)
+        private async Task<Branch> SeedBranchAsync(string? name = null, DateTime? createdAt = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -61,7 +62,8 @@ internal static class TestSeeder
             var branch = new Branch
             {
                 Id = Guid.NewGuid(),
-                Name = name ?? $"Branch {Guid.NewGuid():N}"
+                Name = name ?? $"Branch {Guid.NewGuid():N}",
+                CreatedAt = ServerWebApplicationFactory.AsUtc(createdAt ?? DateTime.UtcNow)
             };
             dbContext.Branches.Add(branch);
             await dbContext.SaveChangesAsync();

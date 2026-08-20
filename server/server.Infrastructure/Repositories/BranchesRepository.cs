@@ -11,10 +11,10 @@ internal class BranchesRepository(ServerDbContext dbContext) : IBranchesReposito
         await dbContext.Branches.AddAsync(branch);
     }
 
-    public async Task<Branch?> GetById(Guid branchId)
+    public async Task<Branch?> GetById(Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Branches
             .AsNoTracking()
-            .FirstOrDefaultAsync(branch => branch.Id == branchId && branch.Active);
+            .FirstOrDefaultAsync(branch => branch.Id == branchId && branch.Active, ct);
     }
 }

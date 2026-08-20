@@ -1,4 +1,5 @@
 using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.TimeEntries;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
@@ -46,6 +47,8 @@ public class UpsertTimeEntryUseCase(
     ITimeEntryWritePermissionGuard permissionGuard,
     ITimeEntryCalculationService calculationService,
     IBranchClock branchClock,
+    LockDateGuard lockDateGuard,
+    IMonthLockCoordination monthLockCoordination,
     IUnitOfWork unitOfWork)
 {
     /// <summary>
@@ -82,11 +85,16 @@ public class UpsertTimeEntryUseCase(
     /// <exception cref="TokenWithoutPermissionException">
     /// Permission guard denies the writing (403).
     /// </exception>
-    public async Task<ResponseTimeEntryJson> Execute(RequestUpsertTimeEntryJson request)
+    public async Task<ResponseTimeEntryJson> Execute(
+        RequestUpsertTimeEntryJson request,
+        CancellationToken ct = default)
     {
         Validate(request);
 
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var coordination = await monthLockCoordination.TryAcquireShared(branchUser.BranchId, ct)
+            ?? throw new ConflictException(ResourcesErrorMessages.SETTING_LOCK_MONTH_COORDINATION_BUSY);
+
         var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
         var callerOperator = memberScope.LinkedOperator;
 
@@ -111,10 +119,18 @@ public class UpsertTimeEntryUseCase(
 
         EnsureRoleShape(request, branchUser.Role);
         await EnsureCalendarStatusRulesAsync(request.Status, request.Date, branchUser.BranchId);
+        await lockDateGuard.EnsureNotLocked(
+            branchUser.BranchId,
+            request.Date,
+            ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED,
+            ct);
 
-        return branchUser.Role is Role.Member
-            ? await ExecuteMemberTapAsync(request, branchUser, targetOperator, existing)
-            : await ExecuteAdminSnapshotAsync(request, branchUser, targetOperator, existing);
+        var response = branchUser.Role is Role.Member
+            ? await ExecuteMemberTapAsync(request, branchUser, targetOperator, existing, ct)
+            : await ExecuteAdminSnapshotAsync(request, branchUser, targetOperator, existing, ct);
+
+        await coordination.Complete(ct);
+        return response;
     }
 
     /// <summary>
@@ -135,7 +151,8 @@ public class UpsertTimeEntryUseCase(
         RequestUpsertTimeEntryJson request,
         BranchUser branchUser,
         Operator targetOperator,
-        TimeEntry? existing)
+        TimeEntry? existing,
+        CancellationToken ct)
     {
         if (request.Status is not TimeEntryStatus.Present)
             throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS]);
@@ -151,14 +168,16 @@ public class UpsertTimeEntryUseCase(
                 targetOperator,
                 existing,
                 utcNow,
-                branchLocalNow),
+                branchLocalNow,
+                ct),
             TimeEntryTapAction.Close => await ExecuteMemberCloseAsync(
                 request,
                 branchUser,
                 targetOperator,
                 existing,
                 utcNow,
-                branchLocalNow),
+                branchLocalNow,
+                ct),
             _ => throw new InvalidOperationException($"Unexpected {nameof(TimeEntryTapAction)}: {request.Action}")
         };
     }
@@ -183,14 +202,22 @@ public class UpsertTimeEntryUseCase(
         Operator targetOperator,
         TimeEntry? existing,
         DateTime utcNow,
-        DateTime branchLocalNow)
+        DateTime branchLocalNow,
+        CancellationToken ct)
     {
         if (existing is null)
         {
             var entry = CreateParent(request, branchUser.BranchId, utcNow);
             AddSegment(entry, branchLocalNow, null, utcNow);
 
-            return await PersistAsync(entry, targetOperator.Name, branchUser, utcNow, branchLocalNow, addNew: true);
+            return await PersistAsync(
+                entry,
+                targetOperator.Name,
+                branchUser,
+                utcNow,
+                branchLocalNow,
+                addNew: true,
+                ct: ct);
         }
 
         if (ActiveSegments(existing).Any(segment => segment.ClockOut is null))
@@ -199,7 +226,14 @@ public class UpsertTimeEntryUseCase(
         var segment = AddSegment(existing, branchLocalNow, null, utcNow);
         await timeEntrySegmentsRepository.Add(segment);
 
-        return await PersistAsync(existing, targetOperator.Name, branchUser, utcNow, branchLocalNow, addNew: false);
+        return await PersistAsync(
+            existing,
+            targetOperator.Name,
+            branchUser,
+            utcNow,
+            branchLocalNow,
+            addNew: false,
+            ct: ct);
     }
 
     /// <summary>
@@ -224,7 +258,8 @@ public class UpsertTimeEntryUseCase(
         Operator targetOperator,
         TimeEntry? existing,
         DateTime utcNow,
-        DateTime branchLocalNow)
+        DateTime branchLocalNow,
+        CancellationToken ct)
     {
         if (existing is null)
             return EmptyNoopResponse(request, targetOperator, branchUser.BranchId);
@@ -238,7 +273,14 @@ public class UpsertTimeEntryUseCase(
         openSegment.UpdatedAt = utcNow;
         openSegment.UpdatedByUserId = branchUser.UserId;
 
-        return await PersistAsync(existing, targetOperator.Name, branchUser, utcNow, branchLocalNow, addNew: false);
+        return await PersistAsync(
+            existing,
+            targetOperator.Name,
+            branchUser,
+            utcNow,
+            branchLocalNow,
+            addNew: false,
+            ct: ct);
     }
 
     /// <summary>
@@ -265,7 +307,8 @@ public class UpsertTimeEntryUseCase(
         RequestUpsertTimeEntryJson request,
         BranchUser branchUser,
         Operator targetOperator,
-        TimeEntry? existing)
+        TimeEntry? existing,
+        CancellationToken ct)
     {
         var payloadSegments = request.Segments ?? [];
 
@@ -288,7 +331,8 @@ public class UpsertTimeEntryUseCase(
                 branchUser,
                 utcNow,
                 branchLocalNow,
-                addNew: existing is null);
+                addNew: true,
+                ct: ct);
         
         foreach (var insertedSegment in insertedSegments)
             await timeEntrySegmentsRepository.Add(insertedSegment);
@@ -299,7 +343,8 @@ public class UpsertTimeEntryUseCase(
             branchUser,
             utcNow,
             branchLocalNow,
-            addNew: false);
+            addNew: false,
+            ct: ct);
     }
 
     /// <summary>
@@ -392,11 +437,12 @@ public class UpsertTimeEntryUseCase(
         BranchUser branchUser,
         DateTime utcNow,
         DateTime branchLocalNow,
-        bool addNew)
+        bool addNew,
+        CancellationToken ct)
     {
         EnsureSegmentRules(entry);
 
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId)
+        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId, ct)
             ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
 
         var (totalHours, balanceHours) = calculationService.Calculate(
@@ -418,7 +464,7 @@ public class UpsertTimeEntryUseCase(
         if (addNew)
             await timeEntriesRepository.Add(entry);
 
-        await unitOfWork.Commit();
+        await unitOfWork.Commit(ct);
 
         return entry.ToResponse(operatorName);
     }

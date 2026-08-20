@@ -10,8 +10,9 @@ public class ResponseMonthlyReconciliationJson
     public int Month { get; init; }
 
     /// <summary>
-    /// True only when every active close in the month is Approved AND there are no outstanding Draft
-    /// transactions. When false, <see cref="Blockers"/> lists exactly why.
+    /// True only when every expected Terminal/date pair has an Approved close and there are no
+    /// outstanding Draft transactions. Expected pairs come from a close in any state or direct
+    /// active Terminal activity; no calendar or paired-Tab inference is applied.
     /// </summary>
     public bool LockReady { get; init; }
 

@@ -11,6 +11,7 @@ public class BranchBuilder
     private string? _cnpj;
     private string? _address;
     private string? _phone;
+    private DateTime _createdAt = DateTime.UtcNow;
     private bool _active = true;
 
     public BranchBuilder()
@@ -50,6 +51,12 @@ public class BranchBuilder
         return this;
     }
 
+    public BranchBuilder WithCreatedAt(DateTime createdAt)
+    {
+        _createdAt = createdAt;
+        return this;
+    }
+
     public BranchBuilder WithActive(bool active)
     {
         _active = active;
@@ -65,6 +72,7 @@ public class BranchBuilder
             Cnpj = _cnpj,
             Address = _address,
             Phone = _phone,
+            CreatedAt = _createdAt,
             Active = _active
         };
     }

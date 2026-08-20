@@ -18,14 +18,30 @@ public class UpdateTransactionUseCase(
     IMemberAccountScopeResolver memberAccountScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
-    LockDateGuard lockDateGuard)
+    LockDateGuard lockDateGuard,
+    IMonthLockCoordination monthLockCoordination)
 {
-    public async Task<ResponseTransactionJson> Execute(Guid transactionId, RequestUpdateTransactionJson request)
+    public async Task<ResponseTransactionJson> Execute(
+        Guid transactionId,
+        RequestUpdateTransactionJson request,
+        CancellationToken ct = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         Validate(request);
 
-        var transaction = await transactionsRepository.GetByIdAndBranchId(transactionId, branchUser.BranchId)
+        var transactionKey = await transactionsRepository.GetByIdAndBranchIdAsNoTracking(
+            transactionId,
+            branchUser.BranchId,
+            ct)
+            ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
+
+        await using var coordination = await monthLockCoordination.TryAcquireShared(branchUser.BranchId, ct)
+            ?? throw new ConflictException(ResourcesErrorMessages.SETTING_LOCK_MONTH_COORDINATION_BUSY);
+
+        var transaction = await transactionsRepository.GetByIdAndBranchId(
+            transactionKey.Id,
+            branchUser.BranchId,
+            ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         if (transaction.Status == TransactionStatus.Cancelled)
@@ -33,7 +49,7 @@ public class UpdateTransactionUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
         }
 
-        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
 
         if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
         {
@@ -56,7 +72,8 @@ public class UpdateTransactionUseCase(
         await lockDateGuard.EnsureNotLocked(
             branchUser.BranchId,
             transaction.Date,
-            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
+            ct);
 
         if (transaction.TransactionType.RequiresTabAccountAndClient && request.ClientId is null)
         {
@@ -82,7 +99,8 @@ public class UpdateTransactionUseCase(
         transaction.UpdatedAt = utcNow;
         transaction.UpdatedByUserId = branchUser.UserId;
 
-        await unitOfWork.Commit();
+        await unitOfWork.Commit(ct);
+        await coordination.Complete(ct);
 
         return transaction.ToTransactionResponse();
     }

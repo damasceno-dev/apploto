@@ -32,8 +32,17 @@ internal sealed class DailyCloseAccountCoordination(
                 [$"{lockTimeoutMilliseconds}ms"],
                 ct);
 
-            var advisoryKey = DailyCloseAccountCoordinationKey.Compute(branchId, accountId);
+            // Canonical order for every close/ledger mutation: the shared branch month-lock
+            // boundary is always acquired before the Phase 3 account-history key. The
+            // lock-month command takes only the exclusive branch key, so no path can invert
+            // this order and form a deadlock cycle.
             var waitStartedAt = Stopwatch.GetTimestamp();
+            var monthLockKey = MonthLockCoordinationKey.Compute(branchId);
+            await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock_shared({monthLockKey})",
+                ct);
+
+            var advisoryKey = DailyCloseAccountCoordinationKey.Compute(branchId, accountId);
             await dbContext.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock({advisoryKey})",
                 ct);

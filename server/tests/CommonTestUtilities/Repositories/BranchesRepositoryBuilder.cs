@@ -10,7 +10,7 @@ public class BranchesRepositoryBuilder
 
     public BranchesRepositoryBuilder GetById(Guid branchId, Branch? branch)
     {
-        _repository.GetById(branchId).Returns(branch);
+        _repository.GetById(branchId, Arg.Any<CancellationToken>()).Returns(branch);
         return this;
     }
 

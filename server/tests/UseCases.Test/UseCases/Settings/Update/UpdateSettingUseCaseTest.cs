@@ -16,13 +16,11 @@ namespace UseCases.Test.UseCases.Settings.Update;
 public class UpdateSettingUseCaseTest
 {
     [Fact]
-    public async Task Execute_ShouldUpdateAllFields_WhenAdminUpdates()
+    public async Task Execute_ShouldUpdateAllMutableFields_WhenAdminUpdates()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
         var setting = new SettingBuilder().WithBranchId(branchUser.BranchId).Build();
-        var lockDate = new DateTime(2026, 12, 31);
         var request = new RequestUpdateSettingJsonBuilder()
-            .WithLockDate(lockDate)
             .WithDailyTargetHours(8.0m)
             .WithLunchDeductionOver6H(1.5m)
             .WithLunchDeductionOver4H(0.5m)
@@ -40,7 +38,7 @@ public class UpdateSettingUseCaseTest
 
         var response = await useCase.Execute(request);
 
-        response.LockDate.ShouldBe(lockDate);
+        response.LockDate.ShouldBe(setting.LockDate);
         response.DailyTargetHours.ShouldBe(8.0m);
         response.LunchDeductionOver6H.ShouldBe(1.5m);
         response.LunchDeductionOver4H.ShouldBe(0.5m);
@@ -177,7 +175,7 @@ public class UpdateSettingUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldThrowOnValidationException_WhenLockDateMovesBackward()
+    public async Task Execute_ShouldThrowExactReadOnlyKey_WhenLockDateMovesBackward()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
         var lockDate = new DateTime(2026, 6, 1);
@@ -201,12 +199,12 @@ public class UpdateSettingUseCaseTest
 
         var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
 
-        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_RETREAT);
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
         await unitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]
-    public async Task Execute_ShouldAccept_WhenLockDateEqualsCurrentLockDate()
+    public async Task Execute_ShouldThrowExactReadOnlyKey_WhenLockDateEqualsCurrentLockDate()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
         var lockDate = new DateTime(2026, 6, 1);
@@ -226,14 +224,15 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
 
-        response.LockDate.ShouldBe(lockDate);
-        await unitOfWork.Received(1).Commit();
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
+        setting.LockDate.ShouldBe(lockDate);
+        await unitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]
-    public async Task Execute_ShouldAccept_WhenLockDateMovesForward()
+    public async Task Execute_ShouldThrowExactReadOnlyKey_WhenLockDateMovesForward()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
         var lockDate = new DateTime(2026, 6, 1);
@@ -254,10 +253,11 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
 
-        response.LockDate.ShouldBe(newLockDate);
-        await unitOfWork.Received(1).Commit();
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
+        setting.LockDate.ShouldBe(lockDate);
+        await unitOfWork.DidNotReceive().Commit();
     }
 
     [Fact]

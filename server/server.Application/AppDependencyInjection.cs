@@ -88,6 +88,7 @@ using server.Application.UseCases.Products.Get;
 using server.Application.UseCases.Products.List;
 using server.Application.UseCases.Products.Update;
 using server.Application.UseCases.Settings.Get;
+using server.Application.UseCases.Settings.LockMonth;
 using server.Application.UseCases.Settings.Update;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
@@ -156,6 +157,7 @@ public static class AppDependencyInjection
         services.AddScoped<DeactivateProductUseCase>();
         services.AddScoped<GetSettingUseCase>();
         services.AddScoped<UpdateSettingUseCase>();
+        services.AddScoped<LockSettingMonthUseCase>();
         services.AddScoped<CreateClientUseCase>();
         services.AddScoped<ListClientsUseCase>();
         services.AddScoped<GetClientUseCase>();
@@ -170,6 +172,7 @@ public static class AppDependencyInjection
         services.AddScoped<IMemberAccountScopeResolver, MemberAccountScopeResolver>();
         services.AddScoped<ILockDateReader, LockDateReader>();
         services.AddScoped<LockDateGuard>();
+        services.AddScoped<MonthLockReadinessEvaluator>();
         services.AddScoped<MemberAccountScopeGuard>();
         services.AddScoped<ITimeEntryCalculationService, TimeEntryCalculationService>();
         services.AddScoped<TimeEntrySegmentMutationService>();

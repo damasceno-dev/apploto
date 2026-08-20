@@ -21,6 +21,11 @@ public interface IDailyClosesRepository
         DateTime afterDate,
         CancellationToken ct = default);
     /// <summary>
+    /// Earliest business date carrying an active close in the branch, regardless of workflow status.
+    /// Used to keep a fresh branch's month-lock floor from skipping backdated/imported history.
+    /// </summary>
+    Task<DateTime?> GetEarliestDateByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default);
+    /// <summary>
     /// Active closes for the branch in the given year/month, eager-loading <c>Account</c> (for the name and
     /// ordering). Ordered Date ASC, then AccountName ASC. Powers the monthly reconciliation report; does not
     /// load <c>SubmittedByOperator</c> because that report exposes no operator field.

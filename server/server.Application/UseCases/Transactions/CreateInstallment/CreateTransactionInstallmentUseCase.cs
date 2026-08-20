@@ -1,5 +1,6 @@
 using server.Application.Services.Transactions;
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Settings;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -15,6 +16,7 @@ public class CreateTransactionInstallmentUseCase(
     ITransactionsRepository transactionsRepository,
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
+    LockDateGuard lockDateGuard,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseCreateTransactionInstallmentJson> Execute(
@@ -33,6 +35,12 @@ public class CreateTransactionInstallmentUseCase(
         await using var coordination = await dailyCloseAccountCoordination.Acquire(
             createContext.BranchUser.BranchId,
             request.AccountId,
+            ct);
+
+        await lockDateGuard.EnsureNotLocked(
+            createContext.BranchUser.BranchId,
+            request.Date.Date,
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
         await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(

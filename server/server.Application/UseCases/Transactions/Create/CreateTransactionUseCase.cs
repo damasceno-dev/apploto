@@ -1,8 +1,10 @@
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Interfaces;
+using server.Exceptions;
 using server.Exceptions.Exceptions;
 
 namespace server.Application.UseCases.Transactions.Create;
@@ -12,6 +14,7 @@ public class CreateTransactionUseCase(
     ITransactionsRepository transactionsRepository,
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
+    LockDateGuard lockDateGuard,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseCreateTransactionJson> Execute(
@@ -25,6 +28,15 @@ public class CreateTransactionUseCase(
         await using var coordination = await dailyCloseAccountCoordination.Acquire(
             createContext.BranchUser.BranchId,
             request.AccountId,
+            ct);
+
+        // The preamble check remains useful for fast failure and preview parity. Recheck while
+        // holding the shared month-lock boundary so a successful lock command cannot be followed
+        // by this write using a stale pre-acquisition LockDate.
+        await lockDateGuard.EnsureNotLocked(
+            createContext.BranchUser.BranchId,
+            request.Date.Date,
+            ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
         await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(

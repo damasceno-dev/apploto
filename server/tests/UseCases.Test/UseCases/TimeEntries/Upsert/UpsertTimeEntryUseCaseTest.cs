@@ -3,6 +3,7 @@ using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.Services.Members;
+using server.Application.Services.Settings;
 using server.Application.Services.TimeEntries;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.TimeEntries.Upsert;
@@ -173,6 +174,25 @@ public class UpsertTimeEntryUseCaseTest
         response.TotalHours.ShouldBe(8m, tolerance: 0.001m);
         await ctx.TimeEntriesRepository.Received(1).Add(Arg.Any<TimeEntry>());
         await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_AdminBackfill_ShouldReject_WhenEntryDateIsLocked()
+    {
+        var segment = new RequestTimeEntrySegmentJsonBuilder()
+            .WithClockIn(EntryDate.AddHours(8))
+            .WithClockOut(EntryDate.AddHours(17))
+            .Build();
+        var request = RequestFor(Guid.NewGuid()).BuildAdminSnapshot(segment);
+        var ctx = BuildContext(Role.Admin, linkedOperator: false, request: request);
+        ctx.Setting.LockDate = EntryDate;
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED);
+        await ctx.TimeEntriesRepository.DidNotReceive().Add(Arg.Any<TimeEntry>());
+        await ctx.UnitOfWork.DidNotReceive().Commit(Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -607,6 +627,8 @@ public class UpsertTimeEntryUseCaseTest
             new TimeEntryWritePermissionGuard(ctx.BranchClock),
             new TimeEntryCalculationService(),
             ctx.BranchClock,
+            new LockDateGuard(new LockDateReader(ctx.SettingsRepository)),
+            new MonthLockCoordinationBuilder().Build(),
             ctx.UnitOfWork);
     }
 

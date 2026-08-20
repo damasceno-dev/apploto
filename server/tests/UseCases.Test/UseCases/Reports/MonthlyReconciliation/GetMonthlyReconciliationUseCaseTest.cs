@@ -92,6 +92,31 @@ public class GetMonthlyReconciliationUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldReturnMissingExpectedCloseBlocker_ForDirectTerminalActivity()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var accountId = Guid.NewGuid();
+        var activity = new TerminalActivityPairRow(
+            DateFrom.AddDays(5), accountId, "Terminal sem fechamento");
+
+        var ctx = BuildContext(
+            branchUser,
+            closes: [],
+            varianceRows: [],
+            statusCounts: [],
+            activityPairs: [activity]);
+        var response = await CreateUseCase(ctx).Execute(BuildRequest());
+
+        response.LockReady.ShouldBeFalse();
+        var blocker = response.Blockers.ShouldHaveSingleItem();
+        blocker.Type.ShouldBe(MonthlyReconciliationBlockerType.MissingExpectedClose);
+        blocker.Day.ShouldBe(6);
+        blocker.AccountId.ShouldBe(accountId);
+        blocker.AccountName.ShouldBe("Terminal sem fechamento");
+        blocker.DailyCloseId.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Execute_ShouldListCancelledOnlyDayWithZeroVariance()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
@@ -144,6 +169,12 @@ public class GetMonthlyReconciliationUseCaseTest
             Arg.Is<int>(v => v == Year),
             Arg.Is<int>(v => v == Month),
             Arg.Is<CancellationToken>(value => value == cancellation.Token));
+        await ctx.TransactionsRepository.Received(1)
+            .ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTracking(
+                Arg.Is<Guid>(value => value == branchUser.BranchId),
+                Arg.Is<int>(value => value == Year),
+                Arg.Is<int>(value => value == Month),
+                Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
         await ctx.TransactionsRepository.DidNotReceive()
             .CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
@@ -255,7 +286,8 @@ public class GetMonthlyReconciliationUseCaseTest
             ctx.DailyClosesRepository,
             ctx.TransactionsRepository,
             ctx.DailyCloseItemsRepository,
-            ctx.CashVarianceProductResolver);
+            ctx.CashVarianceProductResolver,
+            new server.Application.Services.Settings.MonthLockReadinessEvaluator());
     }
 
     private static TestContext BuildContext(
@@ -263,6 +295,7 @@ public class GetMonthlyReconciliationUseCaseTest
         IReadOnlyList<DailyClose> closes,
         IReadOnlyList<VarianceTimeSeriesRow> varianceRows,
         IReadOnlyList<MonthlyTransactionCountRow> statusCounts,
+        IReadOnlyList<TerminalActivityPairRow>? activityPairs = null,
         Guid? productId = null)
     {
         var resolvedProductId = productId ?? Guid.NewGuid();
@@ -278,6 +311,8 @@ public class GetMonthlyReconciliationUseCaseTest
             TransactionsRepository = new TransactionsRepositoryBuilder()
                 .CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTrackingReturns(
                     branchUser.BranchId, Year, Month, statusCounts)
+                .ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTrackingReturns(
+                    branchUser.BranchId, Year, Month, activityPairs ?? [])
                 .Build(),
             DailyCloseItemsRepository = new DailyCloseItemsRepositoryBuilder()
                 .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTrackingReturns(

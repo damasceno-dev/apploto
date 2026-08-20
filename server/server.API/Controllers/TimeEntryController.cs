@@ -28,9 +28,10 @@ public class TimeEntryController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Upsert(
         [FromServices] UpsertTimeEntryUseCase useCase,
-        [FromBody] RequestUpsertTimeEntryJson request)
+        [FromBody] RequestUpsertTimeEntryJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellationToken);
         return Ok(response);
     }
 
@@ -76,9 +77,10 @@ public class TimeEntryController : ControllerBase
     public async Task<IActionResult> AddSegment(
         [FromServices] AddTimeEntrySegmentUseCase useCase,
         [FromRoute] Guid timeEntryId,
-        [FromBody] RequestAddTimeEntrySegmentJson request)
+        [FromBody] RequestAddTimeEntrySegmentJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(timeEntryId, request);
+        var response = await useCase.Execute(timeEntryId, request, cancellationToken);
         var location = response.Segments
             .OrderByDescending(segment => segment.CreatedAt)
             .ThenByDescending(segment => segment.Id)
@@ -100,9 +102,10 @@ public class TimeEntryController : ControllerBase
     public async Task<IActionResult> UpdateSegment(
         [FromServices] UpdateTimeEntrySegmentUseCase useCase,
         [FromRoute] Guid segmentId,
-        [FromBody] RequestUpdateTimeEntrySegmentJson request)
+        [FromBody] RequestUpdateTimeEntrySegmentJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(segmentId, request);
+        var response = await useCase.Execute(segmentId, request, cancellationToken);
         return Ok(response);
     }
 
@@ -117,9 +120,10 @@ public class TimeEntryController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> DeactivateSegment(
         [FromServices] DeactivateTimeEntrySegmentUseCase useCase,
-        [FromRoute] Guid segmentId)
+        [FromRoute] Guid segmentId,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(segmentId);
+        var response = await useCase.Execute(segmentId, cancellationToken);
         return Ok(response);
     }
 
@@ -131,11 +135,13 @@ public class TimeEntryController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Deactivate(
         [FromServices] DeactivateTimeEntryUseCase useCase,
-        [FromRoute] Guid timeEntryId)
+        [FromRoute] Guid timeEntryId,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(timeEntryId);
+        var response = await useCase.Execute(timeEntryId, cancellationToken);
         return Ok(response);
     }
 }

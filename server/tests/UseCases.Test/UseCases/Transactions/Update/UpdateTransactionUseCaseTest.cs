@@ -293,7 +293,14 @@ public class UpdateTransactionUseCaseTest
             () => useCase.Execute(transactionId, ctx.Request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
-        await ctx.TransactionsRepository.Received(1).GetByIdAndBranchId(transactionId, ctx.BranchUser.BranchId);
+        await ctx.TransactionsRepository.Received(1).GetByIdAndBranchIdAsNoTracking(
+            transactionId,
+            ctx.BranchUser.BranchId,
+            Arg.Any<CancellationToken>());
+        await ctx.TransactionsRepository.DidNotReceive().GetByIdAndBranchId(
+            Arg.Any<Guid>(),
+            Arg.Any<Guid>(),
+            Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -359,7 +366,8 @@ public class UpdateTransactionUseCaseTest
             ctx.MemberAccountScopeResolver,
             memberAccountScopeGuard,
             ctx.MutationPermissionGuard,
-            lockDateGuard);
+            lockDateGuard,
+            new MonthLockCoordinationBuilder().Build());
     }
 
     private static TestContext BuildContext(Role role)

@@ -32,6 +32,11 @@ public interface ITransactionsRepository
         DateTime afterDateExclusive,
         DateTime beforeDateExclusive,
         CancellationToken ct = default);
+    /// <summary>
+    /// Earliest business date carrying a non-soft-deleted transaction in the branch, across every status.
+    /// Used to keep a fresh branch's month-lock floor from skipping backdated/imported history.
+    /// </summary>
+    Task<DateTime?> GetEarliestDateByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default);
 
     Task<IReadOnlyList<Transaction>> ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
     Task<int> CountByBranchIdAndAccountIdAndDateRangeAsNoTracking(Guid branchId, DailyLedgerListFilter filter);
@@ -60,5 +65,11 @@ public interface ITransactionsRepository
     /// the database without materializing every row and cannot silently drop rows past a page boundary.
     /// </summary>
     Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
+        Guid branchId, int year, int month, CancellationToken ct = default);
+    /// <summary>
+    /// Distinct dates and Terminal accounts carrying direct active cash-ledger activity.
+    /// Tab activity is intentionally excluded even when the Tab is paired to a Terminal.
+    /// </summary>
+    Task<IReadOnlyList<TerminalActivityPairRow>> ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTracking(
         Guid branchId, int year, int month, CancellationToken ct = default);
 }

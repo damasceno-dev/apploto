@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v35
+Spec revision: v38
 -->
 <html lang="en">
 <head>
@@ -891,7 +891,7 @@ function renderIntro(s,i){
       <div class="intro-col">
         <div class="intro-card">
           <h3 class="teal-color">Beyond the Day</h3>
-          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due; monthly reconciliation totals every day and tells Maria when the month is <b>LockReady</b> — and exactly which closes or Draft rows still block it.</p>
+          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due; monthly reconciliation totals every day and tells Maria when the month is <b>LockReady</b> — including missing closes implied by direct Terminal activity. Maria locks only through <code>POST /setting/lock-month</code>, which atomically rechecks every unlocked month and lands <code>LockDate</code> on month-end. Earlier operational data pulls the validation floor backward; ancient empty legacy boundaries are clamped away, and an impossible future value from the retired settings path can be repaired by this same validated command. Every time-entry write shares the month boundary and checks the cutoff, so neither a full snapshot, whole-row removal, nor granular correction can change payroll hours after a successful lock.</p>
         </div>
         <div class="intro-card">
           <h3 class="in-color">Previews That Never Commit</h3>

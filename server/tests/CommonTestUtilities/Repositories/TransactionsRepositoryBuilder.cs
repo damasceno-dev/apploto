@@ -295,6 +295,30 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
+    public TransactionsRepositoryBuilder GetEarliestDateByBranchIdAsNoTrackingReturns(Guid branchId, DateTime? result)
+    {
+        _repository.GetEarliestDateByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTrackingReturns(
+        Guid branchId,
+        int year,
+        int month,
+        IReadOnlyList<TerminalActivityPairRow> result)
+    {
+        _repository.ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<int>(value => value == year),
+                Arg.Is<int>(value => value == month),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
     public ITransactionsRepository Build()
     {
         return _repository;

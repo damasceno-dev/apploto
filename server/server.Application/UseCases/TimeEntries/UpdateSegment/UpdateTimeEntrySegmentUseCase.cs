@@ -17,13 +17,20 @@ public class UpdateTimeEntrySegmentUseCase(
     LockDateGuard lockDateGuard,
     TimeEntrySegmentMutationService segmentMutationService,
     IBranchClock branchClock,
+    IMonthLockCoordination monthLockCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseTimeEntryJson> Execute(Guid segmentId, RequestUpdateTimeEntrySegmentJson request)
+    public async Task<ResponseTimeEntryJson> Execute(
+        Guid segmentId,
+        RequestUpdateTimeEntrySegmentJson request,
+        CancellationToken ct = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         Validate(request);
         TimeEntrySegmentMutationService.EnsureElevated(branchUser);
+
+        await using var coordination = await monthLockCoordination.TryAcquireShared(branchUser.BranchId, ct)
+            ?? throw new ConflictException(ResourcesErrorMessages.SETTING_LOCK_MONTH_COORDINATION_BUSY);
 
         var segment = await timeEntrySegmentsRepository.GetActiveByIdAndBranchId(segmentId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.TIMEENTRY_SEGMENT_NOT_FOUND);
@@ -33,7 +40,8 @@ public class UpdateTimeEntrySegmentUseCase(
         await lockDateGuard.EnsureNotLocked(
             branchUser.BranchId,
             parent.Date,
-            ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED);
+            ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED,
+            ct);
 
         var clockIn = TimeEntrySegmentMutationService.AsUnspecified(request.ClockIn);
         var clockOut = TimeEntrySegmentMutationService.AsUnspecified(request.ClockOut);
@@ -57,7 +65,8 @@ public class UpdateTimeEntrySegmentUseCase(
             branchUser,
             utcNow,
             branchLocalNow);
-        await unitOfWork.Commit();
+        await unitOfWork.Commit(ct);
+        await coordination.Complete(ct);
 
         return parent.ToResponse(parent.Operator.Name);
     }

@@ -1,4 +1,5 @@
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Settings;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -13,7 +14,8 @@ public class GetMonthlyReconciliationUseCase(
     IDailyClosesRepository dailyClosesRepository,
     ITransactionsRepository transactionsRepository,
     IDailyCloseItemsRepository dailyCloseItemsRepository,
-    ICashVarianceProductResolver cashVarianceProductResolver)
+    ICashVarianceProductResolver cashVarianceProductResolver,
+    MonthLockReadinessEvaluator readinessEvaluator)
 {
     public async Task<ResponseMonthlyReconciliationJson> Execute(
         RequestMonthlyReconciliationJson request,
@@ -47,6 +49,10 @@ public class GetMonthlyReconciliationUseCase(
         // Per-(Date, Status) transaction counts for the branch/month, spanning Active/Draft/Cancelled.
         var statusCounts = await transactionsRepository.CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
             branchUser.BranchId, year, month, ct);
+        var directTerminalActivityPairs = await transactionsRepository
+            .ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTracking(
+                branchUser.BranchId, year, month, ct);
+        var readiness = readinessEvaluator.Evaluate(closes, statusCounts, directTerminalActivityPairs);
 
         // Each account's OWN cash variance for a day. Keyed by (Date, AccountId) because one day can have
         // several closes — one per account/terminal — each with its own value. Keying by Date alone would
@@ -96,8 +102,7 @@ public class GetMonthlyReconciliationUseCase(
 
         // Structured blockers: each non-Approved close, then each day with outstanding Draft transactions.
         // Clients format and localize the display text themselves from these fields.
-        var blockers = closes
-            .Where(c => c.Status != DailyCloseStatus.Approved)
+        var blockers = readiness.UnapprovedCloses
             .Select(c => new ResponseMonthlyReconciliationBlockerJson
             {
                 Type = MonthlyReconciliationBlockerType.UnapprovedClose,
@@ -115,14 +120,21 @@ public class GetMonthlyReconciliationUseCase(
                     Day = r.Date.Day,
                     DraftTransactionCount = r.Count
                 }))
+            .Concat(readiness.MissingExpectedCloses
+                .Select(activity => new ResponseMonthlyReconciliationBlockerJson
+                {
+                    Type = MonthlyReconciliationBlockerType.MissingExpectedClose,
+                    Day = activity.Date.Day,
+                    AccountId = activity.AccountId,
+                    AccountName = activity.AccountName
+                }))
             .ToList();
 
         return new ResponseMonthlyReconciliationJson
         {
             Year = year,
             Month = month,
-            LockReady = closes.All(c => c.Status == DailyCloseStatus.Approved) &&
-                        !statusCounts.Any(r => r is { Status: TransactionStatus.Draft, Count: > 0 }),
+            LockReady = readiness.IsReady,
             Days = days,
             Blockers = blockers
         };

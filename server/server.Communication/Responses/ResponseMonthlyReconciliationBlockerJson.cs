@@ -14,13 +14,13 @@ public class ResponseMonthlyReconciliationBlockerJson
     /// <summary>Day of month (1–31) the blocker falls on.</summary>
     public int Day { get; init; }
 
-    /// <summary>Id of the offending close, so clients can deep-link to it. Set only when <see cref="Type"/> is <c>UnapprovedClose</c>.</summary>
+    /// <summary>Id of the offending close, so clients can deep-link to it. Set only for <c>UnapprovedClose</c>.</summary>
     public Guid? DailyCloseId { get; init; }
 
-    /// <summary>Id of the account whose close is not yet Approved. Set only when <see cref="Type"/> is <c>UnapprovedClose</c>.</summary>
+    /// <summary>Expected account id. Set for <c>UnapprovedClose</c> and <c>MissingExpectedClose</c>.</summary>
     public Guid? AccountId { get; init; }
 
-    /// <summary>Account whose close is not yet Approved. Set only when <see cref="Type"/> is <c>UnapprovedClose</c>.</summary>
+    /// <summary>Expected account name. Set for <c>UnapprovedClose</c> and <c>MissingExpectedClose</c>.</summary>
     public string? AccountName { get; init; }
 
     /// <summary>The non-Approved close status (Draft/Submitted/Rejected). Set only when <see cref="Type"/> is <c>UnapprovedClose</c>.</summary>

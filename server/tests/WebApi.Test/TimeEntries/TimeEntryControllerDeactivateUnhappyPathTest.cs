@@ -105,10 +105,28 @@ public class TimeEntryControllerDeactivateUnhappyPathTest(ServerWebApplicationFa
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_NOT_FOUND);
     }
 
+    [Fact]
+    public async Task Deactivate_ShouldReturn409_WhenTimeEntryDateIsLocked()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEDeactivateLocked", Role.Admin);
+        var date = new DateTime(2026, 5, 20);
+        await factory.SeedSettingAsync(branch.Id, lockDate: new DateTime(2026, 5, 31));
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var timeEntry = await SeedTimeEntryDirectAsync(factory, branch.Id, op.Id, date);
+
+        var httpResponse = await _client.DeleteAuthAsync($"/timeentry/{timeEntry.Id}", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TIMEENTRY_DATE_LOCKED);
+        (await factory.ReloadAsync<server.Domain.Entities.TimeEntry>(timeEntry.Id))!.Active.ShouldBeTrue();
+    }
+
     private static async Task<server.Domain.Entities.TimeEntry> SeedTimeEntryDirectAsync(
         ServerWebApplicationFactory factory,
         Guid branchId,
-        Guid operatorId)
+        Guid operatorId,
+        DateTime? date = null)
     {
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<server.Infrastructure.ServerDbContext>();
@@ -117,7 +135,7 @@ public class TimeEntryControllerDeactivateUnhappyPathTest(ServerWebApplicationFa
         {
             Id = Guid.NewGuid(),
             CreatedAt = DateTime.UtcNow,
-            Date = TodayUnspecified(),
+            Date = date ?? TodayUnspecified(),
             Status = TimeEntryStatus.Present,
             TotalHours = 8m,
             BalanceHours = 0.67m,

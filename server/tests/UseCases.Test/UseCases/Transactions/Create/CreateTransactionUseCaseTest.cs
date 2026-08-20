@@ -566,6 +566,7 @@ public class CreateTransactionUseCaseTest
             ctx.TransactionsRepository,
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            lockDateGuard,
             ctx.UnitOfWork);
     }
 

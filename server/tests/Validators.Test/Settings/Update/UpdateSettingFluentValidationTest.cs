@@ -21,18 +21,30 @@ public class UpdateSettingFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldSucceed_WhenAllFieldsAreValid()
+    public void Validate_ShouldSucceed_WhenAllMutableFieldsAreValid()
     {
         var request = new RequestUpdateSettingJsonBuilder()
             .WithDailyTargetHours(8.0m)
             .WithLunchDeductionOver6H(1.0m)
             .WithLunchDeductionOver4H(0.25m)
-            .WithLockDate(new DateTime(2026, 6, 1))
             .Build();
 
         var result = _validator.Validate(request);
 
         result.IsValid.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Validate_ShouldFailWithExactKey_WhenLockDateIsProvided()
+    {
+        var request = new RequestUpdateSettingJsonBuilder()
+            .WithLockDate(new DateTime(2026, 6, 1))
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.Errors.Select(error => error.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
     }
 
     [Fact]

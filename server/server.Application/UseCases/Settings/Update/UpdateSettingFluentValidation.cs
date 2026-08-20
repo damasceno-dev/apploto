@@ -8,6 +8,10 @@ internal class UpdateSettingFluentValidation : AbstractValidator<RequestUpdateSe
 {
     public UpdateSettingFluentValidation()
     {
+        RuleFor(x => x.LockDate)
+            .Null()
+            .WithMessage(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
+
         When(x => x.DailyTargetHours.HasValue, () =>
         {
             RuleFor(x => x.DailyTargetHours!.Value)

@@ -3,5 +3,6 @@ namespace server.Domain.Entities.Enums;
 public enum MonthlyReconciliationBlockerType
 {
     UnapprovedClose = 0,
-    DraftTransactions = 1
+    DraftTransactions = 1,
+    MissingExpectedClose = 2
 }

@@ -135,6 +135,15 @@ public class DailyClosesRepositoryBuilder
         return this;
     }
 
+    public DailyClosesRepositoryBuilder GetEarliestDateByBranchIdAsNoTrackingReturns(Guid branchId, DateTime? result)
+    {
+        _repository.GetEarliestDateByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
     public DailyClosesRepositoryBuilder CountByBranchIdAsNoTrackingReturns(
         Guid branchId,
         DailyCloseListFilter filter,

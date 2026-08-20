@@ -615,8 +615,41 @@
     <data name="PRODUCT_SYSTEM_PROTECTED" xml:space="preserve">
         <value>Este produto é gerenciado pelo sistema e não pode ser renomeado ou desativado</value>
     </data>
-    <data name="SETTING_LOCK_DATE_RETREAT" xml:space="preserve">
-        <value>A data de bloqueio só pode avançar no tempo</value>
+    <data name="SETTING_LOCK_DATE_READ_ONLY" xml:space="preserve">
+        <value>A data de bloqueio só pode ser alterada pelo comando de bloqueio mensal</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_YEAR_OUT_OF_RANGE" xml:space="preserve">
+        <value>O ano do bloqueio deve estar entre {0} e {1}</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_INVALID" xml:space="preserve">
+        <value>O mês do bloqueio deve estar entre 1 e 12</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_CURRENT_OR_FUTURE" xml:space="preserve">
+        <value>O mês atual ou um mês futuro não pode ser bloqueado</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_ALREADY_LOCKED" xml:space="preserve">
+        <value>O mês informado já está bloqueado</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_BEFORE_BRANCH_FLOOR" xml:space="preserve">
+        <value>O mês informado é anterior ao primeiro mês operacional da filial</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_UNAPPROVED_CLOSE" xml:space="preserve">
+        <value>Existe um fechamento esperado ainda não aprovado no mês informado</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_DRAFT_TRANSACTIONS" xml:space="preserve">
+        <value>Existem lançamentos em rascunho no mês informado</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_MISSING_EXPECTED_CLOSE" xml:space="preserve">
+        <value>Existe movimentação direta em terminal sem fechamento correspondente no mês informado</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_NO_CLOSE_WITH_EXPECTED_ACTIVITY" xml:space="preserve">
+        <value>O mês possui movimentação esperada, mas não possui nenhum fechamento</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED" xml:space="preserve">
+        <value>O mês {0} precisa ser resolvido antes de avançar o bloqueio</value>
+    </data>
+    <data name="SETTING_LOCK_MONTH_COORDINATION_BUSY" xml:space="preserve">
+        <value>O bloqueio mensal está sendo atualizado por outra operação; tente novamente</value>
     </data>
     <data name="SETTING_DAILY_TARGET_OUT_OF_RANGE" xml:space="preserve">
         <value>A meta diária de horas deve ser maior que zero, menor ou igual a 24 horas e ter no máximo 2 casas decimais</value>

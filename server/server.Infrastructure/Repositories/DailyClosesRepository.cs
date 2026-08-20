@@ -111,6 +111,15 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .ToListAsync(ct);
     }
 
+    public Task<DateTime?> GetEarliestDateByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
+    {
+        return dbContext.DailyCloses
+            .AsNoTracking()
+            .Where(dailyClose => dailyClose.BranchId == branchId && dailyClose.Active)
+            .Select(dailyClose => (DateTime?)dailyClose.Date)
+            .MinAsync(ct);
+    }
+
     public async Task<IReadOnlyList<DashboardCloseRow>> ListDashboardClosesByBranchIdAndDateAsNoTracking(
         Guid branchId,
         DateTime date,

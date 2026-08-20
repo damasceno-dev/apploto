@@ -52,13 +52,11 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Update_ShouldReturn200AndPersistChanges_WhenAdminUpdates()
+    public async Task Update_ShouldReturn200AndPersistMutableChanges_WhenAdminUpdates()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingUpdateAdmin");
         var seeded = await factory.SeedSettingAsync(branch.Id);
-        var newLockDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc);
         var request = new RequestUpdateSettingJsonBuilder()
-            .WithLockDate(newLockDate)
             .WithDailyTargetHours(9.0m)
             .WithLunchDeductionOver6H(1.5m)
             .WithLunchDeductionOver4H(0.5m)
@@ -68,14 +66,14 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseSettingJson>();
-        payload.LockDate.ShouldBe(newLockDate);
+        payload.LockDate.ShouldBe(seeded.LockDate);
         payload.DailyTargetHours.ShouldBe(9.0m);
         payload.LunchDeductionOver6H.ShouldBe(1.5m);
         payload.LunchDeductionOver4H.ShouldBe(0.5m);
 
         var persisted = await factory.ReloadAsync<Setting>(seeded.Id);
         persisted.ShouldNotBeNull();
-        persisted.LockDate.ShouldBe(DateTime.SpecifyKind(newLockDate, DateTimeKind.Unspecified));
+        persisted.LockDate.ShouldBe(seeded.LockDate);
         persisted.DailyTargetHours.ShouldBe(9.0m);
         persisted.LunchDeductionOver6H.ShouldBe(1.5m);
         persisted.LunchDeductionOver4H.ShouldBe(0.5m);
@@ -116,34 +114,4 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
         persisted.LockDate.ShouldBe(seeded.LockDate);
     }
 
-    [Fact]
-    public async Task Update_ShouldAcceptLockDateEqualToCurrentLockDate()
-    {
-        var lockDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingLockEqual");
-        await factory.SeedSettingAsync(branch.Id, lockDate: lockDate);
-        var request = new RequestUpdateSettingJsonBuilder().WithLockDate(lockDate).Build();
-
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseSettingJson>();
-        payload.LockDate.ShouldBe(lockDate);
-    }
-
-    [Fact]
-    public async Task Update_ShouldAcceptLockDateForwardMove()
-    {
-        var lockDate = new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingLockForward");
-        await factory.SeedSettingAsync(branch.Id, lockDate: lockDate);
-        var newLockDate = lockDate.AddMonths(1);
-        var request = new RequestUpdateSettingJsonBuilder().WithLockDate(newLockDate).Build();
-
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseSettingJson>();
-        payload.LockDate.ShouldBe(newLockDate);
-    }
 }

@@ -517,6 +517,43 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToListAsync(ct);
     }
 
+    public Task<DateTime?> GetEarliestDateByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
+    {
+        return dbContext.Transactions
+            .AsNoTracking()
+            .Where(transaction => transaction.BranchId == branchId && transaction.Active)
+            .Select(transaction => (DateTime?)transaction.Date)
+            .MinAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<TerminalActivityPairRow>> ListActiveTerminalActivityPairsByBranchIdAndYearMonthAsNoTracking(
+        Guid branchId, int year, int month, CancellationToken ct = default)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(transaction =>
+                transaction.BranchId == branchId &&
+                transaction.Active &&
+                transaction.Status == TransactionStatus.Active &&
+                transaction.Account.Type == AccountType.Terminal &&
+                transaction.Date.Year == year &&
+                transaction.Date.Month == month)
+            .GroupBy(transaction => new
+            {
+                transaction.Date.Date,
+                transaction.AccountId,
+                transaction.Account.Name
+            })
+            .OrderBy(group => group.Key.Date)
+            .ThenBy(group => group.Key.Name)
+            .ThenBy(group => group.Key.AccountId)
+            .Select(group => new TerminalActivityPairRow(
+                group.Key.Date,
+                group.Key.AccountId,
+                group.Key.Name))
+            .ToListAsync(ct);
+    }
+
     private IQueryable<Transaction> BuildOpenChequeBaseQuery(
         Guid branchId, Guid? accountId, Guid? clientId)
     {

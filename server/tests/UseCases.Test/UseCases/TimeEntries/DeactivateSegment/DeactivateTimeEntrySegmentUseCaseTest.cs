@@ -166,6 +166,7 @@ public class DeactivateTimeEntrySegmentUseCaseTest
             new LockDateGuard(new LockDateReader(ctx.SettingsRepository)),
             new TimeEntrySegmentMutationService(ctx.SettingsRepository, new TimeEntryCalculationService()),
             ctx.BranchClock,
+            new MonthLockCoordinationBuilder().Build(),
             ctx.UnitOfWork);
     }
 
