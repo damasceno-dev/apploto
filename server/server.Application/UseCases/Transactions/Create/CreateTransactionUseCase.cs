@@ -1,4 +1,5 @@
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Idempotency;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
@@ -10,25 +11,60 @@ using server.Exceptions.Exceptions;
 namespace server.Application.UseCases.Transactions.Create;
 
 public class CreateTransactionUseCase(
+    IAuthenticationService authenticationService,
     TransactionCreatePreamble transactionCreatePreamble,
     ITransactionsRepository transactionsRepository,
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
+    FinancialCommandIdempotency financialCommandIdempotency,
+    IBranchClock branchClock,
     LockDateGuard lockDateGuard,
     IUnitOfWork unitOfWork)
 {
+    private const string IdempotencyEndpoint = "POST /transaction";
+
     public async Task<ResponseCreateTransactionJson> Execute(
         RequestCreateTransactionJson request,
+        string? idempotencyKey,
         CancellationToken ct = default)
     {
         Validate(request);
+        var branchUser = await authenticationService.GetAuthenticatedBranchUser();
+        var utcNow = branchClock.UtcNow();
 
-        var createContext = await transactionCreatePreamble.Resolve(request, ct);
+        var replay = await financialCommandIdempotency
+            .TryReplay<RequestCreateTransactionJson, ResponseCreateTransactionJson>(
+                idempotencyKey,
+                IdempotencyEndpoint,
+                branchUser.BranchId,
+                branchUser.UserId,
+                request,
+                utcNow,
+                ct);
+        if (replay is not null)
+            return replay;
 
         await using var coordination = await dailyCloseAccountCoordination.Acquire(
-            createContext.BranchUser.BranchId,
+            branchUser.BranchId,
             request.AccountId,
             ct);
+
+        var idempotency = await financialCommandIdempotency
+            .Prepare<RequestCreateTransactionJson, ResponseCreateTransactionJson>(
+                idempotencyKey!,
+                IdempotencyEndpoint,
+                branchUser.BranchId,
+                branchUser.UserId,
+                request,
+                utcNow,
+                ct);
+        if (idempotency.IsReplay)
+        {
+            await coordination.Complete(ct);
+            return idempotency.ReplayResponse!;
+        }
+
+        var createContext = await transactionCreatePreamble.Resolve(request, ct);
 
         // The preamble check remains useful for fast failure and preview parity. Recheck while
         // holding the shared month-lock boundary so a successful lock command cannot be followed
@@ -55,9 +91,12 @@ public class CreateTransactionUseCase(
 
         await transactionsRepository.Add(transaction, ct);
         await unitOfWork.Commit(ct);
+        var response = transaction.ToCreateResponse();
+        FinancialCommandIdempotency.Complete(idempotency, transaction.Id, response);
+        await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 
-        return transaction.ToCreateResponse();
+        return response;
     }
 
     private static void Validate(RequestCreateTransactionJson request)

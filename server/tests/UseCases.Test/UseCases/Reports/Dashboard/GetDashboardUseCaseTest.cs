@@ -34,9 +34,9 @@ public class GetDashboardUseCaseTest
         var missing = new ExpectedCloserRow(Guid.NewGuid(), "Terminal D", Guid.NewGuid(), "Operator D");
         var varianceRows = new List<VarianceTimeSeriesRow>
         {
-            new(Date, submitted.AccountId, submitted.AccountName, -30m, DailyCloseStatus.Submitted),
-            new(Date, approved.AccountId, approved.AccountName, 150m, DailyCloseStatus.Approved),
-            new(Date, rejected.AccountId, rejected.AccountName, 20m, DailyCloseStatus.Rejected)
+            new(Date, submitted.AccountId, submitted.AccountName, -30m, DailyCloseStatus.Submitted, submitted.DailyCloseId),
+            new(Date, approved.AccountId, approved.AccountName, 150m, DailyCloseStatus.Approved, approved.DailyCloseId),
+            new(Date, rejected.AccountId, rejected.AccountName, 20m, DailyCloseStatus.Rejected, rejected.DailyCloseId)
         };
         var expected = new List<ExpectedCloserRow>
         {
@@ -105,7 +105,7 @@ public class GetDashboardUseCaseTest
         // Recalled Submitted -> Draft closes keep their system-managed variance row (§6.5).
         var varianceRows = new List<VarianceTimeSeriesRow>
         {
-            new(Date, draft.AccountId, draft.AccountName, 12m, DailyCloseStatus.Draft)
+            new(Date, draft.AccountId, draft.AccountName, 12m, DailyCloseStatus.Draft, draft.DailyCloseId)
         };
 
         var ctx = BuildContext(
@@ -144,8 +144,8 @@ public class GetDashboardUseCaseTest
         var closeB = BuildCloseRow("Terminal B", DailyCloseStatus.Approved);
         var varianceRows = new List<VarianceTimeSeriesRow>
         {
-            new(Date, closeA.AccountId, closeA.AccountName, 10m, DailyCloseStatus.Approved),
-            new(Date, closeB.AccountId, closeB.AccountName, -25m, DailyCloseStatus.Approved)
+            new(Date, closeA.AccountId, closeA.AccountName, 10m, DailyCloseStatus.Approved, closeA.DailyCloseId),
+            new(Date, closeB.AccountId, closeB.AccountName, -25m, DailyCloseStatus.Approved, closeB.DailyCloseId)
         };
 
         var ctx = BuildContext(

@@ -30,6 +30,7 @@ public class PutDailyCloseItemsUseCase(
     public async Task<ResponsePutDailyCloseItemsJson> Execute(
         Guid dailyCloseId,
         RequestPutDailyCloseItemsJson request,
+        uint expectedVersion,
         CancellationToken ct = default)
     {
         var items = Validate(request);
@@ -60,7 +61,7 @@ public class PutDailyCloseItemsUseCase(
             ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION,
             ct);
 
-        if (close.Version != request.Version)
+        if (close.Version != expectedVersion)
             throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_STALE_WRITE);
 
         var payloadProductIds = items.Select(item => item.ProductId).ToList();

@@ -14,6 +14,7 @@ public static class TransactionSharedMapper
             return new ResponseTransactionJson
             {
                 Id = transaction.Id,
+                Version = transaction.Version,
                 Date = transaction.Date,
                 Value = transaction.Value,
                 Description = transaction.Description,
@@ -44,6 +45,7 @@ public static class TransactionSharedMapper
             return new ResponseListTransactionItemJson
             {
                 Id = transaction.Id,
+                Version = transaction.Version,
                 Date = transaction.Date,
                 Value = transaction.Value,
                 Description = transaction.Description,
@@ -57,6 +59,7 @@ public static class TransactionSharedMapper
                 TransactionTypeName = transaction.TransactionType.Name,
                 DueDate = transaction.DueDate,
                 PaidAt = transaction.PaidAt,
+                OriginTransactionId = transaction.OriginTransactionId,
                 CreatedAt = transaction.CreatedAt
             };
         }
@@ -82,7 +85,7 @@ public static class TransactionSharedMapper
             };
         }
     }
-    
+
     extension(RequestListTransactionsJson request)
     {
         public TransactionListFilter ToFilter()
@@ -95,6 +98,7 @@ public static class TransactionSharedMapper
                 Status = request.Status,
                 OperatorId = request.OperatorId,
                 ClientId = request.ClientId,
+                OriginTransactionId = request.OriginTransactionId,
                 Page = request.Page,
                 PageSize = request.PageSize
             };

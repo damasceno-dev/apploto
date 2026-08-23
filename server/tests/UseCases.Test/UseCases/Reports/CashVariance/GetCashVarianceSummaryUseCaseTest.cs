@@ -32,9 +32,9 @@ public class GetCashVarianceSummaryUseCaseTest
 
         var rows = new List<VarianceTimeSeriesRow>
         {
-            new(DateFrom, Guid.NewGuid(), "Account A", 100m, DailyCloseStatus.Approved),
-            new(DateFrom.AddDays(1), Guid.NewGuid(), "Account B", -50m, DailyCloseStatus.Submitted),
-            new(DateFrom.AddDays(2), Guid.NewGuid(), "Account C", 200m, DailyCloseStatus.Draft)
+            new(DateFrom, Guid.NewGuid(), "Account A", 100m, DailyCloseStatus.Approved, Guid.NewGuid()),
+            new(DateFrom.AddDays(1), Guid.NewGuid(), "Account B", -50m, DailyCloseStatus.Submitted, Guid.NewGuid()),
+            new(DateFrom.AddDays(2), Guid.NewGuid(), "Account C", 200m, DailyCloseStatus.Draft, Guid.NewGuid())
         };
 
         var ctx = BuildContext(branchUser, productId, rows: rows);
@@ -144,7 +144,7 @@ public class GetCashVarianceSummaryUseCaseTest
 
         var rows = new List<VarianceTimeSeriesRow>
         {
-            new(DateFrom, account.Id, account.Name, 75m, DailyCloseStatus.Approved)
+            new(DateFrom, account.Id, account.Name, 75m, DailyCloseStatus.Approved, Guid.NewGuid())
         };
 
         var ctx = BuildContext(branchUser, productId, rows: rows, account: account);
@@ -241,7 +241,8 @@ public class GetCashVarianceSummaryUseCaseTest
                 Guid.NewGuid(),
                 $"Account {i}",
                 i * 10m,
-                DailyCloseStatus.Approved))
+                DailyCloseStatus.Approved,
+                Guid.NewGuid()))
             .ToList();
 
         var ctx = BuildContext(branchUser, productId, rows: rows);

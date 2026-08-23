@@ -36,7 +36,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, 0);
 
         response.LockDate.ShouldBe(setting.LockDate);
         response.DailyTargetHours.ShouldBe(8.0m);
@@ -69,7 +69,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, 0);
 
         response.DailyTargetHours.ShouldBe(9.0m);
         response.LunchDeductionOver6H.ShouldBe(1.0m);
@@ -98,7 +98,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, 0);
 
         response.LunchDeductionOver6H.ShouldBe(2.0m);
         response.DailyTargetHours.ShouldBe(setting.DailyTargetHours);
@@ -125,7 +125,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, 0);
 
         response.LunchDeductionOver4H.ShouldBe(0.5m);
         response.LunchDeductionOver6H.ShouldBe(setting.LunchDeductionOver6H);
@@ -149,7 +149,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, 0);
 
         response.DailyTargetHours.ShouldBe(8.0m);
         await unitOfWork.Received(1).Commit();
@@ -169,7 +169,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(request));
+        await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(request, 0));
 
         await unitOfWork.DidNotReceive().Commit();
     }
@@ -197,7 +197,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request, 0));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
         await unitOfWork.DidNotReceive().Commit();
@@ -224,7 +224,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request, 0));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
         setting.LockDate.ShouldBe(lockDate);
@@ -253,7 +253,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request, 0));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);
         setting.LockDate.ShouldBe(lockDate);
@@ -274,7 +274,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(request, 0));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.SETTING_DAILY_TARGET_OUT_OF_RANGE);
         await unitOfWork.DidNotReceive().Commit();
@@ -296,7 +296,7 @@ public class UpdateSettingUseCaseTest
 
         var useCase = CreateUseCase(authenticationService, settingsRepository, unitOfWork);
 
-        var exception = await Should.ThrowAsync<InvalidOperationException>(() => useCase.Execute(request));
+        var exception = await Should.ThrowAsync<InvalidOperationException>(() => useCase.Execute(request, 0));
 
         exception.Message.ShouldContain(branchUser.BranchId.ToString());
         await unitOfWork.DidNotReceive().Commit();

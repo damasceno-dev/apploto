@@ -26,7 +26,7 @@ public sealed class LockSettingMonthUseCaseTest
     {
         var ctx = BuildContext(branchCreatedAt: new DateTime(2025, 5, 3, 12, 0, 0, DateTimeKind.Utc));
 
-        var response = await CreateUseCase(ctx).Execute(Request(2025, 6));
+        var response = await CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version);
 
         response.LockDate.ShouldBe(new DateTime(2025, 6, 30));
         ctx.Setting.LockDate.ShouldBe(new DateTime(2025, 6, 30));
@@ -107,7 +107,7 @@ public sealed class LockSettingMonthUseCaseTest
         ]);
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 6)));
+            CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version));
 
         exception.Message.ShouldBe(IntermediateUnresolvedMessage(2025, 5));
         ctx.Setting.LockDate.ShouldBe(DateTime.MinValue);
@@ -118,7 +118,7 @@ public sealed class LockSettingMonthUseCaseTest
     {
         var ctx = BuildContext(branchCreatedAt: new DateTime(2025, 6, 18, 22, 0, 0, DateTimeKind.Utc));
 
-        await CreateUseCase(ctx).Execute(Request(2025, 6));
+        await CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version);
 
         await ctx.DailyClosesRepository.DidNotReceive().ListByBranchIdAndYearMonthAsNoTracking(
             ctx.Branch.Id, 2025, 5, Arg.Any<CancellationToken>());
@@ -143,7 +143,7 @@ public sealed class LockSettingMonthUseCaseTest
         ]);
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 6)));
+            CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version));
 
         exception.Message.ShouldBe(IntermediateUnresolvedMessage(2025, 5));
         await ctx.DailyClosesRepository.Received(1).ListByBranchIdAndYearMonthAsNoTracking(
@@ -163,7 +163,7 @@ public sealed class LockSettingMonthUseCaseTest
         ]);
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 6)));
+            CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version));
 
         exception.Message.ShouldBe(IntermediateUnresolvedMessage(2025, 5));
         await ctx.TransactionsRepository.Received(1)
@@ -183,7 +183,7 @@ public sealed class LockSettingMonthUseCaseTest
             new MonthlyTransactionCountRow(new DateTime(2025, 5, 21), TransactionStatus.Active, 1)
         ]);
 
-        var response = await CreateUseCase(ctx).Execute(Request(2025, 6));
+        var response = await CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version);
 
         response.LockDate.ShouldBe(new DateTime(2025, 6, 30));
         await ctx.UnitOfWork.Received(1).Commit(Arg.Any<CancellationToken>());
@@ -196,7 +196,7 @@ public sealed class LockSettingMonthUseCaseTest
             branchCreatedAt: new DateTime(2025, 6, 18, 22, 0, 0, DateTimeKind.Utc),
             earliestTransactionDate: new DateTime(2025, 5, 21));
 
-        var response = await CreateUseCase(ctx).Execute(Request(2025, 5));
+        var response = await CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version);
 
         response.LockDate.ShouldBe(new DateTime(2025, 5, 31));
     }
@@ -207,7 +207,7 @@ public sealed class LockSettingMonthUseCaseTest
         var ctx = BuildContext(branchCreatedAt: new DateTime(2025, 6, 18, 22, 0, 0, DateTimeKind.Utc));
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 5)));
+            CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.SETTING_LOCK_MONTH_BEFORE_BRANCH_FLOOR);
         await ctx.UnitOfWork.DidNotReceive().Commit(Arg.Any<CancellationToken>());
@@ -219,7 +219,7 @@ public sealed class LockSettingMonthUseCaseTest
         var ctx = BuildContext(lockDate: new DateTime(2025, 5, 31));
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 5)));
+            CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.SETTING_LOCK_MONTH_ALREADY_LOCKED);
         await ctx.DailyClosesRepository.DidNotReceive().ListByBranchIdAndYearMonthAsNoTracking(
@@ -233,7 +233,7 @@ public sealed class LockSettingMonthUseCaseTest
             branchCreatedAt: new DateTime(2025, 5, 3, 12, 0, 0, DateTimeKind.Utc),
             lockDate: new DateTime(1, 1, 5));
 
-        var response = await CreateUseCase(ctx).Execute(Request(2025, 5));
+        var response = await CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version);
 
         response.LockDate.ShouldBe(new DateTime(2025, 5, 31));
         await ctx.DailyClosesRepository.Received(1).ListByBranchIdAndYearMonthAsNoTracking(
@@ -249,7 +249,7 @@ public sealed class LockSettingMonthUseCaseTest
             branchCreatedAt: new DateTime(2025, 5, 3, 12, 0, 0, DateTimeKind.Utc),
             lockDate: new DateTime(2030, 12, 31));
 
-        var response = await CreateUseCase(ctx).Execute(Request(2025, 6));
+        var response = await CreateUseCase(ctx).Execute(Request(2025, 6), ctx.Setting.Version);
 
         response.LockDate.ShouldBe(new DateTime(2025, 6, 30));
         await ctx.DailyClosesRepository.Received(1).ListByBranchIdAndYearMonthAsNoTracking(
@@ -266,7 +266,7 @@ public sealed class LockSettingMonthUseCaseTest
         var ctx = BuildContext();
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(year, month)));
+            CreateUseCase(ctx).Execute(Request(year, month), ctx.Setting.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.SETTING_LOCK_MONTH_CURRENT_OR_FUTURE);
         await ctx.MonthLockCoordination.DidNotReceive()
@@ -278,7 +278,7 @@ public sealed class LockSettingMonthUseCaseTest
     {
         var ctx = BuildContext();
 
-        var response = await CreateUseCase(ctx).Execute(Request(2025, 5));
+        var response = await CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version);
 
         response.LockDate.ShouldBe(new DateTime(2025, 5, 31));
     }
@@ -289,7 +289,7 @@ public sealed class LockSettingMonthUseCaseTest
         var ctx = BuildContext(coordinationUnavailable: true);
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 5)));
+            CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.SETTING_LOCK_MONTH_COORDINATION_BUSY);
         await ctx.UnitOfWork.DidNotReceive().Commit(Arg.Any<CancellationToken>());
@@ -301,7 +301,7 @@ public sealed class LockSettingMonthUseCaseTest
         var ctx = BuildContext(role: Role.Member);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 5)));
+            CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
         await ctx.MonthLockCoordination.DidNotReceive()
@@ -311,7 +311,7 @@ public sealed class LockSettingMonthUseCaseTest
     private static async Task AssertConflict(TestContext ctx, string expectedMessage)
     {
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            CreateUseCase(ctx).Execute(Request(2025, 5)));
+            CreateUseCase(ctx).Execute(Request(2025, 5), ctx.Setting.Version));
 
         exception.Message.ShouldBe(expectedMessage);
         await ctx.UnitOfWork.DidNotReceive().Commit(Arg.Any<CancellationToken>());

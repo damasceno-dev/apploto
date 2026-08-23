@@ -43,7 +43,7 @@ public class SettingControllerTierRegressionTest(ServerWebApplicationFactory fac
 
         // Arrange: branch with setting using LunchDeductionOver6H = 1.0
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingTierRegression");
-        await factory.SeedSettingAsync(branch.Id, lunchDeductionOver6H: 1.0m);
+        var setting = await factory.SeedSettingAsync(branch.Id, lunchDeductionOver6H: 1.0m);
         var op = await factory.SeedOperatorAsync(branch.Id);
 
         // ClockIn = today 04:00 — within [today, today + 1 day) per loto-specs invariant.
@@ -63,7 +63,7 @@ public class SettingControllerTierRegressionTest(ServerWebApplicationFactory fac
         var updateRequest = new RequestUpdateSettingJsonBuilder()
             .WithLunchDeductionOver6H(2.0m)
             .Build();
-        var updateResponse = await client.PutAuthAsync("/setting", updateRequest, token);
+        var updateResponse = await client.PutAuthAsync("/setting", updateRequest, token, setting.Version);
         updateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Act 3: GET same timeentry — TotalHours must now reflect the new (larger) deduction.

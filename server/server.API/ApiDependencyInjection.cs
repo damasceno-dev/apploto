@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi;
 using server.Domain.Interfaces;
 using server.ExceptionHandling;
+using server.OpenApi;
 using server.Token;
 
 namespace server;
@@ -15,6 +15,7 @@ public static class ApiDependencyInjection
         services.AddHttpContextAccessor();
         services.AddOpenApi(options =>
         {
+            options.AddOperationTransformer<FinancialHeadersOpenApiOperationTransformer>();
             options.AddDocumentTransformer((document, context, cancellationToken) =>
             {
                 document.Components ??= new OpenApiComponents();

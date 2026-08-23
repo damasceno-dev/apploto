@@ -1,5 +1,9 @@
 using System.Net;
+using System.Text.Json;
 using CommonTestUtilities.Requests;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using server.Application.Services.Transactions;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -32,6 +36,36 @@ public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory fac
         payload.Branch.Id.ShouldBe(branch.Id);
         payload.Branch.Name.ShouldBe(branch.Name);
         payload.Branch.Role.ShouldBe(branchUser.Role);
+    }
+
+    [Fact]
+    public async Task GetCurrent_ShouldReturnServerAuthoritativeBranchLocalDateAndTime()
+    {
+        var fixedLocalNow = new DateTime(2026, 8, 19, 23, 47, 12, DateTimeKind.Unspecified);
+        await using var customFactory = factory.WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+        {
+            services.RemoveAll<IBranchClock>();
+            services.AddSingleton<IBranchClock>(new FixedBranchClock(fixedLocalNow));
+        }));
+        using var client = customFactory.CreateClient();
+        var (_, _, _, token) = await factory.SeedFullBranchContextAsync("CurrentClock");
+
+        var httpResponse = await client.GetAuthAsync("/branch/current", token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var rawJson = await httpResponse.Content.ReadAsStringAsync();
+        using var document = JsonDocument.Parse(rawJson);
+        var root = document.RootElement;
+        root.GetProperty("branchLocalDate").GetString().ShouldBe("2026-08-19");
+        root.GetProperty("branchLocalDateTime").GetString().ShouldBe("2026-08-19T23:47:12");
+
+        var payload = JsonSerializer.Deserialize<ResponseGetCurrentBranchSummaryJson>(
+            rawJson,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        payload.ShouldNotBeNull();
+        payload.BranchLocalDate.ShouldBe(new DateOnly(2026, 8, 19));
+        payload.BranchLocalDateTime.ShouldBe(fixedLocalNow);
+        payload.BranchLocalDateTime.Kind.ShouldBe(DateTimeKind.Unspecified);
     }
 
     [Fact]
@@ -118,6 +152,7 @@ public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory fac
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("Remove");
         var targetUser = await factory.SeedUserAsync();
         var membership = await factory.SeedBranchUserAsync(targetUser.Id, branch.Id, Role.Member);
+        var linkedOperator = await factory.SeedOperatorAsync(branch.Id, userId: targetUser.Id);
 
         var httpResponse = await _client.DeleteAuthAsync($"/branch/users/{membership.Id}", token);
 
@@ -131,5 +166,22 @@ public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory fac
         var persisted = await factory.ReloadAsync<BranchUser>(membership.Id);
         persisted.ShouldNotBeNull();
         persisted.Active.ShouldBeFalse();
+
+        var persistedOperator = await factory.ReloadAsync<Operator>(linkedOperator.Id);
+        persistedOperator.ShouldNotBeNull();
+        persistedOperator.UserId.ShouldBeNull();
+
+        var operatorResponse = await _client.GetAuthAsync($"/operator/{linkedOperator.Id}", token);
+        operatorResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await operatorResponse.ReadContentAsync<ResponseOperatorJson>()).UserId.ShouldBeNull();
+    }
+
+    private sealed class FixedBranchClock(DateTime localNow) : IBranchClock
+    {
+        public DateTime UtcNow() => new(2026, 8, 20, 2, 47, 12, DateTimeKind.Utc);
+        public DateTime LocalBusinessDateTime(DateTime utcInstant) => localNow;
+        public DateTime LocalBusinessDate(DateTime utcInstant) => localNow.Date;
+        public bool IsSameLocalDay(DateTime localBusinessDate, DateTime utcInstant) =>
+            localBusinessDate.Date == localNow.Date;
     }
 }

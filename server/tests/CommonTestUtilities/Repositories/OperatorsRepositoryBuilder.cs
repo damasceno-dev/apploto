@@ -32,6 +32,15 @@ public class OperatorsRepositoryBuilder
         return this;
     }
 
+    public OperatorsRepositoryBuilder ListByUserIdAndBranchId(
+        Guid userId,
+        Guid branchId,
+        IReadOnlyList<Operator> operators)
+    {
+        _repository.ListByUserIdAndBranchId(userId, branchId).Returns(operators);
+        return this;
+    }
+
     public OperatorsRepositoryBuilder ExistsActiveLinkedByUserIdAndBranchId(Guid userId,Guid branchId,bool exists,Guid? exceptOperatorId = null)
     {
         _repository.ExistsActiveLinkedByUserIdAndBranchId(userId, branchId, exceptOperatorId).Returns(exists);

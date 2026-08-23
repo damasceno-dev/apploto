@@ -205,7 +205,7 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var newBefore = BalanceFor(balanceBefore, newClient.Id);
 
         // 2) Commit the same payload X via the write twin.
-        var updateResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", payloadX, token);
+        var updateResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", payloadX, token, transaction.Version);
         updateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // 3) Receivable impact: read the affected row from the fiado aging report at the same asOfDate.

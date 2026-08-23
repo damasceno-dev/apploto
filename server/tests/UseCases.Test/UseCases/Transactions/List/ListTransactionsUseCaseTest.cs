@@ -124,9 +124,10 @@ public class ListTransactionsUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldPopulateAccountClientAndTransactionTypeNames_OnListItems()
+    public async Task Execute_ShouldPopulateActionFieldsAndJoinedNames_OnListItems()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var originTransactionId = Guid.NewGuid();
         var account = new AccountBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithName("Caixa Centro")
@@ -151,6 +152,8 @@ public class ListTransactionsUseCaseTest
             .WithAccount(account)
             .WithClient(client)
             .WithTransactionType(transactionType)
+            .WithVersion(42)
+            .WithOriginTransactionId(originTransactionId)
             .Build();
         var request = new RequestListTransactionsJsonBuilder().Build();
         var expectedFilter = new TransactionListFilter
@@ -169,6 +172,8 @@ public class ListTransactionsUseCaseTest
 
         response.Items.Count.ShouldBe(1);
         var item = response.Items[0];
+        item.Version.ShouldBe(42u);
+        item.OriginTransactionId.ShouldBe(originTransactionId);
         item.AccountName.ShouldBe("Caixa Centro");
         item.ClientName.ShouldBe("Maria");
         item.TransactionTypeName.ShouldBe("Depósito");

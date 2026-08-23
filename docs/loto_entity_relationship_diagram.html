@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v38
+Spec revision: v39
 -->
 <html lang="en">
 <head>
@@ -233,6 +233,7 @@ Spec revision: v38
     '  Branch ||--o{ TimeEntry : has\n' +
     '  Branch ||--o{ Holiday : has\n' +
     '  Branch ||--|| Setting : has\n' +
+    '  Branch ||--o{ IdempotencyRequest : scopes\n' +
     '\n' +
     '  User ||--o{ BranchUser : joins\n' +
     '  User ||--o{ RefreshToken : has\n' +
@@ -244,6 +245,7 @@ Spec revision: v38
     '  User o|--o{ DailyClose : "submitted by"\n' +
     '  User o|--o{ DailyClose : "updated by"\n' +
     '  User o|--o{ DailyClose : "opening recheck triggered by"\n' +
+    '  User ||--o{ IdempotencyRequest : scopes\n' +
     '\n' +
     '  BranchUser {\n' +
     '    uuid id PK\n' +
@@ -345,6 +347,7 @@ Spec revision: v38
     '\n' +
     '  Transaction {\n' +
     '    uuid id PK\n' +
+    '    uint version "PostgreSQL xmin concurrency token"\n' +
     '    date date\n' +
     '    decimal value\n' +
     '    string description\n' +
@@ -366,6 +369,19 @@ Spec revision: v38
     '    uuid cancelledByUserId FK\n' +
     '    string cancellationReason\n' +
     '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  IdempotencyRequest {\n' +
+    '    uuid id PK\n' +
+    '    string key "Idempotency-Key; max 128"\n' +
+    '    string endpoint\n' +
+    '    string payloadHash "canonical JSON SHA-256"\n' +
+    '    uuid resourceId\n' +
+    '    string responseEnvelope\n' +
+    '    timestamp expiresAt "24-hour replay expiry; purge indexed"\n' +
+    '    uuid branchId FK\n' +
+    '    uuid userId FK\n' +
+    '    unique requestScope "Endpoint+BranchId+UserId+Key"\n' +
     '  }\n' +
     '\n' +
     '  Product {\n' +
@@ -440,6 +456,7 @@ Spec revision: v38
     '\n' +
     '  Setting {\n' +
     '    uuid id PK\n' +
+    '    uint version "PostgreSQL xmin concurrency token"\n' +
     '    date lockDate\n' +
     '    decimal dailyTargetHours\n' +
     '    decimal lunchDeductionOver6H\n' +

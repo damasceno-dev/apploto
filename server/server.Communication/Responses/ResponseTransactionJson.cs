@@ -5,6 +5,7 @@ namespace server.Communication.Responses;
 public class ResponseTransactionJson
 {
     public Guid Id { get; init; }
+    public uint Version { get; init; }
     public DateTime Date { get; init; }
     public decimal Value { get; init; }
     public string? Description { get; init; }

@@ -10,6 +10,7 @@ namespace server.Application.UseCases.BranchUsers.Remove;
 public class RemoveBranchUserUseCase(
     IAuthenticationService authenticationService,
     IBranchUsersRepository branchUsersRepository,
+    IOperatorsRepository operatorsRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseRemoveBranchUserJson> Execute(Guid branchUserId)
@@ -30,6 +31,12 @@ public class RemoveBranchUserUseCase(
         }
 
         await EnsureLastAdminInvariant(targetBranchUser);
+
+        var linkedOperators = await operatorsRepository.ListByUserIdAndBranchId(
+            targetBranchUser.UserId,
+            targetBranchUser.BranchId);
+        foreach (var linkedOperator in linkedOperators)
+            linkedOperator.UserId = null;
 
         targetBranchUser.Active = false;
         await unitOfWork.Commit();

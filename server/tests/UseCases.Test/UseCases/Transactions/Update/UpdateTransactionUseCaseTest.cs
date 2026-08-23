@@ -35,7 +35,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var beforeUpdate = DateTime.UtcNow;
-        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version);
         var afterUpdate = DateTime.UtcNow;
 
         response.Id.ShouldBe(ctx.Transaction.Id);
@@ -77,7 +77,7 @@ public class UpdateTransactionUseCaseTest
         ctx.ClientsRepository = new ClientsRepositoryBuilder().Build();
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version);
 
         response.Status.ShouldBe(TransactionStatus.Draft);
         response.Description.ShouldBe("Draft after edit");
@@ -101,7 +101,7 @@ public class UpdateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version);
 
         response.Description.ShouldBeNull();
         response.PaidAt.ShouldBeNull();
@@ -120,7 +120,7 @@ public class UpdateTransactionUseCaseTest
         var ctx = BuildContext(Role.Member);
         var useCase = CreateUseCase(ctx);
 
-        await useCase.Execute(ctx.Transaction.Id, ctx.Request);
+        await useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version);
 
         ctx.MutationPermissionGuard.Received(1).EnsureAllowed(
             ctx.Transaction,
@@ -144,7 +144,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -172,7 +172,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         ctx.MutationPermissionGuard.Received(1).EnsureAllowed(
@@ -195,7 +195,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         ctx.MutationPermissionGuard.DidNotReceiveWithAnyArgs()
@@ -217,7 +217,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<OnValidationException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -237,7 +237,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<OnValidationException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -259,7 +259,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<ConflictException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -273,7 +273,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<ConflictException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -290,7 +290,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<NotFoundException>(
-            () => useCase.Execute(transactionId, ctx.Request));
+            () => useCase.Execute(transactionId, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
         await ctx.TransactionsRepository.Received(1).GetByIdAndBranchIdAsNoTracking(
@@ -321,7 +321,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<ConflictException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_FIADO_REQUIRES_CLIENT);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -345,7 +345,7 @@ public class UpdateTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<NotFoundException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request));
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.CLIENT_NOT_FOUND);
         await ctx.ClientsRepository.Received(1)

@@ -11,6 +11,7 @@ internal class SettingConfiguration : IEntityTypeConfiguration<Setting>
         builder.ToTable("Settings");
         builder.HasKey(setting => setting.Id);
 
+        builder.Property(setting => setting.Version).IsRowVersion();
         builder.Property(setting => setting.LockDate).HasColumnType("date");
         builder.Property(setting => setting.DailyTargetHours).HasPrecision(6, 2);
         builder.Property(setting => setting.LunchDeductionOver6H).HasPrecision(4, 2);

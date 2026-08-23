@@ -12,7 +12,7 @@ public class UpdateSettingUseCase(
     ISettingsRepository settingsRepository,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseSettingJson> Execute(RequestUpdateSettingJson request)
+    public async Task<ResponseSettingJson> Execute(RequestUpdateSettingJson request, uint expectedVersion)
     {
         Validate(request);
 
@@ -23,6 +23,9 @@ public class UpdateSettingUseCase(
 
         var setting = await settingsRepository.GetByBranchId(branchUser.BranchId)
             ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+
+        if (setting.Version != expectedVersion)
+            throw new ConflictException(ResourcesErrorMessages.SETTING_STALE_WRITE);
 
         if (request.DailyTargetHours.HasValue)
             setting.DailyTargetHours = request.DailyTargetHours.Value;

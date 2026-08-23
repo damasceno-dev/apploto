@@ -24,6 +24,7 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
     public DbSet<TimeEntrySegment> TimeEntrySegments => Set<TimeEntrySegment>();
     public DbSet<Holiday> Holidays => Set<Holiday>();
+    public DbSet<IdempotencyRequest> IdempotencyRequests => Set<IdempotencyRequest>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

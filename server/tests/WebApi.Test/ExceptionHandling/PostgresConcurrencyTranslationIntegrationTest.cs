@@ -49,6 +49,63 @@ public class PostgresConcurrencyTranslationIntegrationTest(ServerWebApplicationF
     }
 
     [Fact]
+    public async Task TransactionXminRace_ShouldThrowAndTranslateToTransactionConflict()
+    {
+        var (user, branch, _, _) = await factory.SeedFullBranchContextAsync("TransactionXminRace", Role.Manager);
+        var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
+        var category = await factory.SeedCategoryAsync(branch.Id);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+        var transaction = await factory.SeedTransactionAsync(
+            branch.Id,
+            account.Id,
+            transactionType.Id,
+            category.Id,
+            category.DefaultDirection,
+            op.Id,
+            user.Id);
+
+        using var firstScope = factory.Services.CreateScope();
+        using var secondScope = factory.Services.CreateScope();
+        var firstContext = firstScope.ServiceProvider.GetRequiredService<ServerDbContext>();
+        var secondContext = secondScope.ServiceProvider.GetRequiredService<ServerDbContext>();
+        var firstCopy = await firstContext.Transactions.SingleAsync(row => row.Id == transaction.Id);
+        var secondCopy = await secondContext.Transactions.SingleAsync(row => row.Id == transaction.Id);
+        firstCopy.Description = "first concurrent write";
+        await firstContext.SaveChangesAsync();
+        secondCopy.Description = "stale concurrent write";
+
+        var exception = await Should.ThrowAsync<DbUpdateConcurrencyException>(
+            () => secondContext.SaveChangesAsync());
+
+        PostgresExceptionHandler.Normalize(exception).ShouldBeOfType<ConflictException>()
+            .Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
+    }
+
+    [Fact]
+    public async Task SettingXminRace_ShouldThrowAndTranslateToSettingConflict()
+    {
+        var (_, branch, _, _) = await factory.SeedFullBranchContextAsync("SettingXminRace", Role.Manager);
+        var setting = await factory.SeedSettingAsync(branch.Id);
+
+        using var firstScope = factory.Services.CreateScope();
+        using var secondScope = factory.Services.CreateScope();
+        var firstContext = firstScope.ServiceProvider.GetRequiredService<ServerDbContext>();
+        var secondContext = secondScope.ServiceProvider.GetRequiredService<ServerDbContext>();
+        var firstCopy = await firstContext.Settings.SingleAsync(row => row.Id == setting.Id);
+        var secondCopy = await secondContext.Settings.SingleAsync(row => row.Id == setting.Id);
+        firstCopy.DailyTargetHours = 8m;
+        await firstContext.SaveChangesAsync();
+        secondCopy.DailyTargetHours = 9m;
+
+        var exception = await Should.ThrowAsync<DbUpdateConcurrencyException>(
+            () => secondContext.SaveChangesAsync());
+
+        PostgresExceptionHandler.Normalize(exception).ShouldBeOfType<ConflictException>()
+            .Message.ShouldBe(ResourcesErrorMessages.SETTING_STALE_WRITE);
+    }
+
+    [Fact]
     public async Task RefreshTokenDeleteRace_ShouldNotTranslateToDailyCloseConflict()
     {
         var user = await factory.SeedUserAsync();

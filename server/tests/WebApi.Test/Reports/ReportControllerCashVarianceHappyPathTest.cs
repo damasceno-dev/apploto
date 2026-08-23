@@ -116,8 +116,16 @@ public class ReportControllerCashVarianceHappyPathTest(ServerWebApplicationFacto
         var payload = await httpResponse.ReadContentAsync<ResponseCashVarianceSummaryJson>();
 
         payload.TotalCount.ShouldBe(1);
+        payload.Items[0].DailyCloseId.ShouldBe(closeA.Id);
         payload.Items[0].AccountId.ShouldBe(accountA.Id);
         payload.Items[0].VarianceValue.ShouldBe(100m);
+
+        var allAccountsResponse = await _client.GetAuthAsync(
+            "/report/cash-variance?dateFrom=2025-05-01&dateTo=2025-05-31&page=1&pageSize=50",
+            token);
+        var allAccounts = await allAccountsResponse.ReadContentAsync<ResponseCashVarianceSummaryJson>();
+        allAccounts.Items.Single(item => item.AccountId == accountA.Id).DailyCloseId.ShouldBe(closeA.Id);
+        allAccounts.Items.Single(item => item.AccountId == accountB.Id).DailyCloseId.ShouldBe(closeB.Id);
     }
 
     // -------------------------------------------------------------------------

@@ -194,6 +194,60 @@ public class TimeEntryControllerListHappyPathTest(ServerWebApplicationFactory fa
         item.TotalHours.ShouldNotBe(reload.TotalHours);
     }
 
+    [Fact]
+    public async Task List_ShouldFilterAndPrioritizeInProgressEntriesBeforePaging()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEListInProgress", Role.Manager);
+        await factory.SeedSettingAsync(branch.Id);
+        var op = await factory.SeedOperatorAsync(branch.Id);
+        var today = SpLocalDate();
+        var openEntries = new List<Guid>();
+
+        for (var index = 0; index < 3; index++)
+        {
+            var date = today.AddDays(-10 - index);
+            var entry = await TimeEntrySegmentTestHelpers.SeedTimeEntryWithSegmentsAsync(
+                factory,
+                branch.Id,
+                op.Id,
+                date,
+                segments: [(date.AddHours(8), null, true)]);
+            openEntries.Add(entry.Id);
+        }
+
+        for (var index = 0; index < 5; index++)
+        {
+            var date = today.AddDays(-index);
+            await TimeEntrySegmentTestHelpers.SeedTimeEntryWithSegmentsAsync(
+                factory,
+                branch.Id,
+                op.Id,
+                date,
+                segments: [(date.AddHours(8), date.AddHours(17), true)]);
+        }
+
+        var firstFilteredPage = await GetListAsync(
+            "/timeentry?IsInProgress=true&Page=1&PageSize=2",
+            token);
+        var secondFilteredPage = await GetListAsync(
+            "/timeentry?IsInProgress=true&Page=2&PageSize=2",
+            token);
+
+        firstFilteredPage.TotalCount.ShouldBe(3);
+        firstFilteredPage.Items.ShouldAllBe(item => item.IsInProgress);
+        secondFilteredPage.TotalCount.ShouldBe(3);
+        secondFilteredPage.Items.ShouldAllBe(item => item.IsInProgress);
+        firstFilteredPage.Items.Concat(secondFilteredPage.Items)
+            .Select(item => item.Id)
+            .Order()
+            .ShouldBe(openEntries.Order());
+
+        var triagePage = await GetListAsync(
+            "/timeentry?InProgressFirst=true&Page=1&PageSize=3",
+            token);
+        triagePage.Items.ShouldAllBe(item => item.IsInProgress);
+    }
+
     private async Task<ResponseListTimeEntriesJson> GetListAsync(string uri, string token)
     {
         var response = await _client.GetAuthAsync(uri, token);

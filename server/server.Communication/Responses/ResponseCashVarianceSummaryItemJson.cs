@@ -4,6 +4,7 @@ namespace server.Communication.Responses;
 
 public class ResponseCashVarianceSummaryItemJson
 {
+    public Guid DailyCloseId { get; init; }
     public DateTime Date { get; init; }
     public Guid AccountId { get; init; }
     public string AccountName { get; init; } = string.Empty;

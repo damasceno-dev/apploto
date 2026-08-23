@@ -51,6 +51,7 @@ public class GetCashVarianceSummaryUseCase(
             .Take(request.PageSize)
             .Select(r => new ResponseCashVarianceSummaryItemJson
             {
+                DailyCloseId = r.DailyCloseId,
                 Date = r.Date,
                 AccountId = r.AccountId,
                 AccountName = r.AccountName,

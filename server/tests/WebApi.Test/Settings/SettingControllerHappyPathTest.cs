@@ -34,6 +34,9 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
         payload.DailyTargetHours.ShouldBe(seeded.DailyTargetHours);
         payload.LunchDeductionOver6H.ShouldBe(seeded.LunchDeductionOver6H);
         payload.LunchDeductionOver4H.ShouldBe(seeded.LunchDeductionOver4H);
+        payload.Version.ShouldBe(seeded.Version);
+        httpResponse.Headers.ETag.ShouldNotBeNull();
+        httpResponse.Headers.ETag.Tag.ShouldBe($"\"{payload.Version}\"");
     }
 
     [Fact]
@@ -62,7 +65,7 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
             .WithLunchDeductionOver4H(0.5m)
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseSettingJson>();
@@ -83,10 +86,10 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
     public async Task Update_ShouldReturn200_WhenManagerUpdates()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingUpdateManager", Role.Manager);
-        await factory.SeedSettingAsync(branch.Id);
+        var seeded = await factory.SeedSettingAsync(branch.Id);
         var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -102,7 +105,7 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
             lockDate: DateTime.MinValue);
         var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(9.0m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 

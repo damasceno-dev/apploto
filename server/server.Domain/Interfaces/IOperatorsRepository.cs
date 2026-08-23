@@ -9,5 +9,6 @@ public interface IOperatorsRepository
     Task<Operator?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
     Task<IReadOnlyList<Operator>> ListActiveByBranchId(Guid branchId);
     Task<Operator?> GetActiveLinkedByUserIdAndBranchIdAsNoTracking(Guid userId, Guid branchId, CancellationToken ct = default);
+    Task<IReadOnlyList<Operator>> ListByUserIdAndBranchId(Guid userId, Guid branchId, CancellationToken ct = default);
     Task<bool> ExistsActiveLinkedByUserIdAndBranchId(Guid userId,Guid branchId,Guid? exceptOperatorId = null);
 }

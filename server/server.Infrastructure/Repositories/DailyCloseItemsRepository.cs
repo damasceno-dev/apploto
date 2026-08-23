@@ -47,7 +47,8 @@ internal class DailyCloseItemsRepository(ServerDbContext dbContext) : IDailyClos
                 item.DailyClose.AccountId,
                 item.DailyClose.Account.Name,
                 item.Value,
-                item.DailyClose.Status))
+                item.DailyClose.Status,
+                item.DailyCloseId))
             .ToListAsync(ct);
     }
 }

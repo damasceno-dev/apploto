@@ -7,4 +7,5 @@ public record VarianceTimeSeriesRow(
     Guid AccountId,
     string AccountName,
     decimal Value,
-    DailyCloseStatus DailyCloseStatus);
+    DailyCloseStatus DailyCloseStatus,
+    Guid DailyCloseId);

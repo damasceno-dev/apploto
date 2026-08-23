@@ -24,6 +24,7 @@ public class UpdateTransactionUseCase(
     public async Task<ResponseTransactionJson> Execute(
         Guid transactionId,
         RequestUpdateTransactionJson request,
+        uint expectedVersion,
         CancellationToken ct = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
@@ -48,6 +49,9 @@ public class UpdateTransactionUseCase(
         {
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
         }
+
+        if (transaction.Version != expectedVersion)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
 
         var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
 

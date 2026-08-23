@@ -61,6 +61,16 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
             .SingleOrDefaultAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Operator>> ListByUserIdAndBranchId(
+        Guid userId,
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.Operators
+            .Where(op => op.UserId == userId && op.BranchId == branchId)
+            .ToListAsync(ct);
+    }
+
     public async Task<bool> ExistsActiveLinkedByUserIdAndBranchId(
         Guid userId,
         Guid branchId,

@@ -12,7 +12,7 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Document_ShouldExposeM7_7Phase3DailyCloseContract()
+    public async Task Document_ShouldExposeDailyCloseContracts()
     {
         var response = await _client.GetAsync("/openapi/v1.json");
 
@@ -33,9 +33,7 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
         var putItemsProperties = schemas
             .GetProperty("RequestPutDailyCloseItemsJson")
             .GetProperty("properties");
-        var version = putItemsProperties.GetProperty("version");
-        AssertSchemaIsNonNullable(version);
-        version.GetProperty("format").GetString().ShouldBe("uint32");
+        putItemsProperties.TryGetProperty("version", out _).ShouldBeFalse();
         SchemaTypes(putItemsProperties.GetProperty("notes")).ShouldContain("null");
         var closeResponseProperties = schemas
             .GetProperty("ResponseDailyCloseJson")
@@ -95,6 +93,23 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
             .GetProperty("post");
         previewPath.TryGetProperty("requestBody", out _).ShouldBeTrue();
         previewPath.GetProperty("responses").TryGetProperty("200", out _).ShouldBeTrue();
+
+        var openOperation = root.GetProperty("paths")
+            .GetProperty("/dailyclose")
+            .GetProperty("post");
+        openOperation.GetProperty("responses").GetProperty("201")
+            .GetProperty("headers").TryGetProperty("ETag", out _).ShouldBeTrue();
+
+        var putItemsOperation = root.GetProperty("paths")
+            .GetProperty("/dailyclose/{dailyCloseId}/items")
+            .GetProperty("put");
+        var ifMatch = putItemsOperation.GetProperty("parameters")
+            .EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "If-Match");
+        ifMatch.GetProperty("in").GetString().ShouldBe("header");
+        ifMatch.GetProperty("required").GetBoolean().ShouldBeTrue();
+        putItemsOperation.GetProperty("responses").GetProperty("200")
+            .GetProperty("headers").TryGetProperty("ETag", out _).ShouldBeTrue();
 
         AssertWorkflowEndpoint(
             root,

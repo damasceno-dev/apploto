@@ -74,7 +74,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var secondClient = grantOrderFactory.CreateClient();
         var firstTask = firstClient.PutAuthAsync(
             $"/dailyclose/{opened.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = opened.Version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 10m }]
@@ -83,7 +83,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         await heldLock.WaitForWaitersAsync(1);
         var secondTask = secondClient.PutAuthAsync(
             $"/dailyclose/{opened.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = opened.Version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 20m }]
@@ -331,6 +331,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             Content = JsonContent.Create(BuildCreateRequest(context, 25m))
         };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", context.Token);
+        request.Headers.TryAddWithoutValidation("Idempotency-Key", $"test-{Guid.NewGuid():N}");
         using var cancellation = new CancellationTokenSource();
         var blockedTask = client.SendAsync(request, cancellation.Token);
         await heldLock.WaitForWaitersAsync(1);
@@ -358,7 +359,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var submitClient = grantOrderFactory.CreateClient();
         var priorTask = priorClient.PutAuthAsync(
             $"/dailyclose/{context.PredecessorId}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = context.PredecessorVersion,
                 Items =
@@ -396,7 +397,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var rejectClient = grantOrderFactory.CreateClient();
         var priorTask = priorClient.PutAuthAsync(
             $"/dailyclose/{context.PredecessorId}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = context.PredecessorVersion,
                 Items =
@@ -439,7 +440,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var submitClient = grantOrderFactory.CreateClient();
         var countTask = countClient.PutAuthAsync(
             $"/dailyclose/{context.PredecessorId}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = context.PredecessorVersion,
                 Items = []

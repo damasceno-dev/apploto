@@ -32,7 +32,7 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
             .Build();
 
         var beforeUpdate = DateTime.UtcNow;
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
         var afterUpdate = DateTime.UtcNow;
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -68,7 +68,7 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
             status: TransactionStatus.Draft);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var persisted = await factory.ReloadAsync<Transaction>(ctx.Transaction.Id);
@@ -120,7 +120,7 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
         var cancelRequest = new RequestCancelTransactionJsonBuilder()
             .WithCancellationReason("cliente desistiu desta parcela")
             .Build();
-        var cancelResponse = await _client.PostAuthAsync($"/transaction/{middleRow.Id}/cancel", cancelRequest, token);
+        var cancelResponse = await _client.PostAuthAsync($"/transaction/{middleRow.Id}/cancel", cancelRequest, token, expectedVersion: middleRow.Version);
         cancelResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var middleAfter = await factory.ReloadAsync<Transaction>(middleRow.Id);
@@ -157,7 +157,7 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
             value: 250m);
 
         var request = new RequestCancelTransactionJsonBuilder().Build();
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using var scope = factory.Services.CreateScope();
@@ -191,7 +191,7 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
             date: localBusinessDate);
 
         var request = new RequestCancelTransactionJsonBuilder().Build();
-        var httpResponse = await customClient.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await customClient.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var persisted = await factory.ReloadAsync<Transaction>(ctx.Transaction.Id);

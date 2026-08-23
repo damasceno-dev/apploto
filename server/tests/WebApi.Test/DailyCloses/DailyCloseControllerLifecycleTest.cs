@@ -114,7 +114,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
         var ordinaryItemSave = await _client.PutAuthAsync(
             $"/dailyclose/{opened.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = afterFirstSubmit.Version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 150m }]
@@ -175,7 +175,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
         close.ShouldNotBeNull();
         var response = await _client.PutAuthAsync(
             $"/dailyclose/{closeId}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = productId, Value = value }]

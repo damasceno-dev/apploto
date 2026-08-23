@@ -44,10 +44,10 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
     public async Task Update_ShouldReturn403_WhenMemberTriesToUpdate()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingUpdateMember403", Role.Member);
-        await factory.SeedSettingAsync(branch.Id);
+        var seeded = await factory.SeedSettingAsync(branch.Id);
         var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -62,10 +62,10 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
     public async Task Update_ShouldReturn400_WhenDailyTargetHoursIsZero()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingDailyTargetZero");
-        await factory.SeedSettingAsync(branch.Id);
+        var seeded = await factory.SeedSettingAsync(branch.Id);
         var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(0m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -76,10 +76,10 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
     public async Task Update_ShouldReturn400_WhenDailyTargetHoursExceeds24()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingDailyTargetMax");
-        await factory.SeedSettingAsync(branch.Id);
+        var seeded = await factory.SeedSettingAsync(branch.Id);
         var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(25m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -90,10 +90,10 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
     public async Task Update_ShouldReturn400_WhenLunchDeductionOver6HIsNegative()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingLunch6HNeg");
-        await factory.SeedSettingAsync(branch.Id);
+        var seeded = await factory.SeedSettingAsync(branch.Id);
         var request = new RequestUpdateSettingJsonBuilder().WithLunchDeductionOver6H(-0.01m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -104,10 +104,10 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
     public async Task Update_ShouldReturn400_WhenLunchDeductionOver4HExceeds8()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingLunch4HMax");
-        await factory.SeedSettingAsync(branch.Id);
+        var seeded = await factory.SeedSettingAsync(branch.Id);
         var request = new RequestUpdateSettingJsonBuilder().WithLunchDeductionOver4H(9m).Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -124,7 +124,7 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
             .WithLockDate(lockDate.AddDays(-1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync("/setting", request, token);
+        var httpResponse = await _client.PutAuthAsync("/setting", request, token, seeded.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -132,5 +132,28 @@ public class SettingControllerUnhappyPathTest(ServerWebApplicationFactory factor
         var persisted = await factory.ReloadAsync<server.Domain.Entities.Setting>(seeded.Id);
         persisted.ShouldNotBeNull();
         persisted.LockDate.ShouldBe(DateTime.SpecifyKind(lockDate, DateTimeKind.Unspecified));
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturnExactStaleWriteKey_WhenIfMatchVersionWasAlreadyReplaced()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingStale409");
+        var setting = await factory.SeedSettingAsync(branch.Id);
+
+        var first = await _client.PutAuthAsync(
+            "/setting",
+            new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8m).Build(),
+            token,
+            setting.Version);
+        var stale = await _client.PutAuthAsync(
+            "/setting",
+            new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(9m).Build(),
+            token,
+            setting.Version);
+
+        first.StatusCode.ShouldBe(HttpStatusCode.OK, await first.Content.ReadAsStringAsync());
+        stale.StatusCode.ShouldBe(HttpStatusCode.Conflict, await stale.Content.ReadAsStringAsync());
+        (await stale.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldContain(ResourcesErrorMessages.SETTING_STALE_WRITE);
     }
 }

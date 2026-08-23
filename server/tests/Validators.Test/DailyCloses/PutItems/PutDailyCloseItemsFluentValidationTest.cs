@@ -22,20 +22,6 @@ public class PutDailyCloseItemsFluentValidationTest
     }
 
     [Fact]
-    public void Validate_ShouldFail_WhenVersionIsMissing()
-    {
-        var request = new RequestPutDailyCloseItemsJsonBuilder()
-            .WithVersion(0)
-            .Build();
-
-        var result = _validator.Validate(request);
-
-        result.IsValid.ShouldBeFalse();
-        result.Errors.Select(error => error.ErrorMessage)
-            .ShouldContain(ResourcesErrorMessages.DAILYCLOSE_VERSION_REQUIRED);
-    }
-
-    [Fact]
     public void Validate_ShouldFail_WhenNotesExceedMaxLength()
     {
         var request = new RequestPutDailyCloseItemsJsonBuilder()

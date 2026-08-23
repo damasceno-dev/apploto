@@ -47,6 +47,7 @@ public static class CreateTransactionMapper
             return new ResponseCreateTransactionJson
             {
                 Id = transaction.Id,
+                Version = transaction.Version,
                 Date = transaction.Date,
                 Value = transaction.Value,
                 Description = transaction.Description,

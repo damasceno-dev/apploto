@@ -43,7 +43,7 @@ public class DailyCloseControllerExpandedIntegrityHappyPathTest(ServerWebApplica
 
         var saveResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson { Version = rejectedState.Version, Items = [] },
+            new VersionedRequestPutDailyCloseItemsJson { Version = rejectedState.Version, Items = [] },
             token);
 
         saveResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -289,7 +289,7 @@ public class DailyCloseControllerExpandedIntegrityHappyPathTest(ServerWebApplica
     {
         return _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version ?? close.Version,
                 Notes = notes,

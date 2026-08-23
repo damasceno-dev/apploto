@@ -11,6 +11,7 @@ public class RequestListTransactionsJsonBuilder
     private TransactionStatus? _status;
     private Guid? _operatorId;
     private Guid? _clientId;
+    private Guid? _originTransactionId;
     private int _page = 1;
     private int _pageSize = 50;
     private bool _mine;
@@ -51,6 +52,12 @@ public class RequestListTransactionsJsonBuilder
         return this;
     }
 
+    public RequestListTransactionsJsonBuilder WithOriginTransactionId(Guid? originTransactionId)
+    {
+        _originTransactionId = originTransactionId;
+        return this;
+    }
+
     public RequestListTransactionsJsonBuilder WithPage(int page)
     {
         _page = page;
@@ -79,6 +86,7 @@ public class RequestListTransactionsJsonBuilder
             Status = _status,
             OperatorId = _operatorId,
             ClientId = _clientId,
+            OriginTransactionId = _originTransactionId,
             Page = _page,
             PageSize = _pageSize,
             Mine = _mine

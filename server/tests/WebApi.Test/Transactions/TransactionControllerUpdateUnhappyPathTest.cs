@@ -34,7 +34,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(transaction.Date.AddDays(1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -66,7 +66,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(transaction.Date.AddDays(2))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -94,7 +94,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(transaction.Date.AddDays(1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -124,7 +124,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(transaction.Date.AddDays(1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -154,7 +154,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(transactionDate.AddDays(1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -183,11 +183,54 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(transaction.Date.AddDays(1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);
+    }
+
+    [Fact]
+    public async Task Update_ShouldReturnExactStaleWriteKey_WhenIfMatchVersionWasAlreadyReplaced()
+    {
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnUpdateStale409", Role.Manager);
+        var operatorContext = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
+        var account = await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount);
+        var category = await factory.SeedCategoryAsync(branch.Id, "Stale update", Direction.In);
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
+        var transaction = await factory.SeedTransactionAsync(
+            branch.Id,
+            account.Id,
+            transactionType.Id,
+            category.Id,
+            category.DefaultDirection,
+            operatorContext.Id,
+            user.Id,
+            date: DateTime.Today);
+        var firstRequest = new RequestUpdateTransactionJsonBuilder()
+            .WithDescription("first write")
+            .WithDueDate(transaction.Date.AddDays(1))
+            .Build();
+        var staleRequest = new RequestUpdateTransactionJsonBuilder()
+            .WithDescription("stale write")
+            .WithDueDate(transaction.Date.AddDays(2))
+            .Build();
+
+        var first = await _client.PutAuthAsync(
+            $"/transaction/{transaction.Id}",
+            firstRequest,
+            token,
+            transaction.Version);
+        var stale = await _client.PutAuthAsync(
+            $"/transaction/{transaction.Id}",
+            staleRequest,
+            token,
+            transaction.Version);
+
+        first.StatusCode.ShouldBe(HttpStatusCode.OK, await first.Content.ReadAsStringAsync());
+        stale.StatusCode.ShouldBe(HttpStatusCode.Conflict, await stale.Content.ReadAsStringAsync());
+        (await stale.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldContain(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
     }
 
     [Fact]
@@ -216,7 +259,7 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithClientId(null)
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -249,7 +292,11 @@ public class TransactionControllerUpdateUnhappyPathTest(ServerWebApplicationFact
             .WithDueDate(victimTransaction.Date.AddDays(1))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{victimTransaction.Id}", request, attackerToken);
+        var httpResponse = await _client.PutAuthAsync(
+            $"/transaction/{victimTransaction.Id}",
+            request,
+            attackerToken,
+            victimTransaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

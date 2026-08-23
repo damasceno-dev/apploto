@@ -2,6 +2,7 @@ namespace server.Domain.Entities;
 
 public class Setting : EntityBase
 {
+    public uint Version { get; set; }
     public DateTime LockDate { get; set; }
     public decimal DailyTargetHours { get; set; } = 7.33m;
     public decimal LunchDeductionOver6H { get; set; } = 1.0m;

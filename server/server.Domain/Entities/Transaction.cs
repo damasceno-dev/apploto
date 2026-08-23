@@ -4,6 +4,7 @@ namespace server.Domain.Entities;
 
 public class Transaction : EntityBase
 {
+    public uint Version { get; set; }
     public DateTime Date { get; init; }
     public decimal Value { get; init; }
     public string? Description { get; set; }

@@ -5,6 +5,7 @@ using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Holidays;
+using server.Application.Services.Idempotency;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
@@ -28,7 +29,7 @@ public class CreateTransactionUseCaseTest
         var ctx = BuildHappyPathContext(Role.Manager, SettlementRule.SameDay, Direction.In);
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.Status.ShouldBe(TransactionStatus.Active);
         response.CategoryId.ShouldBe(ctx.TransactionType.CategoryId);
@@ -52,7 +53,7 @@ public class CreateTransactionUseCaseTest
             ctx.Account.Type,
             ctx.Request.Date.Date,
             Arg.Any<CancellationToken>());
-        await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.UnitOfWork.Received(2).Commit();
         await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
@@ -63,7 +64,7 @@ public class CreateTransactionUseCaseTest
         var ctx = BuildHappyPathContext(Role.Admin, SettlementRule.SameDay, Direction.Out);
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.Direction.ShouldBe(Direction.Out);
         response.CategoryId.ShouldBe(ctx.TransactionType.CategoryId);
@@ -86,7 +87,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.Status.ShouldBe(TransactionStatus.Draft);
     }
@@ -106,7 +107,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(date.AddDays(expectedDaysAhead));
     }
@@ -124,7 +125,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(new DateTime(2025, 3, 10)); // Monday
     }
@@ -142,7 +143,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(new DateTime(2025, 3, 10)); // Friday -> Monday is skipped nothing, so Thu + 2 biz = Mon
     }
@@ -165,7 +166,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(new DateTime(2025, 3, 11)); // Tuesday
     }
@@ -189,7 +190,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(new DateTime(2025, 3, 10)); // Monday
     }
@@ -213,7 +214,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(manualDueDate);
     }
@@ -233,7 +234,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.DueDate.ShouldBe(dueDate);
     }
@@ -251,7 +252,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_CHEQUE_REQUIRES_DUE_DATE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -271,7 +272,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -293,7 +294,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_CANNOT_OVERRIDE_RECORDED_BY_OPERATOR);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -310,7 +311,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -333,7 +334,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_REQUIRES_RECORDED_BY_OPERATOR);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -345,7 +346,7 @@ public class CreateTransactionUseCaseTest
         var ctx = BuildHappyPathContext(Role.Member, SettlementRule.SameDay, Direction.In);
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.RecordedByOperatorId.ShouldBe(ctx.CallerOperator.Id);
     }
@@ -372,7 +373,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         response.RecordedByOperatorId.ShouldBe(overrideOperatorId);
         await ctx.OperatorsRepository.Received(1)
@@ -390,7 +391,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -406,7 +407,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -425,7 +426,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_TYPE_NOT_FOUND);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -446,7 +447,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.CLIENT_NOT_FOUND);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -471,7 +472,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -494,7 +495,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_REQUIRES_TAB_ACCOUNT_AND_CLIENT);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -517,7 +518,7 @@ public class CreateTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -529,7 +530,7 @@ public class CreateTransactionUseCaseTest
         var ctx = BuildHappyPathContext(Role.Manager, SettlementRule.SameDay, Direction.In);
         var useCase = CreateUseCase(ctx);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         await ctx.OperatorsRepository.Received(1)
             .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId);
@@ -560,12 +561,40 @@ public class CreateTransactionUseCaseTest
             memberAccountScopeGuard,
             lockDateGuard,
             ctx.BranchHolidaySource);
+        var idempotencyRequestsRepository = Substitute.For<IIdempotencyRequestsRepository>();
+        var idempotencyRequestCoordination = Substitute.For<IIdempotencyRequestCoordination>();
+        var idempotencyRequestCoordinationScope = Substitute.For<IIdempotencyRequestCoordinationScope>();
+        idempotencyRequestCoordination
+            .TryAcquire(
+                Arg.Any<string>(),
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(idempotencyRequestCoordinationScope);
+        idempotencyRequestsRepository
+            .TryAcquireScopeLock(
+                Arg.Any<string>(),
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(true);
+        var financialCommandIdempotency = new FinancialCommandIdempotency(
+            idempotencyRequestsRepository,
+            idempotencyRequestCoordination,
+            new CanonicalJsonRequestHasher());
+        var branchClock = Substitute.For<IBranchClock>();
+        branchClock.UtcNow().Returns(new DateTime(2026, 8, 21, 12, 0, 0, DateTimeKind.Utc));
 
         return new CreateTransactionUseCase(
+            ctx.AuthenticationService,
             transactionCreatePreamble,
             ctx.TransactionsRepository,
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            financialCommandIdempotency,
+            branchClock,
             lockDateGuard,
             ctx.UnitOfWork);
     }

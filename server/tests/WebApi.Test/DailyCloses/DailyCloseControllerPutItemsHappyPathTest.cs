@@ -42,7 +42,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         var cvItem = await factory.SeedDailyCloseItemAsync(close.Id, cvProduct.Id, value: 5m);
 
         // Payload: A (update) + B (insert). C and CashVariance are omitted.
-        var request = new RequestPutDailyCloseItemsJson
+        var request = new VersionedRequestPutDailyCloseItemsJson
         {
             Version = close.Version,
             Items =
@@ -104,7 +104,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var putResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
                 Items = items,
@@ -134,7 +134,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var frozenNoteResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = submitted.Version,
                 Items = items,
@@ -174,7 +174,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var firstResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
                 Items = items,
@@ -186,7 +186,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
 
         var clearResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = firstPayload.Version,
                 Items = items,
@@ -216,7 +216,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id, status: DailyCloseStatus.Rejected);
         var product = await factory.SeedProductAsync(branch.Id);
 
-        var request = new RequestPutDailyCloseItemsJson
+        var request = new VersionedRequestPutDailyCloseItemsJson
         {
             Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]

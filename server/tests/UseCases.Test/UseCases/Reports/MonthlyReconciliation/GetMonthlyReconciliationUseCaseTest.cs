@@ -32,7 +32,7 @@ public class GetMonthlyReconciliationUseCaseTest
         var close = BuildClose(branchUser.BranchId, account, DateFrom, DailyCloseStatus.Approved);
         var rows = new List<VarianceTimeSeriesRow>
         {
-            new(DateFrom, account.Id, account.Name, 15m, DailyCloseStatus.Approved)
+            new(DateFrom, account.Id, account.Name, 15m, DailyCloseStatus.Approved, close.Id)
         };
         var counts = new List<MonthlyTransactionCountRow>
         {
@@ -211,8 +211,8 @@ public class GetMonthlyReconciliationUseCaseTest
         var closeB = BuildClose(branchUser.BranchId, accountB, date, DailyCloseStatus.Approved);
         var rows = new List<VarianceTimeSeriesRow>
         {
-            new(date, accountA.Id, accountA.Name, 10m, DailyCloseStatus.Approved),
-            new(date, accountB.Id, accountB.Name, -25m, DailyCloseStatus.Approved)
+            new(date, accountA.Id, accountA.Name, 10m, DailyCloseStatus.Approved, closeA.Id),
+            new(date, accountB.Id, accountB.Name, -25m, DailyCloseStatus.Approved, closeB.Id)
         };
 
         var ctx = BuildContext(branchUser, closes: [closeA, closeB], varianceRows: rows, statusCounts: []);

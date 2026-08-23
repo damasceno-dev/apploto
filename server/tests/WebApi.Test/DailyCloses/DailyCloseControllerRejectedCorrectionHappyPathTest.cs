@@ -94,7 +94,7 @@ public class DailyCloseControllerRejectedCorrectionHappyPathTest(ServerWebApplic
     {
         var response = await _client.PutAuthAsync(
             $"/dailyclose/{closeId}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = productId, Value = value }]

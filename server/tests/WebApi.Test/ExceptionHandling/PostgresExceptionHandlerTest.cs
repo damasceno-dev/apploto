@@ -36,7 +36,11 @@ public class PostgresExceptionHandlerTest
             { "IX_Holidays_BranchId_Date", ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT },
             { "IX_Categories_BranchId_Name", ResourcesErrorMessages.CATEGORY_NAME_CONFLICT },
             { "IX_TransactionTypes_CategoryId_Name", ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT },
-            { "IX_Products_BranchId_Name", ResourcesErrorMessages.PRODUCT_NAME_CONFLICT }
+            { "IX_Products_BranchId_Name", ResourcesErrorMessages.PRODUCT_NAME_CONFLICT },
+            {
+                "IX_IdempotencyRequests_Endpoint_BranchId_UserId_Key",
+                ResourcesErrorMessages.IDEMPOTENCY_COORDINATION_BUSY
+            }
         };
 
     [Fact]

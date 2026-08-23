@@ -43,11 +43,20 @@ public static class CreateTransactionInstallmentMapper
     {
         public ResponseCreateTransactionInstallmentJson ToCreateInstallmentResponse()
         {
+            if (transactions.Count == 0)
+                throw new InvalidOperationException("An installment response requires at least one transaction.");
+
+            var installments = transactions
+                .Select(transaction => transaction.ToCreateResponse())
+                .ToList();
+            var version = installments[0].Version;
+            if (installments.Any(installment => installment.Version != version))
+                throw new InvalidOperationException("Installments created as one plan must share the same version.");
+
             return new ResponseCreateTransactionInstallmentJson
             {
-                Installments = transactions
-                    .Select(transaction => transaction.ToCreateResponse())
-                    .ToList()
+                Version = version,
+                Installments = installments
             };
         }
     }

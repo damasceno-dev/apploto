@@ -16,13 +16,46 @@ public static class InfraDependencyInjection
     private const int DefaultExternalHolidayTimeoutSeconds = 5;
     private const int DefaultDailyCloseAccountCoordinationLockTimeoutSeconds = 5;
     private const int DefaultMonthLockCoordinationLockTimeoutSeconds = 5;
+    private const int DefaultIdempotencyRequestCoordinationLockTimeoutSeconds = 5;
+    private const int DefaultIdempotencyRequestCleanupIntervalHours = 24;
+    private const int DefaultIdempotencyRequestCleanupBatchSize = 500;
 
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         AddDbContext(services, configuration);
         AddToken(services, configuration);
         AddRepositories(services, configuration);
+        AddIdempotencyRequestCleanup(services, configuration);
         AddExternalHolidayProviders(services, configuration);
+    }
+
+    private static void AddIdempotencyRequestCleanup(
+        IServiceCollection services,
+        IConfiguration configuration)
+    {
+        var intervalHours = configuration.GetValue<int?>(
+            "IdempotencyRequestCleanup:SweepIntervalHours")
+            ?? DefaultIdempotencyRequestCleanupIntervalHours;
+        if (intervalHours <= 0)
+        {
+            throw new InvalidOperationException(
+                "IdempotencyRequestCleanup:SweepIntervalHours must be greater than zero.");
+        }
+
+        var batchSize = configuration.GetValue<int?>("IdempotencyRequestCleanup:BatchSize")
+            ?? DefaultIdempotencyRequestCleanupBatchSize;
+        if (batchSize <= 0)
+        {
+            throw new InvalidOperationException(
+                "IdempotencyRequestCleanup:BatchSize must be greater than zero.");
+        }
+
+        services.AddSingleton(new IdempotencyRequestCleanupOptions(
+            TimeSpan.FromHours(intervalHours),
+            batchSize));
+        services.AddSingleton(TimeProvider.System);
+        services.AddScoped<IdempotencyRequestCleanup>();
+        services.AddHostedService<IdempotencyRequestCleanupHostedService>();
     }
 
     private static void AddExternalHolidayProviders(IServiceCollection services, IConfiguration configuration)
@@ -100,6 +133,18 @@ public static class InfraDependencyInjection
 
         services.AddSingleton(new MonthLockCoordinationOptions(
             TimeSpan.FromSeconds(monthLockTimeoutSeconds)));
+
+        var idempotencyLockTimeoutSeconds = configuration.GetValue<int?>(
+            "IdempotencyRequestCoordination:LockTimeoutSeconds")
+            ?? DefaultIdempotencyRequestCoordinationLockTimeoutSeconds;
+        if (idempotencyLockTimeoutSeconds <= 0)
+        {
+            throw new InvalidOperationException(
+                "IdempotencyRequestCoordination:LockTimeoutSeconds must be greater than zero.");
+        }
+
+        services.AddSingleton(new IdempotencyRequestCoordinationOptions(
+            TimeSpan.FromSeconds(idempotencyLockTimeoutSeconds)));
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IBranchesRepository, BranchesRepository>();
@@ -118,7 +163,9 @@ public static class InfraDependencyInjection
         services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();
         services.AddScoped<ITimeEntrySegmentsRepository, TimeEntrySegmentsRepository>();
         services.AddScoped<IHolidaysRepository, HolidaysRepository>();
+        services.AddScoped<IIdempotencyRequestsRepository, IdempotencyRequestsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IIdempotencyRequestCoordination, IdempotencyRequestCoordination>();
         services.AddScoped<IMonthLockCoordination, MonthLockCoordination>();
         services.AddScoped<IDailyCloseAccountCoordination, DailyCloseAccountCoordination>();
     }

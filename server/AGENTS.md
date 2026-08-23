@@ -295,6 +295,8 @@ Repository rules:
 - Apply the `Active` filter on reads when soft deletion is part of the entity contract.
 - Repository methods stage changes in the DbContext but do not call `SaveChangesAsync()` directly.
 - When a repository needs two overloads of the same query that differ only in EF Core tracking — one tracked for use-case mutations, one read-only for queries — suffix the read-only variant with `AsNoTracking`. Example: `GetActiveByIdAndBranchId` (tracked, used by Update/Deactivate) and `GetActiveByIdAndBranchIdAsNoTracking` (no tracking, used by Get). This makes the contract explicit and prevents accidental use of a non-tracked query in a write path.
+- Persisted idempotency reservations use a tracked repository read because the replay envelope and expiry may be updated in the same database transaction as the business write. Never implement financial idempotency with process memory.
+- PostgreSQL optimistic-concurrency roots (`DailyClose`, `Transaction`, and `Setting`) map a `uint Version` property to the `xmin` system column with `IsRowVersion()`; do not add a user-defined `Version` column or a second close-item concurrency mechanism.
 
 Unit of work rule:
 
@@ -419,6 +421,7 @@ OpenAPI rules:
 - Use the built-in OpenAPI generator in .NET 10.
 - Add the bearer security scheme to the generated document.
 - Keep the generated spec stable enough for downstream web and mobile code generation.
+- Keep cross-cutting financial headers explicit and required in generated OpenAPI: `Idempotency-Key` on supported financial creates, `If-Match` on guarded mutations, and `ETag` on successful versioned responses.
 
 Controller rules:
 
@@ -429,6 +432,8 @@ Controller rules:
 - Keep action methods thin.
 - Declare response types with `[ProducesResponseType]`.
 - Protected endpoints must use the explicit auth filters.
+- `If-Match` uses one exact strong ETag representation: a quoted positive decimal PostgreSQL `xmin` value such as `"123"`. Missing or malformed preconditions are 400 resource-key errors; stale roots are 409 resource-key errors. Response DTOs expose `Version`, while mutation request bodies do not duplicate that precondition.
+- `Idempotency-Key` is a required header on supported financial creates. The application scopes it by endpoint plus authenticated branch/user, hashes the typed request through the shared canonical JSON hasher, and persists the resource id and response envelope atomically with the business write.
 
 API DI rules:
 

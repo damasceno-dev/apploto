@@ -1,4 +1,5 @@
 using System.Net;
+using CommonTestUtilities.Requests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using server.Application.Services.Transactions;
@@ -24,11 +25,60 @@ public class TransactionControllerFinalizeUnhappyPathTest(ServerWebApplicationFa
             Role.Manager,
             status: TransactionStatus.Active);
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/finalize", ctx.Token);
+        var httpResponse = await _client.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
         payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_CANNOT_FINALIZE_NON_DRAFT);
+    }
+
+    [Fact]
+    public async Task Finalize_ShouldReturn400_WhenIfMatchIsMissing()
+    {
+        var ctx = await SeedTransactionContextAsync("TxnFinalizeMissingIfMatch400", Role.Manager);
+
+        var httpResponse = await _client.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.CONCURRENCY_IF_MATCH_REQUIRED);
+    }
+
+    [Fact]
+    public async Task Finalize_ShouldReturnExactStaleWriteKey_WhenDraftWasUpdatedAfterLoad()
+    {
+        var ctx = await SeedTransactionContextAsync("TxnFinalizeStale409", Role.Manager);
+        var updateRequest = new RequestUpdateTransactionJsonBuilder()
+            .WithDescription("updated by another manager")
+            .WithDueDate(ctx.Transaction.Date.AddDays(30))
+            .Build();
+
+        var updateResponse = await _client.PutAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}",
+            updateRequest,
+            ctx.Token,
+            ctx.Transaction.Version);
+        updateResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await updateResponse.Content.ReadAsStringAsync());
+
+        var finalizeResponse = await _client.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
+
+        finalizeResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict, await finalizeResponse.Content.ReadAsStringAsync());
+        var payload = await finalizeResponse.ReadContentAsync<TestResponseErrorJson>();
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
+
+        var persisted = await factory.ReloadAsync<Transaction>(ctx.Transaction.Id);
+        persisted.ShouldNotBeNull();
+        persisted.Status.ShouldBe(TransactionStatus.Draft);
+        persisted.Description.ShouldBe(updateRequest.Description);
+        persisted.DueDate.ShouldBe(updateRequest.DueDate);
     }
 
     [Fact]
@@ -39,7 +89,10 @@ public class TransactionControllerFinalizeUnhappyPathTest(ServerWebApplicationFa
             Role.Member,
             linkCallerToAccount: false);
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/finalize", ctx.Token);
+        var httpResponse = await _client.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -54,7 +107,10 @@ public class TransactionControllerFinalizeUnhappyPathTest(ServerWebApplicationFa
             Role.Member,
             recordedByCaller: false);
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/finalize", ctx.Token);
+        var httpResponse = await _client.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -80,7 +136,10 @@ public class TransactionControllerFinalizeUnhappyPathTest(ServerWebApplicationFa
             Role.Member,
             date: utcDate);
 
-        var httpResponse = await customClient.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/finalize", ctx.Token);
+        var httpResponse = await customClient.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

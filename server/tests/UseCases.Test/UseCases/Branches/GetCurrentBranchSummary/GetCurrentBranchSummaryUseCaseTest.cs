@@ -2,6 +2,7 @@ using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Transactions;
 using server.Application.UseCases.Branches.GetCurrentBranchSummary;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
@@ -29,7 +30,12 @@ public class GetCurrentBranchSummaryUseCaseTest
             .GetById(branch.Id, branch)
             .Build();
 
-        var useCase = new GetCurrentBranchSummaryUseCase(authenticationService, branchesRepository);
+        var branchClock = Substitute.For<IBranchClock>();
+        var utcNow = new DateTime(2026, 8, 20, 15, 30, 0, DateTimeKind.Utc);
+        var branchLocalNow = new DateTime(2026, 8, 20, 12, 30, 0, DateTimeKind.Unspecified);
+        branchClock.UtcNow().Returns(utcNow);
+        branchClock.LocalBusinessDateTime(utcNow).Returns(branchLocalNow);
+        var useCase = new GetCurrentBranchSummaryUseCase(authenticationService, branchesRepository, branchClock);
 
         var response = await useCase.Execute();
 
@@ -39,6 +45,9 @@ public class GetCurrentBranchSummaryUseCaseTest
         response.Branch.Address.ShouldBe(branch.Address);
         response.Branch.Phone.ShouldBe(branch.Phone);
         response.Branch.Role.ShouldBe(Role.Admin);
+        response.BranchLocalDate.ShouldBe(DateOnly.FromDateTime(branchLocalNow));
+        response.BranchLocalDateTime.ShouldBe(branchLocalNow);
+        response.BranchLocalDateTime.Kind.ShouldBe(DateTimeKind.Unspecified);
         await branchesRepository.Received(1).GetById(branch.Id);
     }
 
@@ -56,7 +65,10 @@ public class GetCurrentBranchSummaryUseCaseTest
             .GetById(branchUser.BranchId, null)
             .Build();
 
-        var useCase = new GetCurrentBranchSummaryUseCase(authenticationService, branchesRepository);
+        var useCase = new GetCurrentBranchSummaryUseCase(
+            authenticationService,
+            branchesRepository,
+            Substitute.For<IBranchClock>());
 
         var exception = await Should.ThrowAsync<NotFoundException>(useCase.Execute);
 

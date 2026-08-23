@@ -404,7 +404,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
     {
         return _client.PutAuthAsync(
             $"/dailyclose/{closeId}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = productId, Value = value }]

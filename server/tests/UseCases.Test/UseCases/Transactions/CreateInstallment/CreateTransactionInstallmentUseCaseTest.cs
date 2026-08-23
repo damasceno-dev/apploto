@@ -6,6 +6,7 @@ using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Holidays;
+using server.Application.Services.Idempotency;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
@@ -57,7 +58,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows.Count.ShouldBe(3);
@@ -84,7 +85,7 @@ public class CreateTransactionInstallmentUseCaseTest
             ctx.Account.Type,
             ctx.Request.Date.Date,
             Arg.Any<CancellationToken>());
-        await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.UnitOfWork.Received(2).Commit();
         await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
@@ -111,7 +112,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        var response = await useCase.Execute(ctx.Request);
+        var response = await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows.Count.ShouldBe(installmentCount);
@@ -130,7 +131,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         await ctx.TransactionsRepository.Received(1)
             .AddRange(Arg.Is<IEnumerable<Transaction>>(rows => rows.Count() == installmentCount));
-        await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.UnitOfWork.Received(2).Commit();
     }
 
     [Fact]
@@ -148,7 +149,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows[0].DueDate.DayOfWeek.ShouldBe(DayOfWeek.Monday);
@@ -180,7 +181,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows[0].DueDate.ShouldBe(firstInstallmentDate);
@@ -210,7 +211,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<OnValidationException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_INSTALLMENT_ROW_VALUE_MUST_BE_POSITIVE);
         await ctx.TransactionsRepository.DidNotReceive().AddRange(Arg.Any<IEnumerable<Transaction>>());
@@ -223,7 +224,7 @@ public class CreateTransactionInstallmentUseCaseTest
         var ctx = BuildHappyPathContext(SettlementRule.SameDay);
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_INSTALLMENT_REQUIRES_CHEQUE);
         await ctx.TransactionsRepository.DidNotReceive().AddRange(Arg.Any<IEnumerable<Transaction>>());
@@ -254,7 +255,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows.Count.ShouldBe(3);
@@ -295,7 +296,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows.Count.ShouldBe(installmentCount);
@@ -326,7 +327,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows.Count.ShouldBe(3);
@@ -348,7 +349,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCaseCapturingRows(ctx, out var capturedRowsAccessor);
 
-        await useCase.Execute(ctx.Request);
+        await useCase.Execute(ctx.Request, "unit-test-key");
 
         var rows = capturedRowsAccessor();
         rows.Count.ShouldBe(4);
@@ -368,7 +369,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Request));
+        var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() => useCase.Execute(ctx.Request, "unit-test-key"));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await ctx.TransactionsRepository.DidNotReceive().AddRange(Arg.Any<IEnumerable<Transaction>>());
@@ -414,13 +415,41 @@ public class CreateTransactionInstallmentUseCaseTest
             lockDateGuard,
             ctx.BranchHolidaySource);
         var installmentPlanBuilder = new InstallmentPlanBuilder();
+        var idempotencyRequestsRepository = Substitute.For<IIdempotencyRequestsRepository>();
+        var idempotencyRequestCoordination = Substitute.For<IIdempotencyRequestCoordination>();
+        var idempotencyRequestCoordinationScope = Substitute.For<IIdempotencyRequestCoordinationScope>();
+        idempotencyRequestCoordination
+            .TryAcquire(
+                Arg.Any<string>(),
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(idempotencyRequestCoordinationScope);
+        idempotencyRequestsRepository
+            .TryAcquireScopeLock(
+                Arg.Any<string>(),
+                Arg.Any<Guid>(),
+                Arg.Any<Guid>(),
+                Arg.Any<string>(),
+                Arg.Any<CancellationToken>())
+            .Returns(true);
+        var financialCommandIdempotency = new FinancialCommandIdempotency(
+            idempotencyRequestsRepository,
+            idempotencyRequestCoordination,
+            new CanonicalJsonRequestHasher());
+        var branchClock = Substitute.For<IBranchClock>();
+        branchClock.UtcNow().Returns(new DateTime(2026, 8, 21, 12, 0, 0, DateTimeKind.Utc));
 
         return new CreateTransactionInstallmentUseCase(
+            ctx.AuthenticationService,
             transactionCreatePreamble,
             installmentPlanBuilder,
             ctx.TransactionsRepository,
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            financialCommandIdempotency,
+            branchClock,
             lockDateGuard,
             ctx.UnitOfWork);
     }
@@ -512,6 +541,32 @@ public class CreateTransactionInstallmentUseCaseTest
             UnitOfWork = unitOfWork,
             BranchHolidaySource = branchHolidaySource
         };
+    }
+
+    [Fact]
+    public void Mapper_ShouldRejectAnEmptyPlan()
+    {
+        var transactions = Array.Empty<Transaction>();
+
+        var exception = Should.Throw<InvalidOperationException>(
+            () => transactions.ToCreateInstallmentResponse());
+
+        exception.Message.ShouldBe("An installment response requires at least one transaction.");
+    }
+
+    [Fact]
+    public void Mapper_ShouldRejectRowsFromDifferentDatabaseTransactions()
+    {
+        IReadOnlyList<Transaction> transactions =
+        [
+            new() { Version = 17 },
+            new() { Version = 18 }
+        ];
+
+        var exception = Should.Throw<InvalidOperationException>(
+            () => transactions.ToCreateInstallmentResponse());
+
+        exception.Message.ShouldBe("Installments created as one plan must share the same version.");
     }
 
     private static DateTime NextDayOfWeek(DateTime start, DayOfWeek dayOfWeek)

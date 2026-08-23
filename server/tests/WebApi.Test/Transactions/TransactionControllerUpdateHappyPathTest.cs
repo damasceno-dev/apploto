@@ -50,7 +50,7 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
             .Build();
 
         var beforeUpdate = DateTime.UtcNow;
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
         var afterUpdate = DateTime.UtcNow;
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -65,6 +65,8 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         payload.UpdatedAt.Value.ShouldBeGreaterThanOrEqualTo(beforeUpdate.AddSeconds(-1));
         payload.UpdatedAt.Value.ShouldBeLessThanOrEqualTo(afterUpdate.AddSeconds(1));
         payload.UpdatedByUserId.ShouldBe(user.Id);
+        httpResponse.Headers.ETag.ShouldNotBeNull();
+        httpResponse.Headers.ETag.Tag.ShouldBe($"\"{payload.Version}\"");
 
         var persisted = await factory.ReloadAsync<Transaction>(transaction.Id);
         persisted.ShouldNotBeNull();
@@ -115,7 +117,7 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
             .WithTransactionTime(new TimeOnly(16, 20))
             .Build();
 
-        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/transaction/{transaction.Id}", request, token, transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 

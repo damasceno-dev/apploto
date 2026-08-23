@@ -10,6 +10,7 @@ public class TransactionBuilder
     private Guid _id = Guid.NewGuid();
     private DateTime _createdAt = DateTime.UtcNow;
     private bool _active = true;
+    private uint _version;
     private DateTime _date;
     private decimal _value;
     private string? _description;
@@ -57,6 +58,7 @@ public class TransactionBuilder
             _id = existing.Id,
             _createdAt = existing.CreatedAt,
             _active = existing.Active,
+            _version = existing.Version,
             _date = existing.Date,
             _value = existing.Value,
             _description = existing.Description,
@@ -105,6 +107,12 @@ public class TransactionBuilder
     public TransactionBuilder WithActive(bool active)
     {
         _active = active;
+        return this;
+    }
+
+    public TransactionBuilder WithVersion(uint version)
+    {
+        _version = version;
         return this;
     }
 
@@ -324,6 +332,7 @@ public class TransactionBuilder
             Id = _id,
             CreatedAt = _createdAt,
             Active = _active,
+            Version = _version,
             Date = _date,
             Value = _value,
             Description = _description,

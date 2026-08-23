@@ -23,7 +23,11 @@ public class CancelTransactionUseCase(
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseTransactionJson> Execute(Guid transactionId,RequestCancelTransactionJson request,CancellationToken ct = default)
+    public async Task<ResponseTransactionJson> Execute(
+        Guid transactionId,
+        RequestCancelTransactionJson request,
+        uint expectedVersion,
+        CancellationToken ct = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         Validate(request);
@@ -46,6 +50,9 @@ public class CancelTransactionUseCase(
 
         if (transaction.Status == TransactionStatus.Cancelled)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_ALREADY_CANCELLED);
+
+        if (transaction.Version != expectedVersion)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
 
         if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
         {

@@ -8,10 +8,6 @@ public class PutDailyCloseItemsFluentValidation : AbstractValidator<RequestPutDa
 {
     public PutDailyCloseItemsFluentValidation()
     {
-        RuleFor(r => r.Version)
-            .NotEqual(0u)
-            .WithMessage(ResourcesErrorMessages.DAILYCLOSE_VERSION_REQUIRED);
-
         RuleFor(r => r.Items)
             .ValidateDailyCloseItems();
 

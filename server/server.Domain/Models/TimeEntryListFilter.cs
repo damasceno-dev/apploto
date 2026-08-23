@@ -8,6 +8,8 @@ public class TimeEntryListFilter
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }
     public TimeEntryStatus? Status { get; set; }
+    public bool? IsInProgress { get; set; }
+    public bool InProgressFirst { get; set; }
     public bool? Mine { get; set; }
 
     /// <summary>

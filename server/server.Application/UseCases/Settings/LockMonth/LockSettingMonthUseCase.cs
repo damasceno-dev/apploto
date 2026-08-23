@@ -21,7 +21,10 @@ public sealed class LockSettingMonthUseCase(
     IMonthLockCoordination monthLockCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseSettingJson> Execute(RequestLockSettingMonthJson request, CancellationToken ct = default)
+    public async Task<ResponseSettingJson> Execute(
+        RequestLockSettingMonthJson request,
+        uint expectedVersion,
+        CancellationToken ct = default)
     {
         Validate(request);
         ct.ThrowIfCancellationRequested();
@@ -40,6 +43,9 @@ public sealed class LockSettingMonthUseCase(
 
         var setting = await settingsRepository.GetByBranchId(branchUser.BranchId, ct)
             ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+
+        if (setting.Version != expectedVersion)
+            throw new ConflictException(ResourcesErrorMessages.SETTING_STALE_WRITE);
         var branch = await branchesRepository.GetById(branchUser.BranchId, ct)
             ?? throw new InvalidOperationException($"Branch row missing for branch {branchUser.BranchId}.");
 

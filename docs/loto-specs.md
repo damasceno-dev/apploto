@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md (this file is canonical; derived artifacts: docs/loto_presentation.html, docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-Lotero mapping.
-Spec revision: v38
+Spec revision: v39
 -->
 
-> **Status:** Revised spec (v38) — the M7.7 Phase 4 findings audit brings every TimeEntry write path under the same month boundary and `LockDate` check, pins the live reconciliation projection and settings OpenAPI contract, and gives old pre-command `LockDate` values a bounded recovery path. Ancient partial boundaries clamp to the first operational month instead of scanning empty centuries; impossible current/future legacy boundaries can be repaired only by the explicit command after whole-interval validation. The v37 data-aware floor and expanded Phase 3 close chain remain unchanged. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission remains in M7.6.
+> **Status:** Revised spec (v39) — M7.7 Phase 6 ships the frontend-support contracts: persisted financial-create idempotency, one strong `If-Match`/ETag `xmin` convention for versioned aggregate mutations, server-authoritative branch-local date/time, and the B/E/M/T query and identity conveniences. The v38 month-lock findings and expanded Phase 3 close chain remain unchanged. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission outside the Phase 6 headers remains in M7.6.
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -47,6 +47,7 @@ Spec revision: v38
 > v36: M7.7 Phase 4 atomic month lock — `POST /setting/lock-month { Year, Month }` is the only way to advance `Setting.LockDate`; `PUT /setting` rejects `LockDate`. Readiness uses closes in any state plus direct active Terminal ledger activity as the expected-pair set, applies no calendar or activation-window special case, ignores paired-Tab fiado for Terminal expectation, validates every unlocked month from the branch-created floor, and prohibits current/future months. The command and every Phase 3 ledger/close-history writer share a branch advisory boundary in canonical month-before-account order. Monthly reconciliation now uses the same single-month readiness evaluator and reports missing expected closes structurally.
 > v37: M7.7 Phase 4 floor-integrity audit — on a fresh `DateTime.MinValue` setting, the initial lock floor is `min(branch-local Branch.CreatedAt month, earliest active DailyClose.Date month, earliest non-soft-deleted Transaction.Date month across every status)`. These discovery reads execute under the exclusive branch month boundary, so participating backdated writes either commit first and are validated or wait and fail their in-scope `LockDate` recheck. Clean pre-creation history is accepted without extra manager work; unresolved earlier history returns `SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED` with its `MM/yyyy` month. No schema change or manager-facing backdate prohibition was added.
 > v38: M7.7 Phase 4 findings audit — all five TimeEntry mutation routes (`PUT /timeentry`, whole-entry `DELETE`, and granular segment `POST`/`PUT`/`DELETE`) acquire the shared branch month boundary, reload or resolve their effective date, recheck `TIMEENTRY_DATE_LOCKED`, and commit before releasing it, so payroll-hour corrections cannot bypass or race a successful lock. Month and account coordination have independently configurable five-second timeouts; the settings boundary recognizes nested PostgreSQL `55P03` and returns `SETTING_LOCK_MONTH_COORDINATION_BUSY`. Non-MinValue legacy boundaries are clamped to the data-aware operational floor when lower, while an impossible current/future value written by the retired PUT path is repaired only through a successful whole-interval command. The live report projection, both settings 409 paths, concurrent lock commands, and the Phase 4 OpenAPI surface are pinned against PostgreSQL. Dead `SETTING_LOCK_DATE_RETREAT` live-contract wording/resources were removed; no schema change or migration was required.
+> v39: M7.7 Phase 6 (items 6.1–6.8) — transaction lists accept `OriginTransactionId` without widening Member account scope and return each row's `OriginTransactionId` plus `xmin` `Version` for direct guarded sibling actions; cash-variance rows carry their exact `(Date, AccountId)` close id; membership removal atomically clears every Operator login link for that user/branch; `GET /branch/current` exposes one-capture branch-local date/time with an unambiguous `date` plus offset-free branch-wall-clock wire format; transaction and installment creates require persisted, endpoint+branch+user-scoped `Idempotency-Key` handling with canonical typed-body hashing and a 24-hour replay envelope; transaction update/finalize/cancel, DailyClose items, setting update, and month lock share the exact strong quoted-decimal `xmin` `If-Match`/ETag convention; and time-entry lists filter/order in-progress rows before paging. The Phase 6 forward marker in §6.11 is discharged; later Phase 5/7 markers remain.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -301,6 +302,8 @@ public class Operator : EntityBase
 **Unique active user-link constraint:** `(BranchId, UserId) WHERE UserId IS NOT NULL AND Active = true` — a user can have at most one active linked Operator per branch. Multiple terminal/account access is represented through `OperatorAccount`, not through multiple active Operator rows for the same user. Operators without a login keep `UserId = null` and are not constrained by this index.
 
 **Login-link clearing:** `PUT /operator/{id}` with `UserId = null` intentionally clears the login link while preserving the active `Operator` row for history, reporting, and account assignment continuity. This does not deactivate or delete the employee record.
+
+Removing a branch membership applies the same rule automatically: the membership deactivation and every matching `Operator.UserId = null` update for that `(UserId, BranchId)` commit atomically. Clearing was chosen instead of exposing a stale link because Operator is the durable employee/audit identity while User membership is login authority; historical rows and account assignments remain attached to the Operator, but no employee row can continue to imply a branch login after that login is removed.
 
 ### 3.7 Account
 
@@ -565,6 +568,9 @@ public class Transaction : EntityBase
     // Tenant
     public Guid BranchId { get; set; }
     public Branch Branch { get; set; } = null!;
+
+    // PostgreSQL xmin system column; not a user-defined table column.
+    public uint Version { get; set; }
 }
 ```
 
@@ -590,6 +596,7 @@ public class Transaction : EntityBase
 | CancelledByUserId    | uuid          | NULL     | FK → User                                                                                                                    |
 | CancellationReason   | varchar(500)  | NULL     |                                                                                                                              |
 | BranchId             | uuid          | NOT NULL | FK → Branch                                                                                                                  |
+| Version              | xid           | NOT NULL | PostgreSQL `xmin` system column, exposed as `uint`; optimistic-concurrency token                                            |
 | CreatedAt            | timestamptz   | NOT NULL |                                                                                                                              |
 | Active               | boolean       | NOT NULL | EntityBase default. Redundant with Status for transactions but kept for consistency                                          |
 
@@ -879,6 +886,9 @@ public class Setting : EntityBase
 
     public Guid BranchId { get; set; }
     public Branch Branch { get; set; } = null!;
+
+    // PostgreSQL xmin system column; not a user-defined table column.
+    public uint Version { get; set; }
 }
 ```
 
@@ -890,8 +900,46 @@ public class Setting : EntityBase
 | LunchDeductionOver6H | numeric(4,2) | NOT NULL | Default 1.00. Hours deducted for lunch when worked >6h                            |
 | LunchDeductionOver4H | numeric(4,2) | NOT NULL | Default 0.25. Hours deducted for break when worked >4h but ≤6h                    |
 | BranchId             | uuid         | NOT NULL | FK → Branch. UNIQUE — one setting row per branch                                  |
+| Version              | xid          | NOT NULL | PostgreSQL `xmin` system column, exposed as `uint`; optimistic-concurrency token  |
 | CreatedAt            | timestamptz  | NOT NULL |                                                                                   |
 | Active               | boolean      | NOT NULL |                                                                                   |
+
+---
+
+### 3.19 IdempotencyRequest
+
+A persisted replay record for supported financial create commands. It is infrastructure for command delivery semantics, not a financial ledger row.
+
+```csharp
+public class IdempotencyRequest : EntityBase
+{
+    public string Key { get; set; } = string.Empty;
+    public string Endpoint { get; set; } = string.Empty;
+    public string PayloadHash { get; set; } = string.Empty;
+    public Guid ResourceId { get; set; }
+    public string ResponseEnvelope { get; set; } = string.Empty;
+    public DateTime ExpiresAt { get; set; }
+
+    public Guid BranchId { get; init; }
+    public Guid UserId { get; init; }
+}
+```
+
+| Column           | Type         | Null     | Notes                                                        |
+|------------------|--------------|----------|--------------------------------------------------------------|
+| Id               | uuid         | PK       |                                                              |
+| Key              | varchar(128) | NOT NULL | Client `Idempotency-Key`                                     |
+| Endpoint         | varchar(100) | NOT NULL | Exact command scope                                           |
+| PayloadHash      | varchar(64)  | NOT NULL | Uppercase SHA-256 of canonical typed JSON                    |
+| ResourceId       | uuid         | NOT NULL | Created transaction id or first installment id               |
+| ResponseEnvelope | text         | NOT NULL | Deterministic response replay                                |
+| ExpiresAt        | timestamptz  | NOT NULL | Replay expiry; row becomes purge-eligible after 24 hours     |
+| BranchId         | uuid         | NOT NULL | Restricted FK → Branch                                      |
+| UserId           | uuid         | NOT NULL | Restricted FK → User                                        |
+| CreatedAt        | timestamptz  | NOT NULL | Reset when an expired key is reused                          |
+| Active           | boolean      | NOT NULL | EntityBase default                                           |
+
+**Unique scope:** `(Endpoint, BranchId, UserId, Key)`. A transaction-scoped PostgreSQL advisory lock serializes this exact scope before its tracked row is read or created. The reservation/replay record and financial rows commit in the same database transaction, so neither can survive without the other.
 
 ---
 
@@ -1114,6 +1162,16 @@ Both import endpoints accept a `source` query parameter (`Composite | Canonical 
 - `Draft` status transactions are excluded from all financial calculations (sums, balances, reports)
 - Only `Active` transactions count in ledger totals
 
+**Financial-create idempotency.** `POST /transaction` and `POST /transaction/installment` require a client `Idempotency-Key` header containing 1–128 visible ASCII characters. Its persisted scope is the exact endpoint plus authenticated `BranchId`, `UserId`, and key, so the same text may be used independently by another command, branch, or user. The typed request is serialized with the web JSON contract and canonicalized by ordinal object-property ordering, stable invariant decimal/double formatting, and preserved array order before uppercase SHA-256 hashing. A matching unexpired key and hash replays the persisted response envelope, including the same resource id and `Version`; it does not execute the business command again. The same scoped key with a different hash returns 409 `IDEMPOTENCY_KEY_PAYLOAD_CONFLICT`. Missing/invalid keys return 400 `IDEMPOTENCY_KEY_REQUIRED` / `IDEMPOTENCY_KEY_INVALID`.
+
+Reservations expire after **24 hours**. The exact idempotency scope is serialized with a transaction-scoped PostgreSQL advisory lock, and the replay row plus financial write commit in the same database transaction. Concurrent equal requests therefore produce exactly one write and deterministic replay; a crash can roll back both, never strand a reservation or an unpaired business write. The reusable infrastructure is also the required delivery contract for the Phase 5 *Receber pagamento* command when that command ships.
+
+A committed replay lookup runs first in a short transaction that acquires only the idempotency advisory key. A matching retry therefore returns its durable envelope without waiting for DailyClose account/month coordination and cannot become `DAILYCLOSE_LEDGER_COORDINATION_BUSY` merely because Submit/Approve is holding the account boundary. A miss or expired key releases that short scope, acquires the normal account coordination, and rechecks/reserves the idempotency scope inside the same transaction as the business write; the atomicity guarantee above remains unchanged.
+
+The replay-first coordinator sets a transaction-local PostgreSQL `lock_timeout` before taking the idempotency advisory key: five seconds by default, independently configurable through `IdempotencyRequestCoordination:LockTimeoutSeconds`. If that wait expires, the request returns retryable 409 `IDEMPOTENCY_COORDINATION_BUSY`; it never falls through to the longer provider command timeout or reuses the unrelated DailyClose coordination message. The account-coordinated reservation path inherits its own transaction-local timeout and uses the same conflict key.
+
+Expiry also drives physical retention. A hosted cleanup runs once every 24 hours by default and selects `ExpiresAt <= utcNow` candidates ordered by `ExpiresAt, Id`, using `IX_IdempotencyRequests_ExpiresAt`. Each deletion transaction is capped at 500 candidates, while the daily run drains successive bounded batches until none remain; therefore an uninterrupted default deployment normally retains an envelope for 24 to 48 hours. Every candidate is serialized on its normal idempotency advisory key and its expiry is rechecked in the deletion transaction, so a concurrent expired-key refresh wins safely and multiple API instances may sweep without deleting a live replay. Both interval and batch size are positive, deploy-time settings documented in `server/docs/database-environments.md`.
+
 ### 6.2 Transaction cancellation
 
 - Transactions on the current day: operator can cancel their own (checked via `RecordedByOperatorId == currentOperator.Id`)
@@ -1121,6 +1179,7 @@ Both import endpoints accept a `source` query parameter (`Composite | Canonical 
 - Transactions on or before `Setting.LockDate`: cannot be cancelled by anyone
 - Cancellation sets `Status = Cancelled`, `CancelledAt = now`, `CancelledByUserId`, and requires `CancellationReason`
 - Cancelled transactions remain in the database, visible in audit views, excluded from financial calculations
+- `POST /transaction/{id}/cancel` requires the current Transaction ETag in `If-Match` and returns the new ETag; see the exact §6.11 concurrency wire contract.
 
 ### 6.3 Installments (cheque pre-dated)
 
@@ -1139,6 +1198,8 @@ When a pre-dated cheque is recorded with installments, the system creates N sepa
 **All installments share the same `OriginTransactionId`, including the first** (which points to itself). This simplifies group lookups: `WHERE OriginTransactionId = @groupId` returns all members. This matches the Access behavior where `lco_origem` on the first installment is set to its own `lco_id`.
 
 `SaveAsDraft = true` persists every generated/manual row with `Status = Draft`; the default is `Active`.
+
+The installment create uses the same persisted idempotency contract as the single-row create, with its own endpoint scope. Its replay envelope contains the full ordered plan response; `ResourceId` records the first installment id. The non-empty plan is inserted by one PostgreSQL transaction, so every returned row has the same create-time `xmin`; `ResponseCreateTransactionInstallmentJson.Version` exposes that plan token and the 201 `ETag` matches it. Response mapping rejects an empty plan or mixed row versions as an internal invariant violation instead of indexing an unchecked first row.
 
 Credit card transactions do NOT create multiple rows — the total is stored as one transaction with description "Parcelado 3x" or "à vista". The installment split is informational only for credit cards in the current system.
 
@@ -1183,7 +1244,7 @@ WHERE AccountId = @tabAccountId
 
 **Pre-submit variance.** `POST /dailyclose/{dailyCloseId}/variance-preview` accepts the complete candidate item list currently in the form and computes §6.12 through the same `ICashVarianceCalculator` used by Submit. Candidate values are authoritative for the preview — saved Draft items are never substituted. It reuses Submit's DailyClose read/edit scope, status and lock checks plus the item validation rules (active in-branch products only; no duplicate ids; non-negative `numeric(14,2)` values; the reserved variance product forbidden). It returns `ResponseDailyCloseVariancePreviewJson { CashVariance }` and never persists.
 
-**Item-save response, first claim, change detection, and Notes.** `PUT /dailyclose/{dailyCloseId}/items` accepts the normalized complete non-variance item set, optional `Notes`, and the close's `Version` precondition. It discovers the key without tracking, acquires account coordination, reloads, and only then authorizes the tracked state. An unclaimed close (`RecordedByUserId == null`) is the sole item-edit exception that lets any account-scoped Member make the first count; it is deliberately absent from Submit and Recall. Omitted Notes preserve the current value; an empty string clears it; non-empty text is stored verbatim with a 1000-character maximum. Notes are editable on a permitted Draft/Rejected-correction path and frozen once submitted. The response is `ResponsePutDailyCloseItemsJson { DailyClose, AffectedSuccessor? }`; an affected successor carries `{ DailyCloseId, Date, PreviousStatus, NewStatus, OpeningRecheckRequiredAt }`. Notes-only, identical, reordered, and retried saves do not invalidate a successor or change recorder identity. Add/remove/value changes and first-count eligibility do. Exactly the earliest later eligible Submitted/Approved/Rejected close returns to Draft with opening-recheck audit; Draft/none is a no-op and no official snapshot is recomputed in place.
+**Item-save response, first claim, change detection, and Notes.** `PUT /dailyclose/{dailyCloseId}/items` accepts the normalized complete non-variance item set and optional `Notes`; the close `Version` precondition is carried only by the required `If-Match` header, never duplicated in the request body. It discovers the key without tracking, acquires account coordination, reloads, and only then authorizes the tracked state. An unclaimed close (`RecordedByUserId == null`) is the sole item-edit exception that lets any account-scoped Member make the first count; it is deliberately absent from Submit and Recall. Omitted Notes preserve the current value; an empty string clears it; non-empty text is stored verbatim with a 1000-character maximum. Notes are editable on a permitted Draft/Rejected-correction path and frozen once submitted. The response is `ResponsePutDailyCloseItemsJson { DailyClose, AffectedSuccessor? }`; the nested DailyClose carries the new `Version`, and the HTTP response carries its matching `ETag`. An affected successor carries `{ DailyCloseId, Date, PreviousStatus, NewStatus, OpeningRecheckRequiredAt }`. Notes-only, identical, reordered, and retried saves do not invalidate a successor or change recorder identity. Add/remove/value changes and first-count eligibility do. Exactly the earliest later eligible Submitted/Approved/Rejected close returns to Draft with opening-recheck audit; Draft/none is a no-op and no official snapshot is recomputed in place.
 
 **Fiado balance** is NOT stored as a DailyCloseItem — it is always calculated at query time from Tab account transactions (see rule 6.4). The daily close form displays it for reference but does not persist it as a snapshot value.
 
@@ -1191,7 +1252,9 @@ WHERE AccountId = @tabAccountId
 
 `Setting.LockDate` defines the immutable cutoff. Transactions on or before this date cannot be created, edited, finalized, or cancelled. Every DailyClose workflow transition on or before this date is blocked: Open, item-save/first count, Submit, Approve, Reject, Rejected correction, Recall, and Reopen. Every TimeEntry mutation is likewise blocked on or before it: dual-shape upsert, whole-entry deactivation, and granular segment add/update/deactivate. `PUT /setting` treats `LockDate` as read-only: any non-null value returns 400 `SETTING_LOCK_DATE_READ_ONLY`; that endpoint may update only the other settings. The sole write path for `LockDate` is the explicit Manager/Admin command `POST /setting/lock-month`.
 
-**Lock-month command.** The body is `RequestLockSettingMonthJson { Year, Month }`; year must be 2000–2100 (`SETTING_LOCK_MONTH_YEAR_OUT_OF_RANGE`) and month 1–12 (`SETTING_LOCK_MONTH_INVALID`), both 400. A successful 200 returns `ResponseSettingJson`, sets `LockDate` to the requested month's final calendar day, and commits the readiness check and update atomically. The branch-local current month and every future **request** month are unfinished and return 409 `SETTING_LOCK_MONTH_CURRENT_OR_FUTURE`. Replaying a month already at or before a valid historical `LockDate` is a conflict/no-op with 409 `SETTING_LOCK_MONTH_ALREADY_LOCKED`; requesting before the effective operational floor returns 409 `SETTING_LOCK_MONTH_BEFORE_BRANCH_FLOOR`.
+**Lock-month command.** The body is `RequestLockSettingMonthJson { Year, Month }`; year must be 2000–2100 (`SETTING_LOCK_MONTH_YEAR_OUT_OF_RANGE`) and month 1–12 (`SETTING_LOCK_MONTH_INVALID`), both 400. The command requires the current Setting root ETag in `If-Match`. A successful 200 returns `ResponseSettingJson` with the new `Version` and matching `ETag`, sets `LockDate` to the requested month's final calendar day, and commits the readiness check and update atomically. A stale root returns 409 `SETTING_STALE_WRITE`. The branch-local current month and every future **request** month are unfinished and return 409 `SETTING_LOCK_MONTH_CURRENT_OR_FUTURE`. Replaying a month already at or before a valid historical `LockDate` is a conflict/no-op with 409 `SETTING_LOCK_MONTH_ALREADY_LOCKED`; requesting before the effective operational floor returns 409 `SETTING_LOCK_MONTH_BEFORE_BRANCH_FLOOR`.
+
+`PUT /setting` uses the same Setting-root `If-Match`/ETag contract. Aggregate coordination and client concurrency have separate jobs: the branch boundary makes readiness and writes atomic, while `xmin` rejects a client decision based on a stale Setting representation.
 
 **Interval, initial floor, and legacy recovery.** The command validates every month from the first unlocked month through the requested month, inclusive. `Branch.CreatedAt` is only the **no-data default**: the effective floor is the earliest month among branch-local `Branch.CreatedAt`, every active DailyClose's business `Date` (any status), and every non-soft-deleted Transaction's business `Date` (Active/Draft/Cancelled). Thus a legitimate backfill/import before branch creation remains allowed and is reconciled instead of silently sealed. Clean earlier history passes without manager intervention. A valid existing boundary begins in its next month (or the same month when that old imported value is not month-end), clamped upward to the effective operational floor; a non-MinValue year-1 value therefore cannot trigger thousands of empty monthly queries. A current/future `LockDate` could only have come from the retired PUT path and is invalid under the final contract: the command ignores that untrusted boundary, validates from the operational floor through the requested elapsed month, and replaces it with the requested month-end on success. This narrow self-repair keeps `PUT /setting` closed and never permits a current/future request month. A non-final month that is not ready stops the request with 409 `SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED`, formatted with the first blocking month (`O mês MM/yyyy precisa ser resolvido antes de avançar o bloqueio`), so the manager knows exactly which reconciliation view to open. Therefore a request for June cannot skip unresolved May—or unresolved operational data before the CreatedAt month.
 
@@ -1376,6 +1439,8 @@ Example 8 — overnight via Member tap routing:
     → Monday remains a completed overnight entry; Tuesday is a separate current-day entry
 ```
 
+**List triage contract.** `GET /timeentry` accepts nullable `IsInProgress` and `InProgressFirst` filters in `RequestListTimeEntriesJson`. `IsInProgress = true` means the active entry has an active segment whose `ClockOut` is null; `false` means it does not. The predicate is translated into the repository query before count or paging. When `InProgressFirst = true`, that same database predicate orders open entries first before the existing deterministic date/id order and before `Skip`/`Take`, so forgotten punches are prioritized across the whole result set rather than only inside the current page.
+
 ### 6.8 Credit card due date calculation
 
 Business day aware: skips weekends and branch holidays.
@@ -1403,6 +1468,8 @@ The same principle applies to DailyClose: `DailyClose.BranchId` must equal `Acco
 
 This prevents cross-branch data leakage in a multi-tenant system. In EF Core, implement as a shared validation method called by all relevant use cases, not as a DB trigger (keeps the logic testable and explicit).
 
+**Server-authoritative branch clock.** `GET /branch/current` returns `ResponseGetCurrentBranchSummaryJson` with `BranchLocalDate: DateOnly` and `BranchLocalDateTime: DateTime`. The use case captures `IBranchClock.UtcNow()` once and derives both values from that same instant in the selected branch time zone; the date is exactly the date component of the local time. The JSON wire contract is exact: `BranchLocalDate` is `YYYY-MM-DD` (OpenAPI `string/date`), while `BranchLocalDateTime` is an offset-free branch-wall-clock `YYYY-MM-DDTHH:mm:ss[.fffffff]` value (OpenAPI `string/date-time`) with neither `Z` nor a numeric offset. Clients treat the former as a calendar date and the latter as branch-local display context—not as a UTC instant—and never derive the branch business date from a device clock. The account/operator self-context remains focused on assignments and does not duplicate the clock fields.
+
 ### 6.10 Member transaction read scope
 
 Members read transactions through the same scope used by `MemberAccountScopeGuard`: a Member sees a transaction if and only if the transaction's `AccountId` is in the Member's set of active linked operator accounts. Three response shapes follow from this contract:
@@ -1418,14 +1485,21 @@ Members read transactions through the same scope used by `MemberAccountScopeGuar
   - `Mine = true` is a convenience filter: the server resolves the caller's linked operator and sets the repository `OperatorId` filter to that operator. It never expands or changes `AllowedAccountIds`, and combining `Mine = true` with an explicit `OperatorId` returns 400.
   - When a Member has no linked operator OR has a linked operator with zero active `OperatorAccount` rows AND does not supply an explicit `AccountId`, the use case short-circuits to `Items = []`, `TotalCount = 0` without calling the repository's list/count methods.
   - When a Member supplies an explicit `AccountId` outside their linked set, the same empty short-circuit applies.
+  - `OriginTransactionId` is an optional server-side filter. It enumerates every sibling plan row sharing that origin only after the branch and Member account predicates have been applied; it never widens `AllowedAccountIds`. The no-operator, zero-account, and explicit out-of-scope empty short-circuits remain unchanged.
 
-The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious`) and joined names (`AccountName`, `ClientName`, `TransactionTypeName`) on each item so operational screens don't N+1 the API.
+The list response carries paging metadata (`TotalPages`, `HasNext`, `HasPrevious`), joined names (`AccountName`, `ClientName`, `TransactionTypeName`), the nullable plan-group `OriginTransactionId`, and the row's positive `xmin` `Version`. A client can identify plan membership and enumerate `GET /transaction?OriginTransactionId={groupId}`, then send one guarded cancel per selected sibling using each returned `Version` as `If-Match`; no per-row detail GET is required.
 
 ### 6.11 Transaction mutation contract
 
-> ⚠ **Pending M7.7 change (Phase 6; signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** financial creates (`POST /transaction`, `/transaction/installment`, the *Receber pagamento* command) honor a client `Idempotency-Key`; mutating endpoints carry an optimistic-concurrency precondition via Postgres `xmin` → `409` on stale writes. Phase 6 owns removal of this marker.
+**Optimistic-concurrency wire contract.** `DailyClose`, `Transaction`, and `Setting` responses expose their PostgreSQL `xmin` as a positive `uint Version` and successful versioned reads/writes emit the same value as a strong HTTP `ETag`. The only accepted precondition representation is one quoted decimal token, for example `If-Match: "123"`; weak tags (`W/`), unquoted values, zero, wildcard, or comma-separated tags are invalid. A missing precondition returns 400 `CONCURRENCY_IF_MATCH_REQUIRED`; malformed input returns 400 `CONCURRENCY_IF_MATCH_INVALID`. Stale aggregate roots return 409 using the exact family key: `TRANSACTION_STALE_WRITE`, `DAILYCLOSE_STALE_WRITE`, or `SETTING_STALE_WRITE`. EF's `DbUpdateConcurrencyException` translation uses the same keys as the explicit pre-write comparison.
+
+An `xmin` ETag is a short-lived UI concurrency token, not a durable business revision id. PostgreSQL transaction-id wraparound maintenance and tuple freezing can make a long-held token stale; clients must reload after the resulting 409 and must not persist ETags for later sessions.
+
+The guarded commands are transaction update/finalize/cancel, DailyClose item-save, setting update, and month lock. Aggregate commands compare the root row: Transaction for finalize, DailyClose for `/items`, Setting for `lock-month`. A success returns the new `Version` plus matching `ETag`; clients must reload and reconcile after a stale conflict rather than resubmit blindly. Financial create replay is separately safe for blind retry through §6.1 idempotency.
 
 Transaction update is intentionally narrow. The client sends the editable subset only, and the server preserves the financial identity of the row. Draft finalization is a pure state transition: the client sends no request body, and the server promotes a `Draft` transaction to `Active`. Cancellation is a terminal state transition: the client sends a required `CancellationReason`, and the server moves a `Draft` or `Active` row to `Cancelled` with an explicit cancellation audit trail. All three operations share the same member account scope, mutation permission matrix, lock-date behavior, and generic update audit convention.
+
+`PUT /transaction/{transactionId}`, `POST /transaction/{transactionId}/finalize`, and `POST /transaction/{transactionId}/cancel` require the current Transaction `If-Match`; all three return `ResponseTransactionJson.Version` and the matching new `ETag`. A stale finalization returns 409 `TRANSACTION_STALE_WRITE` and leaves the newer Draft values untouched.
 
 **DailyClose ledger binding.** A Terminal `POST /transaction` or `/transaction/installment` requires an active same-day DailyClose. Missing close returns 409 `TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE`; Draft is writable; Submitted/Approved/Rejected returns 409 `TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN`. Tab and Bank are exempt only from the missing-close prerequisite: if an active non-Draft close does exist for their exact account/day, the same freeze applies. Finalize and cancel remain null-tolerant for legacy/existing rows with no close, but reject any active non-Draft close. These four mutation families share §6.6 account coordination with the close workflow.
 
@@ -1553,7 +1627,7 @@ All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`,
 
 **System-only product.** The `"Diferença Caixa"` product is resolved by display name and is owned by Submit. It is never accepted in client `PUT /items` payloads (`DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN`), never deleted on correction/Recall/Reopen/opening recheck, and is updated in place on resubmission. Every ordinary Draft `ResponseDailyCloseJson.Items` omits the retained row; review flags it but returns a null Draft closing value.
 
-**Draft item-save concurrency and Notes.** `ResponseDailyCloseJson` and `ResponseDailyCloseReviewJson` carry `Version`, mapped to PostgreSQL's `xmin` system column. `PUT /dailyclose/{id}/items` performs no-track key discovery, account coordination, tracked reload/revalidation, then mutation/commit. This ordering also serializes first claim: after one scoped Member commits the recorder identity, a competing scoped Member reloads a claimed close and receives `DAILYCLOSE_NOT_EDITABLE`. It requires the request version; a stale precondition returns 409 `DAILYCLOSE_STALE_WRITE`, and EF's concurrency check guards the post-comparison race. Translation remains limited to `DailyClose` entries. The request's optional `Notes` is max 1000, verbatim, empty-clearing, and frozen at submit. Phase 6 generalizes the wire convention across remaining mutation families.
+**Draft item-save concurrency and Notes.** `ResponseDailyCloseJson` and `ResponseDailyCloseReviewJson` carry `Version`, mapped to PostgreSQL's `xmin` system column. `PUT /dailyclose/{id}/items` performs no-track key discovery, account coordination, tracked reload/revalidation, then mutation/commit. This ordering also serializes first claim: after one scoped Member commits the recorder identity, a competing scoped Member reloads a claimed close and receives `DAILYCLOSE_NOT_EDITABLE`. It requires the strong `If-Match` precondition defined in §6.11; a stale value returns 409 `DAILYCLOSE_STALE_WRITE`, and EF's concurrency check guards the post-comparison race. The request body contains only items and Notes. The request's optional `Notes` is max 1000, verbatim, empty-clearing, and frozen at submit.
 
 ---
 
@@ -1593,6 +1667,8 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 **Financial total filters.** All financial aggregates filter on `Status = Active AND Active = true` (entity-base soft-delete). `Draft` and `Cancelled` rows are excluded from sums, balances, and totals. This applies to daily ledger balances, fiado balances, aging rows, cash-variance inputs, and monthly reconciliation totals.
 
 **Aggregation.** Aggregate queries (`SumActiveByX`, `ListOpenReceivables`, `ListVarianceTimeSeries`) live in repositories. Use cases never materialize whole tables into memory and aggregate in C#.
+
+**Cash-variance summary deep-link.** Each `ResponseCashVarianceSummaryItemJson` carries `{ DailyCloseId, Date, AccountId, AccountName, DailyCloseStatus, VarianceValue }`. `DailyCloseId` identifies the close for the row's exact `(Date, AccountId)` within the authenticated branch; it is never resolved by date alone. Sibling accounts closed on the same date therefore keep independent variance values and deep-links.
 
 **Fiado aging report.** `GET /report/fiado/aging` — Manager/Admin. Returns a paginated list of individual unpaid Tab-account receivable rows with per-row aging metadata.
 

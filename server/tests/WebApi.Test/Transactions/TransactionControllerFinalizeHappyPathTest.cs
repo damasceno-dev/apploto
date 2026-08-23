@@ -22,7 +22,10 @@ public class TransactionControllerFinalizeHappyPathTest(ServerWebApplicationFact
         var ctx = await SeedDraftTransactionContextAsync("TxnFinalizeHappy", Role.Manager);
 
         var beforeUpdate = DateTime.UtcNow;
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/finalize", ctx.Token);
+        var httpResponse = await _client.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
         var afterUpdate = DateTime.UtcNow;
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -33,6 +36,8 @@ public class TransactionControllerFinalizeHappyPathTest(ServerWebApplicationFact
         payload.UpdatedAt.Value.ShouldBeGreaterThanOrEqualTo(beforeUpdate.AddSeconds(-1));
         payload.UpdatedAt.Value.ShouldBeLessThanOrEqualTo(afterUpdate.AddSeconds(1));
         payload.UpdatedByUserId.ShouldBe(ctx.User.Id);
+        httpResponse.Headers.ETag.ShouldNotBeNull();
+        httpResponse.Headers.ETag.Tag.ShouldBe($"\"{payload.Version}\"");
 
         var persisted = await factory.ReloadAsync<Transaction>(ctx.Transaction.Id);
         persisted.ShouldNotBeNull();
@@ -62,7 +67,10 @@ public class TransactionControllerFinalizeHappyPathTest(ServerWebApplicationFact
             Role.Member,
             date: localBusinessDate);
 
-        var httpResponse = await customClient.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/finalize", ctx.Token);
+        var httpResponse = await customClient.PostAuthAsync(
+            $"/transaction/{ctx.Transaction.Id}/finalize",
+            ctx.Token,
+            ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var persisted = await factory.ReloadAsync<Transaction>(ctx.Transaction.Id);

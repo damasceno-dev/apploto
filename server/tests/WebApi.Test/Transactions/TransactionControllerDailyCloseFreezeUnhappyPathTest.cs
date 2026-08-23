@@ -81,7 +81,7 @@ public class TransactionControllerDailyCloseFreezeUnhappyPathTest(ServerWebAppli
             account.Id,
             transactionType.Id,
             date,
-            existingTransaction?.Id);
+            existingTransaction);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -104,7 +104,7 @@ public class TransactionControllerDailyCloseFreezeUnhappyPathTest(ServerWebAppli
         Guid accountId,
         Guid transactionTypeId,
         DateTime date,
-        Guid? transactionId)
+        Transaction? transaction)
     {
         return mutation switch
         {
@@ -127,12 +127,14 @@ public class TransactionControllerDailyCloseFreezeUnhappyPathTest(ServerWebAppli
                     .Build(),
                 token),
             LedgerMutation.Finalize => _client.PostAuthAsync(
-                $"/transaction/{transactionId!.Value}/finalize",
-                token),
+                $"/transaction/{transaction!.Id}/finalize",
+                token,
+                transaction.Version),
             LedgerMutation.Cancel => _client.PostAuthAsync(
-                $"/transaction/{transactionId!.Value}/cancel",
+                $"/transaction/{transaction!.Id}/cancel",
                 new RequestCancelTransactionJsonBuilder().Build(),
-                token),
+                token,
+                expectedVersion: transaction.Version),
             _ => throw new ArgumentOutOfRangeException(nameof(mutation), mutation, null)
         };
     }

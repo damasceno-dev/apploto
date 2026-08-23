@@ -14,6 +14,7 @@ using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
 using server.Domain.Entities.Enums;
+using server.Headers;
 
 namespace server.Controllers;
 
@@ -36,6 +37,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(request, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Created(string.Empty, response);
     }
 
@@ -66,10 +68,16 @@ public class DailyCloseController : ControllerBase
     public async Task<IActionResult> PutItems(
         [FromServices] PutDailyCloseItemsUseCase useCase,
         [FromRoute] Guid dailyCloseId,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
         [FromBody] RequestPutDailyCloseItemsJson request,
         CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(dailyCloseId, request, cancellationToken);
+        var response = await useCase.Execute(
+            dailyCloseId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            cancellationToken);
+        EntityTagHeader.Set(Response, response.DailyClose.Version);
         return Ok(response);
     }
 
@@ -87,6 +95,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -104,6 +113,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -123,6 +133,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, request, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -141,6 +152,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -160,6 +172,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -176,6 +189,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -192,6 +206,7 @@ public class DailyCloseController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 

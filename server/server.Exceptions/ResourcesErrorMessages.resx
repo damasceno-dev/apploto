@@ -408,9 +408,6 @@
     <data name="DAILYCLOSE_NOTES_FROZEN" xml:space="preserve">
         <value>As observações do fechamento diário não podem ser alteradas após o envio</value>
     </data>
-    <data name="DAILYCLOSE_VERSION_REQUIRED" xml:space="preserve">
-        <value>A versão do fechamento diário deve ser informada</value>
-    </data>
     <data name="DAILYCLOSE_STALE_WRITE" xml:space="preserve">
         <value>O fechamento diário foi alterado por outra pessoa; recarregue os dados e tente novamente</value>
     </data>
@@ -656,6 +653,30 @@
     </data>
     <data name="SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE" xml:space="preserve">
         <value>O tempo de dedução deve ser maior ou igual a zero, menor ou igual a 8 horas e ter no máximo 2 casas decimais</value>
+    </data>
+    <data name="IDEMPOTENCY_KEY_REQUIRED" xml:space="preserve">
+        <value>O cabeçalho Idempotency-Key é obrigatório</value>
+    </data>
+    <data name="IDEMPOTENCY_KEY_INVALID" xml:space="preserve">
+        <value>O cabeçalho Idempotency-Key deve ter entre 1 e 128 caracteres ASCII visíveis</value>
+    </data>
+    <data name="IDEMPOTENCY_KEY_PAYLOAD_CONFLICT" xml:space="preserve">
+        <value>A chave de idempotência já foi usada com um conteúdo diferente</value>
+    </data>
+    <data name="IDEMPOTENCY_COORDINATION_BUSY" xml:space="preserve">
+        <value>A chave de idempotência está sendo processada por outra operação; tente novamente</value>
+    </data>
+    <data name="CONCURRENCY_IF_MATCH_REQUIRED" xml:space="preserve">
+        <value>O cabeçalho If-Match é obrigatório</value>
+    </data>
+    <data name="CONCURRENCY_IF_MATCH_INVALID" xml:space="preserve">
+        <value>O cabeçalho If-Match deve conter uma única ETag forte no formato &quot;123&quot;</value>
+    </data>
+    <data name="TRANSACTION_STALE_WRITE" xml:space="preserve">
+        <value>A transação foi alterada por outra operação; recarregue antes de salvar</value>
+    </data>
+    <data name="SETTING_STALE_WRITE" xml:space="preserve">
+        <value>As configurações foram alteradas por outra operação; recarregue antes de salvar</value>
     </data>
     <data name="REPORT_DATE_RANGE_REQUIRED" xml:space="preserve">
         <value>O intervalo de datas é obrigatório</value>

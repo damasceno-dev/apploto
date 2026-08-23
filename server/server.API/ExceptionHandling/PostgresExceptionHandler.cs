@@ -28,7 +28,9 @@ internal static class PostgresExceptionHandler
             ["IX_Holidays_BranchId_Date"] = ResourcesErrorMessages.HOLIDAY_DATE_CONFLICT,
             ["IX_Categories_BranchId_Name"] = ResourcesErrorMessages.CATEGORY_NAME_CONFLICT,
             ["IX_TransactionTypes_CategoryId_Name"] = ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT,
-            ["IX_Products_BranchId_Name"] = ResourcesErrorMessages.PRODUCT_NAME_CONFLICT
+            ["IX_Products_BranchId_Name"] = ResourcesErrorMessages.PRODUCT_NAME_CONFLICT,
+            ["IX_IdempotencyRequests_Endpoint_BranchId_UserId_Key"] =
+                ResourcesErrorMessages.IDEMPOTENCY_COORDINATION_BUSY
         };
 
     public static Exception Normalize(Exception exception)
@@ -41,6 +43,18 @@ internal static class PostgresExceptionHandler
             && concurrencyException.Entries.Any(entry => entry.Entity is DailyClose))
         {
             return new ConflictException(ResourcesErrorMessages.DAILYCLOSE_STALE_WRITE);
+        }
+
+        if (exception is DbUpdateConcurrencyException transactionConcurrencyException
+            && transactionConcurrencyException.Entries.Any(entry => entry.Entity is Transaction))
+        {
+            return new ConflictException(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
+        }
+
+        if (exception is DbUpdateConcurrencyException settingConcurrencyException
+            && settingConcurrencyException.Entries.Any(entry => entry.Entity is Setting))
+        {
+            return new ConflictException(ResourcesErrorMessages.SETTING_STALE_WRITE);
         }
 
         // Only rewrite known Postgres unique-violation cases. Everything else

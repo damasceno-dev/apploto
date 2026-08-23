@@ -825,12 +825,6 @@ namespace server.Exceptions {
             }
         }
 
-        public static string DAILYCLOSE_VERSION_REQUIRED {
-            get {
-                return ResourceManager.GetString("DAILYCLOSE_VERSION_REQUIRED", resourceCulture);
-            }
-        }
-
         public static string DAILYCLOSE_STALE_WRITE {
             get {
                 return ResourceManager.GetString("DAILYCLOSE_STALE_WRITE", resourceCulture);
@@ -1320,6 +1314,54 @@ namespace server.Exceptions {
         public static string SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE {
             get {
                 return ResourceManager.GetString("SETTING_LUNCH_DEDUCTION_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
+        public static string IDEMPOTENCY_KEY_REQUIRED {
+            get {
+                return ResourceManager.GetString("IDEMPOTENCY_KEY_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string IDEMPOTENCY_KEY_INVALID {
+            get {
+                return ResourceManager.GetString("IDEMPOTENCY_KEY_INVALID", resourceCulture);
+            }
+        }
+
+        public static string IDEMPOTENCY_KEY_PAYLOAD_CONFLICT {
+            get {
+                return ResourceManager.GetString("IDEMPOTENCY_KEY_PAYLOAD_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string IDEMPOTENCY_COORDINATION_BUSY {
+            get {
+                return ResourceManager.GetString("IDEMPOTENCY_COORDINATION_BUSY", resourceCulture);
+            }
+        }
+
+        public static string CONCURRENCY_IF_MATCH_REQUIRED {
+            get {
+                return ResourceManager.GetString("CONCURRENCY_IF_MATCH_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CONCURRENCY_IF_MATCH_INVALID {
+            get {
+                return ResourceManager.GetString("CONCURRENCY_IF_MATCH_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_STALE_WRITE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_STALE_WRITE", resourceCulture);
+            }
+        }
+
+        public static string SETTING_STALE_WRITE {
+            get {
+                return ResourceManager.GetString("SETTING_STALE_WRITE", resourceCulture);
             }
         }
 

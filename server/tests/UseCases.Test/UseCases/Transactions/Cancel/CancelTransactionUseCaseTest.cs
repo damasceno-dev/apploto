@@ -56,7 +56,7 @@ public class CancelTransactionUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Transaction.Id, request);
+        var response = await useCase.Execute(ctx.Transaction.Id, request, ctx.Transaction.Version);
 
         response.Id.ShouldBe(ctx.Transaction.Id);
         response.Status.ShouldBe(TransactionStatus.Cancelled);
@@ -96,10 +96,10 @@ public class CancelTransactionUseCaseTest
             .Build();
 
         var exception = await Should.ThrowAsync<OnValidationException>(
-            () => useCase.Execute(ctx.Transaction.Id, request));
+            () => useCase.Execute(ctx.Transaction.Id, request, ctx.Transaction.Version));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_CANCELLATION_REASON_EMPTY);
-        await ctx.TransactionsRepository.DidNotReceiveWithAnyArgs().GetByIdAndBranchId(default, default);
+        await ctx.TransactionsRepository.DidNotReceiveWithAnyArgs().GetByIdAndBranchId(Guid.Empty, default);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -116,7 +116,7 @@ public class CancelTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<ConflictException>(
-            () => useCase.Execute(ctx.Transaction.Id, ValidRequest()));
+            () => useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_ALREADY_CANCELLED);
         ctx.MutationPermissionGuard.DidNotReceiveWithAnyArgs()
@@ -135,7 +135,7 @@ public class CancelTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<NotFoundException>(
-            () => useCase.Execute(transactionId, ValidRequest()));
+            () => useCase.Execute(transactionId, ValidRequest(), ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
         await ctx.TransactionsRepository.Received(1)
@@ -161,7 +161,7 @@ public class CancelTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<ConflictException>(
-            () => useCase.Execute(ctx.Transaction.Id, ValidRequest()));
+            () => useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_DATE_LOCKED);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -177,7 +177,7 @@ public class CancelTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
-            () => useCase.Execute(ctx.Transaction.Id, ValidRequest()));
+            () => useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         ctx.MutationPermissionGuard.DidNotReceiveWithAnyArgs()
@@ -207,7 +207,7 @@ public class CancelTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
-            () => useCase.Execute(ctx.Transaction.Id, ValidRequest()));
+            () => useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version));
 
         exception.Message.ShouldBe(errorMessage);
         ctx.MutationPermissionGuard.Received(1).EnsureAllowed(
@@ -238,7 +238,7 @@ public class CancelTransactionUseCaseTest
         ctx.BranchClock = branchClock;
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.Transaction.Id, ValidRequest());
+        var response = await useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version);
 
         response.Status.ShouldBe(TransactionStatus.Cancelled);
         await ctx.UnitOfWork.Received(1).Commit();
@@ -265,7 +265,7 @@ public class CancelTransactionUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(
-            () => useCase.Execute(ctx.Transaction.Id, ValidRequest()));
+            () => useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -291,7 +291,7 @@ public class CancelTransactionUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        await useCase.Execute(ctx.Transaction.Id, ValidRequest());
+        await useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version);
 
         var postCancelSum = await ctx.TransactionsRepository.SumActiveValueByAccountAndDateAsNoTracking(
             ctx.BranchUser.BranchId,

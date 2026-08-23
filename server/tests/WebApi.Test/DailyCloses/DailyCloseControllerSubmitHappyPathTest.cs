@@ -349,7 +349,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
     {
         var close = await factory.ReloadAsync<DailyClose>(closeId);
         close.ShouldNotBeNull();
-        var request = new RequestPutDailyCloseItemsJson
+        var request = new VersionedRequestPutDailyCloseItemsJson
         {
             Version = close.Version,
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = productId, Value = value }]

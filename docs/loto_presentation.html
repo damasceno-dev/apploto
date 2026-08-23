@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v38
+Spec revision: v39
 -->
 <html lang="en">
 <head>
@@ -250,6 +250,7 @@ const SLIDES=[
 {type:'intro',id:'domain'},
 {type:'intro',id:'parallel'},
 {type:'intro',id:'concepts'},
+{type:'intro',id:'integrity'},
 {type:'schema'},
 {type:'uc',title:'UC1: Cash Deposit',
  viewBox:'0 0 720 340',
@@ -388,7 +389,7 @@ const SLIDES=[
     {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Manager"',hl:'hl'}]}
    ]},
   {title:'Operator: Why Separate from User?',
-   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves and their User is deactivated, the Operator record (and all transactions, time entries, daily closings) remains intact. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Last Saturday (March 8):</b> Jennifer was <b>off</b>. Maria (Manager) logged in and covered her terminal. This is exactly why User, Operator, and Account are separate — on that day\'s transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another. Keep March 8 in mind — the next two stories happen on it.<br><br><span class="design-note"><span class="dn-label">Design note:</span> Operator links directly to User (optional FK), <em>not</em> to BranchUser — the link must survive BranchUser deactivation. Each User can have at most one active linked Operator per Branch (filtered unique index on (BranchId, UserId) where UserId is not null and Active is true). Updating an Operator with UserId null clears only the login link; the Operator row remains active for history, reporting, and account assignments. Branch consistency is enforced at the API/service layer.</span>',
+   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves, the Operator record (and all transactions, time entries, daily closings) remains intact after its login link is cleared. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Last Saturday (March 8):</b> Jennifer was <b>off</b>. Maria (Manager) logged in and covered her terminal. This is exactly why User, Operator, and Account are separate — on that day\'s transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another. Keep March 8 in mind — the next two stories happen on it.<br><br><span class="design-note"><span class="dn-label">Design note:</span> Operator links directly to User through an optional FK, while BranchUser owns login authority. Removing branch membership atomically clears every matching Operator.UserId in that branch but preserves the Operator row, history, reporting, and account assignments. Each User can have at most one active linked Operator per Branch (filtered unique index on (BranchId, UserId) where UserId is not null and Active is true).</span>',
    activeTables:['Operator','Branch','User'],
    activeArrows:['op-branch','op-user'],
    data:[
@@ -735,7 +736,7 @@ function renderTitle(i){
     <p class="subtitle">A lottery house cash management SaaS — digitizing daily operations from paper + Microsoft Access</p>
     <ul class="bullets">
       <li>.NET + EF Core + PostgreSQL</li>
-      <li>18 entities, multi-tenant (Branch = tenant)</li>
+      <li>19 entities, multi-tenant (Branch = tenant)</li>
       <li>Transaction ledger + Daily closing snapshot</li>
     </ul>
     <p class="acts"><b>Part I</b> — The Business &nbsp;·&nbsp; <b>Part II</b> — Six Stories &nbsp;·&nbsp; <b>Part III</b> — The Payoff</p>
@@ -747,7 +748,7 @@ function renderSchema(i){
   const groups=[
     {name:'Auth',color:'var(--blue)',entities:['User','RefreshToken','BranchUser','Branch']},
     {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account']},
-    {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client']},
+    {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client','IdempotencyRequest']},
     {name:'Closing',color:'var(--purple)',entities:['DailyClose','DailyCloseItem','Product']},
     {name:'HR',color:'var(--teal)',entities:['TimeEntry','TimeEntrySegment','Holiday','Setting']}
   ];
@@ -756,7 +757,7 @@ function renderSchema(i){
     return `<div class="schema-group"><h3 style="border-bottom-color:${g.color};color:${g.color}">${g.name}</h3>${ents}</div>`;
   }).join('');
   return `<div class="slide schema-slide" data-idx="${i}">
-    <h2>The Map — 18 Entities</h2>
+    <h2>The Map — 19 Entities</h2>
     <p style="font-size:14px;color:var(--dim);font-style:italic;margin:-18px 0 24px;text-align:center">The complete data map behind the stories and architectural decisions ahead.</p>
     <div class="schema-groups">${gs}</div>
   </div>`;
@@ -873,6 +874,33 @@ function renderIntro(s,i){
     </div>
   </div>`;
 
+  if(s.id==='integrity') return `<div class="slide intro-slide" data-idx="${i}">
+    <h2>Reliable Commands, Authoritative Context</h2>
+    <p class="intro-sub">The Phase 6 wire contracts clients build on</p>
+    <div class="intro-cols">
+      <div class="intro-col">
+        <div class="intro-card" style="border-left:3px solid var(--amber)">
+          <h3 class="accent-color">Money Creates Are Retry-Safe</h3>
+          <p><code>POST /transaction</code> and <code>/transaction/installment</code> require <code>Idempotency-Key</code>. The endpoint + authenticated Branch/User + key and canonical typed-body hash are persisted for a 24-hour replay window with the resource id and response envelope. Matching retries replay; a different body is a verbatim 409. A committed replay is read under its idempotency key before DailyClose account coordination, while a new reservation and its ledger write still share one database transaction. The replay-key wait has its own five-second transaction-local timeout and returns a retryable idempotency 409 instead of falling through to the provider timeout. After expiry, a bounded hosted sweep uses the same idempotency lock and physically purges stale envelopes.</p>
+        </div>
+        <div class="intro-card" style="border-left:3px solid var(--blue)">
+          <h3 class="blue-color">One Concurrency Language</h3>
+          <p>Transaction, DailyClose, and Setting expose PostgreSQL <code>xmin</code> as <code>Version</code> and a strong quoted-decimal <code>ETag</code>. Transaction update/finalize/cancel, item-save, setting update, and month lock send that token in <code>If-Match</code>; stale roots return their signed 409 key. The token is session-lived rather than a durable revision id: after a stale response, clients reload it.</p>
+        </div>
+      </div>
+      <div class="intro-col">
+        <div class="intro-card" style="border-left:3px solid var(--teal)">
+          <h3 class="teal-color">The Branch Owns “Now”</h3>
+          <p><code>GET /branch/current</code> returns <code>BranchLocalDate</code> as unambiguous <code>YYYY-MM-DD</code> and <code>BranchLocalDateTime</code> as an offset-free branch-wall-clock value from one <code>IBranchClock</code> capture. Business-day defaults no longer depend on a device clock or timezone conversion.</p>
+        </div>
+        <div class="intro-card" style="border-left:3px solid var(--green)">
+          <h3 class="in-color">Operational Deep-Links and Triage</h3>
+          <p>Cash-variance rows carry their exact close id by <code>(Date, AccountId)</code>; transaction lists identify and filter plan siblings by <code>OriginTransactionId</code> without widening Member scope, and every row carries its <code>Version</code> for a direct guarded action; time-entry lists filter/order <code>IsInProgress</code> before paging. Membership removal clears stale Operator login links atomically.</p>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
   if(s.id==='morning') return `<div class="slide intro-slide" data-idx="${i}">
     <h2>The Morning After: Maria&#39;s Dashboard</h2>
     <p class="intro-sub">Sunday, March 16 — everything the six stories produced, on one screen</p>
@@ -881,7 +909,7 @@ function renderIntro(s,i){
         <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. Dashboard, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
         <div class="intro-card">
           <h3 class="accent-color">The Work Queue</h3>
-          <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. A terminal with an open Draft close deep-links straight into it.</p>
+          <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. Cash-variance summary rows also carry that exact <code>DailyCloseId</code>, and a terminal with an open Draft close deep-links straight into it.</p>
         </div>
         <div class="intro-card">
           <h3 class="blue-color">The Close Review</h3>
@@ -913,6 +941,7 @@ function renderClosing(i){
     {t:'Fiado Isolation',d:'Terminal and Tab accounts keep customer credit out of cash drawer counts. Fiado balance is queried from Tab transactions.'},
     {t:'Branch Consistency',d:'Transaction and DailyClose references must resolve to the same Branch. The service layer blocks cross-tenant mixes.'},
     {t:'Transaction Scope',d:'Members work only with linked-account, same-day rows they recorded. Managers and Admins review broader branch workflows.'},
+    {t:'Retry + Concurrency Contracts',d:'Persisted Idempotency-Key replay makes financial creates safe to retry. Strong If-Match/ETag xmin tokens reject stale Transaction, DailyClose, and Setting roots.'},
     {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft.'},
     {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},

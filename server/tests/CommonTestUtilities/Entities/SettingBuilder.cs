@@ -6,6 +6,7 @@ public class SettingBuilder
 {
     private Guid _id = Guid.NewGuid();
     private Guid _branchId = Guid.NewGuid();
+    private uint _version;
     private DateTime _lockDate = DateTime.MinValue;
     private decimal _dailyTargetHours = 7.33m;
     private decimal _lunchDeductionOver6H = 1.0m;
@@ -20,6 +21,12 @@ public class SettingBuilder
     public SettingBuilder WithBranchId(Guid branchId)
     {
         _branchId = branchId;
+        return this;
+    }
+
+    public SettingBuilder WithVersion(uint version)
+    {
+        _version = version;
         return this;
     }
 
@@ -52,6 +59,7 @@ public class SettingBuilder
         return new Setting
         {
             Id = _id,
+            Version = _version,
             BranchId = _branchId,
             LockDate = _lockDate,
             DailyTargetHours = _dailyTargetHours,

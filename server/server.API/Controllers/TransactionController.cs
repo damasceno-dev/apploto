@@ -9,10 +9,12 @@ using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.InstallmentPreview;
 using server.Application.UseCases.Transactions.List;
 using server.Application.UseCases.Transactions.Update;
+using server.Application.Services.Idempotency;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Filters;
+using server.Headers;
 
 namespace server.Controllers;
 
@@ -32,6 +34,7 @@ public class TransactionController : ControllerBase
         [FromRoute] Guid transactionId)
     {
         var response = await useCase.Execute(transactionId);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -60,10 +63,12 @@ public class TransactionController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromServices] CreateTransactionUseCase createTransactionUseCase,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
         [FromBody] RequestCreateTransactionJson request,
         CancellationToken cancellationToken)
     {
-        var response = await createTransactionUseCase.Execute(request, cancellationToken);
+        var response = await createTransactionUseCase.Execute(request, idempotencyKey, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Created(string.Empty, response);
     }
 
@@ -97,10 +102,12 @@ public class TransactionController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> CreateInstallment(
         [FromServices] CreateTransactionInstallmentUseCase createTransactionInstallmentUseCase,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
         [FromBody] RequestCreateTransactionInstallmentJson request,
         CancellationToken cancellationToken)
     {
-        var response = await createTransactionInstallmentUseCase.Execute(request, cancellationToken);
+        var response = await createTransactionInstallmentUseCase.Execute(request, idempotencyKey, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Created(string.Empty, response);
     }
 
@@ -127,6 +134,7 @@ public class TransactionController : ControllerBase
     [Route("{transactionId:guid}/finalize")]
     [TokenAuthenticateBranch]
     [ProducesResponseType(typeof(ResponseTransactionJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
@@ -134,9 +142,14 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Finalize(
         [FromServices] FinalizeTransactionUseCase finalizeTransactionUseCase,
         [FromRoute] Guid transactionId,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
         CancellationToken cancellationToken)
     {
-        var response = await finalizeTransactionUseCase.Execute(transactionId, cancellationToken);
+        var response = await finalizeTransactionUseCase.Execute(
+            transactionId,
+            EntityTagHeader.ParseRequired(ifMatch),
+            cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -152,10 +165,16 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Cancel(
         [FromServices] CancelTransactionUseCase cancelTransactionUseCase,
         [FromRoute] Guid transactionId,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
         [FromBody] RequestCancelTransactionJson request,
         CancellationToken cancellationToken)
     {
-        var response = await cancelTransactionUseCase.Execute(transactionId, request, cancellationToken);
+        var response = await cancelTransactionUseCase.Execute(
+            transactionId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 
@@ -171,10 +190,16 @@ public class TransactionController : ControllerBase
     public async Task<IActionResult> Update(
         [FromServices] UpdateTransactionUseCase updateTransactionUseCase,
         [FromRoute] Guid transactionId,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
         [FromBody] RequestUpdateTransactionJson request,
         CancellationToken cancellationToken)
     {
-        var response = await updateTransactionUseCase.Execute(transactionId, request, cancellationToken);
+        var response = await updateTransactionUseCase.Execute(
+            transactionId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
 

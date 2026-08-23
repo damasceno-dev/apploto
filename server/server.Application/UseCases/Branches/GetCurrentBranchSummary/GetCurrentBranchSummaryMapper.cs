@@ -8,11 +8,16 @@ public static class GetCurrentBranchSummaryMapper
 {
     extension(Branch branch)
     {
-        public ResponseGetCurrentBranchSummaryJson ToCurrentBranchResponse(Role role)
+        public ResponseGetCurrentBranchSummaryJson ToCurrentBranchResponse(
+            Role role,
+            DateOnly branchLocalDate,
+            DateTime branchLocalDateTime)
         {
             return new ResponseGetCurrentBranchSummaryJson
             {
-                Branch = branch.ToBranchSummaryResponse(role)
+                Branch = branch.ToBranchSummaryResponse(role),
+                BranchLocalDate = branchLocalDate,
+                BranchLocalDateTime = branchLocalDateTime
             };
         }
     }

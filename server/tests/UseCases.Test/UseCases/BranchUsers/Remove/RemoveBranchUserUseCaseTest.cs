@@ -262,6 +262,10 @@ public class RemoveBranchUserUseCaseTest
         IBranchUsersRepository branchUsersRepository,
         IUnitOfWork unitOfWork)
     {
-        return new RemoveBranchUserUseCase(authenticationService, branchUsersRepository, unitOfWork);
+        return new RemoveBranchUserUseCase(
+            authenticationService,
+            branchUsersRepository,
+            new OperatorsRepositoryBuilder().Build(),
+            unitOfWork);
     }
 }

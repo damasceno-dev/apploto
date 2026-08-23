@@ -282,7 +282,8 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
         var monthResponse = await _client.PostAuthAsync(
             "/setting/lock-month",
             new RequestLockSettingMonthJson { Year = 2025, Month = 13 },
-            ctx.Token);
+            ctx.Token,
+            expectedVersion: 1);
         monthResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await monthResponse.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
             .ShouldContain(ResourcesErrorMessages.SETTING_LOCK_MONTH_INVALID);
@@ -301,12 +302,15 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
             .ShouldBe(expectedLockDate ?? DateTime.MinValue);
     }
 
-    private Task<HttpResponseMessage> Lock(LockContext ctx, DateTime month)
+    private async Task<HttpResponseMessage> Lock(LockContext ctx, DateTime month)
     {
-        return _client.PostAuthAsync(
+        var setting = await factory.ReloadAsync<Setting>(ctx.SettingId);
+        setting.ShouldNotBeNull();
+        return await _client.PostAuthAsync(
             "/setting/lock-month",
             new RequestLockSettingMonthJson { Year = month.Year, Month = month.Month },
-            ctx.Token);
+            ctx.Token,
+            expectedVersion: setting.Version);
     }
 
     private async Task<LockContext> SeedContext(

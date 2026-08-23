@@ -10,6 +10,7 @@ public static class SettingSharedMapper
         public ResponseSettingJson ToResponse() => new()
         {
             Id = setting.Id,
+            Version = setting.Version,
             LockDate = setting.LockDate,
             DailyTargetHours = setting.DailyTargetHours,
             LunchDeductionOver6H = setting.LunchDeductionOver6H,

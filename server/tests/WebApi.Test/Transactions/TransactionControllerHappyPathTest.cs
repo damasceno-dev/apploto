@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Net;
 using CommonTestUtilities.Requests;
 using Microsoft.Extensions.DependencyInjection;
+using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -149,6 +150,10 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
         var payload = await httpResponse.ReadContentAsync<ResponseCreateTransactionInstallmentJson>();
         payload.Installments.Count.ShouldBe(3);
         payload.Installments.Sum(installment => installment.Value).ShouldBe(request.Value);
+        payload.Version.ShouldBeGreaterThan(0u);
+        payload.Installments.All(installment => installment.Version == payload.Version).ShouldBeTrue();
+        httpResponse.Headers.ETag.ShouldNotBeNull();
+        httpResponse.Headers.ETag.Tag.ShouldBe($"\"{payload.Version}\"");
 
         var originId = payload.Installments[0].Id;
         var persisted = await ListInstallmentsAsync(originId, branch.Id);
@@ -471,6 +476,73 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
     }
 
     [Fact]
+    public async Task List_ShouldReturnActionableInstallmentSiblingsWithinMemberAccountScope()
+    {
+        var ctx = await SeedReadContextAsync("TxnListOriginMember", Role.Member);
+        var callerOperator = await factory.SeedOperatorAsync(ctx.Branch.Id, userId: ctx.User.Id);
+        var linkedAccount = await factory.SeedAccountAsync(ctx.Branch.Id, AccountType.BankAccount);
+        var unlinkedAccount = await factory.SeedAccountAsync(ctx.Branch.Id, AccountType.BankAccount);
+        await factory.SeedOperatorAccountAsync(callerOperator.Id, linkedAccount.Id);
+        var originId = Guid.NewGuid();
+        var transactionDate = new BranchClock().LocalBusinessDate(DateTime.UtcNow);
+
+        var firstSibling = await SeedReadTransactionAsync(
+            ctx,
+            id: originId,
+            accountId: linkedAccount.Id,
+            recordedByOperatorId: callerOperator.Id,
+            date: transactionDate,
+            originTransactionId: originId);
+        var secondSibling = await SeedReadTransactionAsync(
+            ctx,
+            accountId: linkedAccount.Id,
+            recordedByOperatorId: callerOperator.Id,
+            date: transactionDate,
+            originTransactionId: originId);
+        await SeedReadTransactionAsync(
+            ctx,
+            accountId: unlinkedAccount.Id,
+            date: transactionDate,
+            originTransactionId: originId);
+        var otherOriginId = Guid.NewGuid();
+        await SeedReadTransactionAsync(
+            ctx,
+            id: otherOriginId,
+            accountId: linkedAccount.Id,
+            recordedByOperatorId: callerOperator.Id,
+            date: transactionDate,
+            originTransactionId: otherOriginId);
+
+        var siblings = await GetListAsync($"/transaction?originTransactionId={originId}", ctx.Token);
+
+        siblings.Items.Select(item => item.Id).Order().ShouldBe(
+            new[] { firstSibling.Id, secondSibling.Id }.Order());
+        siblings.Items.All(item => item.OriginTransactionId == originId).ShouldBeTrue();
+        siblings.Items.All(item => item.Version > 0).ShouldBeTrue();
+        siblings.TotalCount.ShouldBe(2);
+
+        var outOfScope = await GetListAsync(
+            $"/transaction?originTransactionId={originId}&accountId={unlinkedAccount.Id}",
+            ctx.Token);
+        outOfScope.Items.ShouldBeEmpty();
+        outOfScope.TotalCount.ShouldBe(0);
+
+        foreach (var sibling in siblings.Items)
+        {
+            var cancelResponse = await _client.PostAuthAsync(
+                $"/transaction/{sibling.Id}/cancel",
+                new RequestCancelTransactionJsonBuilder().Build(),
+                ctx.Token,
+                expectedVersion: sibling.Version);
+
+            cancelResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await cancelResponse.Content.ReadAsStringAsync());
+        }
+
+        (await factory.ReloadAsync<Transaction>(firstSibling.Id))!.Status.ShouldBe(TransactionStatus.Cancelled);
+        (await factory.ReloadAsync<Transaction>(secondSibling.Id))!.Status.ShouldBe(TransactionStatus.Cancelled);
+    }
+
+    [Fact]
     public async Task List_ShouldOrderByDateTimeCreatedAtAndIdDescending()
     {
         var ctx = await SeedReadContextAsync("TxnListOrdering");
@@ -692,6 +764,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
         string? description = null,
         TimeOnly? transactionTime = null,
         Guid? clientId = null,
+        Guid? originTransactionId = null,
         TransactionStatus status = TransactionStatus.Active,
         DateTime? createdAt = null)
     {
@@ -708,6 +781,7 @@ public class TransactionControllerHappyPathTest(ServerWebApplicationFactory fact
             description: description,
             transactionTime: transactionTime,
             clientId: clientId,
+            originTransactionId: originTransactionId,
             status: status,
             createdAt: createdAt,
             id: id);

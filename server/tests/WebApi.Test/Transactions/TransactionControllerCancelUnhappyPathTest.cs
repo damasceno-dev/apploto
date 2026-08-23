@@ -28,7 +28,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
             .WithCancellationReason(string.Empty)
             .Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -41,7 +41,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("TxnCancelMissing404", Role.Manager);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{Guid.NewGuid()}/cancel", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{Guid.NewGuid()}/cancel", request, token, expectedVersion: 1);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -58,7 +58,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
         var (_, _, _, otherToken) = await factory.SeedFullBranchContextAsync("TxnCancelOtherBranch", Role.Manager);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, otherToken);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, otherToken, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -74,7 +74,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
             status: TransactionStatus.Cancelled);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -91,7 +91,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
         await factory.SeedSettingAsync(ctx.Transaction.BranchId, lockDate: ctx.Transaction.Date);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -112,7 +112,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
             linkCallerToAccount: false);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -129,7 +129,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
             recordedByCaller: false);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await _client.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -157,7 +157,7 @@ public class TransactionControllerCancelUnhappyPathTest(ServerWebApplicationFact
             date: utcDate);
         var request = new RequestCancelTransactionJsonBuilder().Build();
 
-        var httpResponse = await customClient.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token);
+        var httpResponse = await customClient.PostAuthAsync($"/transaction/{ctx.Transaction.Id}/cancel", request, ctx.Token, expectedVersion: ctx.Transaction.Version);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

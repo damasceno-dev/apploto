@@ -39,6 +39,9 @@ for var_name in "${required_vars[@]}"; do
 done
 
 db_port="${SERVER_DB_PORT:-5432}"
+idempotency_coordination_lock_timeout_seconds="${SERVER_IDEMPOTENCY_COORDINATION_LOCK_TIMEOUT_SECONDS:-5}"
+idempotency_cleanup_interval_hours="${SERVER_IDEMPOTENCY_CLEANUP_INTERVAL_HOURS:-24}"
+idempotency_cleanup_batch_size="${SERVER_IDEMPOTENCY_CLEANUP_BATCH_SIZE:-500}"
 target_file="$SERVER_API_DIR/appsettings.${ENVIRONMENT}.json"
 
 cat > "$target_file" <<EOF
@@ -49,6 +52,13 @@ cat > "$target_file" <<EOF
   "Token": {
     "SigningKey": "${SERVER_TOKEN_SIGNING_KEY}",
     "ExpirationTimeInMinutes": ${SERVER_TOKEN_EXPIRATION_MINUTES}
+  },
+  "IdempotencyRequestCoordination": {
+    "LockTimeoutSeconds": ${idempotency_coordination_lock_timeout_seconds}
+  },
+  "IdempotencyRequestCleanup": {
+    "SweepIntervalHours": ${idempotency_cleanup_interval_hours},
+    "BatchSize": ${idempotency_cleanup_batch_size}
   }
 }
 EOF

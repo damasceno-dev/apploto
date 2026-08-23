@@ -16,6 +16,7 @@ public class ResponseListTransactionsJson
 public class ResponseListTransactionItemJson
 {
     public Guid Id { get; init; }
+    public uint Version { get; init; }
     public DateTime Date { get; init; }
     public decimal Value { get; init; }
     public string? Description { get; init; }
@@ -29,5 +30,6 @@ public class ResponseListTransactionItemJson
     public string TransactionTypeName { get; init; } = string.Empty;
     public DateTime DueDate { get; init; }
     public DateTime? PaidAt { get; init; }
+    public Guid? OriginTransactionId { get; init; }
     public DateTime CreatedAt { get; init; }
 }

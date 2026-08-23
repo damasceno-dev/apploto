@@ -279,7 +279,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
 
         var countTask = countClient.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = ctx.ProductId, Value = 10m }]
@@ -343,7 +343,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
 
         var correctionTask = correctionClient.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = ctx.ProductId, Value = 20m }]
@@ -380,7 +380,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         var reopened = await reopen.ReadContentAsync<ResponseDailyCloseJson>();
         var correction = await client.PutAuthAsync(
             $"/dailyclose/{predecessor.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = reopened.Version,
                 Items = [new RequestUpsertDailyCloseItemJson { ProductId = ctx.ProductId, Value = 20m }]
@@ -405,7 +405,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
     }
 
     [Fact]
-    public async Task TwoConcurrentLockMonthCommands_ShouldSerializeToSuccessThenAlreadyLocked()
+    public async Task TwoConcurrentLockMonthCommands_ShouldSerializeToSuccessThenRejectStaleRoot()
     {
         var ctx = await SeedContext("SettingLockRaceTwoCommands");
         await using var grantOrderFactory = CreateGrantOrderFactory();
@@ -426,7 +426,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await firstResponse.Content.ReadAsStringAsync());
         secondResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict, await secondResponse.Content.ReadAsStringAsync());
         (await secondResponse.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
-            .ShouldContain(ResourcesErrorMessages.SETTING_LOCK_MONTH_ALREADY_LOCKED);
+            .ShouldContain(ResourcesErrorMessages.SETTING_STALE_WRITE);
         (await factory.ReloadAsync<Setting>(ctx.SettingId))!.LockDate
             .ShouldBe(ctx.Month.AddMonths(1).AddDays(-1));
     }
@@ -484,6 +484,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
             user.Id,
             branch.Id,
             setting.Id,
+            setting.Version,
             terminal.Id,
             op.Id,
             category.Id,
@@ -520,7 +521,8 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         return client.PostAuthAsync(
             "/setting/lock-month",
             new RequestLockSettingMonthJson { Year = ctx.Month.Year, Month = ctx.Month.Month },
-            ctx.Token);
+            ctx.Token,
+            expectedVersion: ctx.SettingVersion);
     }
 
     private async Task<uint> GetVersion(RaceContext ctx, Guid closeId)
@@ -616,6 +618,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         Guid UserId,
         Guid BranchId,
         Guid SettingId,
+        uint SettingVersion,
         Guid TerminalId,
         Guid OperatorId,
         Guid CategoryId,

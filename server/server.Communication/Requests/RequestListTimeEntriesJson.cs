@@ -8,6 +8,8 @@ public class RequestListTimeEntriesJson
     public DateTime? DateFrom { get; init; }
     public DateTime? DateTo { get; init; }
     public TimeEntryStatus? Status { get; init; }
+    public bool? IsInProgress { get; init; }
+    public bool InProgressFirst { get; init; }
 
     /// <summary>
     /// Convenience filter that resolves to the caller's linked operator id server-side.

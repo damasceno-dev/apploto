@@ -72,7 +72,7 @@ public class DailyCloseControllerVariancePreviewHappyPathTest(ServerWebApplicati
         var preview = await PreviewAsync(close.Id, candidates, token);
         var putResponse = await _client.PutAuthAsync(
             $"/dailyclose/{close.Id}/items",
-            new RequestPutDailyCloseItemsJson
+            new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
                 Items = candidates,

@@ -22,7 +22,10 @@ public class FinalizeTransactionUseCase(
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     IUnitOfWork unitOfWork)
 {
-    public async Task<ResponseTransactionJson> Execute(Guid transactionId, CancellationToken ct = default)
+    public async Task<ResponseTransactionJson> Execute(
+        Guid transactionId,
+        uint expectedVersion,
+        CancellationToken ct = default)
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
 
@@ -46,6 +49,9 @@ public class FinalizeTransactionUseCase(
         {
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_FINALIZE_NON_DRAFT);
         }
+
+        if (transaction.Version != expectedVersion)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
 
         if (branchUser.Role == Role.Member && memberScope.LinkedOperator is not null)
         {

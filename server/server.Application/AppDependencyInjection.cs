@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Holidays;
+using server.Application.Services.Idempotency;
 using server.Application.Services.Operators;
 using server.Application.Services.Members;
 using server.Application.Services.Reports;
@@ -168,6 +169,8 @@ public static class AppDependencyInjection
         services.AddScoped<TransactionCreatePreamble>();
         services.AddScoped<InstallmentPlanBuilder>();
         services.AddScoped<DueDateCalculator>();
+        services.AddScoped<CanonicalJsonRequestHasher>();
+        services.AddScoped<FinancialCommandIdempotency>();
         services.AddScoped<IBranchClock, BranchClock>();
         services.AddScoped<IMemberAccountScopeResolver, MemberAccountScopeResolver>();
         services.AddScoped<ILockDateReader, LockDateReader>();

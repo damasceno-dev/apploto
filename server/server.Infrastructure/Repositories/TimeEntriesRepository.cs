@@ -63,15 +63,22 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
         Guid branchId,
         TimeEntryListFilter filter)
     {
-        return await ApplyFilter(dbContext.TimeEntries, branchId, filter)
+        var query = ApplyFilter(dbContext.TimeEntries, branchId, filter)
             .AsNoTracking()
             .Include(te => te.Operator)
             .Include(te => te.Segments
                 .Where(segment => segment.Active)
                 .OrderBy(segment => segment.ClockIn)
                 .ThenBy(segment => segment.CreatedAt)
-                .ThenBy(segment => segment.Id))
-            .OrderByDescending(te => te.Date)
+                .ThenBy(segment => segment.Id));
+
+        var ordered = filter.InProgressFirst
+            ? query
+                .OrderByDescending(te => te.Segments.Any(segment => segment.Active && segment.ClockOut == null))
+                .ThenByDescending(te => te.Date)
+            : query.OrderByDescending(te => te.Date);
+
+        return await ordered
             .ThenByDescending(te => te.CreatedAt)
             .ThenByDescending(te => te.Id)
             .Skip((filter.Page - 1) * filter.PageSize)
@@ -167,6 +174,13 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
         if (filter.Status is { } status)
         {
             query = query.Where(te => te.Status == status);
+        }
+
+        if (filter.IsInProgress is { } isInProgress)
+        {
+            query = isInProgress
+                ? query.Where(te => te.Segments.Any(segment => segment.Active && segment.ClockOut == null))
+                : query.Where(te => !te.Segments.Any(segment => segment.Active && segment.ClockOut == null));
         }
 
         return query;

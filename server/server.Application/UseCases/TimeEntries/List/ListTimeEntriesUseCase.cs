@@ -31,6 +31,8 @@ public class ListTimeEntriesUseCase(
             DateFrom = request.DateFrom,
             DateTo = request.DateTo,
             Status = request.Status,
+            IsInProgress = request.IsInProgress,
+            InProgressFirst = request.InProgressFirst,
             Mine = request.Mine,
             Page = request.Page,
             PageSize = request.PageSize

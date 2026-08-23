@@ -4,7 +4,6 @@ namespace CommonTestUtilities.Requests;
 
 public class RequestPutDailyCloseItemsJsonBuilder
 {
-    private uint _version = 1;
     private string? _notes;
     private IReadOnlyList<RequestUpsertDailyCloseItemJson>? _items =
     [
@@ -25,12 +24,6 @@ public class RequestPutDailyCloseItemsJsonBuilder
         return this;
     }
 
-    public RequestPutDailyCloseItemsJsonBuilder WithVersion(uint version)
-    {
-        _version = version;
-        return this;
-    }
-
     public RequestPutDailyCloseItemsJsonBuilder WithNotes(string? notes)
     {
         _notes = notes;
@@ -41,7 +34,6 @@ public class RequestPutDailyCloseItemsJsonBuilder
     {
         return new RequestPutDailyCloseItemsJson
         {
-            Version = _version,
             Items = _items,
             Notes = _notes
         };

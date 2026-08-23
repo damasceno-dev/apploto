@@ -12,7 +12,7 @@ public sealed class SettingOpenApiContractTest(ServerWebApplicationFactory facto
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Document_ShouldExposeM7_7Phase4LockMonthContract()
+    public async Task Document_ShouldExposeSettingMutationContracts()
     {
         var response = await _client.GetAsync("/openapi/v1.json");
 
@@ -26,7 +26,8 @@ public sealed class SettingOpenApiContractTest(ServerWebApplicationFactory facto
         requestProperties.TryGetProperty("year", out _).ShouldBeTrue();
         requestProperties.TryGetProperty("month", out _).ShouldBeTrue();
 
-        var post = root.GetProperty("paths")
+        var paths = root.GetProperty("paths");
+        var post = paths
             .GetProperty("/setting/lock-month")
             .GetProperty("post");
         post.TryGetProperty("requestBody", out _).ShouldBeTrue();
@@ -38,5 +39,21 @@ public sealed class SettingOpenApiContractTest(ServerWebApplicationFactory facto
             .GetProperty("ResponseSettingJson")
             .GetProperty("properties");
         settingProperties.TryGetProperty("lockDate", out _).ShouldBeTrue();
+        settingProperties.TryGetProperty("version", out _).ShouldBeTrue();
+
+        AssertVersionedSettingMutation(post);
+        AssertVersionedSettingMutation(paths.GetProperty("/setting").GetProperty("put"));
+    }
+
+    private static void AssertVersionedSettingMutation(JsonElement operation)
+    {
+        var ifMatch = operation.GetProperty("parameters")
+            .EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "If-Match");
+        ifMatch.GetProperty("required").GetBoolean().ShouldBeTrue();
+        var responses = operation.GetProperty("responses");
+        responses.TryGetProperty("409", out _).ShouldBeTrue();
+        responses.GetProperty("200").GetProperty("headers")
+            .TryGetProperty("ETag", out _).ShouldBeTrue();
     }
 }

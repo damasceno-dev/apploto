@@ -10,6 +10,7 @@ public class RequestListTransactionsJson
     public TransactionStatus? Status { get; init; }
     public Guid? OperatorId { get; init; }
     public Guid? ClientId { get; init; }
+    public Guid? OriginTransactionId { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 50;
 

@@ -11,6 +11,7 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.ToTable("Transactions");
         builder.HasKey(t => t.Id);
 
+        builder.Property(t => t.Version).IsRowVersion();
         builder.Property(t => t.Date).HasColumnType("date").IsRequired();
         builder.Property(t => t.Value).HasColumnType("numeric(14,2)").IsRequired();
         builder.Property(t => t.Description).HasMaxLength(500).IsRequired(false);
