@@ -15,7 +15,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
     IAuthenticationService authenticationService,
     IOperatorsRepository operatorsRepository,
     ITimeEntriesRepository timeEntriesRepository,
-    ISettingsRepository settingsRepository,
+    ITimeEntryPoliciesRepository timeEntryPoliciesRepository,
     ITimeEntryCalculationService calculationService,
     IBranchClock branchClock,
     IMemberAccountScopeResolver memberAccountScopeResolver)
@@ -72,8 +72,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
             branchWide = true;
         }
 
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId)
-            ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+        var policies = await timeEntryPoliciesRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId);
 
         // Capture the branch-local clock once for the whole report (NOT per row, NOT per
         // operator) so every operator's live-running recompute shares one consistent "now".
@@ -85,20 +84,37 @@ public class GetTimeEntryBalanceSummaryUseCase(
             var entries = await timeEntriesRepository.ListByBranchIdAndDateRangeAsNoTracking(
                 branchUser.BranchId, request.DateFrom, request.DateTo);
 
-            operators = entries
+            // Roll-up membership: every active operator — zero-entry rows included, with or
+            // without a login link, so payroll sees the employee who never clocked in — plus
+            // any operator that has entries in the window even after being deactivated.
+            var entriesByOperator = entries
                 .GroupBy(entry => entry.OperatorId)
-                .Select(group => BuildOperatorSummary(
-                    group.Key, group.First().Operator.Name, group.ToList(), setting, branchLocalNow))
-                .OrderBy(summary => summary.OperatorName, StringComparer.OrdinalIgnoreCase)
-                .ThenBy(summary => summary.OperatorId)
-                .ToList();
+                .ToDictionary(group => group.Key, group => (IReadOnlyList<TimeEntry>)group.ToList());
+
+            var activeOperators = await operatorsRepository.ListActiveByBranchId(branchUser.BranchId);
+            var operatorNamesById = activeOperators.ToDictionary(op => op.Id, op => op.Name);
+            foreach (var group in entriesByOperator)
+                operatorNamesById.TryAdd(group.Key, group.Value[0].Operator.Name);
+
+            operators =
+            [
+                .. operatorNamesById
+                    .Select(pair => BuildOperatorSummary(
+                        pair.Key,
+                        pair.Value,
+                        entriesByOperator.GetValueOrDefault(pair.Key, []),
+                        policies,
+                        branchLocalNow))
+                    .OrderBy(summary => summary.OperatorName, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(summary => summary.OperatorId)
+            ];
         }
         else
         {
             var entries = await timeEntriesRepository.ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
                 branchUser.BranchId, targetOperator!.Id, request.DateFrom, request.DateTo);
 
-            operators = [BuildOperatorSummary(targetOperator.Id, targetOperator.Name, entries, setting, branchLocalNow)];
+            operators = [BuildOperatorSummary(targetOperator.Id, targetOperator.Name, entries, policies, branchLocalNow)];
         }
 
         return new ResponseTimeEntryBalanceSummaryJson
@@ -113,7 +129,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
         Guid operatorId,
         string operatorName,
         IReadOnlyList<TimeEntry> entries,
-        Setting setting,
+        IReadOnlyList<TimeEntryPolicy> policies,
         DateTime branchLocalNow)
     {
         var days = new List<ResponseTimeEntryBalanceSummaryDayJson>(entries.Count);
@@ -125,19 +141,22 @@ public class GetTimeEntryBalanceSummaryUseCase(
             // Re-run Calculate per row (never read the persisted checkpoint): in-progress
             // current-day rows surface live-recomputed hours, non-Present rows resolve to
             // their abonado/owing constants, and closed rows recompute deterministically.
+            // Constants come from the policy row applicable to each entry's own date, so a
+            // settings change today never rewrites earlier days in the same window.
             var segments = entry.Segments
                 .Where(segment => segment.Active)
                 .Select(segment => new TimeEntrySegmentInput(segment.ClockIn, segment.ClockOut))
                 .ToList();
 
+            var policy = TimeEntryPolicyResolver.Resolve(policies, entry.Date);
             var (dayTotalHours, dayBalanceHours) = calculationService.Calculate(
                 entry.Status,
                 segments,
                 entry.Date,
                 branchLocalNow,
-                setting.DailyTargetHours,
-                setting.LunchDeductionOver6H,
-                setting.LunchDeductionOver4H);
+                policy.DailyTargetHours,
+                policy.LunchDeductionOver6H,
+                policy.LunchDeductionOver4H);
 
             totalHours += dayTotalHours;
             totalBalanceHours += dayBalanceHours;

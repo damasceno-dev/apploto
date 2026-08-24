@@ -1,8 +1,10 @@
 using System.Net;
 using CommonTestUtilities.Requests;
+using Microsoft.Extensions.DependencyInjection;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
+using server.Domain.Interfaces;
 using Shouldly;
 using WebApi.Test.Infrastructure;
 using Xunit;
@@ -117,4 +119,85 @@ public class SettingControllerHappyPathTest(ServerWebApplicationFactory factory)
         persisted.LockDate.ShouldBe(seeded.LockDate);
     }
 
+    // -------------------------------------------------------------------------
+    // M7.7 Phase 7: a constants change writes the effective-dated policy ledger row
+    // in the same commit; a second same-day change mutates that day's row in place.
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Update_ShouldAppendPolicyEffectiveToday_AndMutateItOnSecondSameDayChange()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingPolicyLedger");
+        var seeded = await factory.SeedSettingAsync(branch.Id);
+        var localToday = SpLocalDate();
+
+        var firstResponse = await _client.PutAuthAsync(
+            "/setting",
+            new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build(),
+            token,
+            seeded.Version);
+        firstResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var firstPayload = await firstResponse.ReadContentAsync<ResponseSettingJson>();
+
+        var policiesAfterFirst = await ListPoliciesAsync(branch.Id);
+        policiesAfterFirst.Count.ShouldBe(2);
+        policiesAfterFirst[0].EffectiveFrom.ShouldBe(DateTime.MinValue);
+        policiesAfterFirst[1].EffectiveFrom.ShouldBe(localToday);
+        policiesAfterFirst[1].DailyTargetHours.ShouldBe(8.0m);
+        policiesAfterFirst[1].LunchDeductionOver6H.ShouldBe(seeded.LunchDeductionOver6H);
+        policiesAfterFirst[1].LunchDeductionOver4H.ShouldBe(seeded.LunchDeductionOver4H);
+
+        var secondResponse = await _client.PutAuthAsync(
+            "/setting",
+            new RequestUpdateSettingJsonBuilder().WithLunchDeductionOver6H(2.0m).Build(),
+            token,
+            firstPayload.Version);
+        secondResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // No third row: the same-day row is updated in place (unique BranchId+EffectiveFrom),
+        // keeping today's resolution unambiguous and older days untouched.
+        var policiesAfterSecond = await ListPoliciesAsync(branch.Id);
+        policiesAfterSecond.Count.ShouldBe(2);
+        policiesAfterSecond[1].Id.ShouldBe(policiesAfterFirst[1].Id);
+        policiesAfterSecond[1].EffectiveFrom.ShouldBe(localToday);
+        policiesAfterSecond[1].DailyTargetHours.ShouldBe(8.0m);
+        policiesAfterSecond[1].LunchDeductionOver6H.ShouldBe(2.0m);
+        policiesAfterSecond[0].DailyTargetHours.ShouldBe(seeded.DailyTargetHours);
+    }
+
+    [Fact]
+    public async Task Update_ShouldNotWritePolicy_WhenValuesAreUnchanged()
+    {
+        var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("SettingPolicyNoop");
+        var seeded = await factory.SeedSettingAsync(branch.Id);
+
+        var httpResponse = await _client.PutAuthAsync(
+            "/setting",
+            new RequestUpdateSettingJsonBuilder()
+                .WithDailyTargetHours(seeded.DailyTargetHours)
+                .Build(),
+            token,
+            seeded.Version);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Only the seeded MinValue initial row exists — a value-identical PUT appends nothing.
+        var policies = await ListPoliciesAsync(branch.Id);
+        policies.Count.ShouldBe(1);
+        policies[0].EffectiveFrom.ShouldBe(DateTime.MinValue);
+    }
+
+    private async Task<IReadOnlyList<TimeEntryPolicy>> ListPoliciesAsync(Guid branchId)
+    {
+        using var scope = factory.Services.CreateScope();
+        var policiesRepository = scope.ServiceProvider.GetRequiredService<ITimeEntryPoliciesRepository>();
+        return await policiesRepository.ListActiveByBranchIdAsNoTracking(branchId);
+    }
+
+    private static DateTime SpLocalDate()
+    {
+        var spTimeZone = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+        return DateTime.SpecifyKind(
+            TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, spTimeZone).Date,
+            DateTimeKind.Unspecified);
+    }
 }

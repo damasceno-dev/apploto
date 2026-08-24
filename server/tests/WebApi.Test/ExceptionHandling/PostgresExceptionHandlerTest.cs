@@ -40,7 +40,8 @@ public class PostgresExceptionHandlerTest
             {
                 "IX_IdempotencyRequests_Endpoint_BranchId_UserId_Key",
                 ResourcesErrorMessages.IDEMPOTENCY_COORDINATION_BUSY
-            }
+            },
+            { "IX_TimeEntryPolicies_BranchId_EffectiveFrom", ResourcesErrorMessages.SETTING_STALE_WRITE }
         };
 
     [Fact]

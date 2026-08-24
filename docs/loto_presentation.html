@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v39
+Spec revision: v40
 -->
 <html lang="en">
 <head>
@@ -750,7 +750,7 @@ function renderSchema(i){
     {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account']},
     {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client','IdempotencyRequest']},
     {name:'Closing',color:'var(--purple)',entities:['DailyClose','DailyCloseItem','Product']},
-    {name:'HR',color:'var(--teal)',entities:['TimeEntry','TimeEntrySegment','Holiday','Setting']}
+    {name:'HR',color:'var(--teal)',entities:['TimeEntry','TimeEntrySegment','TimeEntryPolicy','Holiday','Setting']}
   ];
   const gs=groups.map(g=>{
     const ents=g.entities.map(e=>`<div class="entity" style="border-left-color:${g.color}">${e}</div>`).join('');
@@ -943,7 +943,7 @@ function renderClosing(i){
     {t:'Transaction Scope',d:'Members work only with linked-account, same-day rows they recorded. Managers and Admins review broader branch workflows.'},
     {t:'Retry + Concurrency Contracts',d:'Persisted Idempotency-Key replay makes financial creates safe to retry. Strong If-Match/ETag xmin tokens reject stale Transaction, DailyClose, and Setting roots.'},
     {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft.'},
-    {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours.'},
+    {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours. Constants resolve from the effective-dated TimeEntryPolicy row for each entry date, so settings changes never rewrite past balances.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
     {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'}
   ];

@@ -30,7 +30,11 @@ internal static class PostgresExceptionHandler
             ["IX_TransactionTypes_CategoryId_Name"] = ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT,
             ["IX_Products_BranchId_Name"] = ResourcesErrorMessages.PRODUCT_NAME_CONFLICT,
             ["IX_IdempotencyRequests_Endpoint_BranchId_UserId_Key"] =
-                ResourcesErrorMessages.IDEMPOTENCY_COORDINATION_BUSY
+                ResourcesErrorMessages.IDEMPOTENCY_COORDINATION_BUSY,
+            // Two same-day settings changes racing with the same If-Match version: the loser
+            // either fails the Setting xmin update or, depending on statement order inside
+            // its SaveChanges, this policy-ledger unique index — both mean a stale write.
+            ["IX_TimeEntryPolicies_BranchId_EffectiveFrom"] = ResourcesErrorMessages.SETTING_STALE_WRITE
         };
 
     public static Exception Normalize(Exception exception)

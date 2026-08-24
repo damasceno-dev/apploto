@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v39
+Spec revision: v40
 -->
 <html lang="en">
 <head>
@@ -233,6 +233,7 @@ Spec revision: v39
     '  Branch ||--o{ TimeEntry : has\n' +
     '  Branch ||--o{ Holiday : has\n' +
     '  Branch ||--|| Setting : has\n' +
+    '  Branch ||--o{ TimeEntryPolicy : has\n' +
     '  Branch ||--o{ IdempotencyRequest : scopes\n' +
     '\n' +
     '  User ||--o{ BranchUser : joins\n' +
@@ -458,6 +459,15 @@ Spec revision: v39
     '    uuid id PK\n' +
     '    uint version "PostgreSQL xmin concurrency token"\n' +
     '    date lockDate\n' +
+    '    decimal dailyTargetHours "current-policy mirror; calculations read TimeEntryPolicy"\n' +
+    '    decimal lunchDeductionOver6H "current-policy mirror"\n' +
+    '    decimal lunchDeductionOver4H "current-policy mirror"\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  TimeEntryPolicy {\n' +
+    '    uuid id PK\n' +
+    '    date effectiveFrom "inclusive branch-local date; unique per branch (active)"\n' +
     '    decimal dailyTargetHours\n' +
     '    decimal lunchDeductionOver6H\n' +
     '    decimal lunchDeductionOver4H\n' +

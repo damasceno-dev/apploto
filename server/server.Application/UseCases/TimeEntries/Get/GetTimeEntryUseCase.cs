@@ -13,7 +13,7 @@ public class GetTimeEntryUseCase(
     IAuthenticationService authenticationService,
     IMemberAccountScopeResolver memberAccountScopeResolver,
     ITimeEntriesRepository timeEntriesRepository,
-    ISettingsRepository settingsRepository,
+    ITimeEntryPoliciesRepository timeEntryPoliciesRepository,
     ITimeEntryCalculationService calculationService,
     IBranchClock branchClock)
 {
@@ -35,11 +35,11 @@ public class GetTimeEntryUseCase(
                 throw new TokenWithoutPermissionException(ResourcesErrorMessages.TIMEENTRY_NOT_OWN_OPERATOR);
         }
 
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId)
-            ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+        var policies = await timeEntryPoliciesRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId);
+        var policy = TimeEntryPolicyResolver.Resolve(policies, entry.Date);
 
         var branchLocalNow = branchClock.LocalBusinessDateTime(branchClock.UtcNow());
 
-        return entry.ToReadResponse(entry.Operator.Name, setting, branchLocalNow, calculationService);
+        return entry.ToReadResponse(entry.Operator.Name, policy, branchLocalNow, calculationService);
     }
 }

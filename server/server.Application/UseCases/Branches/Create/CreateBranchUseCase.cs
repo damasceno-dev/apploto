@@ -13,6 +13,7 @@ public class CreateBranchUseCase(
     ITransactionTypesRepository transactionTypesRepository,
     IProductsRepository productsRepository,
     ISettingsRepository settingsRepository,
+    ITimeEntryPoliciesRepository timeEntryPoliciesRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseCreateBranchJson> Execute(RequestCreateBranchJson request)
@@ -26,6 +27,7 @@ public class CreateBranchUseCase(
         var transactionTypes = CreateBranchSeedFactory.CreateDefaultTransactionTypes(categories);
         var products = CreateBranchSeedFactory.CreateDefaultProducts(branch.Id);
         var setting = CreateBranchSeedFactory.CreateDefaultSetting(branch.Id);
+        var timeEntryPolicy = CreateBranchSeedFactory.CreateDefaultTimeEntryPolicy(branch.Id);
 
         await branchesRepository.Add(branch);
         await branchUsersRepository.Add(creatorBranchUser);
@@ -33,6 +35,7 @@ public class CreateBranchUseCase(
         await transactionTypesRepository.AddRange(transactionTypes);
         await productsRepository.AddRange(products);
         await settingsRepository.Add(setting);
+        await timeEntryPoliciesRepository.Add(timeEntryPolicy);
 
         await unitOfWork.Commit();
 

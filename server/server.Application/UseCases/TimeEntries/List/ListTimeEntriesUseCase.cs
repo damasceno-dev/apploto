@@ -16,7 +16,7 @@ public class ListTimeEntriesUseCase(
     IAuthenticationService authenticationService,
     IMemberAccountScopeResolver memberAccountScopeResolver,
     ITimeEntriesRepository timeEntriesRepository,
-    ISettingsRepository settingsRepository,
+    ITimeEntryPoliciesRepository timeEntryPoliciesRepository,
     ITimeEntryCalculationService calculationService,
     IBranchClock branchClock)
 {
@@ -69,18 +69,17 @@ public class ListTimeEntriesUseCase(
         var items = await timeEntriesRepository.ListByBranchIdAsNoTracking(branchUser.BranchId, filter);
         var totalCount = await timeEntriesRepository.CountByBranchIdAsNoTracking(branchUser.BranchId, filter);
 
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId)
-            ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+        var policies = await timeEntryPoliciesRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId);
         var branchLocalNow = branchClock.LocalBusinessDateTime(branchClock.UtcNow());
 
-        return BuildResponse(items, totalCount, filter, setting, branchLocalNow);
+        return BuildResponse(items, totalCount, filter, policies, branchLocalNow);
     }
 
     private ResponseListTimeEntriesJson BuildResponse(
         IReadOnlyList<TimeEntry> items,
         int totalCount,
         TimeEntryListFilter filter,
-        Setting setting,
+        IReadOnlyList<TimeEntryPolicy> policies,
         DateTime branchLocalNow)
     {
         var totalPages = filter.PageSize > 0
@@ -89,8 +88,14 @@ public class ListTimeEntriesUseCase(
 
         return new ResponseListTimeEntriesJson
         {
+            // Per-row policy resolution: a listed page can span an effective-date boundary,
+            // so each entry recomputes under the policy applicable to its own date.
             Items = items
-                .Select(item => item.ToListItemResponse(item.Operator.Name, setting, branchLocalNow, calculationService))
+                .Select(item => item.ToListItemResponse(
+                    item.Operator.Name,
+                    TimeEntryPolicyResolver.Resolve(policies, item.Date),
+                    branchLocalNow,
+                    calculationService))
                 .ToList(),
             TotalCount = totalCount,
             TotalPages = totalPages,

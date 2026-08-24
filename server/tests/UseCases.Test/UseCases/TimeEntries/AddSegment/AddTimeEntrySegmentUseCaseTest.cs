@@ -191,6 +191,7 @@ public class AddTimeEntrySegmentUseCaseTest
         public required ITimeEntriesRepository TimeEntriesRepository { get; init; }
         public required ITimeEntrySegmentsRepository TimeEntrySegmentsRepository { get; init; }
         public required ISettingsRepository SettingsRepository { get; init; }
+        public required ITimeEntryPoliciesRepository TimeEntryPoliciesRepository { get; init; }
         public required IBranchClock BranchClock { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
     }
@@ -235,6 +236,16 @@ public class AddTimeEntrySegmentUseCaseTest
         var settingsRepository = new SettingsRepositoryBuilder()
             .GetByBranchIdAsNoTrackingReturns(branchUser.BranchId, setting)
             .Build();
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder()
+            .ListActiveByBranchIdAsNoTrackingReturns(branchUser.BranchId, [
+                new TimeEntryPolicyBuilder()
+                    .WithBranchId(branchUser.BranchId)
+                    .WithDailyTargetHours(setting.DailyTargetHours)
+                    .WithLunchDeductionOver6H(setting.LunchDeductionOver6H)
+                    .WithLunchDeductionOver4H(setting.LunchDeductionOver4H)
+                    .Build()
+            ])
+            .Build();
         var branchClock = Substitute.For<IBranchClock>();
         branchClock.UtcNow().Returns(FixedUtcNow);
         branchClock.LocalBusinessDateTime(FixedUtcNow).Returns(EntryDate.AddHours(18));
@@ -249,6 +260,7 @@ public class AddTimeEntrySegmentUseCaseTest
             TimeEntriesRepository = timeEntriesRepository,
             TimeEntrySegmentsRepository = timeEntrySegmentsRepository,
             SettingsRepository = settingsRepository,
+            TimeEntryPoliciesRepository = timeEntryPoliciesRepository,
             BranchClock = branchClock,
             UnitOfWork = unitOfWork
         };
@@ -261,7 +273,7 @@ public class AddTimeEntrySegmentUseCaseTest
             ctx.TimeEntriesRepository,
             ctx.TimeEntrySegmentsRepository,
             new LockDateGuard(new LockDateReader(ctx.SettingsRepository)),
-            new TimeEntrySegmentMutationService(ctx.SettingsRepository, new TimeEntryCalculationService()),
+            new TimeEntrySegmentMutationService(ctx.TimeEntryPoliciesRepository, new TimeEntryCalculationService()),
             ctx.BranchClock,
             new MonthLockCoordinationBuilder().Build(),
             ctx.UnitOfWork);

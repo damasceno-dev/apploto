@@ -42,7 +42,7 @@ public class UpsertTimeEntryUseCase(
     IOperatorsRepository operatorsRepository,
     ITimeEntriesRepository timeEntriesRepository,
     ITimeEntrySegmentsRepository timeEntrySegmentsRepository,
-    ISettingsRepository settingsRepository,
+    ITimeEntryPoliciesRepository timeEntryPoliciesRepository,
     IHolidaysRepository holidaysRepository,
     ITimeEntryWritePermissionGuard permissionGuard,
     ITimeEntryCalculationService calculationService,
@@ -412,7 +412,8 @@ public class UpsertTimeEntryUseCase(
     }
 
     /// <summary>
-    /// Terminal write chokepoint. Validates segment invariants, loads branch settings,
+    /// Terminal write chokepoint. Validates segment invariants, resolves the effective-dated
+    /// <see cref="TimeEntryPolicy"/> applicable to the entry's date (§6.7),
     /// recomputes <c>TotalHours</c>/<c>BalanceHours</c> via
     /// <see cref="ITimeEntryCalculationService.Calculate"/>, stamps parent audit fields,
     /// attaches the parent to the repository when <paramref name="addNew"/> is true, and
@@ -429,7 +430,8 @@ public class UpsertTimeEntryUseCase(
     /// Segment invariant violation surfaced by <see cref="EnsureSegmentRules"/>.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// Branch <c>Setting</c> row missing — system invariant breach, not a user error.
+    /// No <c>TimeEntryPolicy</c> row applies to the entry's date — system invariant breach,
+    /// not a user error (every branch gets a MinValue-dated initial row).
     /// </exception>
     private async Task<ResponseTimeEntryJson> PersistAsync(
         TimeEntry entry,
@@ -442,8 +444,8 @@ public class UpsertTimeEntryUseCase(
     {
         EnsureSegmentRules(entry);
 
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId, ct)
-            ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+        var policies = await timeEntryPoliciesRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId, ct);
+        var policy = TimeEntryPolicyResolver.Resolve(policies, entry.Date);
 
         var (totalHours, balanceHours) = calculationService.Calculate(
             entry.Status,
@@ -452,9 +454,9 @@ public class UpsertTimeEntryUseCase(
                 .ToList(),
             entry.Date,
             branchLocalNow,
-            setting.DailyTargetHours,
-            setting.LunchDeductionOver6H,
-            setting.LunchDeductionOver4H);
+            policy.DailyTargetHours,
+            policy.LunchDeductionOver6H,
+            policy.LunchDeductionOver4H);
 
         entry.TotalHours = totalHours;
         entry.BalanceHours = balanceHours;

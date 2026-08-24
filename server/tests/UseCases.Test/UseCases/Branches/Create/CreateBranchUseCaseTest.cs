@@ -370,6 +370,46 @@ public class CreateBranchUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldSeedOneInitialTimeEntryPolicyRowMirroringSettingDefaults()
+    {
+        var authenticatedUser = new UserBuilder().Build();
+        var request = new RequestCreateBranchJsonBuilder().Build();
+
+        var branchesRepository = new BranchesRepositoryBuilder().Build();
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedUser(authenticatedUser)
+            .Build();
+
+        Branch? persistedBranch = null;
+        await branchesRepository.Add(Arg.Do<Branch>(branch => persistedBranch = branch));
+
+        var useCase = CreateUseCase(
+            authenticationService,
+            branchesRepository,
+            new BranchUsersRepositoryBuilder().Build(),
+            new CategoriesRepositoryBuilder().Build(),
+            new TransactionTypesRepositoryBuilder().Build(),
+            new ProductsRepositoryBuilder().Build(),
+            new SettingsRepositoryBuilder().Build(),
+            unitOfWork,
+            timeEntryPoliciesRepository);
+
+        await useCase.Execute(request);
+
+        // The initial policy is dated MinValue so per-date resolution stays total even for
+        // entries backdated before branch creation, mirroring the LockDate seed convention.
+        await timeEntryPoliciesRepository.Received(1).Add(Arg.Is<TimeEntryPolicy>(policy =>
+            policy.BranchId == persistedBranch!.Id &&
+            policy.EffectiveFrom == DateTime.MinValue &&
+            policy.DailyTargetHours == 7.33m &&
+            policy.LunchDeductionOver6H == 1.00m &&
+            policy.LunchDeductionOver4H == 0.25m));
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowValidationException_AndNotPersistAnything_WhenRequestIsInvalid()
     {
         var authenticatedUser = new UserBuilder().Build();
@@ -495,7 +535,8 @@ public class CreateBranchUseCaseTest
         ITransactionTypesRepository transactionTypesRepository,
         IProductsRepository productsRepository,
         ISettingsRepository settingsRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ITimeEntryPoliciesRepository? timeEntryPoliciesRepository = null)
     {
         return new CreateBranchUseCase(
             authenticationService,
@@ -505,6 +546,7 @@ public class CreateBranchUseCaseTest
             transactionTypesRepository,
             productsRepository,
             settingsRepository,
+            timeEntryPoliciesRepository ?? new TimeEntryPoliciesRepositoryBuilder().Build(),
             unitOfWork);
     }
 

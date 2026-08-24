@@ -1,4 +1,5 @@
 using CommonTestUtilities.Entities;
+using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
@@ -507,6 +508,7 @@ public class UpsertTimeEntryUseCaseTest
         public required ITimeEntriesRepository TimeEntriesRepository { get; init; }
         public required ITimeEntrySegmentsRepository TimeEntrySegmentsRepository { get; init; }
         public required ISettingsRepository SettingsRepository { get; init; }
+        public required ITimeEntryPoliciesRepository TimeEntryPoliciesRepository { get; init; }
         public required IHolidaysRepository HolidaysRepository { get; init; }
         public required IBranchClock BranchClock { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
@@ -571,6 +573,16 @@ public class UpsertTimeEntryUseCaseTest
         var timeEntrySegmentsRepository = Substitute.For<ITimeEntrySegmentsRepository>();
         var settingsRepository = Substitute.For<ISettingsRepository>();
         settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId).Returns(setting);
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder()
+            .ListActiveByBranchIdAsNoTrackingReturns(branchUser.BranchId, [
+                new TimeEntryPolicyBuilder()
+                    .WithBranchId(branchUser.BranchId)
+                    .WithDailyTargetHours(setting.DailyTargetHours)
+                    .WithLunchDeductionOver6H(setting.LunchDeductionOver6H)
+                    .WithLunchDeductionOver4H(setting.LunchDeductionOver4H)
+                    .Build()
+            ])
+            .Build();
         var holidaysRepository = Substitute.For<IHolidaysRepository>();
 
         var branchClock = Substitute.For<IBranchClock>();
@@ -594,6 +606,7 @@ public class UpsertTimeEntryUseCaseTest
             TimeEntriesRepository = timeEntriesRepository,
             TimeEntrySegmentsRepository = timeEntrySegmentsRepository,
             SettingsRepository = settingsRepository,
+            TimeEntryPoliciesRepository = timeEntryPoliciesRepository,
             HolidaysRepository = holidaysRepository,
             BranchClock = branchClock,
             UnitOfWork = unitOfWork,
@@ -622,7 +635,7 @@ public class UpsertTimeEntryUseCaseTest
             ctx.OperatorsRepository,
             ctx.TimeEntriesRepository,
             ctx.TimeEntrySegmentsRepository,
-            ctx.SettingsRepository,
+            ctx.TimeEntryPoliciesRepository,
             ctx.HolidaysRepository,
             new TimeEntryWritePermissionGuard(ctx.BranchClock),
             new TimeEntryCalculationService(),

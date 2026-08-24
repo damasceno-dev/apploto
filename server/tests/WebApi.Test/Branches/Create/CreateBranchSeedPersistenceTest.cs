@@ -57,6 +57,45 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
         }
     }
 
+    [Fact]
+    public async Task Create_ShouldPersistSettingAndInitialTimeEntryPolicy()
+    {
+        var user = await factory.SeedUserAsync();
+        var token = factory.IssueGlobalToken(user);
+        var request = new RequestCreateBranchJsonBuilder()
+            .WithName($"Seed TimeEntryPolicy {Guid.NewGuid():N}")
+            .Build();
+
+        var httpResponse = await _client.PostAuthAsync("/branch/create", request, token);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var payload = await httpResponse.ReadContentAsync<ResponseCreateBranchJson>();
+
+        // Real database reload — not a mocked Received(Add) assertion — so a later
+        // EF/repository/transaction regression that drops either row before commit
+        // surfaces here instead of only in a UseCases.Test mock expectation.
+        using var scope = factory.Services.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+        var persistedSetting = await dbContext.Settings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(setting => setting.BranchId == payload.Id);
+        persistedSetting.ShouldNotBeNull();
+        persistedSetting.DailyTargetHours.ShouldBe(7.33m);
+        persistedSetting.LunchDeductionOver6H.ShouldBe(1.00m);
+        persistedSetting.LunchDeductionOver4H.ShouldBe(0.25m);
+
+        var persistedPolicy = await dbContext.TimeEntryPolicies
+            .AsNoTracking()
+            .SingleOrDefaultAsync(policy => policy.BranchId == payload.Id);
+        persistedPolicy.ShouldNotBeNull();
+        persistedPolicy.EffectiveFrom.ShouldBe(DateTime.MinValue);
+        persistedPolicy.DailyTargetHours.ShouldBe(persistedSetting.DailyTargetHours);
+        persistedPolicy.LunchDeductionOver6H.ShouldBe(persistedSetting.LunchDeductionOver6H);
+        persistedPolicy.LunchDeductionOver4H.ShouldBe(persistedSetting.LunchDeductionOver4H);
+        persistedPolicy.Active.ShouldBeTrue();
+    }
+
     private static IReadOnlyDictionary<(string Name, string CategoryName), (SettlementRule SettlementRule, bool RequiresTabAccountAndClient)>
         ExpectedTransactionTypeMetadata()
     {

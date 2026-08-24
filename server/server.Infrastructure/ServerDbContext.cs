@@ -23,6 +23,7 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     public DbSet<DailyCloseItem> DailyCloseItems => Set<DailyCloseItem>();
     public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
     public DbSet<TimeEntrySegment> TimeEntrySegments => Set<TimeEntrySegment>();
+    public DbSet<TimeEntryPolicy> TimeEntryPolicies => Set<TimeEntryPolicy>();
     public DbSet<Holiday> Holidays => Set<Holiday>();
     public DbSet<IdempotencyRequest> IdempotencyRequests => Set<IdempotencyRequest>();
 

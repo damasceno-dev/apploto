@@ -13,7 +13,7 @@ public readonly record struct TimeEntrySegmentRuleInput(
     DateTime? ClockOut);
 
 public class TimeEntrySegmentMutationService(
-    ISettingsRepository settingsRepository,
+    ITimeEntryPoliciesRepository timeEntryPoliciesRepository,
     ITimeEntryCalculationService calculationService)
 {
     public static DateTime AsUnspecified(DateTime value)
@@ -124,7 +124,7 @@ public class TimeEntrySegmentMutationService(
     }
 
     /// <summary>
-    /// Reloads branch time-entry settings, recalculates parent TotalHours and BalanceHours from active segments, and stamps parent audit fields with the caller and captured UTC instant.
+    /// Resolves the effective-dated policy applicable to the entry's date, recalculates parent TotalHours and BalanceHours from active segments, and stamps parent audit fields with the caller and captured UTC instant.
     /// </summary>
     public async Task RecalculateParentTotalsAndStampAudit(
         TimeEntry entry,
@@ -132,8 +132,8 @@ public class TimeEntrySegmentMutationService(
         DateTime utcNow,
         DateTime branchLocalNow)
     {
-        var setting = await settingsRepository.GetByBranchIdAsNoTracking(branchUser.BranchId)
-            ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+        var policies = await timeEntryPoliciesRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId);
+        var policy = TimeEntryPolicyResolver.Resolve(policies, entry.Date);
 
         var (totalHours, balanceHours) = calculationService.Calculate(
             entry.Status,
@@ -142,9 +142,9 @@ public class TimeEntrySegmentMutationService(
                 .ToList(),
             entry.Date,
             branchLocalNow,
-            setting.DailyTargetHours,
-            setting.LunchDeductionOver6H,
-            setting.LunchDeductionOver4H);
+            policy.DailyTargetHours,
+            policy.LunchDeductionOver6H,
+            policy.LunchDeductionOver4H);
 
         entry.TotalHours = totalHours;
         entry.BalanceHours = balanceHours;

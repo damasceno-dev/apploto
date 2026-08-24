@@ -3,7 +3,9 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
+using server.Application.Services.Transactions;
 using server.Application.UseCases.Settings.Update;
+using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
@@ -302,11 +304,144 @@ public class UpdateSettingUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    // -------------------------------------------------------------------------
+    // Effective-dated policy ledger (M7.7 Phase 7): a real constants change writes
+    // the policy row effective from the branch-local day of the change.
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Execute_ShouldInsertPolicyEffectiveToday_WhenAnyConstantChanges()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDailyTargetHours(7.33m)
+            .WithLunchDeductionOver6H(1.0m)
+            .WithLunchDeductionOver4H(0.25m)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder().WithDailyTargetHours(8.0m).Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder()
+            .GetActiveByBranchIdAndEffectiveFromReturns(branchUser.BranchId, LocalToday, null)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(
+            authenticationService, settingsRepository, unitOfWork, timeEntryPoliciesRepository);
+
+        await useCase.Execute(request, 0);
+
+        // The inserted row mirrors the post-update Setting values: changed target plus the
+        // untouched lunch tiers, effective from the branch-local day of the change.
+        await timeEntryPoliciesRepository.Received(1).Add(Arg.Is<TimeEntryPolicy>(policy =>
+            policy.BranchId == branchUser.BranchId &&
+            policy.EffectiveFrom == LocalToday &&
+            policy.DailyTargetHours == 8.0m &&
+            policy.LunchDeductionOver6H == 1.0m &&
+            policy.LunchDeductionOver4H == 0.25m));
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldMutateSameDayPolicyRowInPlace_WhenTodayAlreadyChangedOnce()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder().WithBranchId(branchUser.BranchId).Build();
+        var sameDayPolicy = new TimeEntryPolicyBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithEffectiveFrom(LocalToday)
+            .WithDailyTargetHours(8.0m)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder()
+            .WithDailyTargetHours(6.5m)
+            .WithLunchDeductionOver4H(0.5m)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder()
+            .GetActiveByBranchIdAndEffectiveFromReturns(branchUser.BranchId, LocalToday, sameDayPolicy)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(
+            authenticationService, settingsRepository, unitOfWork, timeEntryPoliciesRepository);
+
+        await useCase.Execute(request, 0);
+
+        // No second row for the same effective date — the tracked same-day row is updated.
+        await timeEntryPoliciesRepository.DidNotReceive().Add(Arg.Any<TimeEntryPolicy>());
+        sameDayPolicy.DailyTargetHours.ShouldBe(6.5m);
+        sameDayPolicy.LunchDeductionOver6H.ShouldBe(setting.LunchDeductionOver6H);
+        sameDayPolicy.LunchDeductionOver4H.ShouldBe(0.5m);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldNotWritePolicy_WhenRequestedValuesEqualCurrentConstants()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var setting = new SettingBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDailyTargetHours(7.33m)
+            .WithLunchDeductionOver6H(1.0m)
+            .WithLunchDeductionOver4H(0.25m)
+            .Build();
+        var request = new RequestUpdateSettingJsonBuilder()
+            .WithDailyTargetHours(7.33m)
+            .WithLunchDeductionOver6H(1.0m)
+            .WithLunchDeductionOver4H(0.25m)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var settingsRepository = new SettingsRepositoryBuilder()
+            .GetByBranchIdReturns(branchUser.BranchId, setting)
+            .Build();
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(
+            authenticationService, settingsRepository, unitOfWork, timeEntryPoliciesRepository);
+
+        await useCase.Execute(request, 0);
+
+        // A value-identical PUT must not append policy history noise.
+        await timeEntryPoliciesRepository.DidNotReceive().Add(Arg.Any<TimeEntryPolicy>());
+        await timeEntryPoliciesRepository.DidNotReceive().GetActiveByBranchIdAndEffectiveFrom(
+            Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await unitOfWork.Received(1).Commit();
+    }
+
+    private static readonly DateTime FixedUtcNow = new(2026, 8, 10, 15, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime LocalToday = new(2026, 8, 10);
+
     private static UpdateSettingUseCase CreateUseCase(
         IAuthenticationService authenticationService,
         ISettingsRepository settingsRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ITimeEntryPoliciesRepository? timeEntryPoliciesRepository = null)
     {
-        return new UpdateSettingUseCase(authenticationService, settingsRepository, unitOfWork);
+        var branchClock = Substitute.For<IBranchClock>();
+        branchClock.UtcNow().Returns(FixedUtcNow);
+        branchClock.LocalBusinessDate(FixedUtcNow).Returns(LocalToday);
+
+        return new UpdateSettingUseCase(
+            authenticationService,
+            settingsRepository,
+            timeEntryPoliciesRepository ?? new TimeEntryPoliciesRepositoryBuilder().Build(),
+            branchClock,
+            unitOfWork);
     }
 }

@@ -389,8 +389,45 @@ internal static class TestSeeder
                 LunchDeductionOver4H = lunchDeductionOver4H
             };
             dbContext.Settings.Add(setting);
+
+            // Mirror the production invariant (seed factory / migration backfill): every
+            // branch with a Setting also has the MinValue-dated initial TimeEntryPolicy
+            // row carrying the same constants, so per-date resolution is total.
+            dbContext.TimeEntryPolicies.Add(new TimeEntryPolicy
+            {
+                Id = Guid.NewGuid(),
+                BranchId = branchId,
+                EffectiveFrom = DateTime.MinValue,
+                DailyTargetHours = dailyTargetHours,
+                LunchDeductionOver6H = lunchDeductionOver6H,
+                LunchDeductionOver4H = lunchDeductionOver4H
+            });
             await dbContext.SaveChangesAsync();
             return setting;
+        }
+
+        public async Task<TimeEntryPolicy> SeedTimeEntryPolicyAsync(
+            Guid branchId,
+            DateTime effectiveFrom,
+            decimal dailyTargetHours = 7.33m,
+            decimal lunchDeductionOver6H = 1.0m,
+            decimal lunchDeductionOver4H = 0.25m)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+
+            var policy = new TimeEntryPolicy
+            {
+                Id = Guid.NewGuid(),
+                BranchId = branchId,
+                EffectiveFrom = effectiveFrom,
+                DailyTargetHours = dailyTargetHours,
+                LunchDeductionOver6H = lunchDeductionOver6H,
+                LunchDeductionOver4H = lunchDeductionOver4H
+            };
+            dbContext.TimeEntryPolicies.Add(policy);
+            await dbContext.SaveChangesAsync();
+            return policy;
         }
 
         public async Task<Product> SeedProductAsync(

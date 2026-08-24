@@ -62,23 +62,16 @@ public class GetTimeEntryUseCaseTest
     {
         var entry = BuildEntry(closedSegment: true);
         var ctx = BuildContext(Role.Manager, existing: entry);
+        ctx.StubCalc(8m, 0.67m);
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(entry.Id);
 
         response.Id.ShouldBe(entry.Id);
         response.IsInProgress.ShouldBeFalse();
-        response.TotalHours.ShouldBe(entry.TotalHours);
-        response.BalanceHours.ShouldBe(entry.BalanceHours);
+        response.TotalHours.ShouldBe(8m);
+        response.BalanceHours.ShouldBe(0.67m);
         response.Segments.Count.ShouldBe(1);
-        ctx.CalculationService.DidNotReceive().Calculate(
-            Arg.Any<TimeEntryStatus>(),
-            Arg.Any<IReadOnlyList<TimeEntrySegmentInput>>(),
-            Arg.Any<DateTime>(),
-            Arg.Any<DateTime>(),
-            Arg.Any<decimal>(),
-            Arg.Any<decimal>(),
-            Arg.Any<decimal>());
     }
 
     [Fact]
@@ -115,9 +108,9 @@ public class GetTimeEntryUseCaseTest
             Arg.Is<IReadOnlyList<TimeEntrySegmentInput>>(list => list.Count == 1 && list[0].ClockOut == null),
             entry.Date,
             BranchLocalNow,
-            ctx.Setting.DailyTargetHours,
-            ctx.Setting.LunchDeductionOver6H,
-            ctx.Setting.LunchDeductionOver4H);
+            ctx.Policy.DailyTargetHours,
+            ctx.Policy.LunchDeductionOver6H,
+            ctx.Policy.LunchDeductionOver4H);
     }
 
     [Fact]
@@ -166,25 +159,31 @@ public class GetTimeEntryUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldPassThroughPersistedTotals_ForFullyClosedShift()
+    public async Task Execute_ShouldRecomputeClosedShiftUnderEntryDatePolicy_NotPersistedCheckpoint()
     {
         var entry = BuildEntry(closedSegment: true);
+        // Deliberately stale checkpoint: a same-day policy change never rewrites persisted
+        // totals, so the read path must recompute rather than pass these through.
+        entry.TotalHours = 99m;
+        entry.BalanceHours = 99m;
+
         var ctx = BuildContext(Role.Admin, existing: entry);
+        ctx.StubCalc(7m, -0.33m);
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(entry.Id);
 
         response.IsInProgress.ShouldBeFalse();
-        response.TotalHours.ShouldBe(entry.TotalHours);
-        response.BalanceHours.ShouldBe(entry.BalanceHours);
-        ctx.CalculationService.DidNotReceive().Calculate(
-            Arg.Any<TimeEntryStatus>(),
-            Arg.Any<IReadOnlyList<TimeEntrySegmentInput>>(),
-            Arg.Any<DateTime>(),
-            Arg.Any<DateTime>(),
-            Arg.Any<decimal>(),
-            Arg.Any<decimal>(),
-            Arg.Any<decimal>());
+        response.TotalHours.ShouldBe(7m);
+        response.BalanceHours.ShouldBe(-0.33m);
+        ctx.CalculationService.Received(1).Calculate(
+            entry.Status,
+            Arg.Is<IReadOnlyList<TimeEntrySegmentInput>>(list => list.Count == 1 && list[0].ClockOut != null),
+            entry.Date,
+            BranchLocalNow,
+            ctx.Policy.DailyTargetHours,
+            ctx.Policy.LunchDeductionOver6H,
+            ctx.Policy.LunchDeductionOver4H);
     }
 
     [Fact]
@@ -206,13 +205,26 @@ public class GetTimeEntryUseCaseTest
         public required BranchUser BranchUser { get; init; }
         public required Operator? LinkedOperator { get; init; }
         public required TimeEntry? Existing { get; init; }
-        public required Setting Setting { get; init; }
+        public required TimeEntryPolicy Policy { get; init; }
         public required IAuthenticationService AuthenticationService { get; init; }
         public required IMemberAccountScopeResolver MemberScopeResolver { get; init; }
         public required ITimeEntriesRepository TimeEntriesRepository { get; init; }
-        public required ISettingsRepository SettingsRepository { get; init; }
+        public required ITimeEntryPoliciesRepository TimeEntryPoliciesRepository { get; init; }
         public required ITimeEntryCalculationService CalculationService { get; init; }
         public required IBranchClock BranchClock { get; init; }
+
+        public void StubCalc(decimal totalHours, decimal balanceHours)
+        {
+            CalculationService.Calculate(
+                    Arg.Any<TimeEntryStatus>(),
+                    Arg.Any<IReadOnlyList<TimeEntrySegmentInput>>(),
+                    Arg.Any<DateTime>(),
+                    Arg.Any<DateTime>(),
+                    Arg.Any<decimal>(),
+                    Arg.Any<decimal>(),
+                    Arg.Any<decimal>())
+                .Returns((totalHours, balanceHours));
+        }
     }
 
     private static TestContext BuildContext(
@@ -221,14 +233,12 @@ public class GetTimeEntryUseCaseTest
         Operator? linkedOperator = null)
     {
         var branchUser = new BranchUserBuilder().WithRole(role).Build();
-        var setting = new Setting
-        {
-            Id = Guid.NewGuid(),
-            BranchId = branchUser.BranchId,
-            DailyTargetHours = 7.33m,
-            LunchDeductionOver6H = 1m,
-            LunchDeductionOver4H = 0.25m
-        };
+        var policy = new TimeEntryPolicyBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDailyTargetHours(7.33m)
+            .WithLunchDeductionOver6H(1m)
+            .WithLunchDeductionOver4H(0.25m)
+            .Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
             .GetAuthenticatedBranchUser(branchUser)
@@ -242,8 +252,8 @@ public class GetTimeEntryUseCaseTest
         timeEntriesRepository.GetByIdAndBranchIdAsNoTracking(Arg.Any<Guid>(), branchUser.BranchId)
             .Returns(existing);
 
-        var settingsRepository = new SettingsRepositoryBuilder()
-            .GetByBranchIdAsNoTrackingReturns(branchUser.BranchId, setting)
+        var timeEntryPoliciesRepository = new TimeEntryPoliciesRepositoryBuilder()
+            .ListActiveByBranchIdAsNoTrackingReturns(branchUser.BranchId, [policy])
             .Build();
 
         var calculationService = Substitute.For<ITimeEntryCalculationService>();
@@ -256,11 +266,11 @@ public class GetTimeEntryUseCaseTest
             BranchUser = branchUser,
             LinkedOperator = linkedOperator,
             Existing = existing,
-            Setting = setting,
+            Policy = policy,
             AuthenticationService = authenticationService,
             MemberScopeResolver = memberScopeResolver,
             TimeEntriesRepository = timeEntriesRepository,
-            SettingsRepository = settingsRepository,
+            TimeEntryPoliciesRepository = timeEntryPoliciesRepository,
             CalculationService = calculationService,
             BranchClock = branchClock
         };
@@ -272,7 +282,7 @@ public class GetTimeEntryUseCaseTest
             ctx.AuthenticationService,
             ctx.MemberScopeResolver,
             ctx.TimeEntriesRepository,
-            ctx.SettingsRepository,
+            ctx.TimeEntryPoliciesRepository,
             ctx.CalculationService,
             ctx.BranchClock);
     }

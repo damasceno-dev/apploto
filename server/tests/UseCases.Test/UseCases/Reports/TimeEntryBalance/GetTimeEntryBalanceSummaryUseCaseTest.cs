@@ -290,6 +290,7 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         var alfaSunday = BuildStatusOnlyEntry(operatorAlfa, new DateTime(2026, 5, 3), TimeEntryStatus.Sunday);
 
         var ctx = BuildContext(branchUser, calculationService: new TimeEntryCalculationService());
+        ctx.StubActiveOperators([operatorAlfa, operatorBravo]);
         ctx.StubBranchWideEntries(DateFrom, DateTo, [bravoPresent, alfaPresent, alfaSunday]);
 
         var response = await CreateUseCase(ctx).Execute(Request().Build());
@@ -390,11 +391,11 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
     }
 
     // -------------------------------------------------------------------------
-    // Branch-wide with no entries in the window → empty Operators, no operator load
+    // Branch-wide with no entries AND no active operators → empty Operators
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Execute_ShouldReturnEmptyOperators_WhenBranchWideHasNoEntries()
+    public async Task Execute_ShouldReturnEmptyOperators_WhenBranchWideHasNoEntriesAndNoActiveOperators()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
 
@@ -406,6 +407,121 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         response.Operators.ShouldBeEmpty();
         await ctx.OperatorsRepository.DidNotReceive().GetActiveByIdAndBranchIdAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<Guid>());
+    }
+
+    // -------------------------------------------------------------------------
+    // M7.7 Phase 7.2: every active operator appears in the branch-wide roll-up —
+    // zero-entry rows included, with or without a login link — with empty Days and
+    // zeroed totals, in the unchanged name/id ordering.
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Execute_ShouldIncludeZeroEntryActiveOperators_WithEmptyDaysAndZeroTotals()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var workedOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).WithName("Bruna").Build();
+        var linkedIdleOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId).WithName("Alice").WithUserId(Guid.NewGuid()).Build();
+        var unlinkedIdleOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId).WithName("Cátia").WithUserId(null).Build();
+
+        var ctx = BuildContext(branchUser, calculationService: new TimeEntryCalculationService());
+        ctx.StubActiveOperators([workedOperator, linkedIdleOperator, unlinkedIdleOperator]);
+        ctx.StubBranchWideEntries(DateFrom, DateTo, [BuildClosedPresentEntry(workedOperator, new DateTime(2025, 1, 10))]);
+
+        var response = await CreateUseCase(ctx).Execute(Request().Build());
+
+        response.Operators.Count.ShouldBe(3);
+        response.Operators.Select(summary => summary.OperatorName).ShouldBe(["Alice", "Bruna", "Cátia"]);
+
+        foreach (var idle in new[] { response.Operators[0], response.Operators[2] })
+        {
+            idle.Days.ShouldBeEmpty();
+            idle.TotalHours.ShouldBe(0m);
+            idle.TotalBalanceHours.ShouldBe(0m);
+            idle.PresentDays.ShouldBe(0);
+            idle.AbsentDays.ShouldBe(0);
+            idle.OwingDays.ShouldBe(0);
+            idle.AbonadoDays.ShouldBe(0);
+            idle.ContainsInProgress.ShouldBeFalse();
+        }
+
+        response.Operators[1].PresentDays.ShouldBe(1);
+        response.Operators[1].TotalHours.ShouldBe(8m);
+    }
+
+    // -------------------------------------------------------------------------
+    // A deactivated operator with entries inside the window stays in the roll-up —
+    // Phase 7.2 adds zero-entry active operators, it never drops historical rows.
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Execute_ShouldKeepDeactivatedOperatorWithWindowEntries_InBranchWideRollUp()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var activeOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).WithName("Ativa").Build();
+        var formerOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).WithName("Desligada").Build();
+
+        var ctx = BuildContext(branchUser, calculationService: new TimeEntryCalculationService());
+        // The active list no longer contains the deactivated operator...
+        ctx.StubActiveOperators([activeOperator]);
+        // ...but the window still holds their worked entry.
+        ctx.StubBranchWideEntries(DateFrom, DateTo, [
+            BuildClosedPresentEntry(activeOperator, new DateTime(2025, 1, 10)),
+            BuildClosedPresentEntry(formerOperator, new DateTime(2025, 1, 11))
+        ]);
+
+        var response = await CreateUseCase(ctx).Execute(Request().Build());
+
+        response.Operators.Count.ShouldBe(2);
+        response.Operators[0].OperatorName.ShouldBe("Ativa");
+        response.Operators[1].OperatorName.ShouldBe("Desligada");
+        response.Operators[1].PresentDays.ShouldBe(1);
+        response.Operators[1].TotalHours.ShouldBe(8m);
+    }
+
+    // -------------------------------------------------------------------------
+    // M7.7 Phase 7.1/7.3: per-entry-date policy resolution. Entries before a policy's
+    // EffectiveFrom keep the older constants; the boundary date itself uses the new row
+    // (real calculation service, DayOff/Sunday resolve directly from the target).
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task Execute_ShouldResolvePolicyPerEntryDate_AcrossEffectiveFromBoundary()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var targetOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var boundaryDate = new DateTime(2025, 1, 15);
+
+        var initialPolicy = new TimeEntryPolicyBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithEffectiveFrom(DateTime.MinValue)
+            .WithDailyTargetHours(7.33m)
+            .Build();
+        var newerPolicy = new TimeEntryPolicyBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithEffectiveFrom(boundaryDate)
+            .WithDailyTargetHours(8m)
+            .Build();
+
+        var dayBefore = BuildStatusOnlyEntry(targetOperator, boundaryDate.AddDays(-1), TimeEntryStatus.DayOff);
+        var boundaryDay = BuildStatusOnlyEntry(targetOperator, boundaryDate, TimeEntryStatus.DayOff);
+        var dayAfter = BuildStatusOnlyEntry(targetOperator, boundaryDate.AddDays(1), TimeEntryStatus.Sunday);
+
+        var ctx = BuildContext(branchUser, calculationService: new TimeEntryCalculationService());
+        ctx.StubPolicies(initialPolicy, newerPolicy);
+        ctx.StubOperatorInBranch(targetOperator);
+        ctx.StubEntries(targetOperator.Id, DateFrom, DateTo, [dayBefore, boundaryDay, dayAfter]);
+
+        var response = await CreateUseCase(ctx).Execute(Request().WithOperatorId(targetOperator.Id).Build());
+
+        var summary = response.Operators.Single();
+        // The day before the boundary still owes the OLD target...
+        summary.Days.Single(d => d.Date == boundaryDate.AddDays(-1)).BalanceHours.ShouldBe(-7.33m);
+        // ...the boundary date itself already owes the NEW target (EffectiveFrom is inclusive)...
+        summary.Days.Single(d => d.Date == boundaryDate).BalanceHours.ShouldBe(-8m);
+        // ...and a later abonado day credits the NEW target.
+        summary.Days.Single(d => d.Date == boundaryDate.AddDays(1)).TotalHours.ShouldBe(8m);
     }
 
     // -------------------------------------------------------------------------
@@ -516,9 +632,9 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
             Arg.Any<IReadOnlyList<TimeEntrySegmentInput>>(),
             BranchLocalNow.Date,
             BranchLocalNow,
-            ctx.Setting.DailyTargetHours,
-            ctx.Setting.LunchDeductionOver6H,
-            ctx.Setting.LunchDeductionOver4H);
+            ctx.Policy.DailyTargetHours,
+            ctx.Policy.LunchDeductionOver6H,
+            ctx.Policy.LunchDeductionOver4H);
     }
 
     // -------------------------------------------------------------------------
@@ -577,7 +693,7 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
             ctx.AuthenticationService,
             ctx.OperatorsRepository,
             ctx.TimeEntriesRepository,
-            ctx.SettingsRepository,
+            ctx.TimeEntryPoliciesRepository,
             ctx.CalculationService,
             ctx.BranchClock,
             ctx.MemberScopeResolver);
@@ -613,25 +729,23 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         Operator? linkedOperator = null,
         ITimeEntryCalculationService? calculationService = null)
     {
-        var setting = new Setting
-        {
-            Id = Guid.NewGuid(),
-            BranchId = branchUser.BranchId,
-            DailyTargetHours = DailyTarget,
-            LunchDeductionOver6H = 1m,
-            LunchDeductionOver4H = 0.25m
-        };
+        var policy = new TimeEntryPolicyBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithDailyTargetHours(DailyTarget)
+            .WithLunchDeductionOver6H(1m)
+            .WithLunchDeductionOver4H(0.25m)
+            .Build();
 
         var memberScopeResolver = Substitute.For<IMemberAccountScopeResolver>();
         memberScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId)
             .Returns(new MemberAccountScope(linkedOperator, linkedOperator is null ? [] : [Guid.NewGuid()]));
 
-        var operatorsRepositoryBuilder = new OperatorsRepositoryBuilder();
+        var operatorsRepositoryBuilder = new OperatorsRepositoryBuilder()
+            .ListActiveByBranchId(branchUser.BranchId, []);
         var timeEntriesRepositoryBuilder = new TimeEntriesRepositoryBuilder();
 
-        var settingsRepository = new SettingsRepositoryBuilder()
-            .GetByBranchIdAsNoTrackingReturns(branchUser.BranchId, setting)
-            .Build();
+        var timeEntryPoliciesRepositoryBuilder = new TimeEntryPoliciesRepositoryBuilder()
+            .ListActiveByBranchIdAsNoTrackingReturns(branchUser.BranchId, [policy]);
 
         var branchClock = Substitute.For<IBranchClock>();
         branchClock.UtcNow().Returns(FixedUtcNow);
@@ -640,7 +754,7 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         return new TestContext
         {
             BranchUser = branchUser,
-            Setting = setting,
+            Policy = policy,
             AuthenticationService = new AuthenticationServiceBuilder()
                 .GetAuthenticatedBranchUser(branchUser)
                 .Build(),
@@ -648,7 +762,8 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
             OperatorsRepository = operatorsRepositoryBuilder.Build(),
             TimeEntriesRepositoryBuilder = timeEntriesRepositoryBuilder,
             TimeEntriesRepository = timeEntriesRepositoryBuilder.Build(),
-            SettingsRepository = settingsRepository,
+            TimeEntryPoliciesRepositoryBuilder = timeEntryPoliciesRepositoryBuilder,
+            TimeEntryPoliciesRepository = timeEntryPoliciesRepositoryBuilder.Build(),
             CalculationService = calculationService ?? Substitute.For<ITimeEntryCalculationService>(),
             BranchClock = branchClock,
             MemberScopeResolver = memberScopeResolver
@@ -658,13 +773,14 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
     private sealed class TestContext
     {
         public required BranchUser BranchUser { get; init; }
-        public required Setting Setting { get; init; }
+        public required TimeEntryPolicy Policy { get; init; }
         public required IAuthenticationService AuthenticationService { get; init; }
         public required OperatorsRepositoryBuilder OperatorsRepositoryBuilder { get; init; }
         public required IOperatorsRepository OperatorsRepository { get; init; }
         public required TimeEntriesRepositoryBuilder TimeEntriesRepositoryBuilder { get; init; }
         public required ITimeEntriesRepository TimeEntriesRepository { get; init; }
-        public required ISettingsRepository SettingsRepository { get; init; }
+        public required TimeEntryPoliciesRepositoryBuilder TimeEntryPoliciesRepositoryBuilder { get; init; }
+        public required ITimeEntryPoliciesRepository TimeEntryPoliciesRepository { get; init; }
         public required ITimeEntryCalculationService CalculationService { get; init; }
         public required IBranchClock BranchClock { get; init; }
         public required IMemberAccountScopeResolver MemberScopeResolver { get; init; }
@@ -673,6 +789,17 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         {
             OperatorsRepositoryBuilder
                 .GetActiveByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator);
+        }
+
+        public void StubActiveOperators(IReadOnlyList<Operator> operators)
+        {
+            OperatorsRepositoryBuilder.ListActiveByBranchId(BranchUser.BranchId, operators);
+        }
+
+        public void StubPolicies(params TimeEntryPolicy[] policies)
+        {
+            TimeEntryPoliciesRepositoryBuilder
+                .ListActiveByBranchIdAsNoTrackingReturns(BranchUser.BranchId, policies);
         }
 
         public void StubEntries(Guid operatorId, DateTime dateFrom, DateTime dateTo, IReadOnlyList<TimeEntry> entries)

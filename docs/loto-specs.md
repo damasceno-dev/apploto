@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md (this file is canonical; derived artifacts: docs/loto_presentation.html, docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-Lotero mapping.
-Spec revision: v39
+Spec revision: v40
 -->
 
-> **Status:** Revised spec (v39) — M7.7 Phase 6 ships the frontend-support contracts: persisted financial-create idempotency, one strong `If-Match`/ETag `xmin` convention for versioned aggregate mutations, server-authoritative branch-local date/time, and the B/E/M/T query and identity conveniences. The v38 month-lock findings and expanded Phase 3 close chain remain unchanged. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission outside the Phase 6 headers remains in M7.6.
+> **Status:** Revised spec (v40) — M7.7 Phase 7 ships time-entry policy integrity: the effective-dated `TimeEntryPolicy` entity resolved per entry date (changing today's constants no longer rewrites historical balances) and the branch balance roll-up that includes every active operator even with zero entries. The Phase 6 contracts, v38 month-lock findings, and expanded Phase 3 close chain remain unchanged. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission outside the Phase 6 headers remains in M7.6.
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -48,6 +48,7 @@ Spec revision: v39
 > v37: M7.7 Phase 4 floor-integrity audit — on a fresh `DateTime.MinValue` setting, the initial lock floor is `min(branch-local Branch.CreatedAt month, earliest active DailyClose.Date month, earliest non-soft-deleted Transaction.Date month across every status)`. These discovery reads execute under the exclusive branch month boundary, so participating backdated writes either commit first and are validated or wait and fail their in-scope `LockDate` recheck. Clean pre-creation history is accepted without extra manager work; unresolved earlier history returns `SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED` with its `MM/yyyy` month. No schema change or manager-facing backdate prohibition was added.
 > v38: M7.7 Phase 4 findings audit — all five TimeEntry mutation routes (`PUT /timeentry`, whole-entry `DELETE`, and granular segment `POST`/`PUT`/`DELETE`) acquire the shared branch month boundary, reload or resolve their effective date, recheck `TIMEENTRY_DATE_LOCKED`, and commit before releasing it, so payroll-hour corrections cannot bypass or race a successful lock. Month and account coordination have independently configurable five-second timeouts; the settings boundary recognizes nested PostgreSQL `55P03` and returns `SETTING_LOCK_MONTH_COORDINATION_BUSY`. Non-MinValue legacy boundaries are clamped to the data-aware operational floor when lower, while an impossible current/future value written by the retired PUT path is repaired only through a successful whole-interval command. The live report projection, both settings 409 paths, concurrent lock commands, and the Phase 4 OpenAPI surface are pinned against PostgreSQL. Dead `SETTING_LOCK_DATE_RETREAT` live-contract wording/resources were removed; no schema change or migration was required.
 > v39: M7.7 Phase 6 (items 6.1–6.8) — transaction lists accept `OriginTransactionId` without widening Member account scope and return each row's `OriginTransactionId` plus `xmin` `Version` for direct guarded sibling actions; cash-variance rows carry their exact `(Date, AccountId)` close id; membership removal atomically clears every Operator login link for that user/branch; `GET /branch/current` exposes one-capture branch-local date/time with an unambiguous `date` plus offset-free branch-wall-clock wire format; transaction and installment creates require persisted, endpoint+branch+user-scoped `Idempotency-Key` handling with canonical typed-body hashing and a 24-hour replay envelope; transaction update/finalize/cancel, DailyClose items, setting update, and month lock share the exact strong quoted-decimal `xmin` `If-Match`/ETag convention; and time-entry lists filter/order in-progress rows before paging. The Phase 6 forward marker in §6.11 is discharged; later Phase 5/7 markers remain.
+> v40: M7.7 Phase 7 (items 7.1–7.4, decision 1.6a) — time-entry policy integrity. New §3.20 effective-dated `TimeEntryPolicy` entity (`EffectiveFrom` date + the three time constants, active-unique `(BranchId, EffectiveFrom)`, restricted Branch FK); every §6.7 calculation resolves the row with the greatest `EffectiveFrom` on or before the entry's own date, so changing `DailyTargetHours` or either lunch tier today never rewrites historical balances. Get and List recompute every row — closed rows included — under its entry-date policy, exactly like the balance report, so no read surface can serve a stale persisted checkpoint that disagrees with payroll after a same-day change. `Setting` keeps `LockDate`, is **not** versioned, and its three constants become the current-policy mirror kept in sync by the single `PUT /setting` write path, which appends the policy row effective the branch-local day of the change (a second same-day change mutates that day's row in place) in the same commit that advances the Setting `xmin` ETag. Migration `M7_7Phase7TimeEntryPolicy` deterministically backfills one MinValue-dated initial row per existing branch from its current constants; `CreateBranchSeedFactory` seeds the same initial row for new branches. §6.14's time-entry balance branch-wide roll-up now includes **every active operator** — zero-entry rows return empty `Days` and zeroed totals, with or without a login link (`UserId = null`), and operators deactivated after working inside the window are retained; ordering is unchanged. The "Sem registro" day labelling stays a client-side window-minus-entries derivation — no server operating-day matrix. The §6.7 Phase 7 forward marker is discharged; later Phase 5 markers remain.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -896,13 +897,15 @@ public class Setting : EntityBase
 |----------------------|--------------|----------|-----------------------------------------------------------------------------------|
 | Id                   | uuid         | PK       |                                                                                   |
 | LockDate             | date         | NOT NULL | Transactions on or before this date cannot be edited. Access: `conf_dtfechamento` |
-| DailyTargetHours     | numeric(6,2) | NOT NULL | Default 7.33 (7h20m). Used in TimeEntry balance calculation                       |
-| LunchDeductionOver6H | numeric(4,2) | NOT NULL | Default 1.00. Hours deducted for lunch when worked >6h                            |
-| LunchDeductionOver4H | numeric(4,2) | NOT NULL | Default 0.25. Hours deducted for break when worked >4h but ≤6h                    |
+| DailyTargetHours     | numeric(6,2) | NOT NULL | Default 7.33 (7h20m). Current-policy mirror — see the dating-model note below     |
+| LunchDeductionOver6H | numeric(4,2) | NOT NULL | Default 1.00. Current-policy mirror — hours deducted for lunch when worked >6h    |
+| LunchDeductionOver4H | numeric(4,2) | NOT NULL | Default 0.25. Current-policy mirror — break deduction when worked >4h but ≤6h     |
 | BranchId             | uuid         | NOT NULL | FK → Branch. UNIQUE — one setting row per branch                                  |
 | Version              | xid          | NOT NULL | PostgreSQL `xmin` system column, exposed as `uint`; optimistic-concurrency token  |
 | CreatedAt            | timestamptz  | NOT NULL |                                                                                   |
 | Active               | boolean      | NOT NULL |                                                                                   |
+
+**Time-constant dating model (M7.7 Phase 7, decision 1.6a).** The three time constants on this row are the branch's **current values only** — a denormalized mirror of the latest §3.20 `TimeEntryPolicy` row, kept for the Settings read surface (`GET /setting`) and as the `If-Match`/ETag concurrency root of `PUT /setting`. **No calculation reads them.** Every §6.7 balance computation resolves the effective-dated `TimeEntryPolicy` row applicable to the entry's own date. `PUT /setting` is the single write path and keeps mirror and ledger in sync in one commit: it mutates this row (advancing `xmin`) and upserts the policy row effective from the branch-local day of the change. `Setting` itself keeps `LockDate` and is **not** versioned.
 
 ---
 
@@ -940,6 +943,43 @@ public class IdempotencyRequest : EntityBase
 | Active           | boolean      | NOT NULL | EntityBase default                                           |
 
 **Unique scope:** `(Endpoint, BranchId, UserId, Key)`. A transaction-scoped PostgreSQL advisory lock serializes this exact scope before its tracked row is read or created. The reservation/replay record and financial rows commit in the same database transaction, so neither can survive without the other.
+
+---
+
+### 3.20 TimeEntryPolicy
+
+Effective-dated time-entry policy ledger (M7.7 Phase 7, decision 1.6a). Each row carries the branch's time constants valid from `EffectiveFrom` (inclusive, branch-local date) until a later row's `EffectiveFrom` supersedes it. The applicable row for an entry date is the one with the **greatest `EffectiveFrom` on or before that date**, so changing today's constants never rewrites balances for earlier days. There is no per-entry snapshot and `Setting` is not versioned — this table is the single dating model.
+
+```csharp
+public class TimeEntryPolicy : EntityBase
+{
+    public DateTime EffectiveFrom { get; init; }
+    public decimal DailyTargetHours { get; set; }
+    public decimal LunchDeductionOver6H { get; set; }
+    public decimal LunchDeductionOver4H { get; set; }
+
+    public Guid BranchId { get; init; }
+    public Branch Branch { get; init; } = null!;
+}
+```
+
+| Column               | Type         | Null     | Notes                                                                              |
+|----------------------|--------------|----------|-------------------------------------------------------------------------------------|
+| Id                   | uuid         | PK       |                                                                                    |
+| EffectiveFrom        | date         | NOT NULL | First branch-local date this policy applies to (inclusive)                          |
+| DailyTargetHours     | numeric(6,2) | NOT NULL | Target worked hours per day while this row is effective                            |
+| LunchDeductionOver6H | numeric(4,2) | NOT NULL | Lunch deduction when worked >6h while this row is effective                        |
+| LunchDeductionOver4H | numeric(4,2) | NOT NULL | Break deduction when worked >4h but ≤6h while this row is effective                |
+| BranchId             | uuid         | NOT NULL | Restricted FK → Branch                                                             |
+| CreatedAt            | timestamptz  | NOT NULL |                                                                                    |
+| Active               | boolean      | NOT NULL | EntityBase default; reads filter on it                                             |
+
+**Unique constraint:** filtered unique index on `(BranchId, EffectiveFrom)` where `Active = true` — at most one active policy per branch and effective date, which keeps per-date resolution unambiguous.
+
+**Lifecycle:**
+- **Initial row:** every branch has exactly one row dated `0001-01-01` (`DateTime.MinValue`) so resolution is total for any entry date, including entries backdated before branch creation. `CreateBranchSeedFactory` seeds it for new branches; migration `M7_7Phase7TimeEntryPolicy` deterministically backfilled it for every pre-existing branch from that branch's own `Setting` constants (so all historical balances recompute unchanged). The `Branch → Setting` relationship is not database-enforced, so the migration runs a fail-loud precondition check that aborts the whole migration if any existing branch has no `Setting` row, rather than silently leaving that branch with zero policy rows.
+- **Change:** a `PUT /setting` that actually changes a constant appends a row with `EffectiveFrom =` the branch-local day of the change; a **second change on the same day mutates that day's row in place** (no second row). Value-identical updates append nothing.
+- **Resolution:** rows are never deleted or end-dated; the next row's `EffectiveFrom` closes the previous one implicitly. A change therefore applies to the whole branch-local day it was made on and to every later day until superseded. Every read surface — Get, List, and the §6.14 balance report — recomputes each row under its entry-date policy on every call, closed rows included, so the day of a change reflects it immediately everywhere and no surface can serve a stale persisted checkpoint that disagrees with payroll.
 
 ---
 
@@ -1268,9 +1308,9 @@ Acquisition propagates request cancellation and uses transaction-local PostgreSQ
 
 ### 6.7 Time entry calculation
 
-> ⚠ **Pending M7.7 change (signed 2026-07-27, not yet implemented — [M7.7 Phase 1](../server/docs/milestones.md)):** time-entry policy values (`DailyTargetHours`, lunch tiers) move to an effective-dated `TimeEntryPolicy` entity resolved per entry date, so changing them no longer rewrites historical balances (migration backfills one policy row per branch from current constants). The text below describes the pre-decision contract.
-
 This logic is implemented in `ITimeEntryCalculationService` / `TimeEntryCalculationService` under `server.Application/Services/TimeEntries/`. The service consumes a list of segment inputs (full `DateTime` pairs) rather than a single clock pair, which makes overnight segments unambiguous without any wrap-around arithmetic.
+
+**Effective-dated policy resolution (M7.7 Phase 7).** The three constants the calculation consumes — `DailyTargetHours`, `LunchDeductionOver6H`, `LunchDeductionOver4H` — come from the §3.20 `TimeEntryPolicy` row applicable to the **entry's own date**: the active row with the greatest `EffectiveFrom` on or before that date, resolved by `TimeEntryPolicyResolver` over the branch's policy rows (single-entry writes and reads resolve one date; list and report paths resolve per row, since one page or window can span an effective boundary). `Setting`'s constants are only the current-policy mirror and are never a calculation input. Consequences: changing the constants today leaves every earlier day's balance untouched; the change applies from the branch-local day it was made (inclusive) until a later policy supersedes it. Get and List recompute **every** row under its entry-date policy — closed rows as well as live-running ones — exactly like the balance report, so all three surfaces answer with one number even for a closed current-day entry read right after a policy change; persisted `TotalHours`/`BalanceHours` stay a write-time checkpoint that reads never rewrite. Every branch has a MinValue-dated initial row (seeded on branch create, backfilled by migration for pre-existing branches from their then-current constants), so resolution is total and a miss is a system invariant breach, not a user error.
 
 All TimeEntry mutations enforce 409 `TIMEENTRY_DATE_LOCKED` when the effective entry date is on or before `Setting.LockDate`: dual-shape `PUT /timeentry` checks the requested date, whole-entry `DELETE /timeentry/{timeEntryId}` checks the loaded row's date, and granular segment `POST`/`PUT`/`DELETE` checks the parent date. Each path acquires the shared branch month boundary before loading mutable state and holds it through lock-date recheck, total recalculation where applicable, and commit. A write therefore either lands before month readiness is evaluated or waits and is rejected after the lock succeeds. Member idempotent tap retries still run inside the boundary; they remain no-persist no-ops while the date is unlocked.
 
@@ -1282,9 +1322,9 @@ ITimeEntryCalculationService.Calculate(
     segments: IReadOnlyList<TimeEntrySegmentInput>,  // (DateTime ClockIn, DateTime? ClockOut)
     entryDate: DateTime,
     branchLocalNow: DateTime,
-    dailyTargetHours,
-    lunchDeductionOver6H,
-    lunchDeductionOver4H)
+    dailyTargetHours,        // caller-resolved from the entry-date TimeEntryPolicy (§3.20)
+    lunchDeductionOver6H,    // caller-resolved from the entry-date TimeEntryPolicy (§3.20)
+    lunchDeductionOver4H)    // caller-resolved from the entry-date TimeEntryPolicy (§3.20)
   → (TotalHours, BalanceHours)
 ```
 
@@ -1311,7 +1351,8 @@ For the Member (Action) shape, an `Open` tap requires the server-stamped `branch
 
 ```
 Input: segments, Status, entryDate, branchLocalNow
-Constants: DailyTarget (from Setting), LunchDeduction rules (from Setting)
+Constants: DailyTarget + LunchDeduction rules from the TimeEntryPolicy row applicable
+           to entryDate (§3.20; greatest EffectiveFrom <= entryDate)
 
 If Status ≠ Present:
     Segments must be empty (enforced by TIMEENTRY_NON_PRESENT_REJECTS_SEGMENTS).
@@ -1834,7 +1875,7 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 
 *Blockers contract:* `Blockers` is a list of **structured** `ResponseMonthlyReconciliationBlockerJson` items for UI triage — not pre-formatted sentences. The backend returns fields and the client renders (and localizes) the message. Each item is `{ Type, Day, DailyCloseId?, AccountId?, AccountName?, CloseStatus?, DraftTransactionCount? }` where `Type` is the `MonthlyReconciliationBlockerType` enum (`UnapprovedClose` | `DraftTransactions` | `MissingExpectedClose`). For each non-Approved close the report appends an `UnapprovedClose` item carrying `Day`, `DailyCloseId`, `AccountId`, `AccountName`, and `CloseStatus`; for each day with outstanding Draft transactions it appends a `DraftTransactions` item carrying `Day` and `DraftTransactionCount`; and for each direct Terminal activity pair without a close it appends `MissingExpectedClose` carrying `Day`, `AccountId`, and `AccountName`. An empty list means this month has no known readiness blockers. The lock command still rechecks this month plus every preceding unlocked month while holding its exclusive boundary. On a fresh branch that includes active operational history before `Branch.CreatedAt`; a 409 `SETTING_LOCK_MONTH_INTERMEDIATE_UNRESOLVED` names the first blocking `MM/yyyy`, which the manager opens through this same report route.
 
-**Time-entry balance summary.** `GET /report/timeentry-balance?operatorId?&dateFrom&dateTo&mine` — any branch role (`[TokenAuthenticateBranch]`). Operator self-check ("how many hours have I worked? am I behind target?") and Manager/Admin payroll prep. Re-runs `ITimeEntryCalculationService.Calculate` per row (never the persisted checkpoint) against one branch-local "now" captured once for the whole report, so in-progress current-day rows surface live-recomputed hours (§6.7).
+**Time-entry balance summary.** `GET /report/timeentry-balance?operatorId?&dateFrom&dateTo&mine` — any branch role (`[TokenAuthenticateBranch]`). Operator self-check ("how many hours have I worked? am I behind target?") and Manager/Admin payroll prep. Re-runs `ITimeEntryCalculationService.Calculate` per row (never the persisted checkpoint) against one branch-local "now" captured once for the whole report, so in-progress current-day rows surface live-recomputed hours (§6.7). Constants are resolved per entry date from the §3.20 `TimeEntryPolicy` ledger, so a window spanning a policy change reports each day under the policy that governed it.
 
 *Endpoint:* `GET /report/timeentry-balance?operatorId?&dateFrom&dateTo&mine`
 
@@ -1842,7 +1883,7 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 - **Member** → own linked operator (one element). A Member with no linked operator gets an **empty `Operators` list** (empty-scope short-circuit, not 403/404), regardless of `mine` or `operatorId`. An explicit `operatorId` other than their own → 403 `REPORT_MEMBER_NOT_OWN_OPERATOR`.
 - **Manager/Admin + `operatorId`** → that operator (one element); 404 `OPERATOR_NOT_FOUND` on miss/cross-branch.
 - **Manager/Admin + `mine`** → own operator (one element); 404 `OPERATOR_NOT_FOUND` when not linked.
-- **Manager/Admin + neither `operatorId` nor `mine`** → **branch-wide roll-up**: one element per operator with ≥ 1 active entry in the window, ordered `OperatorName ASC, OperatorId`. Operators with zero entries in the range are omitted. There is no `REPORT_OPERATOR_ID_REQUIRED` 400 cause on this endpoint — the original single-operator slice rejected this case, the Phase 11 addendum turned it into the branch-wide view (the resource string survives only for Phase 9 `operator-summary`).
+- **Manager/Admin + neither `operatorId` nor `mine`** → **branch-wide roll-up**: one element per **active operator** — zero-entry operators included with empty `Days` and zeroed totals/counters, whether or not they carry a login link (`UserId = null` employees are payroll rows too) — plus any operator that has active entries inside the window even after being deactivated (historical payroll rows never vanish). Ordered `OperatorName ASC, OperatorId` (unchanged). *(M7.7 Phase 7.2; before it, zero-entry operators were omitted.)* Labelling an operator's missing days *Sem registro* remains a client-side derivation (requested window minus returned `Days`) — the server publishes no operating-day matrix and fabricates no absence rows. There is no `REPORT_OPERATOR_ID_REQUIRED` 400 cause on this endpoint — the original single-operator slice rejected this case, the Phase 11 addendum turned it into the branch-wide view (the resource string survives only for Phase 9 `operator-summary`).
 
 `mine` and `operatorId` are mutually exclusive → 400 from `TimeEntryBalanceSummaryFluentValidation`; the same validator enforces the standard `[DateFrom, DateTo]` window guardrails.
 

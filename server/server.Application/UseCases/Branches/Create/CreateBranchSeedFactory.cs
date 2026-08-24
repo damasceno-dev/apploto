@@ -120,4 +120,21 @@ public static class CreateBranchSeedFactory
             LunchDeductionOver4H = DefaultLunchDeductionOver4H
         };
     }
+
+    /// <summary>
+    /// Initial effective-dated policy row for a new branch, mirroring the default Setting
+    /// constants. Dated <see cref="DateTime.MinValue"/> so per-date resolution is total
+    /// even for entries backdated before the branch's creation.
+    /// </summary>
+    public static TimeEntryPolicy CreateDefaultTimeEntryPolicy(Guid branchId)
+    {
+        return new TimeEntryPolicy
+        {
+            BranchId = branchId,
+            EffectiveFrom = DateTime.MinValue,
+            DailyTargetHours = DefaultDailyTargetHours,
+            LunchDeductionOver6H = DefaultLunchDeductionOver6H,
+            LunchDeductionOver4H = DefaultLunchDeductionOver4H
+        };
+    }
 }

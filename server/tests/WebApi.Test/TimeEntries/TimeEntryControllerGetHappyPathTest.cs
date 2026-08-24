@@ -56,7 +56,7 @@ public class TimeEntryControllerGetHappyPathTest(ServerWebApplicationFactory fac
     }
 
     [Fact]
-    public async Task Get_ShouldReturnPersistedTotals_WhenAllSegmentsClosed()
+    public async Task Get_ShouldRecomputeClosedRowUnderEntryDatePolicy_NotPersistedCheckpoint()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("TEGetClosed", Role.Admin);
         await factory.SeedSettingAsync(branch.Id);
@@ -65,7 +65,10 @@ public class TimeEntryControllerGetHappyPathTest(ServerWebApplicationFactory fac
         var entry = await TimeEntrySegmentTestHelpers.SeedTimeEntryWithSegmentsAsync(
             factory, branch.Id, op.Id, date,
             segments: [(date.AddHours(8), date.AddHours(17), true)]);
-        await SetPersistedTotalsAsync(entry.Id, totalHours: 8m, balanceHours: 0.67m);
+        // Deliberately stale checkpoint: a policy change never rewrites persisted totals,
+        // so the read must recompute — 08–17 under the seeded 7.33/1.00/0.25 policy is
+        // 9 h gross − 1 h lunch = 8 h (+0.67), regardless of what the checkpoint says.
+        await SetPersistedTotalsAsync(entry.Id, totalHours: 5m, balanceHours: -2.33m);
 
         var httpResponse = await _client.GetAuthAsync($"/timeentry/{entry.Id}", token);
 
@@ -75,9 +78,10 @@ public class TimeEntryControllerGetHappyPathTest(ServerWebApplicationFactory fac
         payload.BalanceHours.ShouldBe(0.67m);
         payload.IsInProgress.ShouldBeFalse();
 
+        // The persisted row still carries the checkpoint — reads recompute, never rewrite.
         var reload = await TimeEntrySegmentTestHelpers.ReloadTimeEntryWithSegmentsAsync(factory, entry.Id);
-        reload.TotalHours.ShouldBe(payload.TotalHours);
-        reload.BalanceHours.ShouldBe(payload.BalanceHours);
+        reload.TotalHours.ShouldBe(5m);
+        reload.BalanceHours.ShouldBe(-2.33m);
     }
 
     [Fact]
