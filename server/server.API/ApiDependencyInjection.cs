@@ -15,6 +15,8 @@ public static class ApiDependencyInjection
         services.AddHttpContextAccessor();
         services.AddOpenApi(options =>
         {
+            options.AddSchemaTransformer<CommunicationRequiredPropertiesOpenApiSchemaTransformer>();
+            options.AddOperationTransformer<RequiredQueryParametersOpenApiOperationTransformer>();
             options.AddOperationTransformer<FinancialHeadersOpenApiOperationTransformer>();
             options.AddDocumentTransformer((document, context, cancellationToken) =>
             {

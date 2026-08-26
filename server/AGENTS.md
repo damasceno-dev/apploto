@@ -421,6 +421,13 @@ OpenAPI rules:
 - Use the built-in OpenAPI generator in .NET 10.
 - Add the bearer security scheme to the generated document.
 - Keep the generated spec stable enough for downstream web and mobile code generation.
+- C# nullable metadata is the source of truth for contract requiredness. In nullable-enabled `server.Communication` DTOs, non-nullable value and reference members are emitted in the schema `required` set; `Nullable<T>` and nullable reference members remain optional. A non-nullable collection stays required even when initialized to `[]`.
+- Interpret nullable metadata in the serialization direction: use write-state for request bodies and query inputs, and read-state for responses. Scope Communication schemas by assembly identity rather than namespace-prefix conventions.
+- Request-body omission semantics take precedence for scalar defaults the server accepts: a non-nullable Boolean member is optional because omission binds `false`; a non-nullable enum member is optional only when its CLR default (`0`) is a defined value. An enum whose zero value is undefined remains required, as do non-nullable Boolean/enum response members.
+- Apply that same nullable-metadata policy systemically to flattened `[FromQuery]` DTO members and direct `[FromQuery]` parameters, except when omission has a declared runtime meaning: a direct parameter with an explicit C# default remains optional; an initialized flattened DTO member remains optional when a default-constructed DTO produces a non-`default(T)` value; a non-nullable Boolean query flag remains optional because omission binds `false`; and a non-nullable enum query member remains optional only when its CLR default (`0`) is defined, matching request-body behavior. Required sentinel values such as dates/IDs, invalid-zero enums, and non-initialized paging integers still follow nullability.
+- Do not add one-off `[Required]` attributes or change DTO member types merely to repair or normalize generated metadata; OpenAPI hardening must preserve runtime binding semantics.
+- Operation transformers must handle every `IOpenApiParameter` shape, including resolved references; never silently drop references by filtering to a concrete implementation.
+- Populate schema `required` with the serialized JSON property name supplied by `System.Text.Json`, never the raw CLR member name. Limit the schema policy to `server.Communication` contracts so framework and problem schemas remain untouched.
 - Keep cross-cutting financial headers explicit and required in generated OpenAPI: `Idempotency-Key` on supported financial creates, `If-Match` on guarded mutations, and `ETag` on successful versioned responses.
 
 Controller rules:
