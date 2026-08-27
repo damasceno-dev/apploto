@@ -75,6 +75,12 @@
     <data name="ROLE_REQUIRED" xml:space="preserve">
         <value>O papel deve ser informado</value>
     </data>
+    <data name="ENUM_NAME_INVALID" xml:space="preserve">
+        <value>O nome informado para o enum é inválido</value>
+    </data>
+    <data name="REQUEST_INVALID" xml:space="preserve">
+        <value>A solicitação contém um valor inválido</value>
+    </data>
     <data name="UNKNOWN_ERROR" xml:space="preserve">
         <value>Erro desconhecido</value>
     </data>
@@ -306,6 +312,9 @@
     <data name="TRANSACTION_RECORDED_BY_OPERATOR_ID_EMPTY" xml:space="preserve">
         <value>O identificador do operador responsável pela transação não pode ser vazio</value>
     </data>
+    <data name="TRANSACTION_STATUS_INVALID" xml:space="preserve">
+        <value>Status da transação inválido</value>
+    </data>
     <data name="TRANSACTION_LIST_PAGE_INVALID" xml:space="preserve">
         <value>A página deve ser maior ou igual a 1</value>
     </data>
@@ -317,6 +326,9 @@
     </data>
     <data name="TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
         <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
+    </data>
+    <data name="DAILYCLOSE_STATUS_INVALID" xml:space="preserve">
+        <value>Status do fechamento diário inválido</value>
     </data>
     <data name="DAILYCLOSE_NOT_FOUND" xml:space="preserve">
         <value>Fechamento diário não encontrado</value>

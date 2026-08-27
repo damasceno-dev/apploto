@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommonTestUtilities.Requests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -21,6 +22,7 @@ namespace WebApi.Test.Branches;
 [Collection(ServerApiCollection.Name)]
 public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory factory)
 {
+    private static readonly JsonSerializerOptions ResponseJsonOptions = CreateResponseJsonOptions();
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
@@ -59,9 +61,7 @@ public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory fac
         root.GetProperty("branchLocalDate").GetString().ShouldBe("2026-08-19");
         root.GetProperty("branchLocalDateTime").GetString().ShouldBe("2026-08-19T23:47:12");
 
-        var payload = JsonSerializer.Deserialize<ResponseGetCurrentBranchSummaryJson>(
-            rawJson,
-            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+        var payload = JsonSerializer.Deserialize<ResponseGetCurrentBranchSummaryJson>(rawJson, ResponseJsonOptions);
         payload.ShouldNotBeNull();
         payload.BranchLocalDate.ShouldBe(new DateOnly(2026, 8, 19));
         payload.BranchLocalDateTime.ShouldBe(fixedLocalNow);
@@ -183,5 +183,12 @@ public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory fac
         public DateTime LocalBusinessDate(DateTime utcInstant) => localNow.Date;
         public bool IsSameLocalDay(DateTime localBusinessDate, DateTime utcInstant) =>
             localBusinessDate.Date == localNow.Date;
+    }
+
+    private static JsonSerializerOptions CreateResponseJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 }

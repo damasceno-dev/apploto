@@ -1976,9 +1976,11 @@ The built-in .NET 10 generator emits no `required` array for response/request DT
 
 The `shared/` named-enum codegen gate asserts the generated TS exposes enum *names* (string unions / named objects), never bare numeric unions. The server half: public contract enums serialize as names on responses, and the OpenAPI document lists named values.
 
-- [ ] **2.1** Make public contract enums serialize as names on responses (`Draft`, `Active`, `Cancelled`, …); accept integer input during the transition.
-- [ ] **2.2** Ensure the OpenAPI document lists named enum values, not bare integers, for those enums.
-- [ ] **2.3** WebApi/OpenAPI tests pin at least one request enum and one response enum end-to-end.
+- [x] **2.1** Make public contract enums serialize as names on responses (`Draft`, `Active`, `Cancelled`, …); accept integer input during the transition.
+- [x] **2.2** Ensure the OpenAPI document lists named enum values, not bare integers, for those enums.
+- [x] **2.3** WebApi/OpenAPI tests pin at least one request enum and one response enum end-to-end.
+
+> **Phase 2 completion note (2026-08-26):** MVC JSON now applies one global declared-name enum policy: responses write member names with canonical declared casing and fall back to the numeric backing value for undefined legacy/out-of-band response data so result serialization cannot truncate an already-started response. Request bodies accept declared names case-insensitively, matching MVC query binding, plus integer input during the transition. Integers representable by an enum's backing type bind into the DTO so the owning FluentValidation `IsInEnum` rule retains its feature-specific localized message; a reflection convention test requires that rule for every request enum property, including nullable members. Invalid or case-insensitively ambiguous names fail at the binding boundary with a localized enum-name message, while malformed JSON, empty bodies, wrong member types, numeric overflow, and other model-state failures fall back to the generic request message. The API-wide model-state projection always returns `ResponseErrorJson`, suppresses raw framework messages, and exposes only explicitly allowlisted backend-authored messages. The built-in OpenAPI pipeline uses the same reflected enum declarations to emit `type: string` plus canonical declared names for component schemas, including enums reached only through nullable properties such as `TimeEntryTapAction`, as well as body, response, and query contracts. Real HTTP/OpenAPI regressions pin named and numeric `SettlementRule` input on `POST /transaction-type`, the boundary/feature validation split across transaction type, category, branch-user, and nullable time-entry enums, a named DailyClose response, and representative transaction, time-entry, daily-close, and aging schemas without duplicating enum value lists.
 
 ### Phase 3 — Audit, snapshot, and spec sync
 

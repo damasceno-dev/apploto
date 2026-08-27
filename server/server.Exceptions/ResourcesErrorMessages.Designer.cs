@@ -158,6 +158,18 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("ROLE_REQUIRED", resourceCulture);
             }
         }
+
+        public static string ENUM_NAME_INVALID {
+            get {
+                return ResourceManager.GetString("ENUM_NAME_INVALID", resourceCulture);
+            }
+        }
+
+        public static string REQUEST_INVALID {
+            get {
+                return ResourceManager.GetString("REQUEST_INVALID", resourceCulture);
+            }
+        }
         
         public static string UNKNOWN_ERROR {
             get {
@@ -621,6 +633,12 @@ namespace server.Exceptions {
             }
         }
         
+        public static string TRANSACTION_STATUS_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_STATUS_INVALID", resourceCulture);
+            }
+        }
+
         public static string TRANSACTION_LIST_PAGE_INVALID {
             get {
                 return ResourceManager.GetString("TRANSACTION_LIST_PAGE_INVALID", resourceCulture);
@@ -642,6 +660,12 @@ namespace server.Exceptions {
         public static string TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT {
             get {
                 return ResourceManager.GetString("TRANSACTION_LIST_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string DAILYCLOSE_STATUS_INVALID {
+            get {
+                return ResourceManager.GetString("DAILYCLOSE_STATUS_INVALID", resourceCulture);
             }
         }
 

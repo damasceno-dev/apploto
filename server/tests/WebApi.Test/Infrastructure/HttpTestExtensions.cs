@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using server.Communication.Requests;
 using Shouldly;
@@ -8,6 +9,8 @@ namespace WebApi.Test.Infrastructure;
 
 internal static class HttpTestExtensions
 {
+    private static readonly JsonSerializerOptions ResponseJsonOptions = CreateResponseJsonOptions();
+
     extension(HttpClient client)
     {
         public Task<HttpResponseMessage> GetAuthAsync(string requestUri,
@@ -77,7 +80,7 @@ internal static class HttpTestExtensions
         public async Task<TResponse> ReadContentAsync<TResponse>()
             where TResponse : class
         {
-            var payload = await response.Content.ReadFromJsonAsync<TResponse>();
+            var payload = await response.Content.ReadFromJsonAsync<TResponse>(ResponseJsonOptions);
             payload.ShouldNotBeNull();
             return payload;
         }
@@ -99,6 +102,13 @@ internal static class HttpTestExtensions
         if (expectedVersion is not null)
             request.Headers.TryAddWithoutValidation("If-Match", $"\"{expectedVersion}\"");
         return await client.SendAsync(request);
+    }
+
+    private static JsonSerializerOptions CreateResponseJsonOptions()
+    {
+        var options = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        options.Converters.Add(new JsonStringEnumConverter());
+        return options;
     }
 }
 

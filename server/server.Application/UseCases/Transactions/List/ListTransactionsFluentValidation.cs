@@ -18,6 +18,11 @@ public class ListTransactionsFluentValidation : AbstractValidator<RequestListTra
             .InclusiveBetween(1, MaximumPageSize)
             .WithMessage(string.Format(ResourcesErrorMessages.TRANSACTION_LIST_PAGE_SIZE_INVALID, 1, MaximumPageSize));
 
+        RuleFor(r => r.Status)
+            .IsInEnum()
+            .When(r => r.Status.HasValue)
+            .WithMessage(ResourcesErrorMessages.TRANSACTION_STATUS_INVALID);
+
         RuleFor(r => r)
             .Must(r => r.DateFrom is null || r.DateTo is null || r.DateFrom.Value <= r.DateTo.Value)
             .WithMessage(ResourcesErrorMessages.TRANSACTION_LIST_DATE_RANGE_INVALID);

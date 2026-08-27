@@ -18,6 +18,11 @@ public class ListDailyClosesFluentValidation : AbstractValidator<RequestListDail
             .InclusiveBetween(1, MaximumPageSize)
             .WithMessage(string.Format(ResourcesErrorMessages.DAILYCLOSE_LIST_PAGE_SIZE_INVALID, 1, MaximumPageSize));
 
+        RuleFor(r => r.Status)
+            .IsInEnum()
+            .When(r => r.Status.HasValue)
+            .WithMessage(ResourcesErrorMessages.DAILYCLOSE_STATUS_INVALID);
+
         RuleFor(r => r)
             .Must(r => r.DateFrom is null || r.DateTo is null || r.DateFrom.Value <= r.DateTo.Value)
             .WithMessage(ResourcesErrorMessages.DAILYCLOSE_LIST_DATE_RANGE_INVALID);

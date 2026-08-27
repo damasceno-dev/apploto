@@ -1,5 +1,6 @@
 using CommonTestUtilities.Requests;
 using server.Application.UseCases.Transactions.List;
+using server.Domain.Entities.Enums;
 using server.Exceptions;
 using Shouldly;
 using Xunit;
@@ -60,6 +61,20 @@ public class ListTransactionsFluentValidationTest
         result.IsValid.ShouldBeFalse();
         result.Errors.Select(e => e.ErrorMessage)
             .ShouldContain(string.Format(ResourcesErrorMessages.TRANSACTION_LIST_PAGE_SIZE_INVALID, 1, ListTransactionsFluentValidation.MaximumPageSize));
+    }
+
+    [Fact]
+    public void Validate_ShouldFail_WhenStatusIsUndefined()
+    {
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithStatus((TransactionStatus)999)
+            .Build();
+
+        var result = _validator.Validate(request);
+
+        result.IsValid.ShouldBeFalse();
+        result.Errors.Select(e => e.ErrorMessage)
+            .ShouldContain(ResourcesErrorMessages.TRANSACTION_STATUS_INVALID);
     }
 
     [Fact]

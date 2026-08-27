@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.OpenApi;
+using server.Communication.Responses;
 using server.Domain.Interfaces;
 using server.ExceptionHandling;
+using server.Exceptions;
 using server.OpenApi;
+using server.Serialization;
 using server.Token;
 
 namespace server;
@@ -13,12 +17,24 @@ public static class ApiDependencyInjection
         services.AddSingleton<IApiExceptionHandler, ApiExceptionHandler>();
         services.AddScoped<ITokenProvider, HttpContextTokenProvider>();
         services.AddHttpContextAccessor();
+        services.Configure<JsonOptions>(options =>
+        {
+            options.AllowInputFormatterExceptionMessages = false;
+            options.JsonSerializerOptions.Converters.Add(new DeclaredNameEnumJsonConverterFactory());
+        });
+        services.Configure<ApiBehaviorOptions>(options =>
+        {
+            options.InvalidModelStateResponseFactory = context => new BadRequestObjectResult(
+                new ResponseErrorJson(ContractModelStateMessages.Describe(context.ModelState)));
+        });
         services.AddOpenApi(options =>
         {
+            options.AddSchemaTransformer<NamedEnumOpenApiSchemaTransformer>();
             options.AddSchemaTransformer<CommunicationRequiredPropertiesOpenApiSchemaTransformer>();
+            options.AddOperationTransformer<NamedEnumOpenApiOperationTransformer>();
             options.AddOperationTransformer<RequiredQueryParametersOpenApiOperationTransformer>();
             options.AddOperationTransformer<FinancialHeadersOpenApiOperationTransformer>();
-            options.AddDocumentTransformer((document, context, cancellationToken) =>
+            options.AddDocumentTransformer((document, _, _) =>
             {
                 document.Components ??= new OpenApiComponents();
                 document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();

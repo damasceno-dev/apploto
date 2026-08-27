@@ -90,7 +90,11 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
                  })
         {
             AssertDefaultedQueryParameter(operation, "includeOptionalFederal", "false");
-            AssertDefaultedQueryParameter(operation, "source", "0");
+            AssertDefaultedQueryParameter(
+                operation,
+                "source",
+                $"\"{nameof(BrazilianHolidayCalendarSource.Composite)}\"",
+                nameof(BrazilianHolidayCalendarSource));
         }
     }
 
@@ -156,12 +160,23 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
         }
     }
 
-    private static void AssertDefaultedQueryParameter(JsonElement operation, string name, string expectedDefault)
+    private static void AssertDefaultedQueryParameter(
+        JsonElement operation,
+        string name,
+        string expectedDefault,
+        string? expectedSchemaName = null)
     {
         var parameter = GetQueryParameter(operation, name);
         var isRequired = parameter.TryGetProperty("required", out var required) && required.GetBoolean();
         isRequired.ShouldBeFalse($"query parameter {name} has a server default and must remain optional");
-        parameter.GetProperty("schema").GetProperty("default").GetRawText().ShouldBe(expectedDefault);
+        var schema = parameter.GetProperty("schema");
+        schema.GetProperty("default").GetRawText().ShouldBe(expectedDefault);
+        if (expectedSchemaName is not null)
+        {
+            schema.GetProperty("$ref").GetString().ShouldBe(
+                $"#/components/schemas/{expectedSchemaName}",
+                $"defaulted enum query parameter {name} must preserve its reusable component reference");
+        }
     }
 
     private static void AssertOptionalQueryParameters(
