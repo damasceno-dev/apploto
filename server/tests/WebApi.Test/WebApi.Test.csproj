@@ -9,6 +9,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <None Update="OpenApi\Snapshots\*.txt" CopyToOutputDirectory="PreserveNewest" />
+      <None Remove="OpenApi\Snapshots\*.received.txt" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\..\server.API\server.API.csproj" />
       <ProjectReference Include="..\CommonTestUtilities\CommonTestUtilities.csproj" />
     </ItemGroup>
@@ -17,7 +22,7 @@
       <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />
       <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.4.0" />
       <PackageReference Include="Shouldly" Version="4.3.0" />
-      <PackageReference Include="Testcontainers.PostgreSql" Version="4.11.0" />
+      <PackageReference Include="Testcontainers.PostgreSql" Version="4.14.0" />
       <PackageReference Include="xunit" Version="2.9.3" />
       <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
         <PrivateAssets>all</PrivateAssets>

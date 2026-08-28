@@ -26,7 +26,7 @@ public sealed class NamedEnumOpenApiContractTest(ServerWebApplicationFactory fac
         var root = document.RootElement;
         var schemas = root.GetProperty("components").GetProperty("schemas");
 
-        var contractEnumTypes = GetCommunicationContractEnumTypes();
+        var contractEnumTypes = CommunicationContractTypes.EnumTypes();
         contractEnumTypes.ShouldContain(
             typeof(TimeEntryTapAction),
             $"{nameof(TimeEntryTapAction)} is the nullable-only enum regression sentinel");
@@ -246,36 +246,6 @@ public sealed class NamedEnumOpenApiContractTest(ServerWebApplicationFactory fac
         var value = document.RootElement.GetProperty(propertyName);
         value.ValueKind.ShouldBe(JsonValueKind.String);
         value.GetString().ShouldBe(expectedName);
-    }
-
-    private static IReadOnlyList<Type> GetCommunicationContractEnumTypes() =>
-        typeof(server.Communication.Requests.RequestUpsertTimeEntryJson).Assembly.GetTypes()
-            .SelectMany(type => type.GetProperties())
-            .SelectMany(property => GetEnumTypes(property.PropertyType))
-            .Distinct()
-            .OrderBy(type => type.FullName, StringComparer.Ordinal)
-            .ToList();
-
-    private static IEnumerable<Type> GetEnumTypes(Type type)
-    {
-        type = Nullable.GetUnderlyingType(type) ?? type;
-        if (type.IsEnum)
-        {
-            yield return type;
-            yield break;
-        }
-
-        if (type.IsArray)
-        {
-            foreach (var enumType in GetEnumTypes(type.GetElementType()!))
-                yield return enumType;
-        }
-
-        foreach (var argument in type.GetGenericArguments())
-        {
-            foreach (var enumType in GetEnumTypes(argument))
-                yield return enumType;
-        }
     }
 
     private static void AssertDeclaredComponentNames(Type enumType, JsonElement schemas)

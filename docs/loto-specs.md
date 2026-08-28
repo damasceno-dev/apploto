@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md (this file is canonical; derived artifacts: docs/loto_presentation.html, docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-Lotero mapping.
-Spec revision: v40
+Spec revision: v41
 -->
 
-> **Status:** Revised spec (v40) — M7.7 Phase 7 ships time-entry policy integrity: the effective-dated `TimeEntryPolicy` entity resolved per entry date (changing today's constants no longer rewrites historical balances) and the branch balance roll-up that includes every active operator even with zero entries. The Phase 6 contracts, v38 month-lock findings, and expanded Phase 3 close chain remain unchanged. The v30 caveat still stands — project-wide OpenAPI `required`-metadata emission outside the Phase 6 headers remains in M7.6.
+> **Status:** Revised spec (v41) — M7.6 closes: the generated OpenAPI document is now a faithful codegen-grade contract (§6.15). Required/optional metadata is derived project-wide from C# nullability, and every contract enum is published by declared name as `type: string`. Endpoints, DTO shapes, status codes, and domain semantics are unchanged from v40; the v30 `required`-metadata caveat is discharged. M7.7 Phase 7 time-entry policy integrity, the Phase 6 contracts, the v38 month-lock findings, and the expanded Phase 3 close chain all remain as described.
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -49,6 +49,7 @@ Spec revision: v40
 > v38: M7.7 Phase 4 findings audit — all five TimeEntry mutation routes (`PUT /timeentry`, whole-entry `DELETE`, and granular segment `POST`/`PUT`/`DELETE`) acquire the shared branch month boundary, reload or resolve their effective date, recheck `TIMEENTRY_DATE_LOCKED`, and commit before releasing it, so payroll-hour corrections cannot bypass or race a successful lock. Month and account coordination have independently configurable five-second timeouts; the settings boundary recognizes nested PostgreSQL `55P03` and returns `SETTING_LOCK_MONTH_COORDINATION_BUSY`. Non-MinValue legacy boundaries are clamped to the data-aware operational floor when lower, while an impossible current/future value written by the retired PUT path is repaired only through a successful whole-interval command. The live report projection, both settings 409 paths, concurrent lock commands, and the Phase 4 OpenAPI surface are pinned against PostgreSQL. Dead `SETTING_LOCK_DATE_RETREAT` live-contract wording/resources were removed; no schema change or migration was required.
 > v39: M7.7 Phase 6 (items 6.1–6.8) — transaction lists accept `OriginTransactionId` without widening Member account scope and return each row's `OriginTransactionId` plus `xmin` `Version` for direct guarded sibling actions; cash-variance rows carry their exact `(Date, AccountId)` close id; membership removal atomically clears every Operator login link for that user/branch; `GET /branch/current` exposes one-capture branch-local date/time with an unambiguous `date` plus offset-free branch-wall-clock wire format; transaction and installment creates require persisted, endpoint+branch+user-scoped `Idempotency-Key` handling with canonical typed-body hashing and a 24-hour replay envelope; transaction update/finalize/cancel, DailyClose items, setting update, and month lock share the exact strong quoted-decimal `xmin` `If-Match`/ETag convention; and time-entry lists filter/order in-progress rows before paging. The Phase 6 forward marker in §6.11 is discharged; later Phase 5/7 markers remain.
 > v40: M7.7 Phase 7 (items 7.1–7.4, decision 1.6a) — time-entry policy integrity. New §3.20 effective-dated `TimeEntryPolicy` entity (`EffectiveFrom` date + the three time constants, active-unique `(BranchId, EffectiveFrom)`, restricted Branch FK); every §6.7 calculation resolves the row with the greatest `EffectiveFrom` on or before the entry's own date, so changing `DailyTargetHours` or either lunch tier today never rewrites historical balances. Get and List recompute every row — closed rows included — under its entry-date policy, exactly like the balance report, so no read surface can serve a stale persisted checkpoint that disagrees with payroll after a same-day change. `Setting` keeps `LockDate`, is **not** versioned, and its three constants become the current-policy mirror kept in sync by the single `PUT /setting` write path, which appends the policy row effective the branch-local day of the change (a second same-day change mutates that day's row in place) in the same commit that advances the Setting `xmin` ETag. Migration `M7_7Phase7TimeEntryPolicy` deterministically backfills one MinValue-dated initial row per existing branch from its current constants; `CreateBranchSeedFactory` seeds the same initial row for new branches. §6.14's time-entry balance branch-wide roll-up now includes **every active operator** — zero-entry rows return empty `Days` and zeroed totals, with or without a login link (`UserId = null`), and operators deactivated after working inside the window are retained; ordering is unchanged. The "Sem registro" day labelling stays a client-side window-minus-entries derivation — no server operating-day matrix. The §6.7 Phase 7 forward marker is discharged; later Phase 5 markers remain.
+> v41: Milestone 7.6 close-out (Phases 1–3) — OpenAPI contract fidelity only. The generated document now derives required/optional from C# nullable metadata across every request body, response body, flattened `[FromQuery]` DTO member, and direct query parameter (read-state for responses, write-state for inputs, with accepted omission defaults preserved), and publishes every contract enum as a named `type: string` component whose values are the canonical declared names — including enums reached only through nullable properties. Responses serialize declared enum names; new §6.15 records both rules. **No endpoint, DTO, persistence, or domain-contract shape changed, and no endpoint's runtime status code changed**; the only behavioural difference is how enum values are spelled on the wire. Emitted metadata did change — that is the milestone — so downstream code generation output differs from v40 even where runtime behaviour is identical. Integer enum input is still accepted during the transition window, and the owning FluentValidation `IsInEnum` rule keeps its localized message for undefined-but-representable values. Two audit corrections landed: `POST /user/login`, `/user/register`, and `/user/renew-token` now declare their `[ProducesResponseType]` metadata, so `ResponseUserLoginJson`, `ResponseUserRegisterJson`, and `ResponseTokenJson` appear in the document at all — three components a generated client previously had no type for. `register`'s **declared** success status was corrected from `200` to the `201` the endpoint has always returned, which is a codegen-visible metadata change; its routes, payloads, and runtime responses are unchanged. A whole-document contract-surface snapshot regression now pins both guarantees, alongside a scan proving no schema anywhere falls back to bare numeric enum values.
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -1062,6 +1063,14 @@ public enum TimeEntryStatus
 | TransactionType | New payment methods emerge (PIX was added to Access mid-lifecycle) |
 | Product         | New lottery products can appear from CEF                           |
 
+### Wire representation
+
+The numeric values above are the **persisted database representation only**. They are not the JSON contract:
+responses serialize each enum as its canonical declared name (`"Approved"`, not `2`), and the generated OpenAPI
+document publishes every contract enum as a named `type: string` component listing those same names. See §6.15
+for the full rule, including what request bodies and query strings accept during the integer-input transition
+window.
+
 ---
 
 ## 5. Seed Data
@@ -1923,6 +1932,37 @@ Boundary examples: day 30 → `Days0To30`; day 31 → `Days31To60`; day 90 → `
 **Daily-close variance preview.** `POST /dailyclose/{dailyCloseId}/variance-preview` — same branch/account/recording-operator, status, local-day, and lock rules as Submit. Body: `RequestDailyCloseVariancePreviewJson { Items }`; response: `ResponseDailyCloseVariancePreviewJson { CashVariance }`. Candidate items are validated with the item-save rules and drive `TotalClosing` directly; existing Draft items are irrelevant. The use case loads the close and products no-tracking, injects no `IUnitOfWork`, and is included in the architecture never-commits invariant. A WebApi reload assertion pins the close header, `xmin` version, and saved items unchanged after a 200 response; parity tests save and submit the same candidates and compare the persisted variance.
 
 **DailyClose list enrichment (M7.5 Phase 3 gate) — variance deferred.** The paginated `ResponseListDailyCloseItemJson` exposes recorder user/operator and current submitter user/operator separately; its `operatorId` filter selects the immutable recording operator. It intentionally does **not** carry `VarianceValue`. The manager work queue reads inline variance from the dashboard's `Closes` rows and the approval screen reads the flagged cash-variance item from the review context, so no cataloged screen needs variance on the multi-date paginated list. The gate reopens only if a future list/history screen needs inline variance per row.
+
+### 6.15 Generated API contract
+
+The emitted OpenAPI document is the contract web and mobile generate their clients from. Two guarantees are
+systemic — they hold for every endpoint and DTO, are never patched per-DTO, and are pinned by a whole-document
+regression snapshot.
+
+**Requiredness follows C# nullability.** A `server.Communication` member is emitted in the schema `required` set
+when it is a non-nullable value type or a non-nullable reference; `Nullable<T>` and nullable references stay
+optional. A non-nullable collection stays required even when it is initialized to `[]`. Nullability is read in
+the serialization direction — write-state for request bodies and query inputs, read-state for responses — and
+`required` always carries the serialized JSON property name, never the CLR member name. The same rule governs
+flattened `[FromQuery]` DTO members and direct query parameters, except where omission has a declared runtime
+meaning: a direct parameter with an explicit C# default, an initialized flattened member whose default-constructed
+value is not `default(T)`, a non-nullable Boolean (omission binds `false`), and a non-nullable enum whose zero
+value is a defined member all stay optional. Required sentinels — dates, ids, invalid-zero enums, and paging
+integers with no initializer — stay required, which is why `Page`/`PageSize` are required on the report endpoints
+whose DTOs declare no default and optional on the list endpoints whose DTOs do.
+
+**Enums are published and serialized by name.** Every contract enum — including one reached only through a
+nullable property — is a reusable `type: string` component whose values are the canonical declared names, and
+responses serialize those names. During the transition window request bodies additionally accept declared names
+case-insensitively and any integer representable by the enum's backing type; the integer reaches the DTO so the
+owning FluentValidation `IsInEnum` rule can reject an undefined member with its own localized message, while an
+unknown or ambiguous name fails at the binding boundary. Every model-state failure still returns the standard
+`ResponseErrorJson` 400 envelope. An undefined value that reaches a **response** from legacy or out-of-band data
+serializes as its numeric backing value rather than throwing after the response has started.
+
+Cross-cutting financial headers stay explicit in the document: `Idempotency-Key` required on supported financial
+creates, `If-Match` required on guarded mutations, and `ETag` declared on successful versioned responses (§6.11,
+§6.13).
 
 ---
 

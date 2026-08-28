@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v40
+Spec revision: v41
 -->
 <html lang="en">
 <head>
@@ -945,7 +945,8 @@ function renderClosing(i){
     {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft.'},
     {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours. Constants resolve from the effective-dated TimeEntryPolicy row for each entry date, so settings changes never rewrite past balances.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
-    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'}
+    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'},
+    {t:'Typed Generated Contract (§6.15)',d:'The emitted OpenAPI document is what web and mobile generate their clients from. Required versus optional comes from C# nullability in both directions, and every contract enum is published as a string component and serialized by its declared name. Only an undefined value from legacy or out-of-band data falls back to its raw number — a deliberate corruption signal, unreachable through the API write paths.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">
