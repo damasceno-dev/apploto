@@ -56,10 +56,10 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 **Reports** *(Manager/Admin)*
 - **Daily ledger** · **Fiado balance** · **Fiado aging** · **Open-cheque aging** · **Cash-variance summary** · **Monthly reconciliation + lock** (advance `LockDate`).
 
-**Operator self-service** *(Member; also web)*
+**Operator self-service** *(Member; also linked Manager/Admin in the catalog's explicit Meu turno mode; also web)*
 - **My transaction summary** · **My time-entry balance**.
 
-**Operator day flow** *(Member, mobile-first)*
+**Operator day flow** *(Member by default; linked Manager/Admin through the catalog's explicit Gestão ↔ Meu turno mode switch; mobile-first)*
 - **Operator Day Cockpit** — the operator's "today" home; surfaces the next action across the steps below.
 - **Open day** · record transactions via **Transaction — Create (fast entry)** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
 

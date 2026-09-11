@@ -54,6 +54,8 @@ Canonical UI terms, mapped from the domain spec and the backend's own pt-BR erro
 | data de bloqueio / período bloqueado                       | `LockDate` and its effect — "A data da transação está bloqueada pelo fechamento" is the backend's own wording              | §6.6                                      |
 | banco de horas                                             | hour-balance system; "folga" (DayOff, hours owed), "abonado" (excused — no hours owed)                                     | §6.7, `TimeEntryStatus`                   |
 | ponto                                                      | clock in/out context — "bater o ponto", "registro de ponto"                                                                | §6.7                                      |
+| Gestão                                                     | management navigation context — Manager/Admin home (Manager Work Queue); a mode, not a role. **Not** "modo gerente"        | `screens.md` IA map (design 0.4.1)        |
+| Meu turno                                                  | shift navigation context — Operator Day Cockpit; the Member home and a linked Manager/Admin's switchable mode; not a role  | `screens.md` IA map (design 0.4.1)        |
 
 ## 5. Enum label maps (pt-BR)
 
