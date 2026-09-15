@@ -44,14 +44,16 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 - **Branch picker / session** — choose a branch, open a branch session.
 
 **Manager work queue & approvals** *(Manager/Admin)*
-- **Manager Work Queue** — exception-first home: pending approvals, not-submitted accounts, biggest variances, rejected/fix-needed closes, draft transactions blocking lock, reconciliation blockers.
+- **Manager Work Queue** — exception-first home: pending approvals, not-submitted accounts, biggest unapproved variances, an earlier-days backlog banner, rejected/fix-needed closes, draft transactions blocking lock, reconciliation blockers.
 - **Daily-close approval** — review a submitted close as a comparison (opening → closing → variance), approve or reject with reason.
 
 **Transactions ledger** *(Member: reads + entry scoped to linked accounts, §6.10/§6.11; Manager/Admin: whole branch — same screens on both platforms)*
 - **Transactions list** — filter and browse the ledger.
-- **Transaction — Create (fast entry)** — operator-speed, type-driven entry with optional impact preview.
+- **Transaction — Create (fast entry)** — operator-speed, type-driven entry with an automatic, non-blocking impact preview.
 - **Transaction — Edit (correction / audit)** — restricted-field correction with full impact preview (manager-control).
 - **Installment (pre-dated cheque) plan** — build and preview a cheque plan and its downstream impact.
+- **Client statement (Extrato de fiado)** — one client's fiado debt and history (*quanto deve e desde quando*); entry to Receber pagamento.
+- **Receber pagamento** — settle a client's fiado debt, partially or in full.
 
 **Reports** *(Manager/Admin)*
 - **Daily ledger** · **Fiado balance** · **Fiado aging** · **Open-cheque aging** · **Cash-variance summary** · **Monthly reconciliation + lock** (advance `LockDate`).
@@ -59,7 +61,7 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 **Operator self-service** *(Member; also linked Manager/Admin in the catalog's explicit Meu turno mode; also web)*
 - **My transaction summary** · **My time-entry balance**.
 
-**Operator day flow** *(Member by default; linked Manager/Admin through the catalog's explicit Gestão ↔ Meu turno mode switch; mobile-first)*
+**Day close flows** *(dual-mode: the Cockpit orchestrates them in Meu turno — Member by default, linked Manager/Admin through the explicit Gestão ↔ Meu turno switch — and Gestão handles their exceptions; mobile-first)*
 - **Operator Day Cockpit** — the operator's "today" home; surfaces the next action across the steps below.
 - **Open day** · record transactions via **Transaction — Create (fast entry)** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
 
