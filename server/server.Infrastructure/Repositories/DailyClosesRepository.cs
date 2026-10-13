@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
 using server.Domain.Models.Projections;
@@ -149,6 +150,39 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
                 dailyClose.SubmittedAt,
                 dailyClose.ApprovedAt))
             .ToListAsync(ct);
+    }
+
+    public async Task<DashboardBacklogRow> GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        DateTime afterDateExclusive,
+        DateTime beforeDateExclusive,
+        CancellationToken ct = default)
+    {
+        // Pending statuses are listed explicitly so a future status never joins the backlog by default.
+        var groups = await dbContext.DailyCloses
+            .AsNoTracking()
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.Active &&
+                dailyClose.Date > afterDateExclusive &&
+                dailyClose.Date < beforeDateExclusive &&
+                (dailyClose.Status == DailyCloseStatus.Submitted ||
+                 dailyClose.Status == DailyCloseStatus.Rejected ||
+                 dailyClose.Status == DailyCloseStatus.Draft))
+            .GroupBy(dailyClose => dailyClose.Status)
+            .Select(group => new
+            {
+                Status = group.Key,
+                Count = group.Count(),
+                OldestDate = group.Min(dailyClose => dailyClose.Date)
+            })
+            .ToListAsync(ct);
+
+        return new DashboardBacklogRow(
+            groups.Where(group => group.Status == DailyCloseStatus.Submitted).Sum(group => group.Count),
+            groups.Where(group => group.Status == DailyCloseStatus.Rejected).Sum(group => group.Count),
+            groups.Where(group => group.Status == DailyCloseStatus.Draft).Sum(group => group.Count),
+            groups.Count == 0 ? null : groups.Min(group => group.OldestDate));
     }
 
     public async Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(

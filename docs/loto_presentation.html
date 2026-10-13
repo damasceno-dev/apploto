@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v41
+Spec revision: v42
 -->
 <html lang="en">
 <head>
@@ -909,7 +909,7 @@ function renderIntro(s,i){
         <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. Dashboard, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
         <div class="intro-card">
           <h3 class="accent-color">The Work Queue</h3>
-          <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. Cash-variance summary rows also carry that exact <code>DailyCloseId</code>, and a terminal with an open Draft close deep-links straight into it.</p>
+          <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. The same response carries the <b>backlog</b> — Submitted, Rejected, and Draft closes still open on unlocked days before the one Maria is viewing, with the oldest such day — and the count of Draft transactions on every unlocked day through today. Cash-variance summary rows also carry that exact <code>DailyCloseId</code>, and a terminal with an open Draft close deep-links straight into it.</p>
         </div>
         <div class="intro-card">
           <h3 class="blue-color">The Close Review</h3>

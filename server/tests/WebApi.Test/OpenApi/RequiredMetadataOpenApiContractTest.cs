@@ -24,8 +24,16 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
         AssertRequiredMembers(
             schemas,
             "ResponseDashboardJson",
-            ["date", "totalVariance", "meanVariance", "pendingApprovalCount", "closes", "notSubmitted"],
+            [
+                "date", "totalVariance", "meanVariance", "pendingApprovalCount", "closes", "notSubmitted",
+                "backlog", "unlockedDraftTransactionCount"
+            ],
             []);
+        AssertRequiredMembers(
+            schemas,
+            "ResponseDashboardBacklogJson",
+            ["submittedCount", "rejectedCount", "draftCount"],
+            ["oldestPendingDate"]);
         AssertRequiredMembers(
             schemas,
             "ResponseDashboardCloseJson",

@@ -540,6 +540,12 @@ schema ResponseDailyLedgerJson
   totalOut required number|string
   totalPages required integer|string
 
+schema ResponseDashboardBacklogJson
+  draftCount required integer|string
+  oldestPendingDate optional string?
+  rejectedCount required integer|string
+  submittedCount required integer|string
+
 schema ResponseDashboardCloseJson
   accountId required string
   accountName required string
@@ -558,12 +564,14 @@ schema ResponseDashboardCloseJson
   varianceValue optional number|string?
 
 schema ResponseDashboardJson
+  backlog required ResponseDashboardBacklogJson
   closes required ResponseDashboardCloseJson[]
   date required string
   meanVariance required number|string
   notSubmitted required ResponseDashboardNotSubmittedJson[]
   pendingApprovalCount required integer|string
   totalVariance required number|string
+  unlockedDraftTransactionCount required integer|string
 
 schema ResponseDashboardNotSubmittedJson
   accountId required string

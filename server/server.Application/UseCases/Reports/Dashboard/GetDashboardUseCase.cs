@@ -1,4 +1,5 @@
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -14,7 +15,9 @@ public class GetDashboardUseCase(
     IDailyClosesRepository dailyClosesRepository,
     IDailyCloseItemsRepository dailyCloseItemsRepository,
     IAccountsRepository accountsRepository,
+    ITransactionsRepository transactionsRepository,
     ICashVarianceProductResolver cashVarianceProductResolver,
+    ILockDateReader lockDateReader,
     IBranchClock branchClock)
 {
     public async Task<ResponseDashboardJson> Execute(
@@ -30,6 +33,7 @@ public class GetDashboardUseCase(
         Validate(request);
 
         var date = request.Date.Date;
+        var branchLocalToday = branchClock.LocalBusinessDate(branchClock.UtcNow());
 
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
@@ -41,6 +45,15 @@ public class GetDashboardUseCase(
 
         var expectedClosers = await accountsRepository.ListExpectedClosersByBranchIdAsNoTracking(
             branchUser.BranchId, ct);
+
+        // Both aggregates start after LockDate but stop at different days: the close backlog ends
+        // before the requested date (that day's closes are the rows above), while Draft transactions
+        // are counted through branch-local today whatever date is being viewed.
+        var lockDate = await lockDateReader.Read(branchUser.BranchId, ct);
+        var backlog = await dailyClosesRepository.GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            branchUser.BranchId, afterDateExclusive: lockDate, beforeDateExclusive: date, ct);
+        var unlockedDraftTransactionCount = await transactionsRepository.CountDraftByBranchIdAndDateRangeAsNoTracking(
+            branchUser.BranchId, afterDateExclusive: lockDate, throughDateInclusive: branchLocalToday, ct);
 
         // Keyed by (Date, AccountId): each account's close carries its own variance row for the day;
         // keying by date alone would collapse sibling accounts.
@@ -85,7 +98,7 @@ public class GetDashboardUseCase(
         // A future branch-local date has no expected closers yet — nobody is missing a close for a
         // day that has not happened at the branch.
         List<ResponseDashboardNotSubmittedJson> notSubmitted = [];
-        if (date <= branchClock.LocalBusinessDate(branchClock.UtcNow()))
+        if (date <= branchLocalToday)
         {
             notSubmitted = expectedClosers
                 .Where(expected => !submittedAccountIds.Contains(expected.AccountId))
@@ -115,7 +128,15 @@ public class GetDashboardUseCase(
             MeanVariance = meanVariance,
             PendingApprovalCount = closeRows.Count(c => c.Status == DailyCloseStatus.Submitted),
             Closes = closeRows,
-            NotSubmitted = notSubmitted
+            NotSubmitted = notSubmitted,
+            Backlog = new ResponseDashboardBacklogJson
+            {
+                SubmittedCount = backlog.SubmittedCount,
+                RejectedCount = backlog.RejectedCount,
+                DraftCount = backlog.DraftCount,
+                OldestPendingDate = backlog.OldestPendingDate
+            },
+            UnlockedDraftTransactionCount = unlockedDraftTransactionCount
         };
     }
 

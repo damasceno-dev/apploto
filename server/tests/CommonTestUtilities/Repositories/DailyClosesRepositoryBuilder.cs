@@ -16,6 +16,25 @@ public class DailyClosesRepositoryBuilder
             .ListDashboardClosesByBranchIdAndDateAsNoTracking(
                 Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
             .Returns(new List<DashboardCloseRow>());
+        _repository
+            .GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+                Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(new DashboardBacklogRow(0, 0, 0, null));
+    }
+
+    public DailyClosesRepositoryBuilder GetDashboardBacklogByBranchIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DateTime afterDateExclusive,
+        DateTime beforeDateExclusive,
+        DashboardBacklogRow result)
+    {
+        _repository.GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DateTime>(value => value == afterDateExclusive),
+                Arg.Is<DateTime>(value => value == beforeDateExclusive),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
     }
 
     public DailyClosesRepositoryBuilder ListDashboardClosesByBranchIdAndDateAsNoTrackingReturns(

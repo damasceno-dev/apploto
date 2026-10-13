@@ -67,6 +67,12 @@ public interface ITransactionsRepository
     Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
         Guid branchId, int year, int month, CancellationToken ct = default);
     /// <summary>
+    /// Counts non-soft-deleted Draft transactions for the branch with
+    /// <paramref name="afterDateExclusive"/> &lt; Date ≤ <paramref name="throughDateInclusive"/>.
+    /// </summary>
+    Task<int> CountDraftByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime afterDateExclusive, DateTime throughDateInclusive, CancellationToken ct = default);
+    /// <summary>
     /// Distinct dates and Terminal accounts carrying direct active cash-ledger activity.
     /// Tab activity is intentionally excluded even when the Tab is paired to a Terminal.
     /// </summary>
