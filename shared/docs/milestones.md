@@ -43,12 +43,20 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 
 ### Phase 1 — Workspace root
 
-- [ ] **1.1** Add root `package.json`: `"name": "lotoapp"`, `"private": true`, `"type": "module"`, `packageManager` pinned to the chosen exact pnpm version, `engines.node` set to the current LTS floor, and fan-out scripts `typecheck`, `lint`, `format`, `format:check` implemented via `pnpm -r ...`.
-- [ ] **1.2** Add `pnpm-workspace.yaml` with packages: `shared/*`, `web`, `mobile`.
-- [ ] **1.3** Add `.nvmrc` with the pinned Node LTS major.
-- [ ] **1.4** Extend the root `.gitignore` (currently dotnet-flavored) with the Node/pnpm block: `node_modules/`, `*.tsbuildinfo`, `.eslintcache`, pnpm debug logs.
-- [ ] **1.5** Add root `.npmrc` with `engine-strict=true` (and nothing else until a concrete need appears).
-- [ ] **1.6** Run `pnpm install` — succeeds on the empty workspace; commit `pnpm-lock.yaml`.
+- [x] **1.1** Add root `package.json`: `"name": "lotoapp"`, `"private": true`, `"type": "module"`, `packageManager` pinned to the chosen exact pnpm version, `engines.node` set to the current LTS floor, and fan-out scripts `typecheck`, `lint`, `format`, `format:check` implemented via `pnpm -r ...`.
+- [x] **1.2** Add `pnpm-workspace.yaml` with packages: `shared/*`, `web`, `mobile`.
+- [x] **1.3** Add `.nvmrc` with the pinned Node LTS major.
+- [x] **1.4** Extend the root `.gitignore` (currently dotnet-flavored) with the Node/pnpm block: `node_modules/`, `*.tsbuildinfo`, `.eslintcache`, pnpm debug logs.
+- [x] **1.5** Add root `.npmrc` with `engine-strict=true` (and nothing else until a concrete need appears).
+- [x] **1.6** Run `pnpm install` — succeeds on the empty workspace; commit `pnpm-lock.yaml`. **Install complete; lockfile retained uncommitted as requested for this Phase 1 slice.**
+
+**Phase 1 implementation notes — 2026-10-13 (items 1.1–1.6 only):**
+
+- Toolchain verified at implementation time against the [official Node release index](https://nodejs.org/dist/index.json) and [release status](https://nodejs.org/en/about/previous-releases): Node **24.21.0**, Krypton LTS; Node 26 is still Current. `.nvmrc` pins major `24`, with `engines.node` set to `>=24.21.0 <25` to enforce the verified LTS floor and stay on that major.
+- pnpm **10.34.6** is the registry's [`latest-10`](https://registry.npmjs.org/-/package/pnpm/dist-tags) release; both `packageManager` and `engines.pnpm` pin that exact version. Its [release metadata](https://registry.npmjs.org/pnpm/10.34.6) requires Node `>=18.12`, and the [pnpm 10 compatibility table](https://pnpm.io/10.x/installation#compatibility) supports Node 24. Selected the maintained 10.x line because it honors the required `engine-strict=true` in `.npmrc`; [pnpm 11 moved non-registry settings out of `.npmrc`](https://pnpm.io/blog/releases/11.0).
+- Existing root content was preserved. The existing `node_modules/` ignore rule remains; the appended Node/pnpm block adds `*.tsbuildinfo`, `.eslintcache`, and `pnpm-debug.log*`. No prototypes or files in `server/`, `design/`, or `infra/` were changed.
+- Actual install: temporary Node **v24.21.0** and pnpm **10.34.6** executables, with archive checksums verified, ran `pnpm install --store-dir /private/tmp/lotoapp-shared-m1-toolchain/store`. **Exit 0**: `Already up to date`, `Done in 215ms using pnpm v10.34.6`. The store override keeps installation state temporary; global tool installations were unchanged. `pnpm config get engine-strict` returned `true`. Generated `pnpm-lock.yaml` is retained with only the empty root importer and no dependencies.
+- Fan-out scripts are configured only. No package typecheck, lint, or format checks were claimed or run: child packages do not exist yet, and Phase 2 supplies tool configs. Phases 2–4 remain pending (apart from the previously completed 4.2); no package skeletons, generated clients, helpers, app scaffolds, or Turborepo were added. No commit was made.
 
 ### Phase 2 — TypeScript + lint/format baseline
 
