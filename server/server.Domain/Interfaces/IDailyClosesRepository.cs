@@ -39,6 +39,13 @@ public interface IDailyClosesRepository
     /// </summary>
     Task<IReadOnlyList<DashboardCloseRow>> ListDashboardClosesByBranchIdAndDateAsNoTracking(
         Guid branchId, DateTime date, CancellationToken ct = default);
+    /// <summary>
+    /// Per-status counts and the earliest date of active Submitted/Rejected/Draft closes strictly between
+    /// the two dates (Approved excluded). One grouped aggregate — NOT the paginated list — so the counts
+    /// are exact and the oldest date does not depend on list ordering.
+    /// </summary>
+    Task<DashboardBacklogRow> GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime afterDateExclusive, DateTime beforeDateExclusive, CancellationToken ct = default);
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(
         Guid branchId, DailyCloseListFilter filter, CancellationToken ct = default);
     Task<int> CountByBranchIdAsNoTracking(

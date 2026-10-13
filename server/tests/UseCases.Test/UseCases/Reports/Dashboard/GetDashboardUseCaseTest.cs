@@ -4,6 +4,7 @@ using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Reports.Dashboard;
 using server.Communication.Requests;
@@ -23,6 +24,7 @@ public class GetDashboardUseCaseTest
     private static readonly DateTime Date = new(2025, 5, 20);
     private static readonly DateTime FixedUtcNow = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime FixedLocalBusinessDate = new(2025, 6, 1);
+    private static readonly DateTime LockDate = new(2025, 4, 30);
 
     [Fact]
     public async Task Execute_ShouldProjectClosesPendingCountAndNotSubmitted_WhenDayIsMixed()
@@ -203,6 +205,96 @@ public class GetDashboardUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldProjectBacklogAndUnlockedDraftTransactionCount()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var oldestPendingDate = new DateTime(2025, 5, 2);
+
+        var ctx = BuildContext(
+            branchUser, closes: [], varianceRows: [], expectedClosers: [],
+            backlog: new DashboardBacklogRow(3, 2, 1, oldestPendingDate),
+            unlockedDraftTransactionCount: 7);
+        var response = await CreateUseCase(ctx).Execute(BuildRequest());
+
+        response.Backlog.SubmittedCount.ShouldBe(3);
+        response.Backlog.RejectedCount.ShouldBe(2);
+        response.Backlog.DraftCount.ShouldBe(1);
+        response.Backlog.OldestPendingDate.ShouldBe(oldestPendingDate);
+        response.UnlockedDraftTransactionCount.ShouldBe(7);
+        // The selected day's own Submitted closes stay a separate fact.
+        response.PendingApprovalCount.ShouldBe(0);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReturnEmptyBacklog_WhenNothingIsPending()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+
+        var ctx = BuildContext(branchUser, closes: [], varianceRows: [], expectedClosers: []);
+        var response = await CreateUseCase(ctx).Execute(BuildRequest());
+
+        response.Backlog.SubmittedCount.ShouldBe(0);
+        response.Backlog.RejectedCount.ShouldBe(0);
+        response.Backlog.DraftCount.ShouldBe(0);
+        response.Backlog.OldestPendingDate.ShouldBeNull();
+        response.UnlockedDraftTransactionCount.ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(-10)]
+    [InlineData(0)]
+    [InlineData(5)]
+    public async Task Execute_ShouldBoundBacklogByRequestedDateAndDraftTransactionsByBranchLocalToday(int offsetFromToday)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var otherBranchId = Guid.NewGuid();
+        var requestedDate = FixedLocalBusinessDate.AddDays(offsetFromToday);
+
+        var ctx = BuildContext(branchUser, closes: [], varianceRows: [], expectedClosers: [], date: requestedDate);
+        using var cancellation = new CancellationTokenSource();
+        await CreateUseCase(ctx).Execute(BuildRequest(requestedDate), cancellation.Token);
+
+        await ctx.SettingsRepository.Received(1).GetByBranchIdAsNoTracking(
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
+        await ctx.DailyClosesRepository.Received(1).GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<DateTime>(v => v == LockDate),
+            Arg.Is<DateTime>(v => v == requestedDate),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
+        await ctx.TransactionsRepository.Received(1).CountDraftByBranchIdAndDateRangeAsNoTracking(
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<DateTime>(v => v == LockDate),
+            Arg.Is<DateTime>(v => v == FixedLocalBusinessDate),
+            Arg.Is<CancellationToken>(value => value == cancellation.Token));
+
+        await ctx.DailyClosesRepository.DidNotReceive().GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await ctx.TransactionsRepository.DidNotReceive().CountDraftByBranchIdAndDateRangeAsNoTracking(
+            Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldTreatMissingSettingAsNeverLocked()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+
+        var ctx = BuildContext(branchUser, closes: [], varianceRows: [], expectedClosers: [], hasSetting: false);
+        await CreateUseCase(ctx).Execute(BuildRequest());
+
+        await ctx.DailyClosesRepository.Received(1).GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<DateTime>(v => v == DateTime.MinValue),
+            Arg.Is<DateTime>(v => v == Date),
+            Arg.Any<CancellationToken>());
+        await ctx.TransactionsRepository.Received(1).CountDraftByBranchIdAndDateRangeAsNoTracking(
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Is<DateTime>(v => v == DateTime.MinValue),
+            Arg.Is<DateTime>(v => v == FixedLocalBusinessDate),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Execute_ShouldPassCallerBranchToRepositories()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
@@ -239,6 +331,11 @@ public class GetDashboardUseCaseTest
         var action = async () => await CreateUseCase(ctx).Execute(BuildRequest());
 
         await action.ShouldThrowAsync<TokenWithoutPermissionException>();
+        await ctx.SettingsRepository.DidNotReceive().GetByBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await ctx.DailyClosesRepository.DidNotReceive().GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await ctx.TransactionsRepository.DidNotReceive().CountDraftByBranchIdAndDateRangeAsNoTracking(
+            Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -258,6 +355,10 @@ public class GetDashboardUseCaseTest
             .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid?>(), Arg.Any<DateTime>(), Arg.Any<DateTime>());
         await ctx.AccountsRepository.DidNotReceive().ListExpectedClosersByBranchIdAsNoTracking(Arg.Any<Guid>());
+        await ctx.DailyClosesRepository.DidNotReceive().GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await ctx.TransactionsRepository.DidNotReceive().CountDraftByBranchIdAndDateRangeAsNoTracking(
+            Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
     private static RequestDashboardJson BuildRequest(DateTime? date = null)
@@ -309,7 +410,9 @@ public class GetDashboardUseCaseTest
             ctx.DailyClosesRepository,
             ctx.DailyCloseItemsRepository,
             ctx.AccountsRepository,
+            ctx.TransactionsRepository,
             ctx.CashVarianceProductResolver,
+            new LockDateReader(ctx.SettingsRepository),
             ctx.BranchClock);
     }
 
@@ -319,7 +422,10 @@ public class GetDashboardUseCaseTest
         IReadOnlyList<VarianceTimeSeriesRow> varianceRows,
         IReadOnlyList<ExpectedCloserRow> expectedClosers,
         Guid? productId = null,
-        DateTime? date = null)
+        DateTime? date = null,
+        DashboardBacklogRow? backlog = null,
+        int unlockedDraftTransactionCount = 0,
+        bool hasSetting = true)
     {
         var resolvedProductId = productId ?? Guid.NewGuid();
         var resolvedDate = date ?? Date;
@@ -328,20 +434,36 @@ public class GetDashboardUseCaseTest
         branchClock.UtcNow().Returns(FixedUtcNow);
         branchClock.LocalBusinessDate(FixedUtcNow).Returns(FixedLocalBusinessDate);
 
+        var dailyClosesRepository = new DailyClosesRepositoryBuilder()
+            .ListDashboardClosesByBranchIdAndDateAsNoTrackingReturns(branchUser.BranchId, resolvedDate, closes);
+        var lockDate = hasSetting ? LockDate : DateTime.MinValue;
+        if (backlog is not null)
+        {
+            dailyClosesRepository.GetDashboardBacklogByBranchIdAndDateRangeAsNoTrackingReturns(
+                branchUser.BranchId, lockDate, resolvedDate, backlog);
+        }
+
         return new TestContext
         {
             AuthenticationService = new AuthenticationServiceBuilder()
                 .GetAuthenticatedBranchUser(branchUser)
                 .Build(),
-            DailyClosesRepository = new DailyClosesRepositoryBuilder()
-                .ListDashboardClosesByBranchIdAndDateAsNoTrackingReturns(branchUser.BranchId, resolvedDate, closes)
-                .Build(),
+            DailyClosesRepository = dailyClosesRepository.Build(),
             DailyCloseItemsRepository = new DailyCloseItemsRepositoryBuilder()
                 .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTrackingReturns(
                     branchUser.BranchId, resolvedProductId, null, resolvedDate, resolvedDate, varianceRows)
                 .Build(),
             AccountsRepository = new AccountsRepositoryBuilder()
                 .ListExpectedClosersByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedClosers)
+                .Build(),
+            TransactionsRepository = new TransactionsRepositoryBuilder()
+                .CountDraftByBranchIdAndDateRangeAsNoTrackingReturns(
+                    branchUser.BranchId, lockDate, FixedLocalBusinessDate, unlockedDraftTransactionCount)
+                .Build(),
+            SettingsRepository = new SettingsRepositoryBuilder()
+                .GetByBranchIdAsNoTrackingReturns(
+                    branchUser.BranchId,
+                    hasSetting ? new Setting { BranchId = branchUser.BranchId, LockDate = LockDate } : null)
                 .Build(),
             CashVarianceProductResolver = new CashVarianceProductResolverBuilder()
                 .ReturnsId(branchUser.BranchId, resolvedProductId)
@@ -356,6 +478,8 @@ public class GetDashboardUseCaseTest
         public required IDailyClosesRepository DailyClosesRepository { get; init; }
         public required IDailyCloseItemsRepository DailyCloseItemsRepository { get; init; }
         public required IAccountsRepository AccountsRepository { get; init; }
+        public required ITransactionsRepository TransactionsRepository { get; init; }
+        public required ISettingsRepository SettingsRepository { get; init; }
         public required ICashVarianceProductResolver CashVarianceProductResolver { get; init; }
         public required IBranchClock BranchClock { get; init; }
     }

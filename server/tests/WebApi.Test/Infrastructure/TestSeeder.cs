@@ -544,7 +544,8 @@ internal static class TestSeeder
             Guid? openedByUserId = null,
             Guid? recordedByUserId = null,
             Guid? recordedByOperatorId = null,
-            Guid? submittedByUserId = null)
+            Guid? submittedByUserId = null,
+            bool active = true)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -610,7 +611,8 @@ internal static class TestSeeder
                     ? null
                     : AsUtc(openingRecheckRequiredAt.Value),
                 OpeningRecheckTriggeredByDailyCloseId = openingRecheckTriggeredByDailyCloseId,
-                OpeningRecheckTriggeredByUserId = openingRecheckTriggeredByUserId
+                OpeningRecheckTriggeredByUserId = openingRecheckTriggeredByUserId,
+                Active = active
             };
 
             dbContext.DailyCloses.Add(dailyClose);

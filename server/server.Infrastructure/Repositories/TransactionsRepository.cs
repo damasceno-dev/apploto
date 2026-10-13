@@ -517,6 +517,23 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToListAsync(ct);
     }
 
+    public Task<int> CountDraftByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId,
+        DateTime afterDateExclusive,
+        DateTime throughDateInclusive,
+        CancellationToken ct = default)
+    {
+        return dbContext.Transactions
+            .AsNoTracking()
+            .CountAsync(transaction =>
+                transaction.BranchId == branchId &&
+                transaction.Active &&
+                transaction.Status == TransactionStatus.Draft &&
+                transaction.Date > afterDateExclusive &&
+                transaction.Date <= throughDateInclusive,
+                ct);
+    }
+
     public Task<DateTime?> GetEarliestDateByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
     {
         return dbContext.Transactions

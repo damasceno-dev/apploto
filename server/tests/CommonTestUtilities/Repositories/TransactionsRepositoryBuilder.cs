@@ -295,6 +295,21 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
+    public TransactionsRepositoryBuilder CountDraftByBranchIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DateTime afterDateExclusive,
+        DateTime throughDateInclusive,
+        int result)
+    {
+        _repository.CountDraftByBranchIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DateTime>(value => value == afterDateExclusive),
+                Arg.Is<DateTime>(value => value == throughDateInclusive),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
     public TransactionsRepositoryBuilder GetEarliestDateByBranchIdAsNoTrackingReturns(Guid branchId, DateTime? result)
     {
         _repository.GetEarliestDateByBranchIdAsNoTracking(
