@@ -161,7 +161,7 @@ For each screen the dev-team prototype, attach/paste:
 
 **Scope boundary:** Written specs in `design/specs/components/` — anatomy, variants, states (default/hover/focus/disabled/loading/error), token mapping (light + dark), accessibility, pt-BR microcopy. Includes the `ResponseErrorJson` rendering contract and skeleton conventions. No code.
 
-**Note — the visual gallery is built in the apps, not here.** A browsable "see every color + component" view (like a Figma library or Storybook) is a **runtime** artifact, so it's built in `web` during the web milestones — a Storybook or a `/styleguide` route that renders the M2 tokens + these component specs. `design/` stays non-runtime; M3 is the *contract* that gallery renders. (The M1 prototype is the early visual reference until that gallery exists.)
+**Note — the visual gallery is built in the apps, not here.** A browsable "see every color + component" view (like a Figma library or Storybook) is a **runtime** artifact, so it's built in `web` during the web milestones (Web M3) — a Storybook or a `/styleguide` route that renders the M2 tokens + these component specs. `design/` stays non-runtime; M3 is the *contract* that gallery renders. (The M1 prototype is the early visual reference until that gallery exists.)
 
 **Precondition:** M2 (tokens to map against) + the M0 cross-screen patterns (Phase 4) that say which components the screens actually need.
 

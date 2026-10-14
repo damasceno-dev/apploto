@@ -79,7 +79,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - [x] **4.2** Align all agent docs that called `shared/core` optional/later → **day-one**: root `AGENTS.md` (root `CLAUDE.md` is a symlink to it), `shared/AGENTS.md` (core lines), and `mobile/AGENTS.md`. **Done 2026-06-30** in the frontend-foundation commit, to remove the milestone-vs-AGENTS contradiction. The broader `shared/AGENTS.md` rewrite (source-package pattern, export split, toolchain pins) stays in 4.1.
 - [ ] **4.3** Done criteria: fresh clone → `pnpm install && pnpm -r typecheck && pnpm -r lint` green; both packages resolve in the workspace; no build artifacts or `dist/` anywhere; no env-var reads anywhere under `shared/`.
 
-> Note: the companion `web/AGENTS.md` amendment (route-handler BFF expected for auth/cookies) belongs to the web area and lands with the web milestones file, not here.
+> Note: the companion `web/AGENTS.md` amendment (route-handler BFF expected for auth/cookies) belongs to the web area; it landed with `web/docs/milestones.md` on 2026-10-14.
 
 ---
 
@@ -111,6 +111,6 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - Implements `design/specs/formatting-ptbr.md` (Design M0, Phase 2) — formatters cite the spec; the spec is the contract, the helpers are the implementation.
 - Enum label maps key off the **generated** enum types from `@loto/api`, so a backend enum change breaks the build here instead of silently desyncing labels.
 - Vitest lands with this milestone; every formatter and validator gets unit tests (the first frontend tests in the repo).
-- Pure TS only — no Intl-locale surprises across platforms without a pinned strategy (decide `Intl` vs hand-rolled per formatter in-phase, considering Hermes/Expo `Intl` support, and record the decision).
+- Pure TS only — no Intl-locale surprises across platforms without a pinned strategy (decide `Intl` vs hand-rolled per formatter in-phase, using the Hermes `Intl` behavior measured in Mobile M1 Phase 4, and record the decision).
 
 **Precondition:** Milestone 2 (generated enum types) and Design M0 Phase 2 (the formatting spec).
