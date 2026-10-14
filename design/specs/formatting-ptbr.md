@@ -46,6 +46,16 @@ Some values are **signed by nature** and carry their sign explicitly. These are 
 
 **Semantics (pinned by spec v32, §6.12):** negative variance = **falta** (drawer short — the worked example `−R$ 20,00` means the drawer is R$ 20 short); positive = **sobra** (surplus). Copy and color treatments build on this; the sign itself is always shown — color is never the only signal.
 
+**Client fiado balance — a display mapping, not a signed value.** The API's fiado balances (`OutstandingTotal`, `OpeningBalance`, `ClosingBalance`, `RunningBalance`, per-client balance rows) are signed internally as `Out − In`. They are **not** shown with that sign:
+
+| Internal value | Display                                                           |
+|----------------|-------------------------------------------------------------------|
+| `> 0`          | `R$ 290,00 · em aberto` — unsigned, the debt to collect           |
+| `= 0`          | `quitado`                                                         |
+| `< 0`          | `+R$ 10,00 · crédito do cliente` — the absolute value, explicit `+`, success color, and the label |
+
+The mapping applies to every balance figure of the Client statement, the Receber pagamento confirmation, and Fiado balance; movement amounts keep their own unsigned display with their Entrada/Saída direction. Debt and credit are never netted across clients for display: Fiado balance shows separate debt and credit totals. The label is mandatory — the plus sign and color are never the only signal.
+
 ## 4. Dates, datetimes, times
 
 The backend carries time in three different shapes, and each shape gets its own display rule — collapsing them into one rule is how an audit timestamp ends up three hours off on screen:

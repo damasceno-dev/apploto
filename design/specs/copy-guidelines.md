@@ -24,6 +24,9 @@
 - Destructive or irreversible confirmations state the consequence in the body: "A transação será cancelada e deixará de contar nos totais. Essa ação não pode ser desfeita."
 - **Reason-required flows** (reject a close — `RequestRejectDailyCloseJson`; cancel a transaction — `RequestCancelTransactionJson`): the reason field is labeled "Motivo" and required; the helper copy says who reads it — "O operador verá este motivo" / "O motivo fica no histórico da transação".
 - Drafts: "Salvar como rascunho" (create), "Finalizar rascunho" (promote Draft → Active).
+- Navigation actions name their object: "Abrir transação" (a transaction row), "Abrir plano completo" / "Abrir plano completo para edição" (an installment's plan), "Abrir origem fiado" (a generated movement's source), "Ver fechamento de hoje", "Gerenciar fechamento" (approval → Close day), "Ver o que mudou" (opening-change detail), "Abrir o dia" (open a terminal's day from a blocked operation).
+- Single-step undo of a copied value: **"Desfazer repetição"** (after "Repetir abertura") — a row action, never a confirmation dialog.
+- A whole Draft cheque plan activates with **"Finalizar plano"**; "Finalizar rascunho" stays the single-transaction action.
 - Daily-close undo actions stay distinct: **"Desfazer envio"** is the operator-facing label for explicit `Recall` (`Submitted → Draft`); **"Reabrir fechamento"** is the Manager/Admin correction action for `Reopen` (`Approved → Draft`). Never translate Recall as "Recolher"/"Recolhido", and do not call either action "Cancelar".
 
 ## 4. Terminology glossary
@@ -48,7 +51,11 @@ Canonical UI terms, mapped from the domain spec and the backend's own pt-BR erro
 | terminal                                                   | a `Terminal` account (operator's drawer)                                                                                   | §3.7                                      |
 | cliente                                                    | `Client`                                                                                                                   | §3.11                                     |
 | data da transação / data de vencimento / data de pagamento | the three-date model: `Date` / `DueDate` / `PaidAt`                                                                        | §1; backend errors use these exact labels |
-| em aberto                                                  | unpaid (`PaidAt = null`) — "parcelas em aberto", "fiado em aberto"                                                         | §6.14                                     |
+| em aberto                                                  | unpaid (`PaidAt = null`) — "parcelas em aberto", "fiado em aberto"; for a client's fiado balance, a positive balance        | §6.14                                     |
+| quitado                                                    | a client's fiado balance at exactly zero                                                                                   | `screens.md` Client statement             |
+| crédito do cliente                                         | a negative internal fiado balance (`Out − In < 0`), always shown as a positive amount — "+R$ 10,00 · crédito do cliente"; the credit tab of Fiado balance is "Saldo crédito", its total "Crédito dos clientes" | `screens.md` Client statement, Fiado balance |
+| automática                                                 | a Terminal movement the system generated from a fiado operation; the label "Automática" sits beside the type and is never a status | `screens.md` Transactions list            |
+| observação da gerência                                     | the reviewer's rejection reason as shown back to the operator (the reject form still labels the field "Motivo")            | `screens.md` Fix & resubmit               |
 | rascunho                                                   | `Draft` status (transaction or close) — excluded from totals                                                               | §6.1                                      |
 | desfazer envio                                             | explicit DailyClose `Recall`: return an Enviado close to Rascunho; success copy "Envio desfeito"                           | §6.13                                     |
 | data de bloqueio / período bloqueado                       | `LockDate` and its effect — "A data da transação está bloqueada pelo fechamento" is the backend's own wording              | §6.6                                      |
@@ -106,6 +113,42 @@ The backend is the single source of error-message truth. Every API error is `Res
 - **Success confirmations:** short, past participle, name the object: "Transação salva", "Fechamento enviado", "Envio desfeito", "Fechamento reaberto", "Fechamento aprovado". No exclamation marks.
 - **Pending/waiting:** "Aguardando aprovação do gerente" (submitted close), "Rascunho — não conta nos totais" (draft rows).
 - **System-calculated values** are labeled as such where the distinction matters (§6.12 / review screen): "calculado pelo sistema" vs "informado pelo operador".
+- **Counts agree in number:** "1 movimentação em rascunho", "2 movimentações em rascunho" — never "1 movimentações" or "movimentação(ões)".
+- **Save button:** "Salvar" (faded and disabled when nothing changed since the last server save), "Salvando…" during the request.
+- **Own row:** a small "você" badge beside the name on the caller's own row (Operators, Branch members) — a marker, not an action.
+
+### 7.1 Cash-variance explanation
+
+- Live count label: "Prévia da diferença · ainda não enviada" — kept distinct from the official variance row.
+- The main area shows only the worked equation with real values, e.g. "R$ 2.437,00 − R$ 2.199,00 − (R$ 400,00 − R$ 150,00) = −R$ 12,00".
+- Collapsed help, titled "Ajuda sobre diferença de caixa", shown only when expanded:
+  > **Como a diferença é calculada**
+  >
+  > Diferença Caixa = total do fechamento − total da abertura − (entradas − saídas)
+  >
+  > Valor negativo indica falta; positivo indica sobra.
+  >
+  > A abertura e o fechamento somam todos os produtos, sem a própria Diferença Caixa. Entram apenas as transações ativas deste terminal nesta data; rascunhos e canceladas ficam fora.
+
+### 7.2 Close review events and recorder identity
+
+- Group heading: "Por que este fechamento precisa de revisão?"
+- Events: "Rejeitado na conferência" with "Rejeitado em {data/hora}" and the reason under "Observação da gerência"; "Abertura alterada" with "Alterada em {data/hora}" and "Esta alteração não é uma nova rejeição. O fechamento anterior mudou a abertura deste dia."
+- Source/target phrasing: "Fechamento de 19/09 corrigido → abertura de 20/09 alterada". Business dates and action times carry distinct labels: "fechamento de 20/09" vs "corrigido em 22/09 às 08:00".
+- Before/after columns: "Antes", "Depois", "Alteração".
+- Next action: "Revise a observação da gerência, confira a abertura alterada e reenvie a contagem."
+- Honest fallbacks: "Data da rejeição indisponível", "Detalhes da alteração indisponíveis para este fechamento" — never an invented date or value.
+- Management recording without an operator: "Sem operador associado ao registro".
+
+### 7.3 Terminal blockers, fiado, and generated movements
+
+- Another operator's drafts block a Member's close: title "Pendência do terminal", body "O fechamento está bloqueado por 1 rascunho de outro operador" (plural agreement as above), action "Ver pendência" / "Ver pendências"; mixed case: "Resolver meus rascunhos" and "Ver pendências de outros operadores".
+- Terminal day not open (fiado sale or cash repayment): "O dia do {terminal} ainda não foi aberto. Abrir o dia para registrar esta venda?" — "…para registrar este pagamento?" on Receber pagamento — with the action "Abrir o dia". Always name the terminal.
+- Receber pagamento without a method: "Escolha a forma de pagamento."
+- Generated movement detail: "Gerada automaticamente ao registrar um recebimento de fiado. Operação registrada por {nome}." (a counted-stock sale: "…ao registrar uma venda fiado…").
+- The linked stock saída is described as stock leaving custody, explicitly not a cash withdrawal.
+- My transaction summary's automatic share: "7 transações, 2 delas automáticas", with the automatic entradas and saídas beside the totals.
+- Client balance: "Data da venda mais antiga em aberto" for the oldest unpaid sale; credit explained in words ("o cliente pagou R$ 10,00 a mais"), never as an equation.
 
 ## 8. Do / don't
 

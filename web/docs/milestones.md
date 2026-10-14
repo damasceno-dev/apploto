@@ -157,7 +157,7 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 - Workstation-first opening: one terminal binds automatically, several ask once per device and branch-local day, and the multi-terminal strip keeps other open closes visible.
 - Close day consumes the review context and `variance-preview` for live variance, autosaves to the server on today's plain Draft, keeps unsaved counts on the device, and routes Submit blockers to the Draft transactions with a return path.
 - The cockpit's setup-needed states for an unlinked Member and for a link without a usable account; **Solicitar vínculo** waits for gap V (Web M11).
-- **Gated:** Close day's fiado reference (gap A, server M7.7 Phase 5).
+- **Gated:** Close day's linked fiado movements (gap H, server M7.7 Phase 5) and the dated review events with **Ver o que mudou** on Fix & resubmit, Close day, and the cockpit's P1 (gap X, server M7.7 Phase 7.6). Gap A no longer gates: the close shows no Tab balance.
 
 **Precondition:** Web M4 and the Design M4 day-close blueprints. The cockpit's "record a transaction" entry links into Web M6.
 
@@ -172,7 +172,7 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 - Fast entry: type-driven form, automatic non-blocking impact preview, idempotent create, Draft save, and the separate finalize action.
 - Edit limited to the contract's editable fields, with the full impact preview, `If-Match` concurrency, and the installment confirm-and-cancel flow.
 - Member scope follows linked accounts (`mine` default in Meu turno); return targets follow the route-ownership table, including the three Draft-blocker origins.
-- **Gated:** fiado types on Create, `PaidAt` on Edit, Client statement, and Receber pagamento (gap H); account/Tab routing on Create (gap L) — all server M7.7 Phase 5.
+- **Gated:** fiado types and their linked movement on Create, `PaidAt` and generated movements on Edit, the **Automática** label on the list, Client statement, and Receber pagamento (gap H); account/Tab routing on Create (gap L) — all server M7.7 Phase 5. The list's type filter (gap Z) and the plan's atomic **Finalizar plano** (gap Y) wait on server M7.7 Phase 7.6.
 
 **Precondition:** Web M5 (Terminal activity needs an open close) and the Design M4 ledger blueprints.
 
@@ -206,7 +206,7 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 
 **Goal:** Clock in / out (Member), Time-entry management (Manager/Admin, including their own hours), My transaction summary, and My time-entry balance — own context in Meu turno, manager-selected context from Gestão.
 
-**Scope boundary / key behaviors:** forgotten-punch triage through the `IsInProgress` filter, the *Sem registro* day labelling derived on the client from the window minus entries, and no Clock in / out tap for Manager/Admin.
+**Scope boundary / key behaviors:** forgotten-punch triage through the `IsInProgress` filter, My transaction summary's automatic share (gated on gap H, server M7.7 Phase 5), the *Sem registro* day labelling derived on the client from the window minus entries, and no Clock in / out tap for Manager/Admin.
 
 **Precondition:** Web M4 and the Design M4 time blueprints. Independent of M5–M8, so it can be scheduled earlier if useful.
 
