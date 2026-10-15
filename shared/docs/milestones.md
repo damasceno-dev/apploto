@@ -116,9 +116,29 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 
 ### Phase 4 — Docs sync + close-out
 
-- [ ] **4.1** Update `shared/AGENTS.md`: promote `shared/core` from "later if needed" to day-one (recommended 2026-06-07, confirmed 2026-06-10); document the source-package pattern (no build step; Next `transpilePackages` / Metro), the `@loto/api` / `@loto/api/queries` export split, the `@loto/*` scope, the toolchain pins, and restate the no-env-var-reads rule. Keep it the single source of truth for the area.
+- [x] **4.1** Update `shared/AGENTS.md`: promote `shared/core` from "later if needed" to day-one (recommended 2026-06-07, confirmed 2026-06-10); document the source-package pattern (no build step; Next `transpilePackages` / Metro), the `@loto/api` / `@loto/api/queries` export split, the `@loto/*` scope, the toolchain pins, and restate the no-env-var-reads rule. Keep it the single source of truth for the area.
 - [x] **4.2** Align all agent docs that called `shared/core` optional/later → **day-one**: root `AGENTS.md` (root `CLAUDE.md` is a symlink to it), `shared/AGENTS.md` (core lines), and `mobile/AGENTS.md`. **Done 2026-06-30** in the frontend-foundation commit, to remove the milestone-vs-AGENTS contradiction. The broader `shared/AGENTS.md` rewrite (source-package pattern, export split, toolchain pins) stays in 4.1.
-- [ ] **4.3** Done criteria: fresh clone → `pnpm install && pnpm -r typecheck && pnpm -r lint` green; both packages resolve in the workspace; no build artifacts or `dist/` anywhere; no env-var reads anywhere under `shared/`.
+- [x] **4.3** Done criteria: fresh clone → `pnpm install && pnpm -r typecheck && pnpm -r lint` green; both packages resolve in the workspace; no build artifacts or `dist/` anywhere; no env-var reads anywhere under `shared/`.
+
+**Phase 4 implementation notes — 2026-10-15 (items 4.1 and 4.3; 4.2 was already done 2026-06-30):**
+
+- **4.1:** `shared/AGENTS.md` is rewritten as the area's single source of truth. It now covers:
+  - the `@loto/*` packages and their exact `exports` maps: the server-safe `@loto/api` root versus client-only `@loto/api/queries`, the single-entry `@loto/core`, and the rejection of deep imports
+  - the source-package pattern: no build step, `main`, `dist/` or emitted JS; Next `transpilePackages` and Metro; ESM, private, `workspace:*`
+  - per-package scripts, including the Prettier `--ignore-path` requirement
+  - the Node, pnpm and exact dev-tool pins
+  - configuration injection: no `process.env`, `import.meta.env`, `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*` reads; apps supply config and own storage
+  - app-owned UI and platform code
+
+  Every earlier decision and rule is kept. `shared/core` was already day-one in `AGENTS.md`, and its existing "decided 2026-06-26" wording is preserved; that date differs from the 2026-06-07/06-10 dates in 4.1's text, and the discrepancy is left as found. The stated gates add `pnpm format:check`, matching the web and mobile standing gates.
+- **4.3:** Verified in a fresh `git clone` of `parallel/shared` at `d3b80e5`, with this delivery's uncommitted doc changes applied. The run used temporary Node **v24.21.0**, pnpm **10.34.6** and a new, empty package store.
+  - `pnpm install && pnpm -r typecheck && pnpm -r lint` exits 0, and the install leaves `pnpm-lock.yaml` unchanged. `pnpm format:check` also exits 0. Every recursive run reports `Scope: 2 of 3 workspace projects` (`@loto/api` and `@loto/core`).
+  - **Both packages resolve.** Through package self-reference, Node maps `@loto/api`, `@loto/api/queries` and `@loto/core` to their `src` entry files and rejects unexported paths with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+  - **Consumer check.** A disposable `workspace:*` consumer inside the scratch clone type-checks imports of all three entries, and a deep import fails with TS2882.
+  - **No dependencies.** Neither package manifest declares any dependency field.
+  - **No build output.** After the gates ran, the clone has no `dist/`, `build/`, `bin/` or `obj/` directories and no `.js`, `.d.ts` or `.tsbuildinfo` files. The only `.mjs` file is the root `eslint.config.mjs` source. `git status --ignored` lists only `node_modules/`.
+  - **No environment reads.** No source or manifest file under `shared/` contains `process.env`, `import.meta.env`, `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*`. The only matches are the rule statements in `shared/AGENTS.md` and this file.
+- **Milestone 1 is complete (2026-10-15):** every Phase 1–4 item is checked and the 4.3 done criteria hold. This unblocks Shared M2 (which still needs backend Milestone 7.6), Web M1 and Mobile M1. The "only Shared M1 Phase 1 has landed" precondition lines in `web/docs/milestones.md` and `mobile/docs/milestones.md` are now stale; those docs belong to their area owners and were not edited here.
 
 > Note: the companion `web/AGENTS.md` amendment (route-handler BFF expected for auth/cookies) belongs to the web area; it landed with `web/docs/milestones.md` on 2026-10-14.
 
