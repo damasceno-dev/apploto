@@ -60,10 +60,30 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 
 ### Phase 2 — TypeScript + lint/format baseline
 
-- [ ] **2.1** Add `tsconfig.base.json` at the repo root: `strict`, `noUncheckedIndexedAccess`, `isolatedModules`, `verbatimModuleSyntax`, `module: "esnext"`, `moduleResolution: "bundler"`, `target` at a current evergreen baseline, `skipLibCheck: true`, `noEmit: true`. Record in a comment that app tsconfigs (Next/Expo) extend this and may override module settings their frameworks require.
-- [ ] **2.2** Add root `eslint.config.mjs`: ESLint 9 flat config with `typescript-eslint` recommended rules plus `eslint-config-prettier` last. Scope it to `shared/**` plus future `web/**`/`mobile/**` TS files; keep framework-specific plugins out of the root config.
-- [ ] **2.3** Add Prettier config (`.prettierrc` + `.prettierignore`). Pick formatting options once at implementation time; they apply unchanged to `web` and `mobile` later.
-- [ ] **2.4** Verify root scripts run green on the so-far-empty workspace: `pnpm typecheck`, `pnpm lint`, `pnpm format:check`.
+- [x] **2.1** Add `tsconfig.base.json` at the repo root: `strict`, `noUncheckedIndexedAccess`, `isolatedModules`, `verbatimModuleSyntax`, `module: "esnext"`, `moduleResolution: "bundler"`, `target` at a current evergreen baseline, `skipLibCheck: true`, `noEmit: true`. Record in a comment that app tsconfigs (Next/Expo) extend this and may override module settings their frameworks require.
+- [x] **2.2** Add root `eslint.config.mjs`: ESLint 9 flat config with `typescript-eslint` recommended rules plus `eslint-config-prettier` last. Scope it to `shared/**` plus future `web/**`/`mobile/**` TS files; keep framework-specific plugins out of the root config.
+- [x] **2.3** Add Prettier config (`.prettierrc` + `.prettierignore`). Pick formatting options once at implementation time; they apply unchanged to `web` and `mobile` later.
+- [x] **2.4** Verify root scripts run green on the so-far-empty workspace: `pnpm typecheck`, `pnpm lint`, `pnpm format:check`.
+
+**Phase 2 implementation notes — 2026-10-15 (items 2.1–2.4 only):**
+
+- Dev tools are exact-pinned as root `devDependencies` (versions checked against the npm registry on 2026-10-15). Node/pnpm pins and the root fan-out scripts are unchanged.
+  - **TypeScript 6.0.3.** It is the newest release inside `typescript-eslint`'s supported range (`>=4.8.4 <6.1.0`), and it matches the Expo SDK 57 template pin (`~6.0.3`). TypeScript 7.0.2 (`latest`) is outside that range.
+  - **ESLint 9.39.5 and `@eslint/js` 9.39.5** (the last 9.x release). ESLint 9 reached end-of-life on 2026-08-06, so pnpm reports it as deprecated. It is still the milestone's line on purpose: `eslint-config-next` 16.4.1 depends on `eslint-plugin-react` 7.37.5, `eslint-plugin-import` 2.32.0 and `eslint-plugin-jsx-a11y` 6.10.2, and all three cap their ESLint peer range at `^9`. **Revisit ESLint 10 once the Next and Expo lint stacks accept it.**
+  - **`typescript-eslint` 8.71.2** (it supports ESLint `^9 || ^10`), **`eslint-config-prettier` 10.1.8** and **Prettier 3.9.10**.
+- **2.1:** `target` is `es2022`. `lib` is left at the target default; packages that need other libs override it. The base has no `include`, so `tsc -p tsconfig.base.json` correctly reports TS18003 ("no inputs"). Each package adds its own `include`.
+- **2.2:** `eslint.config.mjs` uses `defineConfig`, and its TypeScript layer stacks `@eslint/js` recommended under `typescript-eslint` recommended. The layer uses the `**/*.{ts,tsx,mts,cts}` glob instead of per-area paths, because `files` globs resolve relative to the config that applies them. Per-area paths would match nothing once `web/` or `mobile/` import the root config into their own configs. `server/`, `design/`, `docs/` and `infra/` are covered by global ignores. `eslint-config-prettier/flat` comes last. The rules are not type-aware (no `parserOptions.project`).
+- **2.3:** `.prettierrc` sets `printWidth: 100`, `singleQuote: true`, `trailingComma: "all"` and `endOfLine: "lf"`; everything else stays at Prettier defaults. `.prettierignore` excludes the lockfile, the non-TS areas, hand-maintained docs (`**/docs/`, `**/AGENTS.md`, `CLAUDE.md`) and build output. **For Phase 3 and the app scaffolds:** Prettier 3 reads ignore files only from its working directory. Each package's `format` and `format:check` scripts must therefore pass the root ignore files explicitly, for example `prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore` (use `../` from `web/` and `mobile/`). Patterns resolve relative to the ignore file. Without these flags, package-level checks pick up files the root ignores (verified in the fixture below).
+- **2.4:** All commands ran under checksum-verified temporary Node **v24.21.0** and pnpm **10.34.6**, with a temporary `--store-dir`.
+  - Results: `pnpm install --frozen-lockfile` exits 0. `pnpm typecheck`, `pnpm lint` and `pnpm format:check` each exit 0 with `No projects matched the filters`.
+  - That result means the scope is empty, not that a package passed. The workspace has no child packages yet, and `pnpm -r` excludes the root project.
+  - The new root config files pass `prettier --check`. `eslint --print-config` confirms that the root config applies to `shared/**` TS paths and ignores `server/**`.
+- **Config proof, not package validation.** A throwaway copy of the workspace was built outside the repo with one `shared/*` fixture package and a `web/` fixture whose `eslint.config.mjs` spreads the root config. It checked three things:
+  - The root scripts reach both packages, and the packages run the root-installed `tsc`, `eslint` and `prettier` binaries.
+  - Clean code passes all three gates.
+  - Seeded violations fail each gate: TS1484 (`verbatimModuleSyntax`), TS2322 (`noUncheckedIndexedAccess`), `@typescript-eslint/no-unused-vars` in both packages, `@typescript-eslint/no-explicit-any`, and a Prettier style warning.
+
+  Real package validation is Phase 3.5.
 
 ### Phase 3 — Package skeletons
 

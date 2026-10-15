@@ -1,0 +1,20 @@
+# Root Prettier ignores (Shared M1, Phase 2). `.gitignore` is also honored, so
+# node_modules/ and other ignored output need no entry here.
+
+# Package-manager output
+pnpm-lock.yaml
+
+# Areas outside the TS toolchain (own formatting, or hand-maintained docs/specs)
+server/
+design/
+docs/
+infra/
+**/docs/
+**/AGENTS.md
+CLAUDE.md
+
+# Build and tool output
+**/dist/
+**/coverage/
+**/.next/
+**/.expo/
