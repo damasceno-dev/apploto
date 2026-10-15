@@ -21,6 +21,7 @@ docs/
 - Treat `design/` as non-runtime: tokens, specs, assets, references.
 - Treat `shared/` as cross-platform runtime TS code only.
 - Treat `docs/` as non-runtime project documentation. Its three files — `docs/loto-specs.md`, `docs/loto_presentation.html`, and `docs/loto_entity_relationship_diagram.html` — are one project-level doc sync group: factual changes must update the affected files together and pass `docs/check-loto-doc-sync.sh`.
+- The same checker also requires exactly one `Synced against loto-specs: vNN` marker in each of `design/docs/product.md` and `design/docs/screens.md`, matching the canonical spec revision. A spec bump therefore fails until design reconciliation is done. The server change owner maintains the canonical three-file group and identifies affected contract/decision changes; the designated design-doc owner reconciles the product/catalog, source tags and gap ownership against the spec and actual code, obtains technical review, and only then updates both markers. The coordinator assigns that ownership; the server agent may do the design reconciliation when assigned, but must never bump markers mechanically to make the gate pass. Run the checker after both owners' work is coordinated; matching metadata is not semantic acceptance.
 
 ## Core architecture decisions
 

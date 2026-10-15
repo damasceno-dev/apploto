@@ -13,6 +13,7 @@ ERD_FILE="$DOCS_DIR/loto_entity_relationship_diagram.html"
 
 FILES=("$SPEC_FILE" "$PRESENTATION_FILE" "$ERD_FILE")
 HTML_FILES=("$PRESENTATION_FILE" "$ERD_FILE")
+DESIGN_FILES=("$REPO_ROOT/design/docs/product.md" "$REPO_ROOT/design/docs/screens.md")
 
 extract_field() {
   local file="$1"
@@ -80,4 +81,29 @@ for file in "${HTML_FILES[@]}"; do
   fi
 done
 
+for file in "${DESIGN_FILES[@]}"; do
+  if [[ ! -f "$file" ]]; then
+    echo "Missing design sync file: ${file#$REPO_ROOT/}." >&2
+    exit 1
+  fi
+
+  marker_count="$(awk '/^Synced against loto-specs:/ { count++ } END { print count + 0 }' "$file")"
+  if [[ "$marker_count" -ne 1 ]]; then
+    echo "Expected exactly one 'Synced against loto-specs: vNN' marker in ${file#$REPO_ROOT/}; found $marker_count." >&2
+    exit 1
+  fi
+
+  design_revision="$(extract_field "$file" "Synced against loto-specs")"
+  if [[ ! "$design_revision" =~ ^v[0-9]+$ ]]; then
+    echo "Invalid design sync marker in ${file#$REPO_ROOT/}: use 'Synced against loto-specs: vNN'." >&2
+    exit 1
+  fi
+
+  if [[ "$design_revision" != "$spec_revision" ]]; then
+    echo "Design spec-sync mismatch: ${file#$REPO_ROOT/} was reviewed against $design_revision; docs/loto-specs.md is $spec_revision. Reconcile the catalog and gap ownership before updating the marker." >&2
+    exit 1
+  fi
+done
+
 echo "Lotero doc sync metadata is aligned for ${spec_revision}."
+echo "Design catalog sync markers are aligned for ${spec_revision}; pending feature gates still apply."

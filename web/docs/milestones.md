@@ -157,7 +157,7 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 - Workstation-first opening: one terminal binds automatically, several ask once per device and branch-local day, and the multi-terminal strip keeps other open closes visible.
 - Close day consumes the review context and `variance-preview` for live variance, autosaves to the server on today's plain Draft, keeps unsaved counts on the device, and routes Submit blockers to the Draft transactions with a return path.
 - The cockpit's setup-needed states for an unlinked Member and for a link without a usable account; **Solicitar vínculo** waits for gap V (Web M11).
-- **Gated:** Close day's linked fiado movements (gap H, server M7.7 Phase 5) and the dated review events with **Ver o que mudou** on Fix & resubmit, Close day, and the cockpit's P1 (gap X, server M7.7 Phase 7.6). Gap A no longer gates: the close shows no Tab balance.
+- **Gated:** Close day's linked fiado movements (gap H, server M7.7 Phase 5) and the dated review events with **Ver o que mudou** on Fix & resubmit, Close day, and the cockpit's P1 (gap X, server M7.7 Phase 7.6). Retained-retired-product edit/preview/save recovery on Close day and Fix & resubmit is also gated (gap AA, server DailyClose/Product; scheduling pending M7.7 close-out triage); the remaining screen behavior and historical reads proceed. Gap A no longer gates: the close shows no Tab balance.
 
 **Precondition:** Web M4 and the Design M4 day-close blueprints. The cockpit's "record a transaction" entry links into Web M6.
 
@@ -216,7 +216,7 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 
 **Goal:** Operators, Account assignment, Accounts, Clients (also counter work), Categories & Transaction Types, Products, Holidays, Settings, and Branch members.
 
-**Scope boundary / key behaviors:** Clients keeps the entry mode and stays available to any branch role except deactivate. **Gated:** Account assignment's Tab pairing (gap L) and Accounts' deactivation rule (gap S), both server M7.7 Phase 5; Branch members' own-row guard (gap U) and member addition by invitation (gap C), both server M8.
+**Scope boundary / key behaviors:** Clients keeps the entry mode and stays available to any branch role except deactivate. **Gated:** Account assignment's Tab pairing (gap L) and Accounts' deactivation rule (gap S), both server M7.7 Phase 5; Branch members' own-row guard (gap U) and member addition by invitation (gap C), both server M8. Products' deactivation warning/recovery only (gap AA, server DailyClose/Product; scheduling pending M7.7 close-out triage) is also gated; ordinary Product CRUD and reads proceed.
 
 **Precondition:** Web M4 and the Design M4 admin blueprints. Until this lands, local and staging data come from the backend seeds and the server M8 command-line onboarding.
 

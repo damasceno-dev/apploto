@@ -87,7 +87,7 @@ If `server.API` needs direct compile-time access to `ServerException` or excepti
 - Keep DTOs simple and serialization-focused. Validation does not live in DTOs.
 - Prefer explicit mappings over reflection-based or convention-based mapper libraries.
 - Prefer stable, named patterns over ad hoc feature-specific structure.
-- Spec changes must keep the project-level `docs/` doc sync group aligned and pass `docs/check-loto-doc-sync.sh` (the sync group and its rule are defined in the root `AGENTS.md`).
+- Spec changes must keep the project-level `docs/` three-file sync group aligned and pass `docs/check-loto-doc-sync.sh`. The checker also compares `design/docs/product.md` and `design/docs/screens.md` sync markers with the canonical revision, so a spec bump fails until their semantics and gap ownership are re-reviewed. The server change owner updates the canonical group and identifies affected contracts/decisions; the coordinator assigns a design-doc owner to reconcile the product/catalog against the spec and actual code, obtain technical review, and then update both markers. A server agent may own that reconciliation when assigned; otherwise coordinate it with the design owner before the final gate. Never update markers alone to clear a failure. The root `AGENTS.md` defines the shared ownership rule; metadata alignment does not imply reviewer acceptance.
 
 ## Layer guide
 

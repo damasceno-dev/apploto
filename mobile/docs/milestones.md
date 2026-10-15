@@ -133,7 +133,7 @@ Feature scope, catalog gates, and screen behavior for M4–M11 are defined once,
 
 ## Milestone 5 — Operator Day
 
-**Scope and gates:** as Web M5 — the mobile-first flows of the catalog. **Mobile-specific:** the "once per device and branch-local day" terminal choice is stored on the device; Close day's count entry is tuned for numeric keypads and survives the app being backgrounded mid-count.
+**Scope and gates:** as Web M5 — the mobile-first flows of the catalog. This includes gap AA on Close day and Fix & resubmit (retained-retired-product edit/preview/save recovery only; server DailyClose/Product, scheduling pending M7.7 close-out triage); other screen behavior and historical reads proceed. The catalog’s gap → screen map remains authoritative. **Mobile-specific:** the "once per device and branch-local day" terminal choice is stored on the device; Close day's count entry is tuned for numeric keypads and survives the app being backgrounded mid-count.
 
 ## Milestone 6 — Transactions Ledger
 
@@ -153,7 +153,7 @@ Feature scope, catalog gates, and screen behavior for M4–M11 are defined once,
 
 ## Milestone 10 — Admin & Configuration
 
-**Scope and gates:** as Web M10.
+**Scope and gates:** as Web M10. Products inherits gap AA only for deactivation warning/recovery (server DailyClose/Product; scheduling pending M7.7 close-out triage); ordinary Product CRUD and reads proceed.
 
 ## Milestone 11 — Account & Onboarding
 
