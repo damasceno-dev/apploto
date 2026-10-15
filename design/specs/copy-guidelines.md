@@ -98,13 +98,14 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 ## 6. Error display
 
-The backend is the single source of error-message truth. Every API error is `ResponseErrorJson { ErrorMessages: string[] }`, already written in pt-BR (198 messages in `ResourcesErrorMessages.resx`).
+The backend is the single source of error-message truth. Every API error is `ResponseErrorJson { ErrorMessages: string[] }`, already written in pt-BR (`ResourcesErrorMessages.resx`); the unexpected-error handler also returns this shape for HTTP 500.
 
 - **Render `ErrorMessages` verbatim.** Never rewrite, translate, truncate, prefix ("Erro:"), merge, or dedupe them. Multiple messages render as a list, in the order received.
 - **Client-side pre-validation** (before submit) reuses the backend's exact wording wherever a backend message exists for the rule — "O valor da transação deve ser maior que zero" — so the user never sees two voices for the same rule. Only rules with no backend counterpart get new copy, written in the same style.
-- **No `ResponseErrorJson` body** (network failure, timeout, unexpected 5xx): standard fallback — "Não foi possível concluir a ação. Verifique sua conexão e tente novamente."
-- **Session expiry** (401 after refresh fails): "Sua sessão expirou. Entre novamente."
-- **Permission walls** (403 with a body) render the backend message verbatim like any other; screens with a known fallback state (e.g. Member without linked operator) show their designed guidance instead of a raw banner — per `screens.md`.
+- **No usable `ResponseErrorJson` body** (e.g. network failure, timeout or a gateway response without that shape): standard fallback — "Não foi possível concluir a ação. Verifique sua conexão e tente novamente."
+- **Unknown write outcome:** every HTTP 5xx after a write was sent (including gateway 502/503/504), timeout or lost response reads "Resultado não confirmado" with "Não foi possível confirmar se a ação foi concluída." A 500 can carry `ErrorMessages` ("Erro desconhecido" outside Development); render those strings verbatim **as well as** the confirmation warning. An error body does not prove rollback. Keep the same financial operation/key/payload for safe verification; never turn the fallback’s "tente novamente" into a new create.
+- **Renewal failure** (definitive 401 from renew-token): "Não foi possível renovar sua sessão. Entre novamente." One active refresh token per user means another login or a lost successful rotation can cause this; do not assert expiry or a particular device as the cause. Other returned messages stay verbatim. Trigger/single-flight/bounded-retry rules live in `screens.md`.
+- **Permission walls** (403 with a body) render the backend message verbatim like any other; screens with a known fallback state (e.g. Member without linked operator) show their designed guidance **alongside the verbatim backend message**, integrated into that state rather than a duplicate generic banner — per `screens.md`. No 403 starts a renewal loop.
 
 ## 7. States & feedback microcopy
 
