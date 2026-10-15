@@ -87,11 +87,32 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 
 ### Phase 3 — Package skeletons
 
-- [ ] **3.1** Add `shared/api/package.json`: name `@loto/api`, `"private": true`, `"type": "module"`, a `typecheck` script, and a **two-entry `exports` map** (source package — no build step, no `main`/`dist`): root entry `.` → `./src/index.ts` (contract types + raw fetchers — server-safe, must never transitively import react-query) and `./queries` → `./src/queries/index.ts` (TanStack Query hooks — client-only). Server Components import from `@loto/api`; client components and mobile screens import hooks from `@loto/api/queries`.
-- [ ] **3.2** Add `shared/api/tsconfig.json` extending `tsconfig.base.json` with the package's `include`.
-- [ ] **3.3** Add `shared/api/src/index.ts` and `shared/api/src/queries/index.ts` (placeholder exports backing the two `exports` entries) plus the pre-agreed folder structure from `shared/AGENTS.md`: `src/client/` (API client setup — filled by Milestone 2) and `src/generated/` (Orval output target — filled by Milestone 2), each with `.gitkeep`.
-- [ ] **3.4** Add the same trio for `shared/core`: `package.json` (`@loto/core`), `tsconfig.json`, `src/index.ts` placeholder, plus empty module folders `src/format/`, `src/validate/`, `src/labels/`, `src/dates/` (filled by Milestone 3).
-- [ ] **3.5** Verify `pnpm install && pnpm -r typecheck && pnpm -r lint` green with both packages in the workspace; confirm no package declares dependencies yet (runtime deps like `@tanstack/react-query` arrive with Milestone 2 as peer dependencies, by design).
+- [x] **3.1** Add `shared/api/package.json`: name `@loto/api`, `"private": true`, `"type": "module"`, a `typecheck` script, and a **two-entry `exports` map** (source package — no build step, no `main`/`dist`): root entry `.` → `./src/index.ts` (contract types + raw fetchers — server-safe, must never transitively import react-query) and `./queries` → `./src/queries/index.ts` (TanStack Query hooks — client-only). Server Components import from `@loto/api`; client components and mobile screens import hooks from `@loto/api/queries`.
+- [x] **3.2** Add `shared/api/tsconfig.json` extending `tsconfig.base.json` with the package's `include`.
+- [x] **3.3** Add `shared/api/src/index.ts` and `shared/api/src/queries/index.ts` (placeholder exports backing the two `exports` entries) plus the pre-agreed folder structure from `shared/AGENTS.md`: `src/client/` (API client setup — filled by Milestone 2) and `src/generated/` (Orval output target — filled by Milestone 2), each with `.gitkeep`.
+- [x] **3.4** Add the same trio for `shared/core`: `package.json` (`@loto/core`), `tsconfig.json`, `src/index.ts` placeholder, plus empty module folders `src/format/`, `src/validate/`, `src/labels/`, `src/dates/` (filled by Milestone 3).
+- [x] **3.5** Verify `pnpm install && pnpm -r typecheck && pnpm -r lint` green with both packages in the workspace; confirm no package declares dependencies yet (runtime deps like `@tanstack/react-query` arrive with Milestone 2 as peer dependencies, by design).
+
+**Phase 3 implementation notes — 2026-10-15 (items 3.1–3.5 only):**
+
+- **Package shape.** Both packages are private ESM source packages with no `version`, `main`, `dist/`, or build script.
+  - `@loto/api` exports exactly two entries: `.` → `./src/index.ts` and `./queries` → `./src/queries/index.ts`.
+  - `@loto/core` exports a single entry, `.` → `./src/index.ts`.
+  - Each package has `typecheck` (`tsc --noEmit`), `lint` (`eslint .`), `format` and `format:check` scripts, so the root fan-out scripts reach it. The Prettier scripts pass the root `.gitignore` and `.prettierignore` via `--ignore-path` (see the Phase 2 note).
+  - Each `tsconfig.json` extends `../../tsconfig.base.json` with `include: ["src"]` and no overrides.
+- **Placeholders.** The three entry files contain only a comment and `export {}`, which keeps them modules under `isolatedModules`. Nothing is exported and nothing is imported yet. `.gitkeep` files hold `api/src/client/`, `api/src/generated/` and `core/src/{format,validate,labels,dates}/`.
+- **Import boundary.** For now the boundary holds by structure: the root `@loto/api` entry imports nothing, and only the `./queries` entry is meant to reach TanStack Query. The automated boundary check (a lint rule or an import-graph script) remains Milestone 2 scope, as written there.
+- **Dependencies.** No package declares `dependencies`, `devDependencies` or `peerDependencies`. The packages use the root-installed `tsc`, `eslint` and `prettier`. The lockfile gains only two empty importers, `shared/api: {}` and `shared/core: {}`.
+- **3.5 results.** All commands ran under temporary Node **v24.21.0** and pnpm **10.34.6**.
+  - `pnpm install` and `pnpm install --frozen-lockfile` both exit 0.
+  - `pnpm -r list` reports **3 workspace projects**: the root `lotoapp` plus `@loto/api` and `@loto/core`. Recursive runs report `Scope: 2 of 3 workspace projects`, because the root is excluded.
+  - `pnpm -r typecheck`, `pnpm -r lint` and `pnpm format:check` exit 0 in both packages. `tsc --listFilesOnly` and ESLint's JSON output show all three entry files checked.
+  - A temporary seeded file in each package made every gate fail in that package: TS2322 (`noUncheckedIndexedAccess`), `no-unused-vars`, `no-explicit-any`, and a Prettier warning. The seeds were removed and all gates went green again.
+  - No `dist/`, `.js`, `.d.ts` or `.tsbuildinfo` output exists under `shared/`.
+- **Consumer resolution (scratch copy, outside the repo; groundwork for 4.3, not the 4.3 check).** A fixture `web/` package depended on both packages via `workspace:*`, which works without a `version` field.
+  - Imports of `@loto/api`, `@loto/api/queries` and `@loto/core` pass `tsc`.
+  - Deep imports such as `@loto/api/src/client` fail with TS2882.
+  - Node's `import.meta.resolve` maps the three entries to their `src` files and rejects unexported paths with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
 
 ### Phase 4 — Docs sync + close-out
 
