@@ -148,7 +148,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 
 **Goal:** A deterministic OpenAPI → TypeScript pipeline: export the server OpenAPI document without hand edits, generate types + raw fetch functions (Server-Component-safe) + TanStack Query hooks via Orval, and ship the hand-written client core that everything generated plugs into.
 
-**Scope boundary / key behaviors (detailed phases written when this milestone starts):**
+**Scope boundary / key behaviors (phases planned 2026-10-15 — see below):**
 
 - Deterministic OpenAPI export from `server.API` into the repo (script-driven; build-time document generation preferred over scraping a running server — decide in-phase and record it). The committed document is the generation input, so contract drift is always visible in diffs.
 - Orval config producing three layers: contract types, raw `fetch` functions usable from Next Server Components, and TanStack Query hooks for client components and mobile screens. Output is mapped so hooks land behind the `./queries` entry while the root entry stays hook-free (exact Orval output layout decided in-phase).
@@ -159,6 +159,180 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - `pnpm generate` regeneration script + a drift check (regenerate and fail on `git diff`) that M9's CI can adopt later. Regenerating after each backend phase lands is routine, not an event.
 
 **Precondition:** Milestone 1, plus the backend **OpenAPI Contract Hardening** milestone landed on the server track, so generation consumes a named-enum contract. That milestone now exists as **Milestone 7.6 — Backend OpenAPI Contract Hardening** in `server/docs/milestones.md` (planned during the M7 Phase 12 close-out, where the project-wide `required`-metadata gap was relocated to it); it must land before this milestone starts. Its contents: public contract enums serialize as *names* on responses (integer input still accepted during transition); the OpenAPI document lists named enum values (`Draft`, `Active`, `Cancelled`, …); WebApi/OpenAPI tests pin at least one request enum and one response enum; required/nullability fidelity audited on a sample of DTOs; spec-sync revision bump per the server doc-sync convention. Otherwise this milestone tracks the server OpenAPI at whatever spec revision is current — it does not wait for M7 to close.
+
+**Precondition status (2026-10-15):** Shared M1 is complete (`40f8ac2`). M7.6 is complete (`6fc1fda`, spec `v41`). Generation is still blocked by the **SV03 tripwire** below.
+
+**Tripwire — SV03 (manager-queue rename).** Server M11 and design gap Q say the rename moves into the server milestone that precedes the first generated TypeScript client if the web build starts before M11 is scheduled. Shared M1's close-out unblocked Web M1, so this plan treats the tripwire as **tripped**.
+
+- The server track owns the rename (coordination label **SV03**): `GET /report/dashboard` → `GET /report/manager-queue`, and `ResponseDashboard*Json` → `ResponseManagerQueue*Json` with field names unchanged, together with the snapshot and the doc-sync group.
+- No generated TypeScript may be committed from a document that still contains `/report/dashboard`. The obsolete dashboard surface is never generated.
+- As of this plan, SV03 has not landed. The exported document below still has `/report/dashboard`.
+
+### Planning record (2026-10-15)
+
+- **Backend input inspected.** The last server code change is `b860103` (M7.7 Phase 7.5), at spec **`v43`** (`7620ffb`, docs-only).
+  - `server/` and `docs/` are identical on `parallel/shared` `40f8ac2` and `main` `e4544a8`.
+  - M7.7 is still open: Phase 5 items, Phase 7.6 and Phase 8 remain. The pipeline regenerates as those phases land.
+  - The first committed generation input is the **SV03-integrated** server commit. It is recorded in item 1.1, not here.
+- **Export prototype (throwaway copy, nothing committed).** I added `Microsoft.Extensions.ApiDescription.Server` 10.0.11 (matching `Microsoft.AspNetCore.OpenApi` 10.0.11) to a scratch copy of `server.API` with `OpenApiGenerateDocuments=true`, then ran `dotnet build -c Release`.
+  - **Without config, the build fails.** `InfraDependencyInjection.AddDbContext` throws `Missing required configuration: ConnectionStrings:DefaultConnection` during host construction.
+  - **With inert placeholders, the build succeeds.** I set process-scoped environment variables `ConnectionStrings__DefaultConnection=Host=openapi-export.invalid;…` and `Token__SigningKey=<non-secret placeholder>`, with no `ASPNETCORE_ENVIRONMENT`. The generator builds the host without starting it, so no database or hosted service runs.
+  - Two builds (the second `--no-incremental`) produced byte-identical documents: sha256 `2cec6f9b625e1439a3b1a72fe209520bc3014672089e76f036a31d4bb2c6a0d3`.
+  - Contents: OpenAPI 3.1.1, no `servers`, 68 paths, 96 operations, 150 component schemas (14 enum components, all `type: string`, none numeric).
+  - `Idempotency-Key` and `If-Match` are required header parameters, and `ETag` is declared on 200/201 versioned responses.
+  - `ResponseErrorJson.errorMessages` is required with type `["null","array"]` of `string`.
+  - **Generation must be explicitly disabled for ordinary builds** (review finding, 2026-10-15). If `OpenApiGenerateDocuments` is left unset, the package's `Microsoft.Extensions.ApiDescription.Server.targets` defaults it to `true`, and `OpenApiGenerateDocumentsOnBuild` follows it. A plain `dotnet build` with no config then fails with `Missing required configuration: ConnectionStrings:DefaultConnection`; I reproduced this in the scratch copy.
+    - With `<OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>` in the project, a no-config `dotnet build --no-incremental` succeeds and writes no document.
+    - An export build with `-p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<temp>` plus the inert environment variables still writes the same sha256 `2cec6f9b…` document.
+    - A following ordinary build succeeds again.
+- **Decision — build-time export is chosen.** The Development-only `MapOpenApi()` endpoint is not an export service: it needs a running server with a database and exists only for local exploration. A `WebApplicationFactory` harness was the fallback, and is not needed because build-time generation works without Docker or PostgreSQL.
+- **Findings that need a decision before generation** (recorded here so they are not decided silently):
+  - **F1 — numeric widening.** .NET's web JSON defaults (`AllowReadingFromString`) emit every number as `["number","string"]` or `["integer","string"]`, response members included. Examples: `ResponseTransactionJson.value` and `.version`, and `ResponseDashboardBacklogJson.*Count`. The contract snapshot pins this (`number|string`, 146 lines). Generated TypeScript would type money and `Version` as `number | string`, while responses actually serialize numbers. Shared must not patch the document. See decision **D2**.
+  - **F2 — no auth-tier metadata.** The document has one global `Bearer` requirement and no per-operation `security`. The code has three tiers — `[AllowAnonymous]` (login/register/renew-token), `[TokenAuthenticate]` (identity token: branch create, my-branches, session) and `[TokenAuthenticateBranch]` / `[TokenAuthorize]` (branch token) — but a generated client cannot tell which token an operation needs. See decision **D3**.
+- **Design input.** The design 0.4.2 cross-screen patterns (`design/docs/screens.md` on `main` `e4544a8`, not yet merged into `parallel/shared`) set the transport rules below:
+  - The caller freezes the `Idempotency-Key` and payload before dispatch.
+  - Any 5xx, timeout, lost response, connection loss or **cancellation after dispatch** on a write means **Resultado não confirmado**, with the immutable candidate and key kept. Cancelling the wait cannot prove the server rolled back.
+  - Never mint a new key on retry, and never blindly replay unguarded writes.
+  - A 401 recovery cycle is bounded, never recursive on `/user/login` or `/user/renew-token`, and owned by the app.
+
+### Decisions for review before Phase 1 starts
+
+- **D1 — Vitest moves from M3 to M2.** The client core is the first logic in `shared/`, and its no-retry, header and error guarantees need tests. This amends the "Vitest arrives with Milestone 3" standing rule. M3 then adds formatter tests to an existing runner.
+- **D2 — numeric fidelity (F1).** *Recommended:* a narrow server handoff (**H3**). A direction-aware schema transformer emits `number` / `integer` (dropping the `string` alternative) on **response** members, while request members keep advertising what binding accepts. Spec §6.15 and the doc-sync group would be bumped and the snapshot updated deliberately. *Alternative:* accept `number | string` in generated types, which leaves every consumer narrowing money and `Version`. Not recommended. Phase 2's numeric gate follows whichever option is chosen.
+- **D3 — auth tier per operation (F2).** *Recommended:* a narrow server handoff (**H4**). An operation transformer derives per-operation `security` from the existing filters: `[]` for anonymous, `IdentityBearer`, and `BranchBearer`. Shared then generates an operation→tier map from the document and passes the tier to the app's token provider. *Fallback:* the provider receives `{ method, path }` and each app maps paths to tokens. That duplicates a contract fact by hand in two apps, so it is accepted only if the server declines H4, and is recorded as such.
+- **D4 — committed document and generated output stay out of manual formatting and lint.** The committed document lives at `shared/api/openapi/server-api.openapi.json`. Generated code lives under `shared/api/src/generated/`, is formatted by Orval's Prettier hook with the pinned root Prettier, and is excluded from ESLint. The exported JSON is added to `.prettierignore`, so `format:check` never rewrites a contract byte. Both changes touch root tooling and need the root-tooling owner's sign-off.
+
+### Server-file handoffs (agree ownership before any edit; shared never edits `server/` unless the agreement assigns it)
+
+- **H1 — SV03 rename.** Owned by the server track and already coordinated. It is the tripwire gate above. Files: the server track's choice, plus `tests/WebApi.Test/OpenApi/Snapshots/openapi-contract-surface.txt` and the `docs/` doc-sync group.
+- **H2 — opt-in build-time export.** One file: `server/server.API/server.API.csproj`.
+  - Add `Microsoft.Extensions.ApiDescription.Server` with an exact version matching `Microsoft.AspNetCore.OpenApi` (10.0.11 today) and `PrivateAssets=all`.
+  - Set `<OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>` **explicitly**. Leaving it unset makes the package default it to `true`, which breaks every ordinary build and `dotnet test`. Only the shared export script overrides it, as a global property: `-p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<temp dir>`.
+  - **Ordinary-build regression check**, run by the server owner when H2 lands and repeated in 1.2:
+    - With no `ConnectionStrings__*` or `Token__*` variables and no Development environment, `dotnet build server/server.sln --no-incremental` succeeds and writes no OpenAPI document.
+    - The existing `dotnet test` suites build unchanged.
+  - Not required, but recommended to the server owner: pin `Scalar.AspNetCore` (currently `Version="*"`) so export builds restore reproducibly.
+- **H3 — response numeric narrowing (if D2 adopts it).**
+  - One new transformer in `server/server.API/OpenApi/` and its registration line in `ApiDependencyInjection.cs`.
+  - One WebApi.Test OpenAPI contract test, and the reviewed snapshot update.
+  - A §6.15 note plus a doc-sync revision bump.
+- **H4 — per-operation auth tiers (if D3 adopts it).**
+  - One new operation transformer in `server/server.API/OpenApi/` and its registration line.
+  - One WebApi.Test contract test pinning one anonymous, one identity and one branch operation, and the reviewed snapshot update.
+  - A §6.15 note plus a doc-sync revision bump.
+
+### Phase 1 — Contract input and deterministic export
+
+- [ ] **1.1** Tripwire gate: confirm SV03 is integrated. Record in the milestone notes:
+  - the server commit and spec revision
+  - that the snapshot and exported document contain `/report/manager-queue` and `ResponseManagerQueue*Json`, and no `/report/dashboard`
+
+  Phases 2–4 commit nothing generated before this item is checked.
+- [ ] **1.2** Record the agreed ownership of H2, and of H3/H4 if D2/D3 adopt them: exact files, owner and landing commit. The server owner lands H2 before 1.3 runs against the real tree. Record the H2 ordinary-build regression evidence: a no-config `dotnet build server/server.sln --no-incremental` succeeds, and no OpenAPI document is written without the explicit `-p:OpenApiGenerateDocuments=true` override.
+- [ ] **1.3** Add the export script `shared/api/scripts/export-openapi.ts`, run with Node 24's built-in type stripping, and the package script `export:openapi`.
+  - It runs `dotnet build server/server.API/server.API.csproj -c Release -p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<temp>`.
+  - Inert placeholder config is passed only in the child process environment (an `.invalid` host and a non-secret signing-key placeholder, never Development credentials or a reachable database).
+  - The resulting `server.API.json` is copied unmodified to `shared/api/openapi/server-api.openapi.json`.
+  - The script fails if the build fails or the document is missing.
+- [ ] **1.4** Determinism and parity evidence. Export twice; the outputs must be byte-identical (record the sha256).
+  - Prove parity with the runtime contract once: the exported document must equal the Development `/openapi/v1.json` from the WebApi.Test host, excluding `servers`. Equivalently, it must render to the checked-in `openapi-contract-surface.txt` through `OpenApiContractSurface.Render`.
+  - Record the method, the result, and the path, operation and schema counts.
+- [ ] **1.5** Add `export:check`: re-export to a temp file and fail on any byte difference from the committed document. It requires the .NET 10 SDK; record that requirement and that server M9 CI can adopt it.
+- [ ] **1.6** Commit the first document only after 1.1 passes. The milestone notes record the input server commit, spec revision and document sha256. Every later regeneration repeats the same record.
+
+### Phase 2 — Generated contract types and raw functions (root entry)
+
+- [ ] **2.1** Pin Orval at an exact 8.x release published at least 14 days before the pin. Today's `latest` is 8.43.0, published 2026-10-14, so it doesn't qualify yet. Add it as an `@loto/api` `devDependency`, coordinating the lockfile with its single owner, and record the version, date and engine (`node >=22.18.0`).
+- [ ] **2.2** Add `shared/api/orval.config.ts` (input: the committed document only) with these settings:
+  - the `fetch` client
+  - models in `src/generated/model/`
+  - raw functions in `src/generated/endpoints/`, split by tag
+  - a mutator pointing at the hand-written transport in `src/client/` (2.3)
+  - **`headers: true`.** Orval normalizes it to `outputOptions.headers ?? false` (verified in the published 8.38.0 and 8.43.0 sources), so without it the declared `Idempotency-Key` and `If-Match` header parameters drop out of generated signatures and the 2.8 gate cannot pass. Confirm support in the exact pinned release; 2.8 proves it.
+  - **`clean: true`** on the output directories, so a removed endpoint or model never survives as a stale file
+  - `useDates` off, so `date` and `date-time` values, including the offset-free `BranchLocalDateTime`, stay strings and never become JavaScript instants
+  - Prettier formatting through the pinned root config
+
+  Generated files are never hand-edited.
+- [ ] **2.3** Add the minimal transport the mutator needs in `src/client/`. It builds the URL from the injected base URL, attaches the injected token, and passes request and response through with headers intact. The full contract is completed in Phase 3. `generate` is the package script that runs Orval.
+- [ ] **2.4** The root entry `src/index.ts` exports generated models, raw functions and the client-configuration API, and nothing from `src/generated/queries/` or `@tanstack/*`.
+- [ ] **2.5** Codegen determinism and drift. Running `generate` twice produces a byte-identical `src/generated/` tree (record the hash). It needs no .NET.
+  - `generate:check` (`shared/api/scripts/check-generated.ts`) never relies on `git diff`. That command ignores untracked additions, and a repo-relative pathspec silently matches nothing when run from `shared/api`; review reproduced both false passes.
+  - Instead, the script resolves every path from its own location (`import.meta.dirname`), so the working directory never matters. It generates cleanly from the committed document into a fresh temporary directory, with the same config and output layout, and compares that tree recursively with the committed `src/generated/`, byte for byte.
+  - It fails on any **modified**, **added** or **deleted** file and lists each difference.
+  - Prove it with three seeded cases (one tracked file modified, one extra generated file added, one committed file deleted), each run from the repository root **and** from `shared/api`. All six runs must fail, and a clean tree must pass from both directories.
+- [ ] **2.6** **Enum-name gate.** Compile-time assertions in `shared/api/src/contract-checks/` run under `pnpm -r typecheck`, against `TransactionStatus`, `DailyCloseStatus` and `Role`. Declared names are assignable, `// @ts-expect-error` proves numeric literals are not, and a check confirms no generated enum type is a numeric union.
+- [ ] **2.7** **Required/nullable fidelity gate.** Compile-time assertions against known DTOs, taken from the document as inspected:
+  - `ResponseTokenJson.token` and `.refreshToken` are required `string`.
+  - `ResponseCreateBranchSessionJson.token` and `.branch` are required.
+  - `ResponseErrorJson.errorMessages` is a required key whose type includes `null`.
+  - `RequestCreateTransactionJson.clientId` is optional and nullable.
+  - `ResponseGetCurrentBranchSummaryJson.branchLocalDate` is a required `string`.
+  - **Numeric fidelity** follows D2: `ResponseTransactionJson.value` and `.version` are `number`, or the accepted widened type is recorded.
+- [ ] **2.8** **Financial-header fidelity gate.** Compile-time assertions:
+  - The generated `POST /transaction` and `POST /transaction/installment` functions **require** an `Idempotency-Key` header argument.
+  - `PUT /transaction/{transactionId}` and `POST /transaction/{transactionId}/finalize` require `If-Match`.
+  - The `ETag` response header is readable from the raw function's result.
+
+### Phase 3 — Client core (`src/client/`)
+
+- [ ] **3.1** Introduce Vitest, per D1. Pin an exact version as an `@loto/api` `devDependency` and add a `test` script. A root `test` fan-out (`pnpm -r test`) is a root-tooling change for its owner. Tests use an injected fake `fetch` and never touch the network.
+- [ ] **3.2** **Configuration and injection.** Apps configure the client explicitly, for example `configureApiClient({ baseUrl, getAccessToken, fetch? })`.
+  - Nothing happens at import time, and nothing reads `process.env`, `import.meta.env`, `NEXT_PUBLIC_*` or `EXPO_PUBLIC_*`.
+  - Using the client before it is configured throws a typed configuration error.
+  - The token provider is called on **every** request, never captured, so web's per-request cookie reads and mobile's secure-store reads stay correct.
+  - Each call can pass its own `RequestInit`, including an `AbortSignal`.
+- [ ] **3.3** **Token-provider contract and two-stage sessions.**
+  - The provider receives `{ method, path, authTier }` (tier per D3; `authTier` is absent under the D3 fallback). It returns a bearer token or `null`. `null` sends no `Authorization` header, which lets web's browser runtime use a base URL for the cookie-to-bearer BFF route.
+  - The generated `POST /user/login`, `POST /branch/session` and `POST /user/renew-token` functions are exposed unchanged.
+  - Shared never stores, caches or renews tokens, never reads cookies or the secure store, never orchestrates sessions, and contains no BFF or Expo code. Web M2 and Mobile M2 own those.
+- [ ] **3.4** **Typed `ApiError`.** It normalizes a `ResponseErrorJson` body, using the generated type only, and carries `status`, method, path and `errorMessages`.
+  - The message list is kept verbatim, in order, without deduplication; a `null` or missing list becomes an empty list. Whether an error body was present is recorded.
+  - Failures without a response (network, timeout, abort) become a distinct kind with no status. Each records whether the request was **dispatched**, meaning the transport had already invoked `fetch`.
+  - An abort **before dispatch** (the signal was already aborted, or aborted before `fetch` was invoked) sends nothing and is not uncertain.
+  - An abort **after dispatch** is treated like a timeout or lost response. Cancelling the wait cannot prove the server rolled back, so the transport assumes the request may have reached it.
+  - Pure predicates `isApiError` and `isOutcomeUncertain(error)` are exported. `isOutcomeUncertain` is true for a dispatched non-GET that ended in 5xx, timeout, connection loss, lost response or cancellation after dispatch. It is false for any GET, any non-5xx HTTP response and an abort before dispatch, matching the design 0.4.2 recovery table. The caller keeps its immutable candidate and key; shared never discards or replaces them.
+  - Shared contains no pt-BR UI copy; screens render the messages.
+- [ ] **3.5** **Transparent financial headers.**
+  - Caller-supplied `Idempotency-Key` and `If-Match` are sent byte-for-byte. The transport never mints, rewrites, strips or caches a key.
+  - Response headers, including `ETag`, are returned to the caller.
+  - Pure helpers `toIfMatch(version)` and `parseETag(header)` implement the §6.11 representation: a strong, quoted, positive decimal `xmin`.
+- [ ] **3.6** **No-retry invariant.** Each invocation makes exactly one network request, with no automatic retry on any status (401, 409, 5xx) or on a network error, and no automatic 401 renewal. Apps decide retries; a retried financial create reuses the caller's frozen key and payload.
+- [ ] **3.7** Vitest coverage for 3.2–3.6:
+  - injection and per-request provider calls
+  - `null` provider → no `Authorization` header
+  - `ApiError` normalization of a multi-message body, a `null` list, a non-JSON body and a network failure
+  - `isOutcomeUncertain` for GET versus POST, 409 versus 500, and a POST aborted **before** dispatch (`fetch` never called, not uncertain) versus **after** dispatch (abort while the fake `fetch` is pending, uncertain)
+  - header pass-through and `ETag` exposure
+  - exactly one `fetch` call for 401, 409, 500 and network errors
+
+### Phase 4 — TanStack Query hooks (`./queries`) and the import boundary
+
+- [ ] **4.1** Pin `@tanstack/react-query` exactly as an `@loto/api` `devDependency`, for typechecking, and declare a v5 `peerDependency` range, so each app owns the instance and its `QueryClient`. Shared never creates a `QueryClient`.
+- [ ] **4.2** Add a second Orval output, `react-query` over `fetch`, into `src/generated/queries/`. It uses the same model directory and the same mutator, with **`headers: true`** and `clean: true` as in 2.2. Without `headers: true`, mutation variables lose the required header arguments that 4.3 asserts. A spike decides whether the hooks reuse the raw functions or carry internal generated fetchers, and the decision is recorded. Either way, the root graph stays hook-free and nothing is hand-edited.
+- [ ] **4.3** `src/queries/index.ts` is the only entry exporting hooks and query keys or options.
+  - Generated mutation hooks set no `retry`. A check over the generated tree fails if any `retry` option appears.
+  - The notes record that apps keep mutation retries at 0 and never retry a write automatically.
+  - Header arguments stay **required** in mutation variable types (compile-time assertion for `POST /transaction`).
+- [ ] **4.4** **Import-boundary check.** `shared/api/scripts/check-boundary.ts` walks the transitive import graph of `src/index.ts` and fails if it reaches `@tanstack/*`, `react`, `src/queries/**` or `src/generated/queries/**`. It runs inside `@loto/api`'s `lint` script, so the standing `pnpm -r lint` gate enforces it. Prove it with a seeded violation that fails, then remove the violation.
+
+### Phase 5 — Docs sync and close-out
+
+- [ ] **5.1** Update `shared/AGENTS.md` with:
+  - the generated layout and the regeneration procedure (export → `generate` → review the diff → commit with the server commit, spec revision and document hash)
+  - the client-core API and the no-retry and header rules
+  - the D2/D3 outcomes
+  - the new dependencies, keeping peer versus dev roles
+
+  Notify the web and mobile owners of the configured-client contract their M2 milestones consume.
+- [ ] **5.2** Done criteria (all from a fresh clone):
+  - `pnpm install && pnpm -r typecheck && pnpm -r lint && pnpm format:check && pnpm -r test` pass. These include the enum, fidelity and header compile-time gates and the import-boundary check.
+  - `generate:check` passes from both the repository root and `shared/api`.
+  - `export:check` passes on a machine with the .NET 10 SDK.
+  - The committed document matches the recorded post-SV03 server commit and spec revision, and contains no `/report/dashboard`.
+  - There is no hand-authored DTO and no function for an unshipped endpoint.
+  - There are no environment reads under `shared/`.
+  - There is no `dist/`.
 
 ---
 
