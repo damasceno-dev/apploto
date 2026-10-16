@@ -13,6 +13,8 @@ namespace server.Application.UseCases.DailyCloses.Reject;
 public class RejectDailyCloseUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
+    IOperatorsRepository operatorsRepository,
+    IDailyCloseReviewEventRecorder reviewEventRecorder,
     IDailyCloseWorkflowGuard workflowGuard,
     LockDateGuard lockDateGuard,
     IBranchClock branchClock,
@@ -58,6 +60,20 @@ public class RejectDailyCloseUseCase(
         close.ApprovedByUser = null;
         close.UpdatedAt = now;
         close.UpdatedByUserId = branchUser.UserId;
+
+        // Durable rejection event (gap X): keeps this rejection's own time, actor and reason through
+        // later demotions and correction saves, which overwrite the generic Updated* fields.
+        var actorOperator = await operatorsRepository.GetActiveLinkedByUserIdAndBranchIdAsNoTracking(
+            branchUser.UserId,
+            branchUser.BranchId,
+            ct);
+        await reviewEventRecorder.RecordRejection(
+            close,
+            request.RejectionReason,
+            branchUser.User,
+            actorOperator,
+            now,
+            ct);
 
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);

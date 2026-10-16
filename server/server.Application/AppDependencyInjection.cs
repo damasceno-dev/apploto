@@ -93,6 +93,7 @@ using server.Application.UseCases.Settings.LockMonth;
 using server.Application.UseCases.Settings.Update;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
+using server.Application.UseCases.DailyCloses.History;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
@@ -186,6 +187,7 @@ public static class AppDependencyInjection
         services.AddScoped<IDailyCloseWorkflowGuard, DailyCloseWorkflowGuard>();
         services.AddScoped<IDailyCloseDraftTransition, DailyCloseDraftTransition>();
         services.AddScoped<IDailyCloseSuccessorInvalidator, DailyCloseSuccessorInvalidator>();
+        services.AddScoped<IDailyCloseReviewEventRecorder, DailyCloseReviewEventRecorder>();
         services.AddScoped<IDailyCloseLedgerGuard, DailyCloseLedgerGuard>();
         services.AddScoped<ICashVarianceCalculator, CashVarianceCalculator>();
         services.AddScoped<ICashVarianceProductResolver, CashVarianceProductResolver>();
@@ -216,6 +218,7 @@ public static class AppDependencyInjection
         services.AddScoped<ListTimeEntriesUseCase>();
         services.AddScoped<OpenDailyCloseUseCase>();
         services.AddScoped<GetDailyCloseUseCase>();
+        services.AddScoped<GetDailyCloseHistoryUseCase>();
         services.AddScoped<GetDailyCloseReviewUseCase>();
         services.AddScoped<PreviewDailyCloseVarianceUseCase>();
         services.AddScoped<ListDailyClosesUseCase>();

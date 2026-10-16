@@ -20,6 +20,7 @@ enum AgingBucket string: Current, Days0To30, Days31To60, Days61To90, Days91Plus
 enum BrazilianHolidayCalendarSource string: Composite, Canonical, BrasilApi, Nager
 enum BrazilianHolidayImportStatus string: Imported, Skipped
 enum BrazilianHolidayType string: National, OptionalFederal
+enum DailyCloseReviewEventType string: Rejected, OpeningChanged
 enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
 enum Direction string: In, Out
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
@@ -427,6 +428,29 @@ schema ResponseCreateTransactionPreviewJson
   impact required ResponseTransactionImpactJson
   warnings required string[]
 
+schema ResponseDailyCloseHistoryEventJson
+  actorOperatorId optional string?
+  actorOperatorName optional string?
+  actorUserId required string
+  actorUserName required string
+  affectedStatusAfter optional enum:DailyCloseStatus?
+  affectedStatusBefore optional enum:DailyCloseStatus?
+  id required string
+  items required ResponseDailyCloseOpeningChangeItemJson[]
+  occurredAt required string
+  previousSourceDailyCloseId optional string?
+  previousSourceDate optional string?
+  rejectionReason optional string?
+  sourceDailyCloseId optional string?
+  sourceDate optional string?
+  type required enum:DailyCloseReviewEventType
+
+schema ResponseDailyCloseHistoryJson
+  currentOpeningSource optional ResponseDailyCloseOpeningSourceJson?
+  dailyCloseId required string
+  events required ResponseDailyCloseHistoryEventJson[]
+  isHistoryComplete required boolean
+
 schema ResponseDailyCloseItemJson
   createdAt required string
   id required string
@@ -466,6 +490,17 @@ schema ResponseDailyCloseJson
   updatedAt optional string?
   updatedByUserId optional string?
   version required integer|string
+
+schema ResponseDailyCloseOpeningChangeItemJson
+  afterValue optional number|string?
+  beforeValue optional number|string?
+  change required number|string
+  productId required string
+  productName required string
+
+schema ResponseDailyCloseOpeningSourceJson
+  dailyCloseId required string
+  date required string
 
 schema ResponseDailyCloseReviewItemJson
   closingValue optional number|string?
@@ -1273,6 +1308,13 @@ operation POST /dailyclose/{dailyCloseId}/approve
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
+
+operation GET /dailyclose/{dailyCloseId}/history
+  path dailyCloseId required string
+  response 200 ResponseDailyCloseHistoryJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
 
 operation PUT /dailyclose/{dailyCloseId}/items
   path dailyCloseId required string

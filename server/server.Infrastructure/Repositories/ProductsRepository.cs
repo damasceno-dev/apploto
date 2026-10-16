@@ -53,6 +53,18 @@ internal class ProductsRepository(ServerDbContext dbContext) : IProductsReposito
             .ToListAsync(ct);
     }
 
+    public async Task<IReadOnlyList<Product>> ListByIdsAndBranchIdAsNoTracking(
+        IEnumerable<Guid> productIds,
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        var idList = productIds.ToList();
+        return await dbContext.Products
+            .AsNoTracking()
+            .Where(p => p.BranchId == branchId && idList.Contains(p.Id))
+            .ToListAsync(ct);
+    }
+
     public async Task<Product?> GetActiveByBranchIdAndNameAsNoTracking(
         Guid branchId,
         string name,

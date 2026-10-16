@@ -22,6 +22,7 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.Property(dailyClose => dailyClose.OpeningRecheckRequiredAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(dailyClose => dailyClose.UpdatedAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(dailyClose => dailyClose.UpdatedByUserId).IsRequired(false);
+        builder.Property(dailyClose => dailyClose.ReviewHistoryComplete).IsRequired();
 
         builder.HasOne(dailyClose => dailyClose.Account)
             .WithMany()

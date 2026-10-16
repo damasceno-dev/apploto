@@ -4,10 +4,10 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md (this file is canonical; derived artifacts: docs/loto_presentation.html, docs/loto_entity_relationship_diagram.html)
 Coverage: Full entity model, relationships, invariants, workflows, and Access-to-Lotero mapping.
-Spec revision: v46
+Spec revision: v47
 -->
 
-> **Status:** Revised spec (v46) — M7.7 Phase 5.3 ships Terminal↔Tab pairing integrity (§3.7): deactivating either side clears the pairing in the same commit, pairing changes and deactivations serialize per branch, a data-only migration cleared earlier stale pairings, and Tab access stays an explicit `OperatorAccount(Tab)` grant; the rest of Phase 5 (fiado settlement, statement, linked movements) is still pending. As of v45 (documentation-only): the owner's 2026-10-16 decision for a separate read-only manager Dashboard and the reviewed-pending M11 reporting plan are recorded as ⚠ *Pending M11 change* forward markers (§6.14, §7.2); the shipped fiado balance and open-cheque aging totals are now documented as they behave (§6.14); and five reporting questions join §9. No shipped endpoint, DTO, persistence, or runtime behavior changed. As of v44 (contract rename only): the Manager Work Queue read is `GET /report/manager-queue`, and its four response DTOs are `ResponseManagerQueue*Json` (§6.14); the former `GET /report/dashboard` route is removed with no alias, and fields, permissions, validation, status codes, and semantics are unchanged. As of v43 (documentation-only): the owner decisions from the 2026-10 prototype review are recorded as forward markers for their owning M7.7 phases (§3.12, §6.3, §6.4, §6.5, §6.10, §6.12, §6.13, §6.14), and new §9 holds open product questions; no shipped endpoint, DTO, persistence, or runtime behavior changed. As of v42, M7.7 Phase 7.5 adds the Work Queue backlog aggregate: the queue read (then `GET /report/dashboard`) additively gains `Backlog` and `UnlockedDraftTransactionCount` (§6.14), with no schema change and no change to the selected-day facts. The M7.6 close-out stands: the generated OpenAPI document is a faithful codegen-grade contract (§6.15). Required/optional metadata is derived project-wide from C# nullability, and every contract enum is published by declared name as `type: string`. Apart from the two additive queue members and the v44 rename, endpoints, DTO shapes, status codes, and domain semantics are unchanged from v40; the v30 `required`-metadata caveat is discharged. M7.7 Phase 7 time-entry policy integrity, the Phase 6 contracts, the v38 month-lock findings, and the expanded Phase 3 close chain all remain as described.
+> **Status:** Revised spec (v47) — M7.7 Phase 7.6.1 ships durable close review events (§3.21, §6.13): a rejection and every real count change that moves a later close's opening are recorded as immutable events, read through `GET /dailyclose/{id}/history` under the close's own read permission; closes that predate the events report incomplete history instead of inferred values. As of v46, M7.7 Phase 5.3 ships Terminal↔Tab pairing integrity (§3.7): deactivating either side clears the pairing in the same commit, pairing changes and deactivations serialize per branch, a data-only migration cleared earlier stale pairings, and Tab access stays an explicit `OperatorAccount(Tab)` grant; the rest of Phase 5 (fiado settlement, statement, linked movements) is still pending. As of v45 (documentation-only): the owner's 2026-10-16 decision for a separate read-only manager Dashboard and the reviewed-pending M11 reporting plan are recorded as ⚠ *Pending M11 change* forward markers (§6.14, §7.2); the shipped fiado balance and open-cheque aging totals are now documented as they behave (§6.14); and five reporting questions join §9. No shipped endpoint, DTO, persistence, or runtime behavior changed. As of v44 (contract rename only): the Manager Work Queue read is `GET /report/manager-queue`, and its four response DTOs are `ResponseManagerQueue*Json` (§6.14); the former `GET /report/dashboard` route is removed with no alias, and fields, permissions, validation, status codes, and semantics are unchanged. As of v43 (documentation-only): the owner decisions from the 2026-10 prototype review are recorded as forward markers for their owning M7.7 phases (§3.12, §6.3, §6.4, §6.5, §6.10, §6.12, §6.13, §6.14), and new §9 holds open product questions; no shipped endpoint, DTO, persistence, or runtime behavior changed. As of v42, M7.7 Phase 7.5 adds the Work Queue backlog aggregate: the queue read (then `GET /report/dashboard`) additively gains `Backlog` and `UnlockedDraftTransactionCount` (§6.14), with no schema change and no change to the selected-day facts. The M7.6 close-out stands: the generated OpenAPI document is a faithful codegen-grade contract (§6.15). Required/optional metadata is derived project-wide from C# nullability, and every contract enum is published by declared name as `type: string`. Apart from the two additive queue members and the v44 rename, endpoints, DTO shapes, status codes, and domain semantics are unchanged from v40; the v30 `required`-metadata caveat is discharged. M7.7 Phase 7 time-entry policy integrity, the Phase 6 contracts, the v38 month-lock findings, and the expanded Phase 3 close chain all remain as described.
 > **Scope:** Entity model, relationships, business rules, domain knowledge  
 > **Stack:** .NET + EF Core + PostgreSQL  
 > **Revision notes:**  
@@ -55,6 +55,7 @@ Spec revision: v46
 > v44: M7.7 Phase 7.8 (server M11 tripwire, coordination label SV03; Shared M2 handoff H1) — Manager Work Queue rename, ahead of the first generated TypeScript client. `GET /report/dashboard?date=` → `GET /report/manager-queue?date=`; `ResponseDashboardJson` / `ResponseDashboardCloseJson` / `ResponseDashboardNotSubmittedJson` / `ResponseDashboardBacklogJson` → `ResponseManagerQueueJson` / `ResponseManagerQueueCloseJson` / `ResponseManagerQueueNotSubmittedJson` / `ResponseManagerQueueBacklogJson`, and the query DTO `RequestDashboardJson` → `RequestManagerQueueJson`. Every JSON member name, nullability, the Manager/Admin permission, the `REPORT_AS_OF_DATE_INVALID` validation, the declared `{200, 400, 401, 403}` status set, the selected-day facts, and the backlog/Draft-count bounds are unchanged. The old route is removed with no compatibility alias (it now returns 404). The OpenAPI contract-surface snapshot changes by name only. §6.14 "Manager dashboard aggregation" becomes "Manager queue aggregation"; §3.14, §6.12, and the §6.14 official-variance, permission-table, and list-enrichment references say "manager queue"; historical revision notes keep the names they shipped with. No schema, migration, or runtime behavior change. The M11 KPI page, upcoming-settlements view, and monthly report remain deferred to M11.
 > v45: Documentation-only — server M11 phase planning. The owner decision of 2026-10-16 (a separate read-only Dashboard that summarizes every manager report with links to each, beside the unchanged exception-first Work Queue) and the proposed contracts are recorded as ⚠ *Pending M11 change* markers in §6.14 and §7.2: `GET /report/management-overview` → `ResponseManagementOverviewJson`, `GET /report/upcoming-settlements`, `GET /report/monthly-financial/{year}/{month}`, an explicit `SettlementInstrument` on TransactionType, additive whole-set totals on existing reports, and deactivated-entity drill-down in the daily ledger, operator summary and time-entry balance — all proposals, not shipped. §6.14 now documents two shipped facts the planning audit found: `GET /report/fiado/balance` returns `TotalOutstanding` as the signed sum of client balances (a client in credit lowers it), and open-cheque aging covers installment plans only, so a single cheque row never appears. §9 gains questions 2–6 (card settlements, single cheques, Tarifa Bolão, bolão/federal leftovers, operator attribution). No endpoint, DTO, schema, or runtime behavior changed.
 > v46: M7.7 Phase 5.3 (decision 1.8, gaps L + S) — §3.7's pending marker is discharged. `DELETE /account/{id}` on a Terminal clears its `TabAccountId`, and on a Tab clears every Terminal that holds it, in the same commit as the deactivation, so an inactive account never keeps or reserves a pairing. Pair, unpair, create-with-pairing and deactivate serialize on one branch-scoped advisory lock (bounded by `AccountPairingCoordination:LockTimeoutSeconds`, default 5 s); a timeout returns 409 `ACCOUNT_PAIRING_COORDINATION_BUSY`, now declared on unpair and deactivate as well. Data-only migration `M7_7Phase5StalePairingCleanup` clears pairings where either side was already inactive. Tab (fiado) access is unchanged and confirmed: only an explicit `OperatorAccount(Tab)` grant, never implied by a Terminal assignment, with Tab grants allowed across several terminals. No schema change.
+> v47: M7.7 Phase 7.6.1 (gap X) — §6.13's review-event pending marker is discharged. New §3.21 `DailyCloseReviewEvent` / `DailyCloseReviewEventItem` (migration `M7_7Phase76CloseReviewEvents`) and `DailyClose.ReviewHistoryComplete` (false for every close that existed before the migration, true for new ones). `POST /dailyclose/{id}/reject` records a `Rejected` event (time, reviewer user and linked operator, reason) in the same transaction. `PUT /dailyclose/{id}/items` records an `OpeningChanged` event on the one next eligible successor whenever its opening changes — a real count change or a first count that replaces the opening source — including when that successor is already Draft; before-values come from the opening as it stood inside that transaction, never from current mutable items. Actor and product names are snapshots at event time. The one-successor invalidation rule, the `AffectedSuccessor` response (still demotions only) and official snapshots are unchanged. New read `GET /dailyclose/{dailyCloseId}/history` → `ResponseDailyCloseHistoryJson { DailyCloseId, IsHistoryComplete, CurrentOpeningSource?, Events }` with the close's own read permission (Members included); it declares no `ETag`. New enum `DailyCloseReviewEventType`. §8's table count is corrected to 22 (it had not counted the M5–M7.7 tables).
 > v13: Extended §6.11 with Draft → Active finalization rules, reusing the same member account scope, mutation permission matrix, lock-date behavior, and update audit convention.
 > v14: Extended §6.11 with the cancellation contract: required cancellation reason, terminal `Cancelled` state from `Draft` or `Active`, dedicated cancellation audit fields stamped from the same clock instant as the generic update audit fields, installment-sibling isolation, and exclusion of cancelled rows from active sums.
 > v15: Added DailyClose/DailyCloseItem audit and uniqueness details, the DailyClose workflow contract including `Rejected -> Draft` and same-day `Submitted -> Draft` recall, most-recent-prior-close opening values, lock-date coverage for all DailyClose transitions, explicit CashVariance direction handling, and the system-only `"Diferença Caixa"` product invariant.
@@ -714,6 +715,8 @@ public class DailyClose : EntityBase
     public Guid BranchId { get; init; }
     public Branch Branch { get; init; } = null!;
 
+    public bool ReviewHistoryComplete { get; init; } = true;
+
     // Navigation
     public ICollection<DailyCloseItem> Items { get; init; } = [];
 }
@@ -742,6 +745,7 @@ public class DailyClose : EntityBase
 | UpdatedAt                                 | timestamptz   | NULL     | Generic workflow mutation audit timestamp                   |
 | UpdatedByUserId                           | uuid          | NULL     | User who last changed the workflow/item state               |
 | BranchId                                  | uuid          | NOT NULL | FK → Branch                                                 |
+| ReviewHistoryComplete                     | boolean       | NOT NULL | False for closes that predate review events (§3.21)         |
 | CreatedAt                                 | timestamptz   | NOT NULL |                                                             |
 | Active                                    | boolean       | NOT NULL |                                                             |
 
@@ -997,6 +1001,76 @@ public class TimeEntryPolicy : EntityBase
 
 ---
 
+### 3.21 DailyCloseReviewEvent and DailyCloseReviewEventItem
+
+Immutable review history of a close (M7.7 Phase 7.6.1, gap X). An event is written in the same transaction as the command that causes it and is never updated, recalculated or backfilled. `DailyCloseId` is the close the event explains: the rejected close, or the successor whose opening changed. Actor and product names are **snapshots** taken when the event happened, so a later rename never rewrites history.
+
+```csharp
+public class DailyCloseReviewEvent : EntityBase
+{
+    public Guid BranchId { get; init; }
+    public Guid DailyCloseId { get; init; }
+    public DailyCloseReviewEventType Type { get; init; }
+    public DateTime OccurredAt { get; init; }
+
+    public Guid ActorUserId { get; init; }
+    public string ActorUserName { get; init; } = string.Empty;
+    public Guid? ActorOperatorId { get; init; }
+    public string? ActorOperatorName { get; init; }
+
+    public string? RejectionReason { get; init; }            // Rejected only
+    public Guid? SourceDailyCloseId { get; init; }           // OpeningChanged only
+    public uint? SourceVersion { get; init; }                // OpeningChanged only
+    public Guid? PreviousSourceDailyCloseId { get; init; }   // OpeningChanged only
+    public DailyCloseStatus? AffectedStatusBefore { get; init; }
+    public DailyCloseStatus? AffectedStatusAfter { get; init; }
+
+    public ICollection<DailyCloseReviewEventItem> Items { get; init; } = [];
+}
+
+public class DailyCloseReviewEventItem : EntityBase
+{
+    public Guid DailyCloseReviewEventId { get; init; }
+    public Guid ProductId { get; init; }
+    public string ProductName { get; init; } = string.Empty;
+    public decimal? BeforeValue { get; init; }
+    public decimal? AfterValue { get; init; }
+}
+```
+
+| Column (DailyCloseReviewEvents) | Type         | Null     | Notes                                                                                   |
+|---------------------------------|--------------|----------|-----------------------------------------------------------------------------------------|
+| Id                              | uuid         | PK       |                                                                                         |
+| BranchId                        | uuid         | NOT NULL | Restricted FK → Branch                                                                  |
+| DailyCloseId                    | uuid         | NOT NULL | Restricted FK → DailyClose — the close this event explains                              |
+| Type                            | smallint     | NOT NULL | `DailyCloseReviewEventType`                                                             |
+| OccurredAt                      | timestamptz  | NOT NULL | The command's single captured instant                                                   |
+| ActorUserId                     | uuid         | NOT NULL | Restricted FK → User                                                                    |
+| ActorUserName                   | varchar(255) | NOT NULL | Snapshot                                                                                |
+| ActorOperatorId                 | uuid         | NULL     | Restricted FK → Operator — the actor's linked operator, when any                        |
+| ActorOperatorName               | varchar(255) | NULL     | Snapshot                                                                                |
+| RejectionReason                 | varchar(500) | NULL     | Rejected only                                                                           |
+| SourceDailyCloseId              | uuid         | NULL     | Restricted FK → DailyClose — the close whose saved count changed (OpeningChanged)       |
+| SourceVersion                   | bigint       | NULL     | The source's `xmin` version the saved count was applied to                              |
+| PreviousSourceDailyCloseId      | uuid         | NULL     | Restricted FK → DailyClose — the opening source before the save; null when none existed |
+| AffectedStatusBefore / After    | smallint     | NULL     | The affected close's status before and after the same save                              |
+| CreatedAt / Active              |              | NOT NULL | EntityBase                                                                              |
+
+| Column (DailyCloseReviewEventItems) | Type          | Null     | Notes                                                  |
+|-------------------------------------|---------------|----------|--------------------------------------------------------|
+| Id                                  | uuid          | PK       |                                                        |
+| DailyCloseReviewEventId             | uuid          | NOT NULL | Restricted FK → DailyCloseReviewEvent                  |
+| ProductId                           | uuid          | NOT NULL | Restricted FK → Product (retired products allowed)     |
+| ProductName                         | varchar(255)  | NOT NULL | Snapshot                                               |
+| BeforeValue / AfterValue            | numeric(14,2) | NULL     | Null = no saved item, distinct from a recorded zero    |
+| CreatedAt / Active                  |               | NOT NULL | EntityBase                                             |
+
+**Indexes:** `(BranchId, DailyCloseId, OccurredAt)` on events; unique `(DailyCloseReviewEventId, ProductId)` on items.
+
+**Legacy rows:** migration `M7_7Phase76CloseReviewEvents` sets `DailyClose.ReviewHistoryComplete = false` for every close that existed before it and writes no events for them; new closes start `true`.
+
+---
+
 ## 4. Enums
 
 Only truly fixed, binary, or logic-dependent values are enums. Everything else is data.
@@ -1044,6 +1118,12 @@ public enum DailyCloseStatus
     Submitted = 1,   // Operator finished, awaiting manager review
     Approved = 2,    // Manager confirmed
     Rejected = 3     // Manager found issues, operator needs to fix
+}
+
+public enum DailyCloseReviewEventType
+{
+    Rejected = 0,       // A manager rejected the close (time, actor, reason)
+    OpeningChanged = 1  // A real count change on its opening source moved this close's opening
 }
 
 public enum TimeEntryStatus
@@ -1699,7 +1779,12 @@ All local-day decisions use `IBranchClock.IsSameLocalDay` / `LocalBusinessDate`,
 
 **Identity, audit stamping, and correction ownership.** Open stamps only immutable `OpenedByUserId`. The first successful item save stamps `ItemsFirstRecordedAt` plus immutable `RecordedByUserId` / nullable `RecordedByOperatorId`; this recorder identity owns Member correction windows. Submit stamps the current `SubmittedByUserId` / nullable `SubmittedByOperatorId` and never changes the recorder. Every workflow mutation stamps `UpdatedAt` and `UpdatedByUserId` from one captured branch-clock instant. Recall/Reopen and opening-recheck demotion clear current submission/approval identity and timestamps while retaining first-count eligibility and recorder identity; opening recheck stamps its three dedicated fields. A direct prior-day Manager/Admin Recall/Reopen creates a Manager-owned plain Draft by permission lineage, not by overwriting the recorder or synthesizing Member correction access.
 
-> ⚠ **Pending M7.7 change (owner decisions 2026-09-29, 2026-10-06, and 2026-10-07, not yet implemented — [M7.7](../server/docs/milestones.md) Phase 7.6):** close review history becomes durable, immutable **events** instead of latest-only fields. A rejection event keeps its own time, actor, and reason through later demotions and correction saves (today the generic `UpdatedAt`/`UpdatedByUserId` describe a rejection only while `Status = Rejected`, and `OpeningRecheckRequiredAt` timestamps only the recheck). A real count correction that changes a later close's opening records an opening-change event when it is saved — tied to the source close/version and the affected successor, with the per-product before and after values, time, and actor — including a first count that becomes the new opening source; repeated corrections are separate events, retained even when the successor is already Draft. Before-values are never derived from the source's current mutable items. The projection returns each actor's **display name** to every caller who may read the close (Members included), under the close's own read permission, while keeping the name easy to withhold by role later; legacy data without captured history returns none rather than inferred values. The one-successor invalidation rule is unchanged — no broader demotion and no automatic recalculation of official variances. Read route and DTO names are contract design; full audit history is out of scope.
+**Close review events (M7.7 Phase 7.6.1, gap X).** Close review history is durable and immutable (§3.21) instead of latest-only fields.
+- **Rejection.** `POST /dailyclose/{id}/reject` records a `Rejected` event in the same transaction: the rejection's own time, the reviewer and their linked operator (if any), and the reason. It survives later demotions, recalls and correction saves, which overwrite the generic `UpdatedAt`/`UpdatedByUserId`; those fields never stand in for a rejection time.
+- **Opening change.** When a `PUT /items` changes counted input (a real value change, or a first count), the one next eligible successor — the same close the invalidation rule selects — receives an `OpeningChanged` event, **including when it is already Draft and therefore not demoted again**. The event names the corrected source close and the version the count was applied to, the previous opening source (the same close for a correction; the earlier counted close, or none, for a first count that becomes the new source), the successor's status before and after, and one item per product whose opening value changed, with before and after values. Before-values are the opening as it stood inside that same transaction — the source's items before the update, or the previous source's items — never derived later from current mutable items; a product with no saved item is null, distinct from a recorded zero. Repeated corrections are separate events. A save that changes no counted input records nothing.
+- **Unchanged rules.** The one-successor invalidation rule, the `AffectedSuccessor` response (still reported only for a real demotion), recorder/submitter ownership, locks, account coordination and official variance snapshots are unchanged; events add no demotion and recompute nothing. Event and command commit or roll back together.
+- **Read.** `GET /dailyclose/{dailyCloseId}/history` (any branch role, the same permission as `GET /dailyclose/{id}`: cross-branch or missing → 404; Member without operator link or with the account out of scope → 403) returns `ResponseDailyCloseHistoryJson { DailyCloseId, IsHistoryComplete, CurrentOpeningSource? { DailyCloseId, Date }, Events }`. Events are ordered `OccurredAt, Id`; each carries `Type`, `OccurredAt`, the actor's user id and display name and optional operator id and name (snapshots, readable by every caller who may read the close, Members included), the rejection reason or the source/previous-source ids and dates, the affected status before/after, and `Items { ProductId, ProductName, BeforeValue?, AfterValue?, Change }` where `Change = (After ?? 0) − (Before ?? 0)` is the signed effect on the opening total. `CurrentOpeningSource` is the close the opening comes from now. The read declares no `ETag` (it returns no versioned close) and never commits.
+- **Legacy data.** A close that existed before events shipped has `IsHistoryComplete = false`; its earlier rejections and opening changes were never captured, so clients show them as unavailable rather than inferring times, actors or values. Full audit history is out of scope.
 
 **Lock-date behavior.** `LockDateGuard` applies to every transition listed in §6.6. DailyClose callers pass `DAILYCLOSE_LOCK_DATE_VIOLATION`.
 
@@ -2133,7 +2218,7 @@ creates, `If-Match` required on guarded mutations, and `ETag` declared on succes
 
 |              | Access | Lotero                                                              |
 |--------------|--------|---------------------------------------------------------------------|
-| Tables       | 13     | 18                                                                  |
+| Tables       | 13     | 22                                                                  |
 | New entities | —      | Branch, BranchUser, Operator, OperatorAccount, DailyClose (session) |
 | Absorbed     | —      | TblLogExclusao (→ Transaction soft delete), TblTelefones (→ Client) |
 

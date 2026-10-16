@@ -21,6 +21,7 @@ public class PutDailyCloseItemsUseCase(
     IDailyCloseWorkflowGuard workflowGuard,
     IDailyCloseDraftTransition draftTransition,
     IDailyCloseSuccessorInvalidator successorInvalidator,
+    IDailyCloseReviewEventRecorder reviewEventRecorder,
     ICashVarianceProductResolver cashVarianceProductResolver,
     LockDateGuard lockDateGuard,
     IBranchClock branchClock,
@@ -137,6 +138,41 @@ public class PutDailyCloseItemsUseCase(
                 ct);
         }
 
+        if (invalidation is not null)
+        {
+            // The successor's opening changed whether or not it was demoted (gap X). Its opening before
+            // this save came from the previous counted source when this is a first count, otherwise from
+            // this close's own items as they stood before the update — both read inside this transaction.
+            Guid? previousSourceId = close.Id;
+            var openingBefore = beforeMap;
+            if (firstEligibilityChange)
+            {
+                var previousSource = await dailyClosesRepository.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
+                    close.BranchId,
+                    close.AccountId,
+                    close.Date,
+                    ct);
+                previousSourceId = previousSource?.Id;
+                openingBefore = previousSource is null
+                    ? new Dictionary<Guid, decimal>()
+                    : previousSource.Items
+                        .Where(item => item.Active && item.ProductId != cashVarianceProductId)
+                        .ToDictionary(item => item.ProductId, item => item.Value);
+            }
+
+            await reviewEventRecorder.RecordOpeningChange(
+                close,
+                expectedVersion,
+                previousSourceId,
+                openingBefore,
+                afterMap,
+                invalidation,
+                branchUser.User,
+                memberScope.LinkedOperator,
+                now,
+                ct);
+        }
+
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 
@@ -148,7 +184,7 @@ public class PutDailyCloseItemsUseCase(
                 cashVarianceProductId,
                 firstEligibilityChange ? branchUser.User : null,
                 firstEligibilityChange ? memberScope.LinkedOperator : null),
-            AffectedSuccessor = invalidation is null
+            AffectedSuccessor = invalidation is not { Demoted: true }
                 ? null
                 : new ResponseAffectedDailyCloseSuccessorJson
                 {
@@ -156,7 +192,7 @@ public class PutDailyCloseItemsUseCase(
                     Date = invalidation.DailyClose.Date,
                     PreviousStatus = invalidation.PreviousStatus,
                     NewStatus = invalidation.DailyClose.Status,
-                    OpeningRecheckRequiredAt = invalidation.OpeningRecheckRequiredAt
+                    OpeningRecheckRequiredAt = invalidation.OpeningRecheckRequiredAt!.Value
                 }
         };
     }

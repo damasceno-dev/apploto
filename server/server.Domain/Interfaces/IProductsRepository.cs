@@ -25,6 +25,15 @@ public interface IProductsRepository
         CancellationToken ct = default);
 
     /// <summary>
+    /// Products of the branch with the given ids, active or retired — for naming values that
+    /// belong to a product retired since they were counted.
+    /// </summary>
+    Task<IReadOnlyList<Product>> ListByIdsAndBranchIdAsNoTracking(
+        IEnumerable<Guid> productIds,
+        Guid branchId,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Looks up the active product with the exact display name in the given branch.
     /// Returns <c>null</c> when no match exists (bootstrap defect; seed was not run).
     /// </summary>

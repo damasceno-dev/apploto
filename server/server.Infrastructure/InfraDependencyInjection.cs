@@ -173,6 +173,7 @@ public static class InfraDependencyInjection
         services.AddScoped<ITransactionsRepository, TransactionsRepository>();
         services.AddScoped<IDailyClosesRepository, DailyClosesRepository>();
         services.AddScoped<IDailyCloseItemsRepository, DailyCloseItemsRepository>();
+        services.AddScoped<IDailyCloseReviewEventsRepository, DailyCloseReviewEventsRepository>();
         services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();
         services.AddScoped<ITimeEntrySegmentsRepository, TimeEntrySegmentsRepository>();
         services.AddScoped<ITimeEntryPoliciesRepository, TimeEntryPoliciesRepository>();

@@ -278,6 +278,9 @@ namespace server.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<bool>("ReviewHistoryComplete")
+                        .HasColumnType("boolean");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
 
@@ -370,6 +373,122 @@ namespace server.Infrastructure.Migrations
                         .HasFilter("\"Active\" = true");
 
                     b.ToTable("DailyCloseItems", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.DailyCloseReviewEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ActorOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorOperatorName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActorUserName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<short?>("AffectedStatusAfter")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("AffectedStatusBefore")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DailyCloseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PreviousSourceDailyCloseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("SourceDailyCloseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("SourceVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("Type")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorOperatorId");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("DailyCloseId");
+
+                    b.HasIndex("PreviousSourceDailyCloseId");
+
+                    b.HasIndex("SourceDailyCloseId");
+
+                    b.HasIndex("BranchId", "DailyCloseId", "OccurredAt")
+                        .HasDatabaseName("IX_DailyCloseReviewEvents_BranchId_DailyCloseId_OccurredAt");
+
+                    b.ToTable("DailyCloseReviewEvents", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.DailyCloseReviewEventItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("AfterValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal?>("BeforeValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DailyCloseReviewEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("DailyCloseReviewEventId", "ProductId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DailyCloseReviewEventItems_EventId_ProductId");
+
+                    b.ToTable("DailyCloseReviewEventItems", (string)null);
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Holiday", b =>
@@ -1118,6 +1237,73 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.DailyCloseReviewEvent", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Operator", "ActorOperator")
+                        .WithMany()
+                        .HasForeignKey("ActorOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", "ActorUser")
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "DailyClose")
+                        .WithMany()
+                        .HasForeignKey("DailyCloseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "PreviousSourceDailyClose")
+                        .WithMany()
+                        .HasForeignKey("PreviousSourceDailyCloseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "SourceDailyClose")
+                        .WithMany()
+                        .HasForeignKey("SourceDailyCloseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ActorOperator");
+
+                    b.Navigation("ActorUser");
+
+                    b.Navigation("Branch");
+
+                    b.Navigation("DailyClose");
+
+                    b.Navigation("PreviousSourceDailyClose");
+
+                    b.Navigation("SourceDailyClose");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.DailyCloseReviewEventItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.DailyCloseReviewEvent", "DailyCloseReviewEvent")
+                        .WithMany("Items")
+                        .HasForeignKey("DailyCloseReviewEventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DailyCloseReviewEvent");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Holiday", b =>
                 {
                     b.HasOne("server.Domain.Entities.Branch", "Branch")
@@ -1378,6 +1564,11 @@ namespace server.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("server.Domain.Entities.DailyClose", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.DailyCloseReviewEvent", b =>
                 {
                     b.Navigation("Items");
                 });

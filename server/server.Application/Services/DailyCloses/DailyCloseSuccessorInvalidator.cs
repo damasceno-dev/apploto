@@ -4,10 +4,18 @@ using server.Domain.Interfaces;
 
 namespace server.Application.Services.DailyCloses;
 
+/// <summary>
+/// The next eligible successor of a close whose counted input changed. <see cref="OpeningRecheckRequiredAt"/>
+/// is set only when this save demoted the successor; it is null when the successor was already Draft and
+/// was left untouched (its opening still changed, which the review event records).
+/// </summary>
 public sealed record DailyCloseSuccessorInvalidation(
     DailyClose DailyClose,
     DailyCloseStatus PreviousStatus,
-    DateTime OpeningRecheckRequiredAt);
+    DateTime? OpeningRecheckRequiredAt)
+{
+    public bool Demoted => OpeningRecheckRequiredAt is not null;
+}
 
 public sealed class DailyCloseSuccessorInvalidator(
     IDailyClosesRepository dailyClosesRepository,
@@ -25,13 +33,12 @@ public sealed class DailyCloseSuccessorInvalidator(
             triggeringClose.Date,
             ct);
 
-        if (successor is null || successor.Status == DailyCloseStatus.Draft)
-            return null;
-
-        if (successor.Status is not (DailyCloseStatus.Submitted or DailyCloseStatus.Approved or DailyCloseStatus.Rejected))
+        if (successor is null)
             return null;
 
         var previousStatus = successor.Status;
+        if (previousStatus is not (DailyCloseStatus.Submitted or DailyCloseStatus.Approved or DailyCloseStatus.Rejected))
+            return new DailyCloseSuccessorInvalidation(successor, previousStatus, null);
 
         // The predecessor already passed the lock-date guard. Because this selected successor is
         // strictly later, it cannot be inside the locked interval, so a second lock-date read would
