@@ -103,11 +103,35 @@ public class UnpairTabAccountUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldThrowConflictWithoutReadingAccounts_WhenPairingCoordinationIsBusy()
+    {
+        var branchUser = new BranchUserBuilder().Build();
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var coordination = new AccountPairingCoordinationBuilder().Unavailable().Build();
+
+        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork, coordination);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(Guid.NewGuid()));
+
+        exception.GetErrorMessages.ShouldHaveSingleItem().ShouldBe(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+        await coordination.Received(1).TryAcquire(branchUser.BranchId, Arg.Any<CancellationToken>());
+        await accountsRepo.DidNotReceiveWithAnyArgs().GetActiveByIdAndBranchId(default, default);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
     private static UnpairTabAccountUseCase CreateUseCase(
         IAuthenticationService authService,
         IAccountsRepository accountsRepo,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAccountPairingCoordination? accountPairingCoordination = null)
     {
-        return new UnpairTabAccountUseCase(authService, accountsRepo, unitOfWork);
+        return new UnpairTabAccountUseCase(
+            authService,
+            accountsRepo,
+            accountPairingCoordination ?? new AccountPairingCoordinationBuilder().Build(),
+            unitOfWork);
     }
 }

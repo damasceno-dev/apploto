@@ -177,6 +177,9 @@
     <data name="ACCOUNT_TAB_ALREADY_LINKED" xml:space="preserve">
         <value>Esta conta fiado já está associada a um Terminal ativo</value>
     </data>
+    <data name="ACCOUNT_PAIRING_COORDINATION_BUSY" xml:space="preserve">
+        <value>As contas da filial estão sendo alteradas por outra operação; tente novamente</value>
+    </data>
     <data name="OPERATOR_ACCOUNT_NOT_FOUND" xml:space="preserve">
         <value>Vínculo entre operador e conta não encontrado ou já inativo</value>
     </data>

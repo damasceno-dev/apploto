@@ -363,6 +363,12 @@ namespace server.Exceptions {
             }
         }
         
+        public static string ACCOUNT_PAIRING_COORDINATION_BUSY {
+            get {
+                return ResourceManager.GetString("ACCOUNT_PAIRING_COORDINATION_BUSY", resourceCulture);
+            }
+        }
+
         public static string OPERATOR_ACCOUNT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("OPERATOR_ACCOUNT_NOT_FOUND", resourceCulture);

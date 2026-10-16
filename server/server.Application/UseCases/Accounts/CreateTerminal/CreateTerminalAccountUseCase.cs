@@ -10,6 +10,7 @@ namespace server.Application.UseCases.Accounts.CreateTerminal;
 public class CreateTerminalAccountUseCase(
     IAuthenticationService authenticationService,
     IAccountsRepository accountsRepository,
+    IAccountPairingCoordination accountPairingCoordination,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseCreateAccountJson> Execute(RequestCreateTerminalAccountJson request)
@@ -17,6 +18,9 @@ public class CreateTerminalAccountUseCase(
         Validate(request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var coordination = await accountPairingCoordination.TryAcquire(authenticatedBranchUser.BranchId)
+            ?? throw new ConflictException(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+
         var terminalAccount = AccountSharedMapper.ToDomain(
             AccountType.Terminal,
             authenticatedBranchUser.BranchId,
@@ -62,6 +66,7 @@ public class CreateTerminalAccountUseCase(
 
         await accountsRepository.Add(terminalAccount);
         await unitOfWork.Commit();
+        await coordination.Complete();
 
         return terminalAccount.ToCreateResponse();
     }

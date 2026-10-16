@@ -10,6 +10,7 @@ namespace server.Application.UseCases.Accounts.PairTab;
 public class PairTabAccountUseCase(
     IAuthenticationService authenticationService,
     IAccountsRepository accountsRepository,
+    IAccountPairingCoordination accountPairingCoordination,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseAccountJson> Execute(RequestPairTabAccountJson request)
@@ -17,6 +18,9 @@ public class PairTabAccountUseCase(
         Validate(request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var coordination = await accountPairingCoordination.TryAcquire(authenticatedBranchUser.BranchId)
+            ?? throw new ConflictException(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+
         var terminalAccount = await accountsRepository.GetActiveByIdAndBranchId(
             request.TerminalAccountId,
             authenticatedBranchUser.BranchId);
@@ -56,6 +60,7 @@ public class PairTabAccountUseCase(
 
         terminalAccount.TabAccountId = request.TabAccountId;
         await unitOfWork.Commit();
+        await coordination.Complete();
 
         return terminalAccount.ToAccountResponse();
     }

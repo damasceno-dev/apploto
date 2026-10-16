@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v45
+Spec revision: v46
 -->
 <html lang="en">
 <head>
@@ -397,7 +397,7 @@ const SLIDES=[
     {entity:'Covering scenario (March 8)',fields:[{n:'Date',v:'"2025-03-08"'},{n:'RecordedByOperatorId',v:'→ Jennifer',hl:'hl'},{n:'CreatedByUserId',v:'→ Maria',hl:'hl-blue'}]}
    ]},
   {title:'Accounts and the Terminal/Tab Pair',
-   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><span class="design-note"><span class="dn-label">TabAccountId invariants:</span> only Terminal accounts may set it, the target must be of type Tab, a Terminal may exist without a Tab, and each Tab is paired with at most one Terminal.</span>',
+   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><span class="design-note"><span class="dn-label">TabAccountId invariants:</span> only Terminal accounts may set it, the target must be of type Tab, a Terminal may exist without a Tab, each Tab is paired with at most one Terminal, and deactivating either side clears the pairing in the same commit.</span>',
    activeTables:['AccountTerminal','AccountTab','OperatorAccount','Operator'],
    activeArrows:['oa-op','oa-acc','acc-tab'],
    data:[

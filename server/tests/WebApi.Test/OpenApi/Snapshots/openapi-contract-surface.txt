@@ -1079,6 +1079,7 @@ operation DELETE /account/terminal/{terminalAccountId}/tab
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation GET /account/{accountId}
   path accountId required string
@@ -1103,6 +1104,7 @@ operation DELETE /account/{accountId}
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation POST /branch/create
   body required RequestCreateBranchJson

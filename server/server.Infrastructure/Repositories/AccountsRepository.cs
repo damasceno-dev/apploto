@@ -50,6 +50,19 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
             .FirstOrDefaultAsync();
     }
 
+    public async Task<IReadOnlyList<Account>> ListTerminalsByTabAccountId(
+        Guid branchId,
+        Guid tabAccountId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.Accounts
+            .Where(a =>
+                a.BranchId == branchId &&
+                a.Type == AccountType.Terminal &&
+                a.TabAccountId == tabAccountId)
+            .ToListAsync(ct);
+    }
+
     public async Task<IReadOnlyList<Account>> ListActiveByBranchId(Guid branchId)
     {
         return await dbContext.Accounts

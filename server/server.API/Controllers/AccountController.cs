@@ -93,6 +93,7 @@ public class AccountController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> UnpairTab(
         [FromServices] UnpairTabAccountUseCase unpairTabAccountUseCase,
         [FromRoute] Guid terminalAccountId)
@@ -154,6 +155,7 @@ public class AccountController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Deactivate(
         [FromServices] DeactivateAccountUseCase deactivateAccountUseCase,
         [FromRoute] Guid accountId)
