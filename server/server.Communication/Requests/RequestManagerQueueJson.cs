@@ -1,6 +1,6 @@
 namespace server.Communication.Requests;
 
-public class RequestDashboardJson
+public class RequestManagerQueueJson
 {
     public DateTime Date { get; init; }
 }

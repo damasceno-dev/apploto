@@ -31,7 +31,7 @@ Wire format is JSON `number` mirroring `numeric(14,2)` — up to 12 integer digi
 
 Some values are **signed by nature** and carry their sign explicitly. These are the exceptions to the unsigned-by-default rule:
 
-- Cash variance (Diferença de Caixa): `DailyCloseItem` variance row, dashboard `TotalVariance` / `MeanVariance` / per-close `VarianceValue`, monthly-reconciliation `NetVariance`.
+- Cash variance (Diferença de Caixa): `DailyCloseItem` variance row, manager-queue `TotalVariance` / `MeanVariance` / per-close `VarianceValue`, monthly-reconciliation `NetVariance`.
 - Impact-preview deltas (§6.14): `CashVarianceImpact.VarianceDelta`, `CurrentVariance` / `ProjectedVariance`, fiado balance deltas.
 - Time-entry hour balances (see §5, signed durations).
 

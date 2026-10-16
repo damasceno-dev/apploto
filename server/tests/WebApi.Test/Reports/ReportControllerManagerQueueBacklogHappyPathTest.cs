@@ -13,11 +13,11 @@ namespace WebApi.Test.Reports;
 
 /// <summary>
 /// M7.7 Phase 7.5 (design gap W): the Work Queue backlog aggregate and the unlocked Draft-transaction
-/// count on <c>GET /report/dashboard</c>. The two facts share the LockDate floor but stop on different
+/// count on <c>GET /report/manager-queue</c>. The two facts share the LockDate floor but stop on different
 /// days — the backlog before the requested date, the Draft count at branch-local today.
 /// </summary>
 [Collection(ServerApiCollection.Name)]
-public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationFactory factory)
+public class ReportControllerManagerQueueBacklogHappyPathTest(ServerWebApplicationFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 
@@ -26,7 +26,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldCountPendingClosesPerStatus_WhenUnlockedDaysBeforeRequestedDateHoldThem()
+    public async Task ManagerQueue_ShouldCountPendingClosesPerStatus_WhenUnlockedDaysBeforeRequestedDateHoldThem()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog1", Role.Manager);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -55,10 +55,10 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         await SeedCloseAsync(branch.Id, accountB.Id, op.Id, new DateTime(2025, 2, 21), DailyCloseStatus.Rejected);
         await SeedCloseAsync(branch.Id, accountC.Id, op.Id, new DateTime(2025, 3, 1), DailyCloseStatus.Draft);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-02-20", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-02-20", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        var payload = await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
 
         payload.Backlog.SubmittedCount.ShouldBe(2);
         payload.Backlog.RejectedCount.ShouldBe(3);
@@ -72,7 +72,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
     }
 
     [Fact]
-    public async Task Dashboard_ShouldMoveBacklogUpperBoundWithRequestedDate()
+    public async Task ManagerQueue_ShouldMoveBacklogUpperBoundWithRequestedDate()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog2", Role.Admin);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -85,24 +85,24 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         await SeedCloseAsync(branch.Id, account.Id, op.Id, new DateTime(2025, 4, 9), DailyCloseStatus.Draft);
 
         // First unlocked day itself: nothing lies strictly between LockDate and the requested date.
-        var onFirstUnlockedDay = await GetDashboardAsync("2025-04-01", token);
+        var onFirstUnlockedDay = await GetManagerQueueAsync("2025-04-01", token);
         onFirstUnlockedDay.Backlog.RejectedCount.ShouldBe(0);
         onFirstUnlockedDay.Backlog.OldestPendingDate.ShouldBeNull();
 
-        var onSubmittedDay = await GetDashboardAsync("2025-04-08", token);
+        var onSubmittedDay = await GetManagerQueueAsync("2025-04-08", token);
         onSubmittedDay.Backlog.RejectedCount.ShouldBe(1);
         onSubmittedDay.Backlog.SubmittedCount.ShouldBe(0);
         onSubmittedDay.Backlog.DraftCount.ShouldBe(0);
         onSubmittedDay.Backlog.OldestPendingDate.ShouldBe(new DateTime(2025, 4, 1));
 
-        var afterEverything = await GetDashboardAsync("2025-04-10", token);
+        var afterEverything = await GetManagerQueueAsync("2025-04-10", token);
         afterEverything.Backlog.RejectedCount.ShouldBe(1);
         afterEverything.Backlog.SubmittedCount.ShouldBe(1);
         afterEverything.Backlog.DraftCount.ShouldBe(1);
         afterEverything.Backlog.OldestPendingDate.ShouldBe(new DateTime(2025, 4, 1));
 
         // A requested date inside the locked range has no unlocked day before it.
-        var insideLockedRange = await GetDashboardAsync("2025-03-15", token);
+        var insideLockedRange = await GetManagerQueueAsync("2025-03-15", token);
         insideLockedRange.Backlog.SubmittedCount.ShouldBe(0);
         insideLockedRange.Backlog.RejectedCount.ShouldBe(0);
         insideLockedRange.Backlog.DraftCount.ShouldBe(0);
@@ -110,7 +110,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
     }
 
     [Fact]
-    public async Task Dashboard_ShouldReturnZeroCountsAndNullOldestDate_WhenOnlyExcludedClosesExist()
+    public async Task ManagerQueue_ShouldReturnZeroCountsAndNullOldestDate_WhenOnlyExcludedClosesExist()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog3", Role.Manager);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -122,7 +122,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         await SeedCloseAsync(branch.Id, account.Id, op.Id, new DateTime(2025, 4, 30), DailyCloseStatus.Rejected);
         await SeedCloseAsync(branch.Id, account.Id, op.Id, new DateTime(2025, 5, 12), DailyCloseStatus.Submitted);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-05-12", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-05-12", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         using var json = JsonDocument.Parse(await httpResponse.Content.ReadAsStringAsync());
@@ -139,7 +139,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
     }
 
     [Fact]
-    public async Task Dashboard_ShouldEmitExactBacklogJson_WhenBacklogIsPopulated()
+    public async Task ManagerQueue_ShouldEmitExactBacklogJson_WhenBacklogIsPopulated()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog4", Role.Manager);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -150,7 +150,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         await SeedCloseAsync(branch.Id, account.Id, op.Id, new DateTime(2019, 7, 4), DailyCloseStatus.Draft);
         await SeedCloseAsync(branch.Id, account.Id, op.Id, new DateTime(2025, 6, 2), DailyCloseStatus.Submitted);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-06-10", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-06-10", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         using var json = JsonDocument.Parse(await httpResponse.Content.ReadAsStringAsync());
@@ -159,7 +159,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         backlog.GetProperty("submittedCount").GetRawText().ShouldBe("1");
         backlog.GetProperty("rejectedCount").GetRawText().ShouldBe("0");
         backlog.GetProperty("draftCount").GetRawText().ShouldBe("1");
-        // Same wire format as the dashboard's own Date member.
+        // Same wire format as the manager queue's own Date member.
         backlog.GetProperty("oldestPendingDate").GetRawText().ShouldBe("\"2019-07-04T00:00:00\"");
         json.RootElement.GetProperty("date").GetRawText().ShouldBe("\"2025-06-10T00:00:00\"");
         json.RootElement.GetProperty("unlockedDraftTransactionCount").ValueKind.ShouldBe(JsonValueKind.Number);
@@ -170,7 +170,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldCountDraftTransactionsThroughBranchLocalToday_WhateverDateIsRequested()
+    public async Task ManagerQueue_ShouldCountDraftTransactionsThroughBranchLocalToday_WhateverDateIsRequested()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog5", Role.Manager);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -195,24 +195,24 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         // One pending close, to show the backlog follows the requested date while the Draft count does not.
         await SeedCloseAsync(branch.Id, ledger.AccountId, ledger.OperatorId, today.AddDays(-2), DailyCloseStatus.Draft);
 
-        var onToday = await GetDashboardAsync(today, token);
+        var onToday = await GetManagerQueueAsync(today, token);
         onToday.UnlockedDraftTransactionCount.ShouldBe(3);
         onToday.Backlog.DraftCount.ShouldBe(1);
 
-        var onEarlierUnlockedDay = await GetDashboardAsync(today.AddDays(-5), token);
+        var onEarlierUnlockedDay = await GetManagerQueueAsync(today.AddDays(-5), token);
         onEarlierUnlockedDay.UnlockedDraftTransactionCount.ShouldBe(3);
         onEarlierUnlockedDay.Backlog.DraftCount.ShouldBe(0);
 
-        var onLockedDay = await GetDashboardAsync(lockDate.AddDays(-3), token);
+        var onLockedDay = await GetManagerQueueAsync(lockDate.AddDays(-3), token);
         onLockedDay.UnlockedDraftTransactionCount.ShouldBe(3);
 
-        var onFutureDay = await GetDashboardAsync(today.AddDays(3), token);
+        var onFutureDay = await GetManagerQueueAsync(today.AddDays(3), token);
         onFutureDay.UnlockedDraftTransactionCount.ShouldBe(3);
         onFutureDay.Backlog.DraftCount.ShouldBe(1);
     }
 
     [Fact]
-    public async Task Dashboard_ShouldCountEveryPastDraftTransaction_WhenBranchWasNeverLocked()
+    public async Task ManagerQueue_ShouldCountEveryPastDraftTransaction_WhenBranchWasNeverLocked()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog6", Role.Admin);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -223,7 +223,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         await SeedTransactionAsync(ledger, today, TransactionStatus.Draft);
         await SeedTransactionAsync(ledger, today.AddDays(1), TransactionStatus.Draft);
 
-        var payload = await GetDashboardAsync(today, token);
+        var payload = await GetManagerQueueAsync(today, token);
 
         payload.UnlockedDraftTransactionCount.ShouldBe(2);
     }
@@ -233,7 +233,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldIgnoreOtherBranchClosesTransactionsAndLockDate()
+    public async Task ManagerQueue_ShouldIgnoreOtherBranchClosesTransactionsAndLockDate()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("DashBacklog7", Role.Manager);
         var otherBranch = await factory.SeedBranchForOtherContextAsync("DashBacklog7-other");
@@ -255,7 +255,7 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         await SeedTransactionAsync(otherLedger, today.AddDays(-2), TransactionStatus.Draft);
         await SeedTransactionAsync(otherLedger, today, TransactionStatus.Draft);
 
-        var payload = await GetDashboardAsync(today, token);
+        var payload = await GetManagerQueueAsync(today, token);
 
         payload.Backlog.SubmittedCount.ShouldBe(0);
         payload.Backlog.RejectedCount.ShouldBe(1);
@@ -271,17 +271,17 @@ public class ReportControllerDashboardBacklogHappyPathTest(ServerWebApplicationF
         return branchClock.LocalBusinessDate(branchClock.UtcNow());
     }
 
-    private Task<ResponseDashboardJson> GetDashboardAsync(DateTime date, string token)
+    private Task<ResponseManagerQueueJson> GetManagerQueueAsync(DateTime date, string token)
     {
-        return GetDashboardAsync(date.ToString("yyyy-MM-dd"), token);
+        return GetManagerQueueAsync(date.ToString("yyyy-MM-dd"), token);
     }
 
-    private async Task<ResponseDashboardJson> GetDashboardAsync(string date, string token)
+    private async Task<ResponseManagerQueueJson> GetManagerQueueAsync(string date, string token)
     {
-        var httpResponse = await _client.GetAuthAsync($"/report/dashboard?date={date}", token);
+        var httpResponse = await _client.GetAuthAsync($"/report/manager-queue?date={date}", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        return await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        return await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
     }
 
     private Task<DailyClose> SeedCloseAsync(

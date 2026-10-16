@@ -540,47 +540,6 @@ schema ResponseDailyLedgerJson
   totalOut required number|string
   totalPages required integer|string
 
-schema ResponseDashboardBacklogJson
-  draftCount required integer|string
-  oldestPendingDate optional string?
-  rejectedCount required integer|string
-  submittedCount required integer|string
-
-schema ResponseDashboardCloseJson
-  accountId required string
-  accountName required string
-  approvedAt optional string?
-  dailyCloseId required string
-  recordedByOperatorId optional string?
-  recordedByOperatorName optional string?
-  recordedByUserId optional string?
-  recordedByUserName optional string?
-  status required enum:DailyCloseStatus
-  submittedAt optional string?
-  submittedByOperatorId optional string?
-  submittedByOperatorName optional string?
-  submittedByUserId optional string?
-  submittedByUserName optional string?
-  varianceValue optional number|string?
-
-schema ResponseDashboardJson
-  backlog required ResponseDashboardBacklogJson
-  closes required ResponseDashboardCloseJson[]
-  date required string
-  meanVariance required number|string
-  notSubmitted required ResponseDashboardNotSubmittedJson[]
-  pendingApprovalCount required integer|string
-  totalVariance required number|string
-  unlockedDraftTransactionCount required integer|string
-
-schema ResponseDashboardNotSubmittedJson
-  accountId required string
-  accountName required string
-  dailyCloseId optional string?
-  operatorId required string
-  operatorName required string
-  status optional enum:DailyCloseStatus?
-
 schema ResponseEditTransactionPreviewJson
   impact required ResponseTransactionImpactJson
   transactionId required string
@@ -769,6 +728,47 @@ schema ResponseListTransactionsJson
   pageSize required integer|string
   totalCount required integer|string
   totalPages required integer|string
+
+schema ResponseManagerQueueBacklogJson
+  draftCount required integer|string
+  oldestPendingDate optional string?
+  rejectedCount required integer|string
+  submittedCount required integer|string
+
+schema ResponseManagerQueueCloseJson
+  accountId required string
+  accountName required string
+  approvedAt optional string?
+  dailyCloseId required string
+  recordedByOperatorId optional string?
+  recordedByOperatorName optional string?
+  recordedByUserId optional string?
+  recordedByUserName optional string?
+  status required enum:DailyCloseStatus
+  submittedAt optional string?
+  submittedByOperatorId optional string?
+  submittedByOperatorName optional string?
+  submittedByUserId optional string?
+  submittedByUserName optional string?
+  varianceValue optional number|string?
+
+schema ResponseManagerQueueJson
+  backlog required ResponseManagerQueueBacklogJson
+  closes required ResponseManagerQueueCloseJson[]
+  date required string
+  meanVariance required number|string
+  notSubmitted required ResponseManagerQueueNotSubmittedJson[]
+  pendingApprovalCount required integer|string
+  totalVariance required number|string
+  unlockedDraftTransactionCount required integer|string
+
+schema ResponseManagerQueueNotSubmittedJson
+  accountId required string
+  accountName required string
+  dailyCloseId optional string?
+  operatorId required string
+  operatorName required string
+  status optional enum:DailyCloseStatus?
 
 schema ResponseMonthlyReconciliationBlockerJson
   accountId optional string?
@@ -1545,13 +1545,6 @@ operation GET /report/daily-ledger
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
 
-operation GET /report/dashboard
-  query Date required string
-  response 200 ResponseDashboardJson
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-
 operation GET /report/fiado/aging
   query AccountId optional string
   query AsOfDate optional string
@@ -1567,6 +1560,13 @@ operation GET /report/fiado/balance
   query AsOfDate optional string
   query ClientId optional string
   response 200 ResponseFiadoBalanceJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation GET /report/manager-queue
+  query Date required string
+  response 200 ResponseManagerQueueJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

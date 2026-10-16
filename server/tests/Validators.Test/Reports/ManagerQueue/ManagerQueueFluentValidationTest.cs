@@ -1,19 +1,19 @@
 using CommonTestUtilities.Requests;
-using server.Application.UseCases.Reports.Dashboard;
+using server.Application.UseCases.Reports.ManagerQueue;
 using server.Exceptions;
 using Shouldly;
 using Xunit;
 
-namespace Validators.Test.Reports.Dashboard;
+namespace Validators.Test.Reports.ManagerQueue;
 
-public class DashboardFluentValidationTest
+public class ManagerQueueFluentValidationTest
 {
-    private readonly DashboardFluentValidation _validator = new();
+    private readonly ManagerQueueFluentValidation _validator = new();
 
     [Fact]
     public void Validate_ShouldSucceed_WhenDateIsValid()
     {
-        var request = new RequestDashboardJsonBuilder()
+        var request = new RequestManagerQueueJsonBuilder()
             .WithDate(new DateTime(2025, 5, 28))
             .Build();
 
@@ -25,7 +25,7 @@ public class DashboardFluentValidationTest
     [Fact]
     public void Validate_ShouldFail_WhenDateIsDefault()
     {
-        var request = new RequestDashboardJsonBuilder()
+        var request = new RequestManagerQueueJsonBuilder()
             .WithDate(default)
             .Build();
 

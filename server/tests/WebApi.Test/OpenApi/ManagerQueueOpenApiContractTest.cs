@@ -7,7 +7,7 @@ using Xunit;
 namespace WebApi.Test.OpenApi;
 
 [Collection(ServerApiCollection.Name)]
-public sealed class DashboardOpenApiContractTest(ServerWebApplicationFactory factory)
+public sealed class ManagerQueueOpenApiContractTest(ServerWebApplicationFactory factory)
 {
     [Fact]
     public async Task Document_ShouldExposeBacklogAndUnlockedDraftTransactionCountNullability()
@@ -18,13 +18,13 @@ public sealed class DashboardOpenApiContractTest(ServerWebApplicationFactory fac
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync());
         var schemas = document.RootElement.GetProperty("components").GetProperty("schemas");
-        var dashboard = schemas.GetProperty("ResponseDashboardJson").GetProperty("properties");
-        var backlog = schemas.GetProperty("ResponseDashboardBacklogJson").GetProperty("properties");
+        var managerQueue = schemas.GetProperty("ResponseManagerQueueJson").GetProperty("properties");
+        var backlog = schemas.GetProperty("ResponseManagerQueueBacklogJson").GetProperty("properties");
 
         // A plain component reference: the backlog object is always present, never null.
-        dashboard.GetProperty("backlog").GetProperty("$ref").GetString()
-            .ShouldBe("#/components/schemas/ResponseDashboardBacklogJson");
-        AssertNonNullableInteger(dashboard.GetProperty("unlockedDraftTransactionCount"));
+        managerQueue.GetProperty("backlog").GetProperty("$ref").GetString()
+            .ShouldBe("#/components/schemas/ResponseManagerQueueBacklogJson");
+        AssertNonNullableInteger(managerQueue.GetProperty("unlockedDraftTransactionCount"));
 
         backlog.EnumerateObject().Select(property => property.Name).Order(StringComparer.Ordinal).ShouldBe(
             ["draftCount", "oldestPendingDate", "rejectedCount", "submittedCount"]);

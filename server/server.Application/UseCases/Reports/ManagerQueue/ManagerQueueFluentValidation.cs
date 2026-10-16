@@ -2,11 +2,11 @@ using FluentValidation;
 using server.Communication.Requests;
 using server.Exceptions;
 
-namespace server.Application.UseCases.Reports.Dashboard;
+namespace server.Application.UseCases.Reports.ManagerQueue;
 
-internal class DashboardFluentValidation : AbstractValidator<RequestDashboardJson>
+internal class ManagerQueueFluentValidation : AbstractValidator<RequestManagerQueueJson>
 {
-    public DashboardFluentValidation()
+    public ManagerQueueFluentValidation()
     {
         RuleFor(r => r.Date)
             .NotEqual(default(DateTime))

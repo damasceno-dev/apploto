@@ -2,19 +2,19 @@ using server.Communication.Requests;
 
 namespace CommonTestUtilities.Requests;
 
-public class RequestDashboardJsonBuilder
+public class RequestManagerQueueJsonBuilder
 {
     private DateTime _date = new(2025, 1, 15);
 
-    public RequestDashboardJsonBuilder WithDate(DateTime date)
+    public RequestManagerQueueJsonBuilder WithDate(DateTime date)
     {
         _date = date;
         return this;
     }
 
-    public RequestDashboardJson Build()
+    public RequestManagerQueueJson Build()
     {
-        return new RequestDashboardJson
+        return new RequestManagerQueueJson
         {
             Date = _date
         };

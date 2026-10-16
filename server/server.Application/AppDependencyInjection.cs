@@ -10,7 +10,7 @@ using server.Application.Services.Settings;
 using server.Application.Services.TimeEntries;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Reports.DailyLedger;
-using server.Application.UseCases.Reports.Dashboard;
+using server.Application.UseCases.Reports.ManagerQueue;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
 using server.Application.UseCases.Reports.CashVariance;
@@ -231,7 +231,7 @@ public static class AppDependencyInjection
         services.AddScoped<GetOpenChequeAgingUseCase>();
         services.AddScoped<GetCashVarianceSummaryUseCase>();
         services.AddScoped<GetMonthlyReconciliationUseCase>();
-        services.AddScoped<GetDashboardUseCase>();
+        services.AddScoped<GetManagerQueueUseCase>();
         services.AddScoped<GetOperatorTransactionSummaryUseCase>();
         services.AddScoped<GetTimeEntryBalanceSummaryUseCase>();
         services.AddScoped<UserRegisterUseCase>();

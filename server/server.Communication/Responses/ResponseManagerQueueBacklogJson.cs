@@ -1,9 +1,9 @@
 namespace server.Communication.Responses;
 
 /// <summary>
-/// Pending closes on unlocked days before the dashboard's requested date. Approved closes never count.
+/// Pending closes on unlocked days before the manager queue's requested date. Approved closes never count.
 /// </summary>
-public class ResponseDashboardBacklogJson
+public class ResponseManagerQueueBacklogJson
 {
     public int SubmittedCount { get; init; }
     public int RejectedCount { get; init; }

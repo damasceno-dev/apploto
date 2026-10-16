@@ -2,7 +2,7 @@ using server.Domain.Entities.Enums;
 
 namespace server.Communication.Responses;
 
-public class ResponseDashboardNotSubmittedJson
+public class ResponseManagerQueueNotSubmittedJson
 {
     public Guid AccountId { get; init; }
     public string AccountName { get; init; } = string.Empty;

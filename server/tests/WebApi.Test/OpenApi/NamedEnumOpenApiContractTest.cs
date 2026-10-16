@@ -62,7 +62,7 @@ public sealed class NamedEnumOpenApiContractTest(ServerWebApplicationFactory fac
                 .GetProperty("direction"),
             nameof(Direction));
         AssertReference(
-            schemas.GetProperty("ResponseDashboardCloseJson").GetProperty("properties")
+            schemas.GetProperty("ResponseManagerQueueCloseJson").GetProperty("properties")
                 .GetProperty("status"),
             nameof(DailyCloseStatus));
         AssertReference(

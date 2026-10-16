@@ -2,7 +2,7 @@ using server.Domain.Entities.Enums;
 
 namespace server.Communication.Responses;
 
-public class ResponseDashboardCloseJson
+public class ResponseManagerQueueCloseJson
 {
     public Guid DailyCloseId { get; init; }
     public Guid AccountId { get; init; }

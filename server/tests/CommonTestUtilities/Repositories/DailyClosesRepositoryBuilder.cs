@@ -13,22 +13,22 @@ public class DailyClosesRepositoryBuilder
     public DailyClosesRepositoryBuilder()
     {
         _repository
-            .ListDashboardClosesByBranchIdAndDateAsNoTracking(
+            .ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
                 Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
-            .Returns(new List<DashboardCloseRow>());
+            .Returns(new List<ManagerQueueCloseRow>());
         _repository
-            .GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+            .GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
                 Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
-            .Returns(new DashboardBacklogRow(0, 0, 0, null));
+            .Returns(new ManagerQueueBacklogRow(0, 0, 0, null));
     }
 
-    public DailyClosesRepositoryBuilder GetDashboardBacklogByBranchIdAndDateRangeAsNoTrackingReturns(
+    public DailyClosesRepositoryBuilder GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTrackingReturns(
         Guid branchId,
         DateTime afterDateExclusive,
         DateTime beforeDateExclusive,
-        DashboardBacklogRow result)
+        ManagerQueueBacklogRow result)
     {
-        _repository.GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        _repository.GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<DateTime>(value => value == afterDateExclusive),
                 Arg.Is<DateTime>(value => value == beforeDateExclusive),
@@ -37,12 +37,12 @@ public class DailyClosesRepositoryBuilder
         return this;
     }
 
-    public DailyClosesRepositoryBuilder ListDashboardClosesByBranchIdAndDateAsNoTrackingReturns(
+    public DailyClosesRepositoryBuilder ListManagerQueueClosesByBranchIdAndDateAsNoTrackingReturns(
         Guid branchId,
         DateTime date,
-        IReadOnlyList<DashboardCloseRow> result)
+        IReadOnlyList<ManagerQueueCloseRow> result)
     {
-        _repository.ListDashboardClosesByBranchIdAndDateAsNoTracking(
+        _repository.ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<DateTime>(value => value == date),
                 Arg.Any<CancellationToken>())

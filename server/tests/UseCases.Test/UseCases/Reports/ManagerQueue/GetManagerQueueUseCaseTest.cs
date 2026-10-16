@@ -6,7 +6,7 @@ using NSubstitute;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
-using server.Application.UseCases.Reports.Dashboard;
+using server.Application.UseCases.Reports.ManagerQueue;
 using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -17,9 +17,9 @@ using server.Exceptions.Exceptions;
 using Shouldly;
 using Xunit;
 
-namespace UseCases.Test.UseCases.Reports.Dashboard;
+namespace UseCases.Test.UseCases.Reports.ManagerQueue;
 
-public class GetDashboardUseCaseTest
+public class GetManagerQueueUseCaseTest
 {
     private static readonly DateTime Date = new(2025, 5, 20);
     private static readonly DateTime FixedUtcNow = new(2025, 6, 1, 12, 0, 0, DateTimeKind.Utc);
@@ -84,7 +84,7 @@ public class GetDashboardUseCaseTest
     public async Task Execute_ShouldCountOnlySubmittedClosesAsPendingApproval()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
-        var closes = new List<DashboardCloseRow>
+        var closes = new List<ManagerQueueCloseRow>
         {
             BuildCloseRow("Terminal A", DailyCloseStatus.Submitted),
             BuildCloseRow("Terminal B", DailyCloseStatus.Submitted),
@@ -212,7 +212,7 @@ public class GetDashboardUseCaseTest
 
         var ctx = BuildContext(
             branchUser, closes: [], varianceRows: [], expectedClosers: [],
-            backlog: new DashboardBacklogRow(3, 2, 1, oldestPendingDate),
+            backlog: new ManagerQueueBacklogRow(3, 2, 1, oldestPendingDate),
             unlockedDraftTransactionCount: 7);
         var response = await CreateUseCase(ctx).Execute(BuildRequest());
 
@@ -257,7 +257,7 @@ public class GetDashboardUseCaseTest
         await ctx.SettingsRepository.Received(1).GetByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<CancellationToken>(value => value == cancellation.Token));
-        await ctx.DailyClosesRepository.Received(1).GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        await ctx.DailyClosesRepository.Received(1).GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<DateTime>(v => v == LockDate),
             Arg.Is<DateTime>(v => v == requestedDate),
@@ -268,7 +268,7 @@ public class GetDashboardUseCaseTest
             Arg.Is<DateTime>(v => v == FixedLocalBusinessDate),
             Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
-        await ctx.DailyClosesRepository.DidNotReceive().GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        await ctx.DailyClosesRepository.DidNotReceive().GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
         await ctx.TransactionsRepository.DidNotReceive().CountDraftByBranchIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
@@ -282,7 +282,7 @@ public class GetDashboardUseCaseTest
         var ctx = BuildContext(branchUser, closes: [], varianceRows: [], expectedClosers: [], hasSetting: false);
         await CreateUseCase(ctx).Execute(BuildRequest());
 
-        await ctx.DailyClosesRepository.Received(1).GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        await ctx.DailyClosesRepository.Received(1).GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<DateTime>(v => v == DateTime.MinValue),
             Arg.Is<DateTime>(v => v == Date),
@@ -305,7 +305,7 @@ public class GetDashboardUseCaseTest
         using var cancellation = new CancellationTokenSource();
         await CreateUseCase(ctx).Execute(BuildRequest(), cancellation.Token);
 
-        await ctx.DailyClosesRepository.Received(1).ListDashboardClosesByBranchIdAndDateAsNoTracking(
+        await ctx.DailyClosesRepository.Received(1).ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<DateTime>(v => v == Date),
             Arg.Is<CancellationToken>(value => value == cancellation.Token));
@@ -316,7 +316,7 @@ public class GetDashboardUseCaseTest
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<CancellationToken>(value => value == cancellation.Token));
 
-        await ctx.DailyClosesRepository.DidNotReceive().ListDashboardClosesByBranchIdAndDateAsNoTracking(
+        await ctx.DailyClosesRepository.DidNotReceive().ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
             Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
         await ctx.AccountsRepository.DidNotReceive().ListExpectedClosersByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == otherBranchId), Arg.Any<CancellationToken>());
@@ -332,7 +332,7 @@ public class GetDashboardUseCaseTest
 
         await action.ShouldThrowAsync<TokenWithoutPermissionException>();
         await ctx.SettingsRepository.DidNotReceive().GetByBranchIdAsNoTracking(Arg.Any<Guid>(), Arg.Any<CancellationToken>());
-        await ctx.DailyClosesRepository.DidNotReceive().GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        await ctx.DailyClosesRepository.DidNotReceive().GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
         await ctx.TransactionsRepository.DidNotReceive().CountDraftByBranchIdAndDateRangeAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
@@ -349,33 +349,33 @@ public class GetDashboardUseCaseTest
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.REPORT_AS_OF_DATE_INVALID);
         await ctx.CashVarianceProductResolver.DidNotReceive().GetIdAsync(Arg.Any<Guid>());
-        await ctx.DailyClosesRepository.DidNotReceive().ListDashboardClosesByBranchIdAndDateAsNoTracking(
+        await ctx.DailyClosesRepository.DidNotReceive().ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<DateTime>());
         await ctx.DailyCloseItemsRepository.DidNotReceive()
             .ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
                 Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<Guid?>(), Arg.Any<DateTime>(), Arg.Any<DateTime>());
         await ctx.AccountsRepository.DidNotReceive().ListExpectedClosersByBranchIdAsNoTracking(Arg.Any<Guid>());
-        await ctx.DailyClosesRepository.DidNotReceive().GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        await ctx.DailyClosesRepository.DidNotReceive().GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
         await ctx.TransactionsRepository.DidNotReceive().CountDraftByBranchIdAndDateRangeAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
     }
 
-    private static RequestDashboardJson BuildRequest(DateTime? date = null)
+    private static RequestManagerQueueJson BuildRequest(DateTime? date = null)
     {
-        return new RequestDashboardJsonBuilder()
+        return new RequestManagerQueueJsonBuilder()
             .WithDate(date ?? Date)
             .Build();
     }
 
-    private static DashboardCloseRow BuildCloseRow(
+    private static ManagerQueueCloseRow BuildCloseRow(
         string accountName,
         DailyCloseStatus status,
         DateTime? submittedAt = null,
         DateTime? approvedAt = null)
     {
         var hasIdentity = status != DailyCloseStatus.Draft;
-        return new DashboardCloseRow(
+        return new ManagerQueueCloseRow(
             Guid.NewGuid(),
             Guid.NewGuid(),
             accountName,
@@ -392,7 +392,7 @@ public class GetDashboardUseCaseTest
             approvedAt);
     }
 
-    private static ExpectedCloserRow ToExpectedCloser(DashboardCloseRow close)
+    private static ExpectedCloserRow ToExpectedCloser(ManagerQueueCloseRow close)
     {
         // Draft close rows carry no submitting operator, but the account is still expected to
         // close through some assigned operator — fabricate one for the expected-closer side.
@@ -403,9 +403,9 @@ public class GetDashboardUseCaseTest
             close.RecordedByOperatorName ?? $"Operator {close.AccountName}");
     }
 
-    private static GetDashboardUseCase CreateUseCase(TestContext ctx)
+    private static GetManagerQueueUseCase CreateUseCase(TestContext ctx)
     {
-        return new GetDashboardUseCase(
+        return new GetManagerQueueUseCase(
             ctx.AuthenticationService,
             ctx.DailyClosesRepository,
             ctx.DailyCloseItemsRepository,
@@ -418,12 +418,12 @@ public class GetDashboardUseCaseTest
 
     private static TestContext BuildContext(
         BranchUser branchUser,
-        IReadOnlyList<DashboardCloseRow> closes,
+        IReadOnlyList<ManagerQueueCloseRow> closes,
         IReadOnlyList<VarianceTimeSeriesRow> varianceRows,
         IReadOnlyList<ExpectedCloserRow> expectedClosers,
         Guid? productId = null,
         DateTime? date = null,
-        DashboardBacklogRow? backlog = null,
+        ManagerQueueBacklogRow? backlog = null,
         int unlockedDraftTransactionCount = 0,
         bool hasSetting = true)
     {
@@ -435,11 +435,11 @@ public class GetDashboardUseCaseTest
         branchClock.LocalBusinessDate(FixedUtcNow).Returns(FixedLocalBusinessDate);
 
         var dailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .ListDashboardClosesByBranchIdAndDateAsNoTrackingReturns(branchUser.BranchId, resolvedDate, closes);
+            .ListManagerQueueClosesByBranchIdAndDateAsNoTrackingReturns(branchUser.BranchId, resolvedDate, closes);
         var lockDate = hasSetting ? LockDate : DateTime.MinValue;
         if (backlog is not null)
         {
-            dailyClosesRepository.GetDashboardBacklogByBranchIdAndDateRangeAsNoTrackingReturns(
+            dailyClosesRepository.GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTrackingReturns(
                 branchUser.BranchId, lockDate, resolvedDate, backlog);
         }
 

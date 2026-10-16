@@ -2,7 +2,7 @@ using server.Domain.Entities.Enums;
 
 namespace server.Domain.Models.Projections;
 
-public record DashboardCloseRow(
+public record ManagerQueueCloseRow(
     Guid DailyCloseId,
     Guid AccountId,
     string AccountName,

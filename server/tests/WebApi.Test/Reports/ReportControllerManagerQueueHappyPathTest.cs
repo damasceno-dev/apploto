@@ -8,7 +8,7 @@ using Xunit;
 namespace WebApi.Test.Reports;
 
 [Collection(ServerApiCollection.Name)]
-public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory factory)
+public class ReportControllerManagerQueueHappyPathTest(ServerWebApplicationFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 
@@ -18,7 +18,7 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldReturnMixedDayProjection_WhenClosesVarianceAndAssignmentsSeeded()
+    public async Task ManagerQueue_ShouldReturnMixedDayProjection_WhenClosesVarianceAndAssignmentsSeeded()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashHappy1", Role.Manager);
         var product = await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -52,10 +52,10 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
         await factory.SeedDailyCloseItemAsync(closeB.Id, product.Id, value: 150m);
         await factory.SeedDailyCloseItemAsync(closeC.Id, product.Id, value: 20m);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-03-10", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-03-10", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        var payload = await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
 
         payload.Date.ShouldBe(date);
         payload.Closes.Count.ShouldBe(3);
@@ -102,7 +102,7 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldCarryDraftCloseId_WhenExpectedAccountHasDraftClose()
+    public async Task ManagerQueue_ShouldCarryDraftCloseId_WhenExpectedAccountHasDraftClose()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashHappy2", Role.Manager);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -115,10 +115,10 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
         var draftClose = await factory.SeedDailyCloseAsync(
             branch.Id, account.Id, date: date, status: DailyCloseStatus.Draft);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-03-11", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-03-11", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        var payload = await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
 
         payload.Closes.ShouldBeEmpty();
         payload.PendingApprovalCount.ShouldBe(0);
@@ -134,7 +134,7 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldExcludeOtherBranchData_WhenAnotherBranchHasSameDayActivity()
+    public async Task ManagerQueue_ShouldExcludeOtherBranchData_WhenAnotherBranchHasSameDayActivity()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashHappy3", Role.Manager);
         var otherBranch = await factory.SeedBranchForOtherContextAsync("DashHappy3-other");
@@ -160,10 +160,10 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
         await factory.SeedDailyCloseItemAsync(close.Id, product.Id, value: 100m);
         await factory.SeedDailyCloseItemAsync(otherClose.Id, otherProduct.Id, value: 999m);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-03-12", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-03-12", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        var payload = await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
 
         var row = payload.Closes.ShouldHaveSingleItem();
         row.AccountId.ShouldBe(account.Id);
@@ -178,7 +178,7 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldPickPrimaryThenAlphabeticalOperator_WhenAccountHasMultipleLinks()
+    public async Task ManagerQueue_ShouldPickPrimaryThenAlphabeticalOperator_WhenAccountHasMultipleLinks()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashHappy5", Role.Manager);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -206,10 +206,10 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
         await factory.SeedOperatorAccountAsync(carla.Id, alphaAccount.Id, isPrimary: false);
         await factory.SeedOperatorAccountAsync(beatriz.Id, alphaAccount.Id, isPrimary: false);
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-03-14", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-03-14", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        var payload = await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
 
         payload.NotSubmitted.Count.ShouldBe(2);
 
@@ -227,7 +227,7 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task Dashboard_ShouldReturnZeroAggregatesAndExpectedOnlyNotSubmitted_WhenDayIsEmpty()
+    public async Task ManagerQueue_ShouldReturnZeroAggregatesAndExpectedOnlyNotSubmitted_WhenDayIsEmpty()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("DashHappy4", Role.Admin);
         await factory.SeedProductAsync(branch.Id, "Diferença Caixa");
@@ -241,10 +241,10 @@ public class ReportControllerDashboardHappyPathTest(ServerWebApplicationFactory 
         await factory.SeedAccountAsync(branch.Id, AccountType.BankAccount, "Bank Account");
         await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Unlinked Terminal");
 
-        var httpResponse = await _client.GetAuthAsync("/report/dashboard?date=2025-03-13", token);
+        var httpResponse = await _client.GetAuthAsync("/report/manager-queue?date=2025-03-13", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseDashboardJson>();
+        var payload = await httpResponse.ReadContentAsync<ResponseManagerQueueJson>();
 
         payload.Closes.ShouldBeEmpty();
         payload.PendingApprovalCount.ShouldBe(0);

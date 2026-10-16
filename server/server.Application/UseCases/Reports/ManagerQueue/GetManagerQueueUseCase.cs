@@ -8,9 +8,9 @@ using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
-namespace server.Application.UseCases.Reports.Dashboard;
+namespace server.Application.UseCases.Reports.ManagerQueue;
 
-public class GetDashboardUseCase(
+public class GetManagerQueueUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
     IDailyCloseItemsRepository dailyCloseItemsRepository,
@@ -20,8 +20,8 @@ public class GetDashboardUseCase(
     ILockDateReader lockDateReader,
     IBranchClock branchClock)
 {
-    public async Task<ResponseDashboardJson> Execute(
-        RequestDashboardJson request,
+    public async Task<ResponseManagerQueueJson> Execute(
+        RequestManagerQueueJson request,
         CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -37,7 +37,7 @@ public class GetDashboardUseCase(
 
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
-        var closes = await dailyClosesRepository.ListDashboardClosesByBranchIdAndDateAsNoTracking(
+        var closes = await dailyClosesRepository.ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
             branchUser.BranchId, date, ct);
 
         var varianceRows = await dailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
@@ -50,7 +50,7 @@ public class GetDashboardUseCase(
         // before the requested date (that day's closes are the rows above), while Draft transactions
         // are counted through branch-local today whatever date is being viewed.
         var lockDate = await lockDateReader.Read(branchUser.BranchId, ct);
-        var backlog = await dailyClosesRepository.GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+        var backlog = await dailyClosesRepository.GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
             branchUser.BranchId, afterDateExclusive: lockDate, beforeDateExclusive: date, ct);
         var unlockedDraftTransactionCount = await transactionsRepository.CountDraftByBranchIdAndDateRangeAsNoTracking(
             branchUser.BranchId, afterDateExclusive: lockDate, throughDateInclusive: branchLocalToday, ct);
@@ -65,7 +65,7 @@ public class GetDashboardUseCase(
         // carrying their close id so the UI can deep-link into the open draft.
         var closeRows = closes
             .Where(c => c.Status != DailyCloseStatus.Draft)
-            .Select(c => new ResponseDashboardCloseJson
+            .Select(c => new ResponseManagerQueueCloseJson
             {
                 DailyCloseId = c.DailyCloseId,
                 AccountId = c.AccountId,
@@ -97,7 +97,7 @@ public class GetDashboardUseCase(
         // §6.5 daily closing covers terminal cash counts and §6.4 keeps fiado balances query-time.
         // A future branch-local date has no expected closers yet — nobody is missing a close for a
         // day that has not happened at the branch.
-        List<ResponseDashboardNotSubmittedJson> notSubmitted = [];
+        List<ResponseManagerQueueNotSubmittedJson> notSubmitted = [];
         if (date <= branchLocalToday)
         {
             notSubmitted = expectedClosers
@@ -105,7 +105,7 @@ public class GetDashboardUseCase(
                 .Select(expected =>
                 {
                     var draftClose = draftClosesByAccountId.GetValueOrDefault(expected.AccountId);
-                    return new ResponseDashboardNotSubmittedJson
+                    return new ResponseManagerQueueNotSubmittedJson
                     {
                         AccountId = expected.AccountId,
                         AccountName = expected.AccountName,
@@ -121,7 +121,7 @@ public class GetDashboardUseCase(
         var totalVariance = varianceRows.Sum(r => r.Value);
         var meanVariance = varianceRows.Count > 0 ? totalVariance / varianceRows.Count : 0m;
 
-        return new ResponseDashboardJson
+        return new ResponseManagerQueueJson
         {
             Date = date,
             TotalVariance = totalVariance,
@@ -129,7 +129,7 @@ public class GetDashboardUseCase(
             PendingApprovalCount = closeRows.Count(c => c.Status == DailyCloseStatus.Submitted),
             Closes = closeRows,
             NotSubmitted = notSubmitted,
-            Backlog = new ResponseDashboardBacklogJson
+            Backlog = new ResponseManagerQueueBacklogJson
             {
                 SubmittedCount = backlog.SubmittedCount,
                 RejectedCount = backlog.RejectedCount,
@@ -140,9 +140,9 @@ public class GetDashboardUseCase(
         };
     }
 
-    private static void Validate(RequestDashboardJson request)
+    private static void Validate(RequestManagerQueueJson request)
     {
-        var result = new DashboardFluentValidation().Validate(request);
+        var result = new ManagerQueueFluentValidation().Validate(request);
         if (result.IsValid is false)
             throw new OnValidationException(result.Errors.Select(e => e.ErrorMessage).ToList());
     }

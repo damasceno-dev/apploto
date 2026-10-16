@@ -6,6 +6,10 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <InvariantGlobalization>true</InvariantGlobalization>
         <RootNamespace>server</RootNamespace>
+        <!-- Build-time OpenAPI export is opt-in. The ApiDescription.Server package defaults this to true, which would
+             build the host (and require database/token configuration) on every ordinary build and test run. Only the
+             export invocation overrides it: -p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<temp dir>. -->
+        <OpenApiGenerateDocuments>false</OpenApiGenerateDocuments>
     </PropertyGroup>
 
     <ItemGroup>
@@ -14,6 +18,10 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.11">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.4">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

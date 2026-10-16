@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v43
+Spec revision: v44
 -->
 <html lang="en">
 <head>
@@ -902,11 +902,11 @@ function renderIntro(s,i){
   </div>`;
 
   if(s.id==='morning') return `<div class="slide intro-slide" data-idx="${i}">
-    <h2>The Morning After: Maria&#39;s Dashboard</h2>
+    <h2>The Morning After: Maria&#39;s Work Queue</h2>
     <p class="intro-sub">Sunday, March 16 — everything the six stories produced, on one screen</p>
     <div class="intro-cols">
       <div class="intro-col">
-        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. Dashboard, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
+        <p class="intro-text">Maria opens the Manager Work Queue (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/manager-queue</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. The queue, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
         <div class="intro-card">
           <h3 class="accent-color">The Work Queue</h3>
           <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. The same response carries the <b>backlog</b> — Submitted, Rejected, and Draft closes still open on unlocked days before the one Maria is viewing, with the oldest such day — and the count of Draft transactions on every unlocked day through today. Cash-variance summary rows also carry that exact <code>DailyCloseId</code>, and a terminal with an open Draft close deep-links straight into it.</p>
@@ -945,7 +945,7 @@ function renderClosing(i){
     {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft.'},
     {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours. Constants resolve from the effective-dated TimeEntryPolicy row for each entry date, so settings changes never rewrite past balances.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
-    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'},
+    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager queue, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'},
     {t:'Typed Generated Contract (§6.15)',d:'The emitted OpenAPI document is what web and mobile generate their clients from. Required versus optional comes from C# nullability in both directions, and every contract enum is published as a string component and serialized by its declared name. Only an undefined value from legacy or out-of-band data falls back to its raw number — a deliberate corruption signal, unreachable through the API write paths.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
