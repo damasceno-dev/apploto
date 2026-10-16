@@ -2308,17 +2308,220 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 ## Milestone 11 — Post-MVP Reporting Surface
 
-**Goal:** Ship the §7.2 manager-workflow reports the MVP catalog deliberately deferred (design `screens.md` gap Q): the upcoming-settlements view and the consolidated monthly report. This milestone exists so those §7.2 promises have a named owner instead of silently lapsing.
+**Goal:** Ship the §7.2 manager reports the MVP catalog deferred (design `screens.md` gap Q) and, per the owner decision of 2026-10-16, a separate read-only **Dashboard**: a concise overview of the latest relevant facts from every manager report, each fact linking to its full report. The Manager Work Queue stays the exception-first management home; the Dashboard neither takes its place nor performs its actions. "M11" is this milestone's number, not a count of dashboard areas, and the plan below covers report questions, not a fixed number of cards.
 
-**Scope boundary:** Read-only reporting endpoints plus their spec/catalog sync. No new ledger semantics — it consumes the M7.7 integrity contracts and the M9.5 verified semantics.
+**Scope boundary:** Read-only reporting endpoints, the additive whole-set totals the overview needs, the classification metadata named in Phases 4 and 6 (each an explicit, tested migration), and their spec/catalog sync. No new ledger semantics, no financial writes, and no job queue, push stream, cache, materialized balance or summary table. M8 onboarding, M9 deployment and M10 import are not on this path: no section reads data they create.
 
-**Precondition:** M7.7 (variance integrity — a monthly report must not aggregate stale numbers) and M9.5 (verified bolão/type semantics — Tarifa/Sobras Bolão must mean what the shop means). The corresponding screen entries are cataloged in `design/docs/screens.md` when this milestone is scheduled (gap Q).
+**Precondition:** M7.7 (variance integrity and fiado semantics) and M9.5 (verified type/product meanings) stay this milestone's preconditions and gate its close-out (Phase 8). Each runtime phase names the exact earlier items it consumes, and Phase 1.9 records the evidence for any phase that starts before the whole precondition closes. No runtime phase starts before Phase 1 is reviewed.
 
-**Key behaviors:**
+**Owner schedule (2026-10-16):** this plan → the remaining M7.7 items and the M9.5 evidence this plan names → source-report Phases 2–6, one reviewed phase at a time → overview Phase 7 → close-out and real captures Phase 8 → design D13/D14 → the design M1 comparison resumes. Shared M2 is not made to wait for M11; it regenerates its client when these contracts land.
 
-- **Upcoming-settlements view:** open receivable rows across settlement instruments by `DueDate` — pre-dated cheque installments *and* card-settlement rows (the open-cheque aging report covers cheques only today) — filterable by account/window, Manager/Admin.
-- **Consolidated monthly report (§7.2 item 4):** per-month variance + Tarifa Bolão + Sobras Bolão + hours by operator by day, aligned with the monthly-reconciliation window; the CEF borderô comparison stays manual for MVP unless M7.7's 1.2 attestation decision made it structured.
-- **KPI page (design gap Q):** the manager's KPI surface — upcoming settlements, the consolidated monthly report, and recent closes at a glance — is a second screen beside Manager Work Queue, which stays exception-first.
-- **Rename the queue endpoint alongside the KPI page:** `GET /report/dashboard` → `GET /report/manager-queue`; `ResponseDashboardJson` / `ResponseDashboardCloseJson` / `ResponseDashboardNotSubmittedJson` → `ResponseManagerQueueJson` / `ResponseManagerQueueCloseJson` / `ResponseManagerQueueNotSubmittedJson` (field names unchanged), with the OpenAPI contract-lock snapshot and the catalog references. **Tripwire:** if the web build starts before this milestone is scheduled, move the rename into the server milestone that precedes the first generated TypeScript client. **Tripwire tripped (2026-10-15):** the rename moved to [M7.7 Phase 7.8](#phase-78--manager-queue-rename--opt-in-openapi-export-server-m11-tripwire-coordination-label-sv03-shared-m2-phase-1-handoffs-h1--h2), which also renames the later fourth DTO (`ResponseDashboardBacklogJson` → `ResponseManagerQueueBacklogJson`). This milestone keeps the KPI page beside the already-renamed queue.
-- Standard report guardrails (date-range caps, `Active`-filtered aggregates, repository-level aggregation) and the M7.6 OpenAPI fidelity rules apply.
-- Spec sync: §6.14 additions + §7.2 re-pointed at the shipped surfaces; design catalog entries written and gap Q closed.
+**Queue rename (history):** this milestone's tripwire tripped on 2026-10-15, and the `GET /report/dashboard` → `GET /report/manager-queue` rename shipped in [M7.7 Phase 7.8](#phase-78--manager-queue-rename--opt-in-openapi-export-server-m11-tripwire-coordination-label-sv03-shared-m2-phase-1-handoffs-h1--h2), all four `ResponseManagerQueue*Json` DTOs included. It is no longer M11 work; the obsolete surface must never return.
+
+### Planning record (2026-10-16)
+
+Audit baseline: `parallel/server` at `26fb2bb` (M7.7 Phase 7.8 integrated), spec `v44`. Read directly: `ReportController` with its eight report use cases, validators, repositories and DTOs; `GET /dailyclose`; `CreateBranchSeedFactory`; the single and installment create rules; canonical §6.4, §6.12, §6.14, §7.2 and §9; M7.7; M9.5; `design/docs/product.md` and `screens.md` (gap Q); Shared M2's D2/D3 and H3/H4 (still undecided).
+
+**What the shipped reports answer, and where they stop** (verified in code):
+
+- **Daily ledger** `GET /report/daily-ledger` — one required `AccountId`, window ≤ 366 days; whole-window `TotalIn`/`TotalOut`/`NetTotal` and a running `OpeningBalance`/`ClosingBalance` over Active rows; items paged (≤ 200). There is no multi-account view, and its balance is a ledger running balance, not cash on hand.
+- **Fiado balance** `GET /report/fiado/balance` — one row per client with a non-zero `Out − In` over Active Tab rows dated ≤ `AsOfDate`, branch-wide, unpaged. `TotalOutstanding` is the **signed** sum, so a client credit silently reduces total debt; §6.14 does not document this today.
+- **Fiado aging** `GET /report/fiado/aging` — Active Tab rows with `PaidAt IS NULL`, **direction-unfiltered** (repayment `In` rows age as debt) and **not filtered by `AsOfDate`** (it only computes buckets); paged, with no amount totals. M7.7 5.1 replaces it with FIFO netting.
+- **Open-cheque aging** `GET /report/cheques/open-aging` — groups rows by `OriginTransactionId`, so only installment plans appear; open means `PaidAt IS NULL`, never filtered by `AsOfDate`; groups are paged with no whole-filter amount or open-row count, and each page reads siblings one group at a time. A single cheque created through `POST /transaction` carries no `OriginTransactionId` and never appears. "Cheque" itself rests on `SettlementRule = OperatorEnteredCheque` (installments are refused for any other rule) — a due-date rule, not an instrument identity.
+- **Cash-variance summary** `GET /report/cash-variance` — persisted "Diferença Caixa" values of active non-Draft closes (Submitted, Approved **and Rejected**), window ≤ 366 days; whole-window total, mean, max and min; items paged in memory; no per-status split. The product is resolved by its display name.
+- **Monthly reconciliation** `GET /report/monthly-reconciliation/{year}/{month}` — every calendar day with its closes (variance `0`, not null, while a close is Draft), transaction counts by status, structured blockers, and `LockReady` from the lock command's evaluator. It does not return `LockDate`, whether the month is already locked, or whether it has fully elapsed (the command refuses the current month).
+- **Operator summary** `GET /report/operator-summary` — one operator: a Member's own, or for Manager/Admin a named operator or `Mine` (otherwise 400); attributed by `RecordedByOperatorId`; no branch-wide mode. M7.7 5.8 adds the generated-row share.
+- **Time-entry balance** `GET /report/timeentry-balance` — already has a Manager/Admin branch-wide roll-up (every active operator, zero-entry rows included), per-entry effective policy, one captured branch-local now, and `ContainsInProgress`.
+- **Manager queue** `GET /report/manager-queue` and **`GET /dailyclose`** (`Date DESC, CreatedAt DESC, Id DESC`) — together they already hold the queue counts and the facts recent closes need.
+- **Seeds** — `Cartão de Crédito`, `Cartão de Débito` and `Depósito Cheque` are `Saídas` (Out) types distinguished only by `SettlementRule` and a mutable name; `Tarifa Bolão` is a counted **product** (a DailyCloseItem slot), not a transaction type; `Sobra de Bolão` / `Sobra de Federal` are `Despesas Comerciais` types. None carries a stable instrument or report identity.
+
+In short, the source reports mostly exist, but only cash variance and time entries already give whole-set totals in the preview-plus-total shape the Dashboard needs. Upcoming settlements and the consolidated monthly report do not exist, and three sources — fiado totals, fiado aging and settlement instruments — need signed semantics before they can be summarized honestly.
+
+### Definitions — "latest", windows and freshness
+
+- **One clock read.** The overview reads `IBranchClock.UtcNow()` once. `GeneratedAtUtc` is that instant, `AsOfDate` its branch-local business date, and `BranchLocalNow` its branch-local time (used for in-progress hours). No section reads the clock again.
+- **`AsOfDate` is always branch-local today.** It is returned, never accepted. Open cheques, open settlements and fiado repayments are current state (`PaidAt`, FIFO over today's rows), so a past as-of date would mix a historical window with today's settlement state. Historical questions stay in the full reports, which take their own windows.
+- **Month selector.** Optional `Year`/`Month`, both or neither, defaulting to the month of `AsOfDate`; a later month is a 400, and the floor is 2000-01 (the reconciliation validator's range). For the current month every month-scoped window ends at `AsOfDate` and is flagged `IsPartialMonth`; a past month uses its full calendar month. The selector never jumps to "the last month with data".
+- **Section windows**, each returned inside its section: point-in-time sections are as of `AsOfDate`; day sections cover `AsOfDate` only; month sections cover the selected month window; recent closes cover `[AsOfDate − 6, AsOfDate]`; upcoming settlements cover due dates `[AsOfDate, AsOfDate + 13]` (14 calendar days including today), with overdue items reported separately. Fourteen days covers card settlements one or two business days out even across holidays, plus the next deposit cycle of pre-dated cheques, without turning the overview into the cheque report; the full upcoming-settlements report accepts any due window up to 366 days.
+- **No borrowed days.** An empty today is shown as empty for today. Last-activity dates (per account) are data in their own right, returned separately from `GeneratedAtUtc`, and neither implies the other. Refresh is manual; nothing implies live updates.
+- **No merged money.** No section adds ledger movements across accounts into revenue, profit or cash on hand; no client-derived variance is persisted; client credit never offsets debt; and a cheque row that appears in both open cheques and upcoming settlements is never added across the two sections.
+
+### Section-to-source matrix
+
+Every section is Manager/Admin of the authenticated branch — branch taken from the session, no Operator link required, in either navigation mode — computed by branch-filtered, read-only, no-tracking server aggregation. Totals cover every matching row whatever the preview size, and previews are ordered deterministically with an `Id` tie-breaker. Money is BRL; variance is signed (`+` surplus, `−` shortage, per §6.12); hours are decimal hours.
+
+| # | Report question | Metric, units, sign | Window / date basis | Status predicates | Source today → work required | Preview vs whole-set totals | Drill-down | Empty / unavailable | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | What still needs action? (link back to Work Queue) | Pending approvals, rejected, not-submitted counts; backlog per status + oldest pending date; unlocked Draft transactions | `AsOfDate` (backlog before it; Draft count through today) | Manager-queue rules, unchanged | Shipped queue logic → extract a shared projection; no new rule | Counts only | Work Queue, `GET /report/manager-queue?date=AsOfDate` | All zero → `Empty` | Plan reviewed |
+| 2 | What was closed lately? | Per close: date, account, status, recorder/submitter, official variance or null | `[AsOfDate − 6, AsOfDate]` | Active closes, every status; variance only from a non-Draft persisted row (retained Draft rows suppressed) | `GET /dailyclose` order + queue variance join → one aggregate reusing both | Preview 10 (`Date DESC, CreatedAt DESC, Id DESC`); `TotalCount` and per-status counts over the window | Status-routed close screens; monthly reconciliation | No close in window → `Empty` | Plan reviewed |
+| 3 | How far off were the counts? | Official variance total, mean, max, min; count per status (Submitted, Approved, Rejected) | Selected month window | Active non-Draft closes, persisted Diferença Caixa | Shipped totals → add per-status counts (2.2) | Totals + the 5 largest absolute variances (absolute value DESC, `Date DESC`, `DailyCloseId`) | `GET /report/cash-variance?DateFrom&DateTo` | No official close → `Empty` | 2.2 |
+| 4 | Can this month be locked? | `LockDate`, `IsMonthLocked`, `IsMonthElapsed`, `LockReady` (advisory), blocker counts by type | Selected month, whole calendar month | Evaluator shared with `POST /setting/lock-month` | Shipped report → add lock context (2.3) | Counts only | `GET /report/monthly-reconciliation/{y}/{m}` and its lock action | Current month: `IsMonthElapsed = false`, never presented as lockable | 2.3 |
+| 5 | Who owes us, and whom do we owe? | Debtor count + total debt (Σ positive balances); creditor count + total credit (Σ \|negative\|) | As of `AsOfDate`, branch-wide | Active Tab rows with a client, `Date ≤ AsOfDate`; per client `Out − In` | Shipped net total → debt/credit split (3.1) on Phase 5 semantics | Whole-set counts/totals; preview 5 debtors (balance DESC, name, id) | `GET /report/fiado/balance?clientId` (it already includes deactivated clients); the client fiado statement only for a client 5.5 resolves | No non-zero client → `Empty` | M7.7 5.1, 5.4, 5.5, 5.9 |
+| 6 | How old is the unpaid debt? | Unpaid remainder per aging bucket; oldest unpaid sale date | As of `AsOfDate` | FIFO-netted unpaid remainder only; repayments never aged | M7.7 5.1 FIFO aging → whole-set bucket totals (3.2) | Totals only | `GET /report/fiado/aging` | `Empty` | M7.7 5.1 |
+| 7 | Which cheque plans are still open? | Outstanding total, open plan count, open row count, per-bucket outstanding, oldest open due date | State as of `AsOfDate` | Active plan rows, `PaidAt IS NULL`, `OriginTransactionId` set | Shipped paged groups → whole-filter totals (2.1) | Totals + preview 5 plans (oldest open due, origin id) | `GET /report/cheques/open-aging` | `Empty` | M7.7 7.6.2 |
+| 8 | What money is due to arrive? | Per instrument count + total due in window; overdue count + total; next items | Due `[AsOfDate, AsOfDate + 13]`; overdue = due before `AsOfDate` | Active rows, `PaidAt IS NULL`, type instrument ≠ `None`; Draft/Cancelled excluded; each installment row once | None → instrument marker (Phase 4) + report (Phase 5) | Preview 10 (`DueDate, Date, Id`) | `GET /report/upcoming-settlements?DueDateFrom&DueDateTo` | No branch type, active or retired, carries an instrument → `NotConfigured`; otherwise nothing due → `Empty` | Phases 4–5 (SQ1, SQ2) |
+| 9 | What moved on each account today? | Per account: In, Out, Net (per account only), Active count, Draft count, last activity date ≤ `AsOfDate` | `AsOfDate` | Daily-ledger predicates per account; Draft rows counted apart | Daily ledger one account at a time → one grouped aggregate (7.2) | Every active Terminal + any account, active or deactivated, with activity, cap 50 with `TotalCount`; each row flags `IsActive`; no cross-account total exists | `GET /report/daily-ledger?AccountId&DateFrom=DateTo=AsOfDate`, which accepts deactivated accounts after 2.4 | No listed account → `Empty`; idle accounts listed with last activity date | 2.4, 7.2 |
+| 10 | Who recorded what today? | Per operator: transaction count, In/Out recorded volume (not revenue), generated-row count | `AsOfDate` | Operator-summary predicates (`RecordedByOperatorId`, Active) | Single-operator report → branch-wide grouped aggregate inside the overview (7.3); operator-summary scope unchanged | Active operators + any operator, active or deactivated, with rows, cap 50; each row flags `IsActive`; preview ordered by count DESC, name, id | `GET /report/operator-summary?OperatorId&DateFrom&DateTo`, which accepts deactivated operators after 2.4 | `Empty` | M7.7 5.8, 2.4 |
+| 11 | Is anyone behind on hours, and who is on shift now? | Per operator total and balance hours; live-now count (an open segment dated `AsOfDate`); unresolved-open count (an open segment on an earlier day, 0 h until corrected, still `IsInProgress`); counts with positive/negative balance; Σ positive and Σ negative balance kept apart | Selected month window; `BranchLocalNow` for in-progress | Time-entry calculation with each entry's effective policy | Shipped branch-wide roll-up → reuse its computation | Preview 5 most negative (balance ASC, name, id); counts whole-set; each row flags `IsActive` (the roll-up already keeps deactivated operators with entries) | `GET /report/timeentry-balance?DateFrom&DateTo`; per operator `?OperatorId`, which accepts deactivated operators after 2.4 | In-progress labelled provisional; no listed operator → `Empty` | 2.4 |
+| 12 | How did the month do on variance, bolão fee, leftovers and hours? | Official variance, Tarifa Bolão, Sobras Bolão and hours totals | Selected month window | Phase 6 semantics | None → monthly financial report (Phase 6) | Totals only | `GET /report/monthly-financial/{y}/{m}` | Report markers unset → `NotConfigured` | Phase 6 (SQ3–SQ5) |
+
+### Overview contract — proposal reviewed in Phase 1
+
+- **Route and names.** `GET /report/management-overview?Year&Month`, `[TokenAuthorize(Role.Manager, Role.Admin)]`, request `RequestManagementOverviewJson { int? Year, int? Month }`, response `ResponseManagementOverviewJson`. The screen may be titled Dashboard; the API never uses `dashboard`. `GET /report/manager-queue` is unchanged, and neither name gets an alias.
+- **Envelope.** `GeneratedAtUtc`, `AsOfDate`, `BranchLocalNow`, `Year`, `Month`, `MonthDateFrom`, `MonthDateTo`, `IsPartialMonth`, then one member per matrix row: `Queue`, `RecentCloses`, `CashVariance`, `Reconciliation`, `Fiado` (debt/credit and aging), `OpenCheques`, `UpcomingSettlements`, `AccountActivity`, `OperatorActivity`, `Hours`, `MonthlyFinancial`. Section DTOs are named `ResponseManagementOverview{Section}Json`. Each carries its own window fields, a `Status` (`OverviewSectionStatus { Ready, Empty, NotConfigured }`), its whole-set totals, `PreviewLimit`, `TotalCount`, and the ids and filter values its drill-down needs (account, operator, client, origin transaction, month, due window, instrument, status). Account and operator rows also carry `IsActive`, because a deactivated entity with activity in the window stays listed.
+- **Failure model: atomic for failures, typed for known states.** Validation (400), authentication (401) and role (403) fail the whole request before any section reads. Any runtime failure or cancellation fails the whole request: there is no partial 200. `NotConfigured` is returned only for deterministic missing configuration (no branch type, active or retired, carries an instrument; report markers unset) and is never rendered as zero; `Empty` means the source ran and found nothing. No "not yet supported" status ships, because the overview is delivered only once every section's source is delivered (Phase 7 gate).
+- **Metadata.** Declared statuses `{200, 400, 401, 403}`; no 404, since nothing is looked up by id. Numeric metadata follows Shared D2 (H3 if adopted) and the auth tier follows D3 (H4 if adopted); the overview adds no new Shared prerequisite. Whether a future month gets its own error key or reuses the reconciliation validator's keys is decided in Phase 7.
+- **Full reports it needs** (names provisional until their phases):
+  - `GET /report/upcoming-settlements?DueDateFrom&DueDateTo&AccountId&Instrument&Page&PageSize` → `ResponseUpcomingSettlementsJson { AsOfDate, IsConfigured, DueDateFrom, DueDateTo, TotalCount, TotalValue, OverdueCount, OverdueValue, ByInstrument, Items, TotalPages, HasNext, HasPrevious }`; items `{ TransactionId, OriginTransactionId?, Date, DueDate, Value, Instrument, TransactionTypeName, AccountId, AccountName, ClientId?, ClientName? }`. Overdue uses the same account/instrument filters and is independent of the due window.
+  - `GET /report/monthly-financial/{year}/{month}` → `ResponseMonthlyFinancialReportJson` with month totals, per-`(Date, Account)` close figures (official variance, Tarifa Bolão, recorder and submitter shown), per-`(Date, Account, operator)` bolão leftovers, and per-`(Date, Operator)` hours with in-progress flags. The exact shape waits on Phase 6.1.
+  - Additive members on shipped responses (non-breaking): open-cheque aging `OutstandingTotal`, `OpenRowCount`, `ByBucket`; fiado balance `DebtorCount`, `TotalDebt`, `CreditorCount`, `TotalCredit` (`TotalOutstanding` keeps its shipped signed meaning, now documented); fiado aging after 5.1 `OutstandingTotal`, `ByBucket`, `OldestUnpaidDate`; cash variance `SubmittedCount`, `ApprovedCount`, `RejectedCount`; monthly reconciliation `LockDate`, `IsMonthLocked`, `IsMonthElapsed`. Daily ledger, operator summary and time-entry balance also accept a deactivated branch account/operator for Manager/Admin (2.4), with an active flag in the response.
+
+### Read consistency, reuse and limits
+
+- **One snapshot.** The overview runs its sections one after another on one DbContext inside one read-only PostgreSQL transaction at `REPEATABLE READ`, so every section sees the same committed state. It never calls `SaveChanges`, injects no `IUnitOfWork`, and rolls the transaction back on exit; the boundary is a small Domain interface implemented in Infrastructure, named in Phase 7. No parallel EF operations. The full reports keep their current per-query reads: parity is tested on quiescent fixtures, and the overview's snapshot is tested on its own (A17).
+- **One rule, two consumers.** Each section calls the same repository query or projection as its full report, extracted where needed, so a predicate change cannot leave the Dashboard behind. Parity tests (A1–A12) compare every section with its full report for the same scope and window, across several pages.
+- **Bounded cost.** Every section is one or two grouped queries; previews use `Take(n)` with the full report's ordering; no loop over HTTP endpoints, no page-by-page totals, and the open-cheque per-group sibling reads are not reused. Cancellation flows through every query, and reads never write.
+- **Generation guard.** A WebApi OpenAPI test asserts that no path or schema name contains `dashboard` (case-insensitive), backing Shared's generation gate from the server side.
+
+### Shop facts and owner decisions that block financial definitions
+
+Shop facts belong to M9.5 and cannot be answered by an AI; planning and the unblocked phases continue while they are open. The signed 2.2 fiado × drawer decision (linked Terminal movements) is not reopened.
+
+- **SQ1 — card settlements (M9.5 2.5).** For `Cartão de Crédito` / `Cartão de Débito` rows: is the amount owed to the lotérica by the acquirer until it lands, on which account, does `DueDate` mean the landing date, and does the shop mark `PaidAt` when it lands? If not, cards are not upcoming settlements.
+- **SQ2 — cheques (M9.5 2.5).** Does the shop ever record a pre-dated cheque as a single `Depósito Cheque` row rather than a plan, and does `PaidAt` mean deposited or cleared?
+- **SQ3 — Tarifa Bolão (M9.5 2.3).** What the counted `Tarifa Bolão` slot holds each day — that day's fee, or a carried bucket — which decides whether the month figure is a sum of daily values or something else.
+- **SQ4 — bolão and federal leftovers (M9.5 2.5).** What `Sobra de Bolão` / `Sobra de Federal` rows record, on which accounts, and whether the month figure is the sum of their Active rows.
+- **SQ5 — operator attribution (owner decision).** §7.2 asks for figures "by operator by day", but a close belongs to a Terminal/day that several operators may share and that an unlinked manager may record. Recommendation: close-derived figures stay per Terminal/day with recorder and submitter shown, never split between operators, while hours stay per operator/day; the report shows them side by side rather than joining them.
+
+### Phase 1 — Plan, decisions and gates *(this planning record; items tick when review accepts them)*
+
+- [x] **1.1** Owner decision 2026-10-16 recorded: a separate, read-only Dashboard summarizing every manager report with contextual links; the Work Queue stays the exception-first home.
+- [x] **1.2** Section-to-source matrix accepted as the scope of the overview and its missing reports.
+- [x] **1.3** Time model accepted: `AsOfDate` as branch-local today and never a parameter, the month selector and its limits, each section's window, and the 14-day settlement look-ahead.
+- [x] **1.4** Overview route, DTO names and failure model accepted (`/report/management-overview`, `ResponseManagementOverviewJson`, `Ready | Empty | NotConfigured`, atomic failure).
+- [x] **1.5** Read-consistency strategy accepted (single `REPEATABLE READ` read-only snapshot for the overview; parity on quiescent fixtures for the full reports).
+- [x] **1.6** Additive totals and the two new full-report contracts accepted, names provisional until their phases.
+- [x] **1.7** **Settlement instrument identity — planning approach accepted.** An explicit `SettlementInstrument` on `TransactionType` (`None | Cheque | CreditCard | DebitCard`), editable through the M6 TransactionType admin CRUD. It is never inferred from name, category, direction or `SettlementRule`, and seed values are set only from the SQ1/SQ2 answers. Implementation remains pending in Phase 4.
+- [x] **1.8** **Monthly-report source identity — planning approach accepted.** The Tarifa Bolão product and the Sobra types are identified by explicit markers whose shape Phase 6.1 decides after SQ3/SQ4 — never by display name. Implementation remains pending in Phase 6. Out of scope here and recorded only: "Diferença Caixa" is still resolved by display name.
+- [x] **1.9** **Gate evidence** for phases that may start before M7.7 and M9.5 close. The milestone precondition is unchanged and still gates Phase 8.
+
+  | Phase | What it reads | Gate | Evidence |
+  |---|---|---|---|
+  | 2.1 Open-cheque totals | Plan rows and their status | M7.7 7.6.2 | 7.6.2 decides plan activation and mixed-plan recovery, which changes which rows are Active |
+  | 2.2 Variance status counts | Persisted official variance | M7.7 Phase 3 (shipped) | Freeze, chain demotion and Draft suppression shipped; 5.6 changes future close inputs, not how persisted values are read |
+  | 2.3 Lock context | `Setting.LockDate`, readiness evaluator | M7.7 Phase 4 (shipped) | Atomic lock command and floor rules shipped |
+  | 2.4 Historical drill-down entities | Account/operator resolution in three reports | Plan reviewed; the operator-summary part after M7.7 5.8 | 5.8 changes the same operator-summary contract; the ledger and time-entry parts touch nothing M7.7/M9.5 still owns |
+  | 3 Fiado aggregates | FIFO, credit, statement | M7.7 5.1, 5.4, 5.5, 5.9 | Current aging and totals are the approximation 5.1 replaces |
+  | 4 Instrument marker | SQ1, SQ2 | M9.5 2.5 (card/cheque part) | Instrument meaning is a shop fact |
+  | 5 Upcoming settlements | Phase 4, plan rows | Phase 4, M7.7 7.6.2 | As above |
+  | 6 Monthly financial | SQ3–SQ5, official variance, hours | M9.5 2.3, 2.5 (bolão part), 3.3; owner SQ5; M7.7 complete | The M11 precondition's "no stale numbers" applies in full to a monthly money report |
+  | 7 Overview | Every section | Phases 2–6, M7.7 5.8, M7.7 complete | Sections 9–11 have no other gate, but the overview ships whole |
+  | 8 Close-out | Everything | M7.7 and M9.5 complete | Unchanged milestone precondition |
+
+  Prerequisites are linked, not duplicated: M7.7 Phase 5 (5.1–5.9), Phase 7.6 (7.6.1–7.6.5) and Phase 8 (8.1–8.4); M9.5 Phase 1 (1.1–1.4), then 2.3 and 2.5 for this milestone (the other Phase 2 items for M9.5's own close), 3.3, and Phase 4. Items 7.6.1 and 7.6.3 feed no section, but they block M7.7 completion and therefore Phases 6–7.
+- [x] **1.10** SQ1–SQ4 assigned to M9.5 and SQ5 to the owner through this planning record and canonical §9 questions 2–6. Answers remain pending; each answer updates this plan before its phase starts.
+
+> **Phase 1 completion note (2026-10-16; SV18).** The planning delivery passed independent technical review after the findings were corrected. Items 1.1–1.10 record completed planning, reviewed approaches, prerequisite evidence and the documented assignment of open questions. No runtime implementation, shop answer or owner visual lock is claimed. Phases 2–8 and M11 remain open under their existing gates.
+
+### Phase 2 — Existing-report completeness *(additive totals and historical drill-down entities; gates per 1.9)*
+
+- [ ] **2.1** Open-cheque aging whole-filter totals: `OutstandingTotal`, `OpenRowCount` and `ByBucket` (`{ Bucket, Value, RowCount }`, each open row bucketed at `AsOfDate`), computed by one grouped query independent of paging; `TotalCount` remains the open-plan count, and paging and ordering are unchanged.
+- [ ] **2.2** Cash-variance summary `SubmittedCount`, `ApprovedCount` and `RejectedCount` over the same rows as the totals.
+- [ ] **2.3** Monthly reconciliation lock context: `LockDate`, `IsMonthLocked` (month end ≤ `LockDate`) and `IsMonthElapsed` (month end before branch-local today). `LockReady` and the blockers are unchanged.
+- [ ] **2.4** **Historical entities in drill-down reports.** The overview lists a deactivated account or operator whenever it still has activity in a section's window, so its drill-down must open. `GET /report/daily-ledger` (`AccountId`), `GET /report/operator-summary` (`OperatorId`) and `GET /report/timeentry-balance` (`OperatorId`) resolve any account/operator owned by the caller's branch for Manager/Admin, active or deactivated; they return 404 only for a missing or cross-branch id, and their responses state whether the entity is active (field names decided in-phase). Member scopes and `Mine` are unchanged. This is a deliberate widening of three shipped reports, documented in §6.14, not an implicit change.
+- [ ] **2.5** WebApi.Test: totals equal the sum over every page with at least three non-empty pages; paid, cancelled and Draft rows excluded; per-status counts; locked, unlocked-elapsed and current months; each 2.4 report returns a deactivated account/operator's rows with its inactive flag, a cross-branch id is still 404, and a Member's scope is unchanged. OpenAPI required metadata, reviewed snapshot, and spec §6.14 sync.
+
+### Phase 3 — Fiado aggregates on the M7.7 Phase 5 semantics
+
+- [ ] **3.1** Fiado balance debt/credit split: `DebtorCount`, `TotalDebt`, `CreditorCount`, `TotalCredit` (credit as a positive amount). `TotalOutstanding` keeps its signed meaning, now documented in §6.14.
+- [ ] **3.2** FIFO aging whole-set totals from the 5.1 netting query: `OutstandingTotal`, `ByBucket`, and `OldestUnpaidDate` with 5.5's definition (oldest unpaid sale date).
+- [ ] **3.3** WebApi.Test: a multi-Tab debtor, a settled client (absent), a client in credit (never in debt or aging), a partial payment; balance = aging remainder per client; totals across pages.
+- [ ] **3.4** OpenAPI, snapshot and spec sync.
+
+### Phase 4 — Settlement instrument identity
+
+- [ ] **4.1** `SettlementInstrument` enum and `TransactionType` column through a migration that leaves every existing row `None`; exposed on the TransactionType create/update/read contracts with an `IsInEnum` validator rule; seed values only as SQ1/SQ2 establish.
+- [ ] **4.2** Decide in-phase and record: whether installment plans must also carry `Cheque` (today they require `OperatorEnteredCheque`); whether open-cheque aging later widens to single cheques; and whether a type's instrument may change once rows reference it, since a change reclassifies those rows' history (lock it, or allow it as documented metadata). Retiring a type never removes its classification. Nothing changes in this phase without these decisions.
+- [ ] **4.3** Tests from a clean migrated database, OpenAPI and snapshot, spec §3 and §6.14 sync.
+
+### Phase 5 — Upcoming-settlements report
+
+- [ ] **5.1** `GET /report/upcoming-settlements`, Manager/Admin: Active rows with `PaidAt IS NULL` whose type instrument is not `None` — whether or not the type has since been retired — inside the due window (≤ 366 days) and optional account/instrument filters; every installment row counted once with its plan identity kept; ordered `DueDate, Date, Id`; paged.
+- [ ] **5.2** Whole-filter `TotalCount`/`TotalValue`, `ByInstrument`, and an overdue count/value independent of the window; `IsConfigured = false` only when no branch type, active or retired, carries an instrument, so retiring the last marked type never hides rows it already classified.
+- [ ] **5.3** WebApi.Test: window edges at `AsOfDate` and `AsOfDate + window`, paid, Draft and cancelled exclusions, overdue separation, card-and-cheque mix, plan rows each once, renamed types still classified, retiring the last marked type keeps its open rows reported with `IsConfigured = true`, branch isolation, Member denial.
+- [ ] **5.4** OpenAPI, snapshot, spec and catalog sync.
+
+### Phase 6 — Consolidated monthly financial report
+
+- [ ] **6.1** Record the signed semantics from SQ3–SQ5: Tarifa Bolão and Sobras formulas and accounts, operator attribution, and the report-marker shape (plus any migration). CEF borderô comparison stays manual.
+- [ ] **6.2** `GET /report/monthly-financial/{year}/{month}`, Manager/Admin: official variance (non-Draft persisted values, unchanged formula, exactly-once), the bolão figures by marker, hours through the shared time-entry calculation with effective policy and provisional in-progress days; the current month ends at today and is flagged partial.
+- [ ] **6.3** WebApi.Test: a shared terminal worked by two operators, an unlinked manager as recorder, Draft and recheck suppression, a Rejected close, a renamed or retired marked type/product, a mid-month policy change, an open time segment, branch isolation.
+- [ ] **6.4** OpenAPI, snapshot, spec §6.14 and §7.2 sync. This report stays distinct from monthly reconciliation.
+
+### Phase 7 — Management overview
+
+- [ ] **7.1** Contract, controller action and use case per the Phase 1 proposal, with the single read-only snapshot and the one clock read.
+- [ ] **7.2** Account-activity aggregate (matrix row 9): one grouped query with daily-ledger predicates, plus last activity date; deactivated accounts with activity are included and flagged.
+- [ ] **7.3** Operator-activity aggregate (matrix row 10): one grouped query with operator-summary predicates and the 5.8 generated-row share; deactivated operators with rows are included and flagged; operator-summary's scope is unchanged beyond 2.4.
+- [ ] **7.4** Section assembly through the shared source projections (queue projection extracted from the manager-queue use case without changing its behavior).
+- [ ] **7.5** WebApi.Test acceptance scenarios A1–A21, an architecture never-commits rule, and the snapshot test. Time-dependent scenarios (A11, A20, A21, and the parity runs that include in-progress hours) use a test-only fixed clock: the test host replaces the scoped `IBranchClock` (today `DateTime.UtcNow`) with a settable instant; production registration is unchanged. Phase 6 reuses that seam for its in-progress hours.
+- [ ] **7.6** OpenAPI metadata, reviewed snapshot, and the no-`dashboard` guard.
+- [ ] **7.7** Spec §6.14/§7.2 and catalog sync.
+
+### Phase 8 — Close-out, demo and real captures
+
+- [ ] **8.1** Audit this plan against runtime code; run every suite plus build, architecture, OpenAPI, the opt-in export and the no-config build check; confirm the exported contract has no `dashboard` surface and the Work Queue is unchanged. If Shared M2 has started, ask its owner to run export/regeneration and drift checks; otherwise hand it the integrated commit and spec revision.
+- [ ] **8.2** A reproducible isolated demo built from the fixture recipe through supported APIs or the existing explicit development/test fixture mechanism — no public seed routes, no other environment's database, no real messages.
+- [ ] **8.3** Four sanitized real capture bundles outside the repository (the Rascunho study area): `queue.json`, `close.json` (including the matching candidate-preview request/response), `transactions.json`, `dashboard.json`. Each wraps unmodified responses with method/path/query, role, branch-local context, capture instant, server commit and spec revision; no tokens, credentials or real customer data.
+- [ ] **8.4** Handoff: D13 catalogs Dashboard, Upcoming settlements and Monthly financial report against the shipped contracts and closes gap Q; D14 verifies the captures. The handoff lives in files, so reviewers inspect the checkout directly.
+- [ ] **8.5** Completion notes. M11 is marked complete only when every done criterion holds; a missing source or shop fact keeps it open with the smallest remaining task named.
+
+### Acceptance scenarios *(pinned by the owning phase; Phase 7 re-runs each against the overview)*
+
+- **A1 Queue.** Overview queue counts equal `GET /report/manager-queue?date=AsOfDate`.
+- **A2 Recent closes.** Twelve closes in the window → preview 10 in `GET /dailyclose` order with `TotalCount = 12` and per-status counts; a Draft (recalled) close and a recheck-demoted close show null variance despite retained rows; a close dated `AsOfDate − 7` is outside.
+- **A3 Cash variance.** Submitted +10, Approved −5, Rejected +3 and a Draft close with a retained 50 → total +8, counts 1/1/1, the Draft value excluded; equal to the full report for the same window.
+- **A4 Reconciliation.** A past unlocked month with a Submitted close and a Draft transaction → `LockReady = false` with both blockers; a month at or before `LockDate` → `IsMonthLocked`; the current month → `IsMonthElapsed = false`, never lockable.
+- **A5 Fiado debt and credit.** Client A owes 100 across Tab1 and Tab2; B paid in full; C overpaid by 30; D paid 40 of 100 → debt 160 over 2 debtors, credit 30 over 1 creditor, B absent; equal to the balance split.
+- **A6 Unpaid aging.** D's 60 remainder ages on its oldest sale; no repayment is aged; bucket totals equal the full aging across all pages.
+- **A7 Open cheques.** Three qualifying open plans fill three pages at page size 1: P1 partially paid, P2 with one cancelled row and two open rows, P4 wholly open. Separately, P3 (wholly Draft) and P5 (fully paid) are excluded. Totals exclude every paid, cancelled and Draft row and equal the sum over all three pages.
+- **A8 Upcoming settlements.** A card due `+1` (in), a card due `+14` (out), a cheque installment due `+5` that also appears in open cheques (once per section, never summed across sections), a paid card (out), a cheque due `−3` (overdue only); after the last marked card type is retired its open rows still appear and the section stays `Ready`; `NotConfigured` only when no branch type, active or retired, carries an instrument; equal to the full report.
+- **A9 Account activity.** Two terminals and a Tab: a Draft row only in `DraftCount`; an idle account shows yesterday's last activity date; T3, deactivated today after recording rows, is listed with `IsActive = false`; the contract has no cross-account total; each row, T3's included, equals the daily ledger for that account and day.
+- **A10 Operator activity.** An operator recording on two accounts, generated rows counted in the share; O4, deactivated today after recording rows, is listed with `IsActive = false`; an unlinked Manager reads the overview; each row, O4's included, equals operator-summary for that operator.
+- **A11 Hours.** Under one frozen clock instant shared by both requests: an open segment is in progress at `BranchLocalNow` and labelled provisional; O2's forgotten clock-out counts as unresolved-open (0 h, still `IsInProgress`), not live-now; a mid-month policy change; positive and negative balances summed apart; O3, deactivated with entries in the window, flagged inactive; equal to `GET /report/timeentry-balance` for the window.
+- **A12 Monthly financial.** Per Phase 6: a shared terminal keeps close figures per terminal/day and hours per operator; a renamed marked type is still counted; markers unset → `NotConfigured`; equal to the full report.
+- **A13 Month selector.** Previous month → full calendar window, `IsPartialMonth = false`; future month → 400; omitted → current month, partial.
+- **A14 Empty branch.** Every section is `Empty` or `NotConfigured`; none is `Ready` with zeros.
+- **A15 Access.** No token → 401; Member → 403; Manager and Admin without an Operator → 200; the second branch's data never appears.
+- **A16 Read-never-commits.** No `IUnitOfWork` (architecture rule) and an unchanged database after the call.
+- **A17 Snapshot.** A write committed between two section queries (test interceptor) is invisible to the later sections.
+- **A18 Cancellation.** A cancelled request ends without a partial response.
+- **A19 Contract.** Required/nullable/enum metadata, reviewed snapshot, no path or schema containing `dashboard`, `GET /report/manager-queue` unchanged.
+- **A20 Determinism.** With unchanged data and the same frozen clock instant, two calls return identical bodies, `GeneratedAtUtc` and `BranchLocalNow` included; ties resolve by id.
+- **A21 Time advance.** With unchanged data, moving the frozen clock forward changes only `GeneratedAtUtc`, `BranchLocalNow` and today's open segment's live hours and balance. Expected values come from the shared calculator with that day's effective policy (lunch deduction tiers at more than 4 h and more than 6 h gross), never a flat "+1 hour". Three fixed cases under the default policy (target 7.33 h, deductions 1.00 h over 6 h and 0.25 h over 4 h):
+  - **Within one tier.** Clock-in 08:00, clock 09:00 → 10:00: payable hours 1.00 → 2.00, balance −6.33 → −5.33.
+  - **Across a tier.** Clock-in 09:00, clock 15:00 → 16:00: gross 6 → 7 h moves the deduction from 0.25 to 1.00, so payable hours go 5.75 → 6.00 and balance −1.58 → −1.33.
+  - **Across branch-local midnight, within the month.** `AsOfDate` and every day-based window move to the new day. The previous day's still-open segment stops contributing live hours (0 h — the forgotten clock-out rule, §6.7), but it keeps `IsInProgress = true` and its operator's `ContainsInProgress = true`, as the shipped report does, so it stays visible for manual correction. In the overview it moves from the live-now count to the unresolved-open count.
+
+### Fixture recipe
+
+Built with the shared WebApi.Test seed helpers (test fixtures, not public endpoints); Phase 8's demo reproduces it through supported APIs.
+
+- **Branches.** B1 (main) and B2 (isolation, with its own close, fiado client, cheque and `LockDate`).
+- **People.** In B1: an unlinked Manager, an Admin linked to operator O2, a Member linked to O1, O3 deactivated with time entries in the selected month, and O4 deactivated today after recording transactions.
+- **Accounts.** Terminals T1 (paired with Tab1) and T2, Tab1, Tab2, Bank1, and T3 deactivated today after recording transactions.
+- **Calendar.** `LockDate` at the end of month M−2; month M−1 elapsed and unlocked with one blocker of each type; the current month M.
+- **Fiado.** Clients A–D as in A5/A6 across Tab1/Tab2, including one cash repayment and one counted-stock sale after Phase 5 (linked Terminal rows).
+- **Cheques.** Qualifying open plans P1 (three rows, one paid), P2 (three rows, one cancelled) and P4 (two rows, none paid); excluded plans P3 (wholly Draft) and P5 (fully paid); and a single `Depósito Cheque` row if SQ2 says the shop records them.
+- **Cards.** Credit and debit rows due `+1`, `+14` and `−3`, one marked paid — classified only after SQ1.
+- **Closes.** The last eight days on T1 and T2 covering Submitted, Approved, Rejected, a recalled Draft with a retained variance row, and a recheck-demoted Draft.
+- **Time.** O1 with an open segment today, O2 with closed days and a forgotten clock-out on an earlier day of M, a policy change on day 10 of M.
+- **Bolão.** Rows and counts per Phase 6.1.
+
+### Done criteria
+
+- Every matrix row ships with its full report and overview section, and each section is parity-tested against that report for the same scope and window.
+- Upcoming settlements and the consolidated monthly report implement their signed meanings; no shop fact is assumed and no classification relies on a display name, category, direction or `SettlementRule`.
+- The overview reads one snapshot, fails atomically, distinguishes `Empty` from `NotConfigured`, returns exact whole-set totals with labelled windows, and leaves the Work Queue unchanged; no `dashboard` name appears in the contract.
+- §6.14 and §7.2 point at the shipped surfaces; D13's catalog entries exist and gap Q is closed.
+- M7.7 and M9.5 are complete.
