@@ -43,7 +43,7 @@ As of Shared M1, all three entry files are `export {}` placeholders; nothing is 
 
 ## Toolchain pins
 
-- Node 24 LTS: `.nvmrc` is `24`, `engines.node` is `>=24.21.0 <25`, and `.npmrc` sets `engine-strict=true`.
+- Node 26: `.nvmrc` is `26`, `engines.node` is `>=26.6.0 <27`, and `.npmrc` sets `engine-strict=true`. Moved from the Node 24 LTS pin on 2026-10-17 by owner decision (Shared M1 amendment note). Node 26 was still "Current" then, with LTS promotion expected in late October 2026; re-verify its LTS status against the official release index.
 - pnpm `10.34.6`, set in both `packageManager` and `engines.pnpm`.
 - Exact root `devDependencies`:
   - TypeScript `6.0.3`
@@ -83,4 +83,4 @@ As of Shared M1, all three entry files are `export {}` placeholders; nothing is 
 
 - `pnpm -r typecheck` and `pnpm -r lint` stay green on every commit that touches `shared/`.
 - `pnpm format:check` must also stay green, because the web and mobile standing gates run it across the whole workspace.
-- Vitest arrives with Shared M3.
+- Vitest arrives with Shared M2 (decision D1, recorded 2026-10-17 pending independent acceptance): Shared M2 item 3.1 installs it for `@loto/api`; Shared M3 adds formatter/validator tests to the existing runner. Installing it and any root `pnpm -r test` fan-out are later Shared/root-tooling changes.

@@ -2003,6 +2003,163 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 **M7.6 complete (2026-08-27).** All three phases are closed and every Done criterion is met: requiredness is derived project-wide from directional C# nullability (Phase 1), all fourteen contract enums are published and serialized by declared name (Phase 2), and `OpenApiContractSurfaceSnapshotTest` plus its three snapshot-independent assertions pin both guarantees against the live document (Phase 3). Spec sync is green at `v41`; `Validators.Test`, `UseCases.Test`, `WebApi.Test` (architecture tests included), and `dotnet build server/server.sln` are green. The `shared/` named-enum codegen gate's server-side precondition is satisfied — `shared/` may now generate TypeScript from this document. Integer enum input remains accepted during the transition window; retiring it is a separate, deliberately versioned change. Two review findings were also cleared during close-out. **Notes accuracy:** the 3.1 audit figure above now distinguishes the pre-fix baseline (146 components) from the checked-in snapshot (149), and the `v41` revision note now separates *runtime* status codes — unchanged — from *emitted* metadata, which changed by design, `register`'s declared `200` → `201` included. **Dependency hygiene:** `Microsoft.AspNetCore.OpenApi` 10.0.5 → 10.0.11 and `Testcontainers.PostgreSql` 4.11.0 → 4.14.0, which resolve `Microsoft.OpenApi` 2.0.0 → 2.7.5 (GHSA-v5pm-xwqc-g5wc, first patched 2.7.5) and `SSH.NET` 2025.1.0 → 2026.0.0 (GHSA-q939-rpr3-3284, first patched 2026.0.0). Both were fixed by moving the *direct* dependency forward rather than pinning a transitive override, so each package stays at a version its own consumer declares. `dotnet list package --vulnerable --include-transitive` now reports all ten projects clean, and the contract-surface snapshot matched byte-for-byte across the `Microsoft.OpenApi` major-minor jump — the first real regression the snapshot was asked to catch, and it proved the document did not move.
 
+
+### Follow-up Phase 4 — Response numeric fidelity and per-operation token tiers *(Shared M2 handoffs H3 + H4, coordination label SV22; opened 2026-10-17 after the M7.6 close-out above, which stays as recorded)*
+
+> **Why a follow-up phase:** M7.6 closed with requiredness and named enums faithful, but Shared M2's contract audit (findings F1/F2) found two remaining generation blockers: every response number is published as `number | string`, and one global `Bearer` requirement hides which token each operation needs. Both are document-metadata fixes; no endpoint, DTO, serializer, binding, permission or schema change is in scope.
+
+- [x] **4.1** Technical decisions and ownership: Shared D1–D4 recorded as adopted implementation choices pending independent technical acceptance (D2 → H3, D3 → H4 implemented here; D1/D4 are Shared/root-tooling obligations, not shipped here); H3/H4 file ownership with the server track; Shared's "Vitest arrives with M3" policy reconciled to D1 as documentation only.
+- [x] **4.2** H3 response numeric fidelity: response-reachable schemas publish numbers as `number`/`integer` only (nullable kept, formats kept), decided from the response serializer's actual number handling for each member, nested inline members included; request schemas and parameters keep advertising the numeric strings binding accepts; a component reachable from both directions is never narrowed in place — responses get a separate representation.
+- [x] **4.3** H4 operation auth metadata: `IdentityBearer` and `BranchBearer` schemes; each operation's `security` derived from its effective MVC filters, wrapped filters included (`[]` for anonymous, role names for `[TokenAuthorize]`); the global `Bearer` requirement removed; undeclared, contradictory, order-dependent or opaque combinations stop generation with a clear error instead of being published.
+- [x] **4.4** Regression and export evidence: snapshot-independent assertions for response narrowing, request acceptance and per-operation security; the snapshot renderer pins security; an empirical runtime probe of every operation's token tier; real request/response JSON round-trip; no-config ordinary build and deterministic opt-in export with runtime parity; full suites green.
+- [x] **4.5** Canonical/design reconciliation: §6.15 and the doc-sync group at the next free revision; product/screens checked (no screen change) with markers advanced only after review.
+- [ ] **4.6** Independent acceptance and Shared handoff: review accepted, markers moved, the landing commit recorded in Shared M2 1.2, and Shared M2 Phase 1 unblocked (its own export script, committed input and generation stay Shared work).
+
+> **Phase 4 delivery note (2026-10-17, SV22).** Baseline `7e8b169` (spec `v51`, clean). Landing commit: **awaiting the final accepted commit**. Spec `v52`. No migration, schema, endpoint, DTO, status, header, permission, serializer, converter or binding change: `NumberHandling` and the MVC JSON options are untouched, and the only new runtime code is document generation.
+>
+> - **4.1** D1–D4 are recorded in Shared M2 as adopted implementation choices pending acceptance (adoption note before "Server-file handoffs"). D1 is policy-only: `shared/AGENTS.md` and Shared M2's standing gate now say Vitest arrives with M2, and installing it stays Shared item 3.1. D4 stays with the root-tooling owner. The H3/H4 ownership record and the exact files are under Shared's H4 handoff, as input for Shared 1.2.
+> - **4.2 (H3)** `ResponseNumericFidelityOpenApiDocumentTransformer` computes request and response reachability over the generated document: parameters and request bodies versus response content, following `$ref`, properties, items, `additionalProperties`, `not`, `allOf`, `anyOf` and `oneOf`.
+>   - It narrows a widened number only where a response reaches it and the MVC serializer's effective handling (property, then type, then options) has no `WriteAsString`. It drops `string` and the numeric `pattern`, and keeps `null` and `format`.
+>   - On today's contract 54 components are request-reachable and 120 response-reachable. The only overlap is 8 string enums, so no widened component is shared.
+>   - 151 response numerics narrowed. The 14 request-component numerics and 19 query numerics keep `|string`; the 4 route-constrained path integers were already plain `integer`.
+>   - *(Superseded in review round 1, below: as first delivered, a shared widened component stopped generation and the type lookup was by schema name.)*
+> - **4.3 (H4)** `OperationTokenRequirementResolver` reads each action's MVC `FilterDescriptors` (global, controller and action scope) and `EndpointMetadata`. `OperationSecurityOpenApiOperationTransformer` publishes the result under two `http`/`bearer`/JWT schemes, `IdentityBearer` and `BranchBearer`, and the document-level `Bearer` requirement is gone.
+>   - **Runtime precedence, as observed and not invented:** none of the three token filters consults `IAllowAnonymous`, so `[AllowAnonymous]` plus a token filter still answers 401 `TOKEN_EMPTY` without a token. Several `[TokenAuthorize]` filters must all pass, so their roles intersect. Controller-scope filters apply to every action.
+>   - The resolver refuses, with a named message:
+>     - `[AllowAnonymous]` combined with a token filter;
+>     - no declared auth intent;
+>     - identity filters combined with branch filters (first worded as "no single token satisfies both", which review round 1 disproved; corrected below);
+>     - disjoint roles;
+>     - ASP.NET `[Authorize]` metadata;
+>     - any unmodeled `IAuthorizationFilter` / `IAsyncAuthorizationFilter`.
+>   - Production declares every auth attribute at action scope, and only `UserController` register/login/renew-token are `[AllowAnonymous]`.
+>   - **Tier inventory** (from the exported document, which equals the runtime one):
+>     - `security: []` ×3 — the `/user` operations;
+>     - `IdentityBearer` ×3 — `POST /branch/create`, `GET /branch/my-branches`, `POST /branch/session`;
+>     - `BranchBearer` with any role ×46;
+>     - `BranchBearer [Admin, Manager]` ×49.
+>   - By area: account 9 elevated; branch 3 identity + 1 any + 4 elevated; category 2 + 3; client 5 + 1; dailyclose 9 + 3; holiday 5 + 1; operator 1 + 9; product 2 + 3; report 2 + 7; setting 1 + 2; timeentry 4 + 3; transaction 12 + 1; transaction-type 2 + 3. The per-operation list is the `security` line in the snapshot.
+> - **4.4 Tests** (new, in `tests/WebApi.Test/OpenApi/`):
+>   - `ResponseNumericFidelityTransformerTest` (synthetic document): nested, array and nullable response numbers narrow; a `[JsonNumberHandling(WriteAsString)]` member stays widened; the request component and query parameter stay widened; a shared component throws; an unmapped component throws.
+>   - `ResponseNumericFidelityOpenApiContractTest` on the runtime document:
+>     - more than 100 response numerics, none admitting `string` or carrying a `pattern`, nullable ones included;
+>     - at least 14 request numerics and at least 19 query numerics, all still admitting `string`;
+>     - a real `POST /product` with `"displayOrder": "7"` answers 201 with `displayOrder` as a JSON number;
+>     - a guard that neither the MVC options nor any Communication member writes numbers as strings.
+>   - `OperationTokenRequirementResolverTest`: 12 decision-table cases.
+>   - `OperationSecurityOpenApiContractTest`:
+>     - no document `security`, exactly the two schemes, `security` on every operation, the pinned anonymous and identity sets, and no `/report/dashboard`;
+>     - an empirical probe that sends every published operation (101 × 6 credentials: none, malformed, identity, and Admin/Manager/Member branch tokens) through `AuthTierProbeHost`. That derived host adds one global action filter ordered first, so the action never runs, and the probe requires exactly the published tier: 401 `TOKEN_EMPTY` / `TOKEN_INVALID`, 403 `TOKEN_WITHOUT_PERMISSION`, or reached.
+>   - `OperationSecurityPrecedenceTest`, with probe controllers on a derived host only:
+>     - `[AllowAnonymous]` + `[TokenAuthenticateBranch]` → 401 without a token, the resolver throws, and `/openapi/v1.json` returns 500 with the message;
+>     - controller `[TokenAuthorize(Admin, Manager)]` + action `[TokenAuthorize(Manager, Member)]` → `[Manager]` in the document and at runtime, and the inherited action gets `[Admin, Manager]`.
+>   - The snapshot renderer now emits a `## security` section and a per-operation `security` line.
+>   - **Sabotage check (sources restored afterwards):** each regression fails at least one snapshot-independent test.
+>     - no narrowing → the response test fails;
+>     - request narrowing → the synthetic and request tests fail;
+>     - identity published as anonymous → the document test and the probe fail;
+>     - roles dropped → the document test, the probe and the precedence test fail.
+>   - **Snapshot diff** (reviewed): 152 lines removed and 261 added.
+>     - The header gains guarantees 3 and 4.
+>     - The 151 removed `|string` lines are all in `Response*` schemas and match the added lines exactly once `|string` is dropped.
+>     - The `## security` section is new.
+>     - The 101 per-operation `security` lines: `none` ×3, `IdentityBearer[]` ×3, `BranchBearer[]` ×46, `BranchBearer[Admin,Manager]` ×49.
+>     - No request line changed.
+>   - **Evidence commands:**
+>     - Ordinary build: `env -u ConnectionStrings__DefaultConnection -u Token__SigningKey -u Token__ExpirationTimeInMinutes -u ASPNETCORE_ENVIRONMENT -u DOTNET_ENVIRONMENT dotnet build server/server.sln --no-incremental` → 0 errors. The only warnings are the existing EF1002 ones in migration tests, and no OpenAPI document is written anywhere under `server/`.
+>     - Opt-in export: `dotnet build server/server.API/server.API.csproj -c Release -p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<temp>`, with only an `.invalid` connection string and a non-secret signing-key placeholder in the child process. Incremental and then `--no-incremental` builds are byte-identical, sha256 `6fd6f2441c38fdc76b3289afd147b2d7c04170213af368e3d7d9a00545d37ea7` (baseline `7e8b169` export: `89a5b1ee594ffbcf2eafe5104ff7c14360c717c097d82ae0a7b416f3b3970f65`).
+>     - Exported document contents: OpenAPI 3.1.1, no `servers`, 73 paths, 101 operations, 166 schemas (19 enum components, all `type: string`), `/report/manager-queue` present and no `dashboard`.
+>     - Runtime parity: the export equals the WebApi.Test host's Development `/openapi/v1.json` after excluding `servers` (which only the runtime emits, as `http://localhost/`).
+>     - Baseline → final JSON diff: all 407 differences are classified. They are the 151 type narrowings, 151 pattern removals, 101 operation `security` entries, the removed document requirement and `Bearer` scheme, and the two added schemes. There is nothing else, and the path and schema name sets are unchanged.
+>     - Gates: OpenAPI + architecture **53/53**; Validator **327/327**; UseCase **1138/1138**; WebApi + architecture **1118/1118** in **3m33s** (rerun on the final build after the scheme-description wording fix).
+>     - `dotnet ef migrations has-pending-model-changes` (inert placeholders, `--no-build`): no changes.
+>     - `git diff --check` is clean, and the new files have no trailing whitespace.
+> - **Review round 1 (2026-10-17): needs fixes — corrected here, awaiting repeat review.** The independent review reproduced the build, every suite, the export hash and runtime parity, and found four gaps in required edge cases that today's 101 operations do not exercise. 4.2–4.4 went back to unchecked; 4.1 stands.
+>   1. **[P2] Filter factories hid authorization.** `[AllowAnonymous]` + `[ServiceFilter(typeof(TokenAuthenticateFilter))]` returned 401 without a token but was published as `security: []`. Fix:
+>      - the resolver now classifies every descriptor without instantiating it — `[TypeFilter]` by implementation type and arguments (so a plain `TypeFilter(typeof(TokenAuthorizeFilter))` has its roles read, and malformed arguments fail), and `[ServiceFilter]` by service type (a wrapped identity/branch filter counts; a wrapped `TokenAuthorizeFilter` fails because its roles are not declared; interface/abstract or unmodeled services fail);
+>      - any other `IFilterFactory` fails generation, except the three framework factories observed on all 101 production actions (`SaveTempDataAttribute`, `ClientErrorResultFilterFactory`, `ModelStateInvalidFilterFactory`), which never create an authorization filter.
+>   2. **[P2] Shared numeric schemas aborted the document.** Using `ResponseProductJson` as both body and result made `/openapi/v1.json` return 500. Fix: a widened component that both directions reach keeps its input form, and a deterministic `{id}Output` copy is added for responses (also for components that only reference a split one). Every response reference is rewired to it, response roots are copied before narrowing, and an existing `{id}Output` id fails generation. Requiredness, formats, nullability and named enums carry over unchanged, because the copy is the generated schema itself.
+>   3. **[P2] Nested number handling was ignored.** Inline descendants inherited their parent's decision, so an inlined child member written as a string was published as `integer`. Fix:
+>      - an operation transformer stamps each operation (in non-serialized `Metadata`) with the response CLR types ApiExplorer declares; that replaces the schema-name lookup;
+>      - the document transformer walks each response schema alongside the MVC serializer's `JsonTypeInfo`. Object properties use property, then declaring type, then options. Collection elements and dictionary values inherit the member's handling one level deep, which System.Text.Json behavior was verified to do.
+>      - It fails on: a number with a custom converter; a number nested in a collection of collections whose handling differs from the options; a schema property the serializer does not write; one component reached as two CLR types; a response without a declared type; and an unmodeled keyword.
+>   4. **[P3] Mixed-token precedence was misdescribed.** The resolver still refuses identity plus branch filters, but its message and the docs now state the observed behavior. With the branch filter first, a branch token passes, because the identity filter returns the user the branch filter cached. With the identity filter first, both tokens are refused. No runtime auth, cache or serializer code changed.
+>   - **New regressions:**
+>     - `ResponseNumericFidelityGeneratorTest` (real generator plus real wire):
+>       - a test DTO and `ResponseProductJson` used as body and response each get a faithful input and an `…Output`, with the same required set and formats;
+>       - production `GET /product/{productId}` is rewired to the output;
+>       - numeric strings bind and the response JSON carries numbers;
+>       - an inlined child member written as a string, and a type-level string-written referenced component, keep `|string` while their plain siblings narrow, checked against the actual response JSON.
+>     - `ResponseNumericFidelityTransformerTest`: 8 synthetic cases (nested, collection, dictionary, nullable and type-level handling compared with real serialization; the split; and fail-closed cases for output-id collision, untyped response, two-type component, custom converter, collection-of-collections and serializer drift).
+>     - `OperationTokenRequirementResolverTest`: 22 cases, including ServiceFilter, opaque factory, plain TypeFilter roles and malformed arguments.
+>     - `OperationSecurityPrecedenceTest`: 5 real-MVC cases:
+>       - ServiceFilter published as `IdentityBearer` and matching the 6-credential runtime matrix;
+>       - ServiceFilter + `[AllowAnonymous]` → 401 and document 500;
+>       - custom factory → 401 and document 500;
+>       - both mixed orders observed at runtime, each with document 500.
+>   - **Sabotage, round 2 (sources restored):**
+>     - ignoring `[ServiceFilter]` fails 8 tests;
+>     - nested members using the parent's handling fails 3;
+>     - disabling the split fails 3.
+>   - **Re-run evidence:**
+>     - The production document is unchanged: forced exports to two fresh directories are byte-identical at the same sha256 `6fd6f244…7ea7`, no `…Output` component exists (only string enums are shared), runtime parity holds after excluding `servers`, and the baseline diff is the same 407 classified changes.
+>     - The review's **export constraint** was reproduced: after a cached Release export, an incremental export to a fresh directory exits 0 and writes nothing, so the export script must force regeneration. The earlier "incremental then `--no-incremental`" pair above produced documents only because the first build followed a source change. This is recorded for Shared 1.3 in the H3/H4 ownership record.
+>     - The no-config ordinary build succeeds and writes no OpenAPI document.
+>     - Gates: OpenAPI + architecture **73/73**; Validator **327/327**; UseCase **1138/1138**; WebApi + architecture **1138/1138** in **3m35s**.
+>     - Model check: no changes.
+>   - **Still open:**
+>     - repeat independent acceptance;
+>     - Shared standing gates (`pnpm -r typecheck/lint/format:check`) on the pinned Node `>=24.21.0 <25`, which is not installed on this host. SV22 touches only Shared docs excluded by `.prettierignore`, and no TypeScript.
+> - **Review round 2 (2026-10-17): partially addressed.** The repeat review confirmed the round-1 fixes: all 8 earlier probes pass, factories fail safely, the shared split works, nested objects are honored, and the mixed-token diagnostics match runtime. It **technically accepted 4.3**, which is now checked. One serializer-fidelity gap remained, so 4.2 and 4.4 stay open.
+>   - **[P2] A collection type's own handling was ignored.** A `List<int>` or `Dictionary<string,int>` subclass marked `[JsonNumberHandling(WriteAsString)]` writes string elements and values, but the document published `integer`, both as a root response and as a member.
+>   - **Fix.** The walk now carries each value's inherited handling and resolves it with System.Text.Json's precedence, verified case by case against real serialization:
+>     - a member value takes its property attribute, else its declaring type's attribute;
+>     - a collection or dictionary then falls back to its own type's attribute, then to the options;
+>     - elements take their collection's handling;
+>     - a collection that is itself an element starts again from its own type (`List<List<int>>` under a string-writing declaring type writes inner numbers, and `List<StringList>` writes inner strings).
+>   - This replaces round 1's fail-closed rule for a collection of collections, whose throw and test are removed. A custom converter on a collection member now fails generation as well.
+>   - **New regression:** `ResponseNumericWireFidelityTest`, with 5 probes on a derived host: a string-writing `List<int>` subclass, a dictionary subclass, a nested list, members, and a declaring type. A generic comparator walks each published response schema against the actual response JSON and requires a string alternative exactly where the wire has a string, with no precedence rule restated in the test. The probes cover:
+>     - collection types as the root and as members;
+>     - property attributes overriding a collection type in both directions;
+>     - a declaring type beating a collection type;
+>     - nested collections and plain numbers.
+>   - **Proof:**
+>     - ignoring the collection type's handling (the reported bug) fails 4 probes;
+>     - letting it beat the member fails 2;
+>     - the reviewer's own 9-case probe file passes when run temporarily (since removed).
+>   - **Re-run evidence:**
+>     - The production document is still byte-identical: forced exports give the same sha256 `6fd6f244…7ea7` twice, runtime parity holds after excluding `servers`, and the baseline diff is the same 407 classified changes.
+>     - The no-config build writes no document.
+>     - Gates: Validator **327/327**; UseCase **1138/1138**; WebApi + architecture **1142/1142** in **3m37s**.
+>     - Model check: no changes.
+>   - **Still open:**
+>     - repeat independent review of 4.2 and 4.4;
+>     - Shared standing gates on Node `>=24.21.0 <25`, which is not installed here;
+>     - 4.5 and 4.6 after acceptance.
+> - **Review round 3 (2026-10-17): technical/code and semantic acceptance PASS.** There are no remaining code findings. The reviewer reproduced all 9 probes, the build, every suite (Validator 327/327, UseCase 1138/1138, WebApi + architecture 1142/1142), the model check, the export-disabled builds, the deterministic exports (`6fd6f244…7ea7`) and runtime parity.
+>   - **4.2 and 4.4 are technically accepted** and checked. This does not claim the Shared standing gates passed (see below).
+>   - The v52 semantic reconciliation was accepted, which authorized advancing the design markers.
+>   - **4.5 close-out (2026-10-17):**
+>     - `design/docs/product.md` and `design/docs/screens.md` now carry `Synced against loto-specs: v52`, and the `screens.md` "Cross-screen patterns" source-contracts reference reads `loto-specs.md` v52. Historical revision references (v43 forward markers) are unchanged, and no screen entry, source tag, `[DTO]` field or gap owner changed.
+>     - On the actual tree, `bash docs/check-loto-doc-sync.sh` passes ("aligned for v52"; "design catalog sync markers are aligned for v52") and `bash docs/test-loto-doc-sync.sh` passes 34/34.
+>     - The documentary diff is returned for read-only repeat review.
+>   - **Still open:**
+>     - **Shared standing gates:** passed, but on a changed pin. They could not run on Node `>=24.21.0 <25` (this host has Node 26.6.0 only), so the owner moved the project toolchain to Node 26 (`.nvmrc` `26`, `engines.node` `>=26.6.0 <27`). Node 26 was still "Current" then, pending LTS; the deviation is recorded in Shared M1's amendment note. On the new pin:
+>       - `pnpm install --frozen-lockfile` → lockfile unchanged;
+>       - `pnpm -r typecheck`, `pnpm -r lint` and `pnpm format:check` → exit 0;
+>       - `engine-strict` still rejects out-of-range Node.
+>     - **4.6:** after an authorized source commit, record its actual hash here and in Shared's H3/H4 ownership record (not inside the same commit), then close 4.6 and let Shared 1.2 cite it.
+> - **4.5** §6.15 has two new guarantees, a v52 status line and a revision note. The presentation's §6.15 card and both HTML revisions moved to `v52`, and both scripts pass `node --check`.
+>   - **Design reconciliation (for review):** `screens.md`'s session-gate table already states the three tiers the document now publishes (Login only → identity token for Branch picker / session → branch session by role). Neither design file describes number typing or the old global `Bearer` requirement. No screen, route, source tag, `[DTO]` field or gap owner changes.
+>   - **Expected temporary mismatch (until the round-3 acceptance; resolved in the close-out above):** both markers and the `screens.md` source-contracts line stay at `v51`, so `bash docs/check-loto-doc-sync.sh` fails with "design/docs/product.md was reviewed against v51; docs/loto-specs.md is v52". A disposable copy with both markers at `v52` passes the checker and all 34 `docs/test-loto-doc-sync.sh` scenarios.
+> - **After acceptance** (in this order):
+>   1. Set `Synced against loto-specs: v52` in `design/docs/product.md` and `design/docs/screens.md`.
+>   2. Change the `screens.md` "Cross-screen patterns" source-contracts reference from `loto-specs.md` v51 to v52.
+>   3. Run `bash docs/check-loto-doc-sync.sh` and `bash docs/test-loto-doc-sync.sh` (expect 34/34).
+>   4. Tick 4.5, then 4.6, recording the reviewer and the landing commit here and in Shared's H3/H4 ownership record.
+>
+>   Shared M2 1.1/1.2 can then cite that commit.
+
 ---
 
 ## Milestone 7.7 — Domain Integrity & Close-Day Contract Fixes
