@@ -1389,6 +1389,54 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TRANSACTION_PLAN_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_FINALIZE_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_FINALIZE_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_NOT_DRAFT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_NOT_DRAFT", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_STALE_WRITE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_STALE_WRITE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_INSTALLMENTS_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_INSTALLMENTS_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_INSTALLMENT_ID_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_INSTALLMENT_ID_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_INSTALLMENT_VERSION_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_INSTALLMENT_VERSION_INVALID", resourceCulture);
+            }
+        }
+
         public static string SETTING_STALE_WRITE {
             get {
                 return ResourceManager.GetString("SETTING_STALE_WRITE", resourceCulture);

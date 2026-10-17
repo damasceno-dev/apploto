@@ -301,6 +301,7 @@ Repository rules:
 Unit of work rule:
 
 - `UnitOfWork` owns `SaveChangesAsync()` and is the only normal commit boundary for application writes.
+- `TryCommitOptimistic()` is the same commit, but it returns `false` on an optimistic-concurrency conflict (an `xmin` root changed since it was read) instead of throwing. Use it only when a command must report its own stale error rather than the API layer's per-entity mapping — today the multi-row installment plan finalize, which maps `false` to `TRANSACTION_PLAN_STALE_WRITE`.
 
 JWT rules:
 

@@ -24,6 +24,7 @@ enum DailyCloseReviewEventType string: Rejected, OpeningChanged
 enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
 enum Direction string: In, Out
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
+enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions, MissingExpectedClose
 enum Role string: Admin, Manager, Member
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
@@ -140,6 +141,14 @@ schema RequestCreateTransactionTypeJson
 
 schema RequestDailyCloseVariancePreviewJson
   items optional RequestUpsertDailyCloseItemJson[]?
+
+schema RequestFinalizeInstallmentPlanJson
+  confirmMixedPlan optional boolean
+  installments optional RequestInstallmentPlanRowVersionJson[]?
+
+schema RequestInstallmentPlanRowVersionJson
+  transactionId required string
+  version required integer|string
 
 schema RequestLockSettingMonthJson
   month required integer|string
@@ -629,6 +638,17 @@ schema ResponseHolidayJson
   date required string
   description optional string?
   id required string
+
+schema ResponseInstallmentPlanJson
+  accountId required string
+  activeCount required integer|string
+  cancelledCount required integer|string
+  date required string
+  draftCount required integer|string
+  installments required ResponseTransactionJson[]
+  originTransactionId required string
+  status required enum:InstallmentPlanStatus
+  totalValue required number|string
 
 schema ResponseInstallmentPreviewImpactJson
   cashVarianceImpact required ResponseCashVarianceImpactJson
@@ -1815,6 +1835,23 @@ operation POST /transaction/installment/preview
   query asOfDate optional string
   body required RequestCreateTransactionInstallmentJson
   response 200 ResponseInstallmentPreviewJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /transaction/installment/{originTransactionId}
+  path originTransactionId required string
+  response 200 ResponseInstallmentPlanJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /transaction/installment/{originTransactionId}/finalize
+  path originTransactionId required string
+  body required RequestFinalizeInstallmentPlanJson
+  response 200 ResponseInstallmentPlanJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v47
+Spec revision: v48
 -->
 <html lang="en">
 <head>
@@ -656,7 +656,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, cheque-plan finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[

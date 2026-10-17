@@ -56,6 +56,8 @@ using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
 using server.Application.UseCases.Transactions.Finalize;
+using server.Application.UseCases.Transactions.FinalizeInstallmentPlan;
+using server.Application.UseCases.Transactions.GetInstallmentPlan;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.InstallmentPreview;
 using server.Application.UseCases.Transactions.List;
@@ -198,6 +200,8 @@ public static class AppDependencyInjection
         services.AddScoped<CreateTransactionInstallmentUseCase>();
         services.AddScoped<PreviewInstallmentPlanUseCase>();
         services.AddScoped<FinalizeTransactionUseCase>();
+        services.AddScoped<FinalizeInstallmentPlanUseCase>();
+        services.AddScoped<GetInstallmentPlanUseCase>();
         services.AddScoped<GetTransactionUseCase>();
         services.AddScoped<ListTransactionsUseCase>();
         services.AddScoped<UpdateTransactionUseCase>();

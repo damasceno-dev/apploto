@@ -690,6 +690,30 @@
     <data name="TRANSACTION_STALE_WRITE" xml:space="preserve">
         <value>A transação foi alterada por outra operação; recarregue antes de salvar</value>
     </data>
+    <data name="TRANSACTION_PLAN_NOT_FOUND" xml:space="preserve">
+        <value>Plano de parcelas não encontrado</value>
+    </data>
+    <data name="TRANSACTION_PLAN_FINALIZE_REQUIRED" xml:space="preserve">
+        <value>Esta parcela pertence a um plano; finalize o plano inteiro</value>
+    </data>
+    <data name="TRANSACTION_PLAN_NOT_DRAFT" xml:space="preserve">
+        <value>O plano não tem parcelas em rascunho para finalizar</value>
+    </data>
+    <data name="TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED" xml:space="preserve">
+        <value>O plano já tem parcelas ativas ou canceladas; confirme a finalização somente das parcelas em rascunho restantes</value>
+    </data>
+    <data name="TRANSACTION_PLAN_STALE_WRITE" xml:space="preserve">
+        <value>O plano foi alterado por outra operação; recarregue antes de finalizar</value>
+    </data>
+    <data name="TRANSACTION_PLAN_INSTALLMENTS_REQUIRED" xml:space="preserve">
+        <value>Informe as parcelas do plano com suas versões</value>
+    </data>
+    <data name="TRANSACTION_PLAN_INSTALLMENT_ID_INVALID" xml:space="preserve">
+        <value>Cada parcela deve ter um identificador válido e não repetido</value>
+    </data>
+    <data name="TRANSACTION_PLAN_INSTALLMENT_VERSION_INVALID" xml:space="preserve">
+        <value>Cada parcela deve informar a versão carregada</value>
+    </data>
     <data name="SETTING_STALE_WRITE" xml:space="preserve">
         <value>As configurações foram alteradas por outra operação; recarregue antes de salvar</value>
     </data>

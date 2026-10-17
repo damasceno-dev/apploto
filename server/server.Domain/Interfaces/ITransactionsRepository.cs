@@ -15,6 +15,14 @@ public interface ITransactionsRepository
     Task<IReadOnlyList<Transaction>> ListByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<int> CountByBranchIdAsNoTracking(Guid branchId, TransactionListFilter filter);
     Task<IReadOnlyList<Transaction>> ListByOriginTransactionIdAndBranchIdAsNoTracking(Guid originId, Guid branchId);
+    /// <summary>
+    /// Tracked: every installment of one plan in the branch (any status, non-soft-deleted), ordered
+    /// <c>DueDate, Id</c>. The authoritative sibling set for plan commands.
+    /// </summary>
+    Task<IReadOnlyList<Transaction>> ListPlanInstallmentsByOriginTransactionIdAndBranchId(
+        Guid originTransactionId, Guid branchId, CancellationToken ct = default);
+    Task<IReadOnlyList<Transaction>> ListPlanInstallmentsByOriginTransactionIdAndBranchIdAsNoTracking(
+        Guid originTransactionId, Guid branchId, CancellationToken ct = default);
     Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(
         Guid branchId,
         Guid accountId,

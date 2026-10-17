@@ -50,6 +50,11 @@ public class FinalizeTransactionUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_FINALIZE_NON_DRAFT);
         }
 
+        // A Draft installment of a cheque plan finalizes only through the plan command (M7.7 7.6.2), so no
+        // single-row path can activate part of a plan. A standalone Draft keeps this individual finalize.
+        if (transaction.OriginTransactionId is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_PLAN_FINALIZE_REQUIRED);
+
         if (transaction.Version != expectedVersion)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);
 

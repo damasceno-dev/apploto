@@ -86,7 +86,9 @@ public class ArchitectureTest
         "server.Application.UseCases.DailyCloses.Review",
         "server.Application.UseCases.DailyCloses.VariancePreview",
         // M7.7 Phase 7.6.1: the review-event history (GET /dailyclose/{id}/history) only reads.
-        "server.Application.UseCases.DailyCloses.History"
+        "server.Application.UseCases.DailyCloses.History",
+        // M7.7 Phase 7.6.2: the installment plan read (GET /transaction/installment/{id}) only reads.
+        "server.Application.UseCases.Transactions.GetInstallmentPlan"
     ];
 
     [Fact]
@@ -200,7 +202,7 @@ public class ArchitectureTest
     }
 
     [Fact]
-    public void DailyCloseAccountCoordination_HasExactlyTheElevenDeclaredMutationParticipants()
+    public void DailyCloseAccountCoordination_HasExactlyTheTwelveDeclaredMutationParticipants()
     {
         var expected = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -214,6 +216,8 @@ public class ArchitectureTest
             "server.Application.UseCases.Transactions.Create.CreateTransactionUseCase",
             "server.Application.UseCases.Transactions.CreateInstallment.CreateTransactionInstallmentUseCase",
             "server.Application.UseCases.Transactions.Finalize.FinalizeTransactionUseCase",
+            // M7.7 Phase 7.6.2: the atomic plan finalize mutates the plan account's ledger.
+            "server.Application.UseCases.Transactions.FinalizeInstallmentPlan.FinalizeInstallmentPlanUseCase",
             "server.Application.UseCases.Transactions.Cancel.CancelTransactionUseCase"
         };
         var actual = typeof(AppDependencyInjection).Assembly.GetTypes()

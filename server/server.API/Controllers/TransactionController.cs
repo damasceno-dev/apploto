@@ -5,6 +5,8 @@ using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
 using server.Application.UseCases.Transactions.Finalize;
+using server.Application.UseCases.Transactions.FinalizeInstallmentPlan;
+using server.Application.UseCases.Transactions.GetInstallmentPlan;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.InstallmentPreview;
 using server.Application.UseCases.Transactions.List;
@@ -127,6 +129,41 @@ public class TransactionController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await previewInstallmentPlanUseCase.Execute(request, asOfDate, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("installment/{originTransactionId:guid}")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseInstallmentPlanJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetInstallmentPlan(
+        [FromServices] GetInstallmentPlanUseCase getInstallmentPlanUseCase,
+        [FromRoute] Guid originTransactionId,
+        CancellationToken cancellationToken)
+    {
+        var response = await getInstallmentPlanUseCase.Execute(originTransactionId, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("installment/{originTransactionId:guid}/finalize")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseInstallmentPlanJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> FinalizeInstallmentPlan(
+        [FromServices] FinalizeInstallmentPlanUseCase finalizeInstallmentPlanUseCase,
+        [FromRoute] Guid originTransactionId,
+        [FromBody] RequestFinalizeInstallmentPlanJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await finalizeInstallmentPlanUseCase.Execute(originTransactionId, request, cancellationToken);
         return Ok(response);
     }
 

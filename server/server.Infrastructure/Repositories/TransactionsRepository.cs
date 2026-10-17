@@ -97,6 +97,38 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<Transaction>> ListPlanInstallmentsByOriginTransactionIdAndBranchId(
+        Guid originTransactionId,
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        return await BuildPlanInstallmentsQuery(dbContext.Transactions, originTransactionId, branchId)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Transaction>> ListPlanInstallmentsByOriginTransactionIdAndBranchIdAsNoTracking(
+        Guid originTransactionId,
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        return await BuildPlanInstallmentsQuery(dbContext.Transactions.AsNoTracking(), originTransactionId, branchId)
+            .ToListAsync(ct);
+    }
+
+    private static IQueryable<Transaction> BuildPlanInstallmentsQuery(
+        IQueryable<Transaction> source,
+        Guid originTransactionId,
+        Guid branchId)
+    {
+        return source
+            .Where(transaction =>
+                transaction.OriginTransactionId == originTransactionId &&
+                transaction.BranchId == branchId &&
+                transaction.Active)
+            .OrderBy(transaction => transaction.DueDate)
+            .ThenBy(transaction => transaction.Id);
+    }
+
     public async Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(
         Guid branchId,
         Guid accountId,
