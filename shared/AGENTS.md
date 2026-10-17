@@ -83,4 +83,4 @@ As of Shared M1, all three entry files are `export {}` placeholders; nothing is 
 
 - `pnpm -r typecheck` and `pnpm -r lint` stay green on every commit that touches `shared/`.
 - `pnpm format:check` must also stay green, because the web and mobile standing gates run it across the whole workspace.
-- Vitest arrives with Shared M2 (decision D1, recorded 2026-10-17 pending independent acceptance): Shared M2 item 3.1 installs it for `@loto/api`; Shared M3 adds formatter/validator tests to the existing runner. Installing it and any root `pnpm -r test` fan-out are later Shared/root-tooling changes.
+- Vitest arrives with Shared M2 (decision D1, independently accepted 2026-10-17): Shared M2 item 3.1 installs it for `@loto/api`; Shared M3 adds formatter/validator tests to the existing runner. Installing it and any root `pnpm -r test` fan-out are later Shared/root-tooling changes.

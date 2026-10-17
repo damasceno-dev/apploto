@@ -2013,9 +2013,9 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 - [x] **4.3** H4 operation auth metadata: `IdentityBearer` and `BranchBearer` schemes; each operation's `security` derived from its effective MVC filters, wrapped filters included (`[]` for anonymous, role names for `[TokenAuthorize]`); the global `Bearer` requirement removed; undeclared, contradictory, order-dependent or opaque combinations stop generation with a clear error instead of being published.
 - [x] **4.4** Regression and export evidence: snapshot-independent assertions for response narrowing, request acceptance and per-operation security; the snapshot renderer pins security; an empirical runtime probe of every operation's token tier; real request/response JSON round-trip; no-config ordinary build and deterministic opt-in export with runtime parity; full suites green.
 - [x] **4.5** Canonical/design reconciliation: §6.15 and the doc-sync group at the next free revision; product/screens checked (no screen change) with markers advanced only after review.
-- [ ] **4.6** Independent acceptance and Shared handoff: review accepted, markers moved, the landing commit recorded in Shared M2 1.2, and Shared M2 Phase 1 unblocked (its own export script, committed input and generation stay Shared work).
+- [x] **4.6** Independent acceptance and Shared handoff: review accepted, markers moved, the landing commit recorded in Shared M2 1.2, and Shared M2 Phase 1 unblocked (its own export script, committed input and generation stay Shared work).
 
-> **Phase 4 delivery note (2026-10-17, SV22).** Baseline `7e8b169` (spec `v51`, clean). Landing commit: **awaiting the final accepted commit**. Spec `v52`. No migration, schema, endpoint, DTO, status, header, permission, serializer, converter or binding change: `NumberHandling` and the MVC JSON options are untouched, and the only new runtime code is document generation.
+> **Phase 4 delivery note (2026-10-17, SV22).** Baseline `7e8b169` (spec `v51`, clean). Landing commit: **`763edd7`** (recorded after that commit was created). Spec `v52`. No migration, schema, endpoint, DTO, status, header, permission, serializer, converter or binding change: `NumberHandling` and the MVC JSON options are untouched, and the only new runtime code is document generation.
 >
 > - **4.1** D1–D4 are recorded in Shared M2 as adopted implementation choices pending acceptance (adoption note before "Server-file handoffs"). D1 is policy-only: `shared/AGENTS.md` and Shared M2's standing gate now say Vitest arrives with M2, and installing it stays Shared item 3.1. D4 stays with the root-tooling owner. The H3/H4 ownership record and the exact files are under Shared's H4 handoff, as input for Shared 1.2.
 > - **4.2 (H3)** `ResponseNumericFidelityOpenApiDocumentTransformer` computes request and response reachability over the generated document: parameters and request bodies versus response content, following `$ref`, properties, items, `additionalProperties`, `not`, `allOf`, `anyOf` and `oneOf`.
@@ -2159,6 +2159,9 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 >   4. Tick 4.5, then 4.6, recording the reviewer and the landing commit here and in Shared's H3/H4 ownership record.
 >
 >   Shared M2 1.1/1.2 can then cite that commit.
+>
+> **Final handoff close-out (2026-10-17).** Implementation landed as `763edd7`, spec `v52`. Independent Codex review in “Review independent task delivery” accepted the code/semantic reconciliation and then the actual marker/checklist plus owner-approved Node 26 close-out with no findings. The reviewer reproduced the actual v52 doc-sync and 34/34 regression scenarios, typecheck/lint/format checks and frozen install without lockfile changes; backend source/tests were unchanged from the accepted 327/327 Validator, 1138/1138 UseCase and 1142/1142 WebApi/architecture run. This subsequent documentary record closes **4.6**, records the real landing reference in Shared's H3/H4 handoff, and supersedes the historical “still open”/“after acceptance” instructions above. Shared M2 1.1–1.6 still execute in its own phase: verify the integrated checkout, repeat the required ordinary-build/export checks, and implement its export script/committed input. No client generation is claimed here.
+
 
 ---
 
