@@ -11,6 +11,7 @@ public class TransactionListFilter
     public Guid? OperatorId { get; set; }
     public Guid? ClientId { get; set; }
     public Guid? OriginTransactionId { get; set; }
+    public Guid? TransactionTypeId { get; set; }
 
     /// <summary>
     /// Server-resolved active-linked-account set for Member callers; never set from a client-bound DTO.

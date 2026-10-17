@@ -99,6 +99,7 @@ public static class TransactionSharedMapper
                 OperatorId = request.OperatorId,
                 ClientId = request.ClientId,
                 OriginTransactionId = request.OriginTransactionId,
+                TransactionTypeId = request.TransactionTypeId,
                 Page = request.Page,
                 PageSize = request.PageSize
             };

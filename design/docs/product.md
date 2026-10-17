@@ -1,7 +1,7 @@
 # Lotero — Product Framing (frontend)
 
 <!--
-Synced against loto-specs: v48
+Synced against loto-specs: v49
 -->
 
 > **Status:** Reviewed baseline (Design M0 0.4.3). This is the frontend brief for M1 and later blueprints; pending features retain their owning contract gates in the screen catalog. The auth/account addendum (0.4.6) and deferred reports are not delivered by this baseline.
@@ -82,7 +82,7 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 
 ## 5. Promises and delivery boundaries
 
-The screen entries and their authoritative gap → screen map distinguish shipped contracts from decided behavior awaiting delivery. A prototype is a visual reference, not API evidence. In particular, fiado settlement/linked movements/statement (H), paired-Tab routing data (L; deactivation unpairing, S, shipped in server M7.7 Phase 5.3; close review events, X, shipped in Phase 7.6.1; whole-plan finalization, Y, shipped in Phase 7.6.2), the transaction-type filter (Z), and retained-retired-product count editing/preview recovery (AA) remain gated. Their fields or endpoints must not be invented to fill a mockup. The current queue is `GET /report/manager-queue` (renamed from `GET /report/dashboard` by server M7.7 Phase 7.8, fields unchanged) with the shipped `Backlog` and `UnlockedDraftTransactionCount`; no replacement endpoint or second backlog composition is needed here.
+The screen entries and their authoritative gap → screen map distinguish shipped contracts from decided behavior awaiting delivery. A prototype is a visual reference, not API evidence. In particular, fiado settlement/linked movements/statement (H), paired-Tab routing data (L; deactivation unpairing, S, shipped in server M7.7 Phase 5.3; close review events, X, shipped in Phase 7.6.1; whole-plan finalization, Y, shipped in Phase 7.6.2; the transaction-type filter, Z, shipped in Phase 7.6.3), and retained-retired-product count editing/preview recovery (AA) remain gated. Their fields or endpoints must not be invented to fill a mockup. The current queue is `GET /report/manager-queue` (renamed from `GET /report/dashboard` by server M7.7 Phase 7.8, fields unchanged) with the shipped `Backlog` and `UnlockedDraftTransactionCount`; no replacement endpoint or second backlog composition is needed here.
 
 **Auth, Profile and platform ownership:** server **M8** owns invitations, recovery/change password, Profile, logout with refresh-token revocation, Google sign-in, operated onboarding and its platform authority. Design **0.4.6** catalogs those screens after the contracts land. The existing avatar menu owns the mode switch only; its existence does not deliver Profile or logout. There is no public Register or self-service Create-branch journey. Today's server still exposes `POST /user/register` and `POST /branch/create`; their lockdown/replacement is M8 work, not evidence of a product entry point. The internal **Plataforma** onboarding area belongs to the Lotero team, with server platform authority; a branch Admin is not automatically a platform operator. The future owner setup checklist and guided Add/Offboard employee journeys remain 0.4.6 work; “under a minute” on Operators is a goal for that guided journey, not a delivered three-screen guarantee.
 

@@ -1768,6 +1768,7 @@ operation GET /transaction
   query Page optional integer|string
   query PageSize optional integer|string
   query Status optional enum:TransactionStatus
+  query TransactionTypeId optional string
   response 200 ResponseListTransactionsJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson

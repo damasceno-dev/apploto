@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v48
+Spec revision: v49
 -->
 <html lang="en">
 <head>
@@ -895,7 +895,7 @@ function renderIntro(s,i){
         </div>
         <div class="intro-card" style="border-left:3px solid var(--green)">
           <h3 class="in-color">Operational Deep-Links and Triage</h3>
-          <p>Cash-variance rows carry their exact close id by <code>(Date, AccountId)</code>; transaction lists identify and filter plan siblings by <code>OriginTransactionId</code> without widening Member scope, and every row carries its <code>Version</code> for a direct guarded action; time-entry lists filter/order <code>IsInProgress</code> before paging. Membership removal clears stale Operator login links atomically.</p>
+          <p>Cash-variance rows carry their exact close id by <code>(Date, AccountId)</code>; transaction lists identify and filter plan siblings by <code>OriginTransactionId</code>, and filter by <code>TransactionTypeId</code>, without widening Member scope, and every row carries its <code>Version</code> for a direct guarded action; time-entry lists filter/order <code>IsInProgress</code> before paging. Membership removal clears stale Operator login links atomically.</p>
         </div>
       </div>
     </div>

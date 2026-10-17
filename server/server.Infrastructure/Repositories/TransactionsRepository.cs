@@ -670,6 +670,11 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             query = query.Where(transaction => transaction.OriginTransactionId == originTransactionId);
         }
 
+        if (filter.TransactionTypeId is { } transactionTypeId)
+        {
+            query = query.Where(transaction => transaction.TransactionTypeId == transactionTypeId);
+        }
+
         return query;
     }
 }
