@@ -1,7 +1,7 @@
 # Lotero — Screen Catalog (semantic)
 
 <!--
-Synced against loto-specs: v50
+Synced against loto-specs: v51
 -->
 
 > **Status:** Reviewed baseline (Design M0, item 0.4.3). The 33 currently-cataloged screens, template, semantic IA and cross-screen patterns are the reviewed brief for M1 and later blueprints. This is not a final lock or proof of implementation: every screen/feature named in the **gap → screen map** remains **decision/contract-blocked** until its owner delivers and the entry is re-synced; a feature qualifier limits the gate to that feature. Future auth/account screens (0.4.6) and deferred reports remain uncataloged and owned. The 2026-07 catalog review added gaps **F–T**, the 2026-10 prototype review added **X–Z** and closed **A** by decision, and the baseline contract audit added **AA**; their signed/pending/implemented states remain recorded below.
@@ -95,7 +95,7 @@ If the branch session is lost while the identity token remains usable, the same 
 
 ## Cross-screen patterns
 
-These semantic requirements are the authored deliverable for **design M0 0.4.2**. The existing template, route table and gap → screen map remain authoritative. Source contracts are the current `server.Communication` DTOs, controllers and use cases, read with `loto-specs.md` v50 (§6.1, §6.5–§6.7, §6.10–§6.15); a pending marker is not a shipped contract. Formatting and literal UI copy follow [`formatting-ptbr.md`](../specs/formatting-ptbr.md) and [`copy-guidelines.md`](../specs/copy-guidelines.md). Web/mobile own their storage, transport, focus and navigation implementations; `design/` adds no runtime code.
+These semantic requirements are the authored deliverable for **design M0 0.4.2**. The existing template, route table and gap → screen map remain authoritative. Source contracts are the current `server.Communication` DTOs, controllers and use cases, read with `loto-specs.md` v51 (§6.1, §6.5–§6.7, §6.10–§6.15); a pending marker is not a shipped contract. Formatting and literal UI copy follow [`formatting-ptbr.md`](../specs/formatting-ptbr.md) and [`copy-guidelines.md`](../specs/copy-guidelines.md). Web/mobile own their storage, transport, focus and navigation implementations; `design/` adds no runtime code.
 
 ### Feedback, errors and read states
 

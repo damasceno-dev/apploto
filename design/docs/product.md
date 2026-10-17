@@ -1,7 +1,7 @@
 # Lotero — Product Framing (frontend)
 
 <!--
-Synced against loto-specs: v50
+Synced against loto-specs: v51
 -->
 
 > **Status:** Reviewed baseline (Design M0 0.4.3). This is the frontend brief for M1 and later blueprints; pending features retain their owning contract gates in the screen catalog. The auth/account addendum (0.4.6) and deferred reports are not delivered by this baseline.
