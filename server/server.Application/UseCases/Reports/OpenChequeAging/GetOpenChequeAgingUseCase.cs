@@ -33,6 +33,10 @@ public class GetOpenChequeAgingUseCase(
 
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / request.PageSize);
 
+        // M11 Phase 2.1: whole-filter totals from one grouped query, independent of the page.
+        var dueDateTotals = await transactionsRepository.ListOpenChequeTotalsByDueDateAsNoTracking(
+            branchUser.BranchId, request.AccountId, request.ClientId);
+
         // N+1 acceptable: typical branch has < 20 open cheque groups per page.
         var groupResponses = new List<ResponseOpenChequeAgingGroupJson>();
         foreach (var group in groups)
@@ -85,7 +89,10 @@ public class GetOpenChequeAgingUseCase(
             TotalPages = totalPages,
             HasNext = request.Page < totalPages,
             HasPrevious = request.Page > 1,
-            AsOfDate = asOfDate
+            AsOfDate = asOfDate,
+            OutstandingTotal = dueDateTotals.Sum(row => row.Value),
+            OpenRowCount = dueDateTotals.Sum(row => row.RowCount),
+            ByBucket = AgingBucketTotals.Build(dueDateTotals, asOfDate)
         };
     }
 

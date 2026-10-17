@@ -596,6 +596,12 @@ public class CreateTransactionUseCaseTest
             financialCommandIdempotency,
             branchClock,
             lockDateGuard,
+            new FiadoPhysicalPairService(
+                Substitute.For<IAccountsRepository>(),
+                Substitute.For<ITransactionTypesRepository>(),
+                ctx.DailyCloseLedgerGuard,
+                memberAccountScopeGuard),
+            Substitute.For<IAccountsRepository>(),
             ctx.UnitOfWork);
     }
 

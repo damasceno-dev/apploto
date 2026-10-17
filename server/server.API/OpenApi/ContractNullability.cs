@@ -5,7 +5,7 @@ namespace server.OpenApi;
 
 internal static class ContractNullability
 {
-    private static readonly Assembly CommunicationAssembly = typeof(RequestDashboardJson).Assembly;
+    private static readonly Assembly CommunicationAssembly = typeof(RequestManagerQueueJson).Assembly;
 
     [ThreadStatic]
     private static NullabilityInfoContext? _context;

@@ -76,16 +76,40 @@ public class PreviewCreateTransactionUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldUseInDirectionSign_ForFiadoAndVariance()
+    public async Task Execute_ShouldRejectATabRepayment_LikeItsWriteTwin()
     {
-        // In lowers outstanding (§6.4 signedValue = −Value); variance moves by −NetFlow(In) = −Value.
+        // M7.7 Phase 5.1: a Tab In is a fiado repayment and is recorded only through Receber pagamento, so the
+        // generic create — and therefore its preview — refuses it.
         var ctx = BuildContext(Role.Manager, AccountType.Tab, Direction.In, value: 120m, withClient: true);
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request, ctx.AsOfDate));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND);
+    }
+
+    [Fact]
+    public async Task Execute_ShouldNotReportASaleInAging_WhenExistingClientCreditAbsorbsIt()
+    {
+        // M7.7 Phase 5.1: aging membership comes from the shared FIFO projection, not from "every Tab Out".
+        var ctx = BuildContext(Role.Manager, AccountType.Tab, Direction.Out, value: 5m, withClient: true);
+        var projection = Substitute.For<IFiadoProjectionRepository>();
+        projection
+            .GetHypotheticalSaleRemainderAsNoTracking(
+                ctx.BranchUser.BranchId, ctx.ClientId!.Value, ctx.AsOfDate, Arg.Any<DateTime>(), TransactionDate, 5m,
+                Arg.Any<CancellationToken>())
+            .Returns(0m);
+        ctx.FiadoProjectionRepository = projection;
         var useCase = CreateUseCase(ctx);
 
         var response = await useCase.Execute(ctx.Request, ctx.AsOfDate);
 
-        response.Impact.FiadoBalanceImpact.Deltas.Single().OutstandingDelta.ShouldBe(-120m);
-        response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(-120m);
+        response.Impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeFalse();
+        response.Impact.ReceivableImpact.BucketAfter.ShouldBeNull();
+        response.Impact.FiadoBalanceImpact.Deltas.Single().OutstandingDelta.ShouldBe(5m);
+        await projection.Received(1).GetHypotheticalSaleRemainderAsNoTracking(
+            ctx.BranchUser.BranchId, ctx.ClientId!.Value, ctx.AsOfDate, Arg.Any<DateTime>(), TransactionDate, 5m,
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -356,13 +380,31 @@ public class PreviewCreateTransactionUseCaseTest
             ctx.DailyClosesRepository,
             ctx.ClientsRepository,
             ctx.CashVarianceCalculator,
-            ctx.CashVarianceProductResolver);
+            ctx.CashVarianceProductResolver,
+            ctx.FiadoProjectionRepository ?? NoCreditFiadoProjection());
 
         return new PreviewCreateTransactionUseCase(
             ctx.AuthenticationService,
             preamble,
             projector,
+            new FiadoPhysicalPairService(
+                ctx.AccountsRepository,
+                ctx.TransactionTypesRepository,
+                Substitute.For<server.Application.Services.DailyCloses.IDailyCloseLedgerGuard>(),
+                memberAccountScopeGuard),
             ctx.BranchClock);
+    }
+
+    /// <summary>The client has no credit: a new sale keeps its whole value as an unpaid remainder.</summary>
+    private static IFiadoProjectionRepository NoCreditFiadoProjection()
+    {
+        var projection = Substitute.For<IFiadoProjectionRepository>();
+        projection
+            .GetHypotheticalSaleRemainderAsNoTracking(
+                Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<DateTime>(),
+                Arg.Any<decimal>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.ArgAt<decimal>(5));
+        return projection;
     }
 
     /// <summary>
@@ -524,5 +566,6 @@ public class PreviewCreateTransactionUseCaseTest
         public required ICashVarianceProductResolver CashVarianceProductResolver { get; init; }
         public required IBranchClock BranchClock { get; init; }
         public required DateTime BranchClockUtcNow { get; init; }
+        public IFiadoProjectionRepository? FiadoProjectionRepository { get; set; }
     }
 }

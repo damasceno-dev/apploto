@@ -14,11 +14,23 @@ internal sealed class DailyCloseAccountCoordination(
     private static readonly EventId AcquiredEvent = new(7701, "DailyCloseAccountCoordinationAcquired");
     private static readonly EventId ReleasedEvent = new(7702, "DailyCloseAccountCoordinationReleased");
 
-    public async Task<IDailyCloseAccountCoordinationScope> Acquire(
+    public Task<IDailyCloseAccountCoordinationScope> Acquire(
         Guid branchId,
         Guid accountId,
         CancellationToken ct = default)
     {
+        return AcquireMany(branchId, [accountId], ct);
+    }
+
+    public async Task<IDailyCloseAccountCoordinationScope> AcquireMany(
+        Guid branchId,
+        IReadOnlyCollection<Guid> accountIds,
+        CancellationToken ct = default)
+    {
+        if (accountIds.Count == 0)
+            throw new ArgumentException("At least one account is required.", nameof(accountIds));
+
+        var accountId = accountIds.First();
         var transaction = await dbContext.Database.BeginTransactionAsync(ct);
 
         try
@@ -42,10 +54,19 @@ internal sealed class DailyCloseAccountCoordination(
                 $"SELECT pg_advisory_xact_lock_shared({monthLockKey})",
                 ct);
 
-            var advisoryKey = DailyCloseAccountCoordinationKey.Compute(branchId, accountId);
-            await dbContext.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock({advisoryKey})",
-                ct);
+            // Ascending key order is the one global order for multi-account scopes; a single account is the
+            // trivial case of the same order.
+            var advisoryKeys = accountIds
+                .Distinct()
+                .Select(id => DailyCloseAccountCoordinationKey.Compute(branchId, id))
+                .Order()
+                .ToList();
+            foreach (var advisoryKey in advisoryKeys)
+            {
+                await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT pg_advisory_xact_lock({advisoryKey})",
+                    ct);
+            }
             var acquiredAt = Stopwatch.GetTimestamp();
 
             logger.LogInformation(

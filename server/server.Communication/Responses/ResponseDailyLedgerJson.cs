@@ -14,6 +14,9 @@ public class ResponseDailyLedgerJson
     public decimal ClosingBalance { get; init; }
     public Guid AccountId { get; init; }
     public string AccountName { get; init; } = string.Empty;
+
+    /// <summary>False when the drilled account is deactivated (M11 Phase 2.4: its history stays readable).</summary>
+    public bool AccountActive { get; init; }
     public DateTime DateFrom { get; init; }
     public DateTime DateTo { get; init; }
 }

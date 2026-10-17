@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Reports.CashVariance;
 using server.Application.UseCases.Reports.DailyLedger;
-using server.Application.UseCases.Reports.Dashboard;
+using server.Application.UseCases.Reports.ManagerQueue;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
 using server.Application.UseCases.Reports.MonthlyReconciliation;
@@ -122,15 +122,15 @@ public class ReportController : ControllerBase
     }
 
     [HttpGet]
-    [Route("dashboard")]
+    [Route("manager-queue")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
-    [ProducesResponseType(typeof(ResponseDashboardJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseManagerQueueJson), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> Dashboard(
-        [FromServices] GetDashboardUseCase useCase,
-        [FromQuery] RequestDashboardJson request,
+    public async Task<IActionResult> ManagerQueue(
+        [FromServices] GetManagerQueueUseCase useCase,
+        [FromQuery] RequestManagerQueueJson request,
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(request, cancellationToken);

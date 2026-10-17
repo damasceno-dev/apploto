@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v43
+Spec revision: v52
 -->
 <html lang="en">
 <head>
@@ -290,7 +290,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'The Three-Date Model',
-   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next calendar day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
+   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next calendar day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet). It is never sent on create; a later edit (<code>PUT /transaction/{id}</code>) records it. Fiado rows ignore it: they settle through Receber pagamento.<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
    activeTables:['Transaction'],
    activeArrows:[],
    data:[
@@ -327,7 +327,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
-   narrative:'A customer needs cash. They send <b>R$800</b> by PIX to the lotérica\'s account, and Jennifer hands them R$800 from the drawer — a <em>saque via PIX</em>. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the cash leaves the drawer; the PIX credit compensates the house on the bank side.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1, where the bank credit lands the next day (DueDate = Date + 1).',
+   narrative:'A customer needs cash. They send <b>R$800</b> by PIX to the lotérica\'s account, and Jennifer hands them R$800 from the drawer — a <em>saque via PIX</em>. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the cash leaves the drawer; the PIX credit compensates the house on the bank side.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1, where the bank credit lands the next day (DueDate = Date + 1). A create request has no <code>PaidAt</code>: every new row starts unpaid, and settlement is recorded later by an edit (<code>PUT /transaction/{id}</code>).',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -335,7 +335,7 @@ const SLIDES=[
      {n:'Date',v:'"2025-03-15"'},{n:'Value',v:'"R$ 800.00"',hl:'hl'},
      {n:'Direction',v:'"Out"',hl:'hl'},{n:'CategoryId',v:'→ Saídas'},
      {n:'TransactionTypeId',v:'→ PIX'},{n:'AccountId',v:'→ Jennifer'},
-     {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'"2025-03-15"'},
+     {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'null'},
      {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'},
      {n:'Status',v:'"Active"'}
     ]}
@@ -397,7 +397,7 @@ const SLIDES=[
     {entity:'Covering scenario (March 8)',fields:[{n:'Date',v:'"2025-03-08"'},{n:'RecordedByOperatorId',v:'→ Jennifer',hl:'hl'},{n:'CreatedByUserId',v:'→ Maria',hl:'hl-blue'}]}
    ]},
   {title:'Accounts and the Terminal/Tab Pair',
-   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><span class="design-note"><span class="dn-label">TabAccountId invariants:</span> only Terminal accounts may set it, the target must be of type Tab, a Terminal may exist without a Tab, and each Tab is paired with at most one Terminal.</span>',
+   narrative:'<b>Account</b> is purely financial — it represents a terminal drawer, a bank account, or a tab (credit) account. In branches that use fiado, a Terminal account may have a paired <b>Tab Account</b> via the self-referencing <b>TabAccountId</b>. A terminal may also exist without a Tab account when that branch does not use fiado.<br><br>This separation is critical: credit sales (<em>fiado</em>) go to the Tab account, not the terminal, so they don\'t distort the daily cash reconciliation. <b>OperatorAccount</b> is the junction linking Operators to their Accounts. IsPrimary=true marks the main terminal — <b>at most one per operator</b> (unique filtered index).<br><br>When Maria covers Jennifer\'s shift, she operates this same terminal and tab pair — the <b>Account stays the same</b>, only the <b>CreatedByUserId</b> on transactions changes to Maria.<br><br><span class="design-note"><span class="dn-label">TabAccountId invariants:</span> only Terminal accounts may set it, the target must be of type Tab, a Terminal may exist without a Tab, each Tab is paired with at most one Terminal, and deactivating either side clears the pairing in the same commit.</span>',
    activeTables:['AccountTerminal','AccountTab','OperatorAccount','Operator'],
    activeArrows:['oa-op','oa-acc','acc-tab'],
    data:[
@@ -447,7 +447,7 @@ const SLIDES=[
     {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]}
    ]},
   {title:'Receivables Tracking',
-   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b>. The other two remain as receivables — money expected in the future.',
+   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b> by an edit of that installment (creates never carry it). The other two remain as receivables — money expected in the future.',
    activeTables:['Tx1','Tx2','Tx3'],
    activeArrows:[],
    data:[
@@ -509,7 +509,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Tab Balance = R$150',
-   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The owner can query this grouped by Client for an <b>aging report</b>: "show me all customers who owe money, sorted by oldest debt."<br><br><span class="design-note"><span class="dn-label">Important:</span> the Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product. The daily close form may display it for reference, but does not store it as a snapshot value.</span>',
+   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The balance is <b>branch-wide per client</b>, across every Tab. The owner reads it in the <b>aging report</b>, where every payment is applied FIFO to the client\'s oldest-due sales and only unpaid remainders age, and in João\'s <b>fiado statement</b> (<code>GET /client/{id}/fiado-statement</code>), whose running balance reconciles row by row.<br><br><span class="design-note"><span class="dn-label">Important:</span> the Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product, and the close-day form does not show it for any role: a raw Tab balance shows where movements were registered, not what a client owes.</span>',
    activeTables:['AccountTab'],
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 150'},
@@ -517,7 +517,7 @@ const SLIDES=[
     {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Jennifer\'\n\n→ <span class="res">R$ 150.00</span>'}
    ]},
   {title:'Client Pays Back',
-   narrative:'João returns the following Friday (March 14) — Jennifer is back at her own terminal — and pays his R$150 debt. She selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. This row also requires a Tab account and ClientId, and the Transaction has <b>Direction=In</b> on the Tab account.',
+   narrative:'João returns the following Friday (March 14) — Jennifer is back at her own terminal — and pays his R$150 debt. Repayments are recorded only through <b>Receber pagamento</b> (<code>POST /transaction/fiado-payment</code>): Jennifer must pick the payment method — an In type configured as a fiado repayment method, with <b>no default</b> — and the Tab that received it. The row has <b>Direction=In</b> on the Tab account; the generic create refuses a Tab In so the method rules cannot be bypassed.<br><br>Same type name ("Cliente"), different category — the In/Out split is <b>intentional design</b> from the original Access system.',
    activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
    activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
    data:[
@@ -530,7 +530,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Balance Zeroed — Drawer Untouched',
-   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>Throughout this entire flow, the Terminal account "Jennifer" was <b>never touched</b> — the cash drawer reconciliation stays clean. This is why the Terminal/Tab separation exists: it <b>isolates credit from cash</b>, ensuring the CashVariance calculation at end of day is accurate.',
+   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>The Tab stays the source of João\'s debt; the Terminal explains only what physically moved. Paid by <b>PIX</b> (a non-cash method), the Terminal is untouched. Paid in <b>cash into Jennifer\'s counted drawer</b> (a counted-cash method), Receber pagamento also writes a <b>system-generated Terminal In R$150</b> linked to the Tab row in the same commit, so the drawer counted +R$150 reconciles at zero. Likewise a fiado sale that hands out counted stock writes a generated Terminal Out. The Tab balance itself is <b>never</b> added to the CashVariance formula — that would count the same value twice.',
    activeTables:['AccountTab','AccountTerminal'],
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 0'},
@@ -656,7 +656,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, cheque-plan finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
@@ -895,18 +895,18 @@ function renderIntro(s,i){
         </div>
         <div class="intro-card" style="border-left:3px solid var(--green)">
           <h3 class="in-color">Operational Deep-Links and Triage</h3>
-          <p>Cash-variance rows carry their exact close id by <code>(Date, AccountId)</code>; transaction lists identify and filter plan siblings by <code>OriginTransactionId</code> without widening Member scope, and every row carries its <code>Version</code> for a direct guarded action; time-entry lists filter/order <code>IsInProgress</code> before paging. Membership removal clears stale Operator login links atomically.</p>
+          <p>Cash-variance rows carry their exact close id by <code>(Date, AccountId)</code>; transaction lists identify and filter plan siblings by <code>OriginTransactionId</code>, and filter by <code>TransactionTypeId</code>, without widening Member scope, and every row carries its <code>Version</code> for a direct guarded action; time-entry lists filter/order <code>IsInProgress</code> before paging. Membership removal clears stale Operator login links atomically.</p>
         </div>
       </div>
     </div>
   </div>`;
 
   if(s.id==='morning') return `<div class="slide intro-slide" data-idx="${i}">
-    <h2>The Morning After: Maria&#39;s Dashboard</h2>
+    <h2>The Morning After: Maria&#39;s Work Queue</h2>
     <p class="intro-sub">Sunday, March 16 — everything the six stories produced, on one screen</p>
     <div class="intro-cols">
       <div class="intro-col">
-        <p class="intro-text">Maria opens the manager dashboard (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/dashboard</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. Dashboard, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
+        <p class="intro-text">Maria opens the Manager Work Queue (<code style="background:#333;padding:2px 6px;border-radius:3px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent)">GET /report/manager-queue</code>) for March 15. One call returns submitted-or-later closes with authoritative persisted per-account variance (Jennifer&#39;s close carries <b style="color:#ef5350">−R$ 20.00</b>), pending approvals, and expected terminals that have not submitted. The queue, review, cash summary, and monthly reconciliation hide retained variance while a recalled, reopened, rejected-correction, or opening-recheck close is Draft.</p>
         <div class="intro-card">
           <h3 class="accent-color">The Work Queue</h3>
           <p>Pending approvals, non-submitters, and each close&#39;s variance in one response. Variance is joined by <code>(Date, AccountId)</code> server-side — the frontend never stitches reports together. The same response carries the <b>backlog</b> — Submitted, Rejected, and Draft closes still open on unlocked days before the one Maria is viewing, with the oldest such day — and the count of Draft transactions on every unlocked day through today. Cash-variance summary rows also carry that exact <code>DailyCloseId</code>, and a terminal with an open Draft close deep-links straight into it.</p>
@@ -919,7 +919,7 @@ function renderIntro(s,i){
       <div class="intro-col">
         <div class="intro-card">
           <h3 class="teal-color">Beyond the Day</h3>
-          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due; monthly reconciliation totals every day and tells Maria when the month is <b>LockReady</b> — including missing closes implied by direct Terminal activity. Maria locks only through <code>POST /setting/lock-month</code>, which atomically rechecks every unlocked month and lands <code>LockDate</code> on month-end. Earlier operational data pulls the validation floor backward; ancient empty legacy boundaries are clamped away, and an impossible future value from the retired settings path can be repaired by this same validated command. Every time-entry write shares the month boundary and checks the cutoff, so neither a full snapshot, whole-row removal, nor granular correction can change payroll hours after a successful lock.</p>
+          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero — and the report splits total debt from client credit; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due, with whole-set totals by aging bucket on every page; monthly reconciliation totals every day, says whether the month is already locked or elapsed, and tells Maria when it is <b>LockReady</b> — including missing closes implied by direct Terminal activity. Maria locks only through <code>POST /setting/lock-month</code>, which atomically rechecks every unlocked month and lands <code>LockDate</code> on month-end. Earlier operational data pulls the validation floor backward; ancient empty legacy boundaries are clamped away, and an impossible future value from the retired settings path can be repaired by this same validated command. Every time-entry write shares the month boundary and checks the cutoff, so neither a full snapshot, whole-row removal, nor granular correction can change payroll hours after a successful lock.</p>
         </div>
         <div class="intro-card">
           <h3 class="in-color">Previews That Never Commit</h3>
@@ -942,11 +942,11 @@ function renderClosing(i){
     {t:'Branch Consistency',d:'Transaction and DailyClose references must resolve to the same Branch. The service layer blocks cross-tenant mixes.'},
     {t:'Transaction Scope',d:'Members work only with linked-account, same-day rows they recorded. Managers and Admins review broader branch workflows.'},
     {t:'Retry + Concurrency Contracts',d:'Persisted Idempotency-Key replay makes financial creates safe to retry. Strong If-Match/ETag xmin tokens reject stale Transaction, DailyClose, and Setting roots.'},
-    {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft.'},
+    {t:'DailyClose Identity + Corrections',d:'Opener, immutable first-count recorder, and current submitter are distinct. Recall, Reopen, Rejected correction, and opening recheck remain distinct; recorder ownership survives while the current submitter is cleared on Draft. Each rejection and each opening change is kept as an immutable dated review event with its actor and before/after values (GET /dailyclose/{id}/history).'},
     {t:'TimeEntry Calculation',d:'TimeEntrySegment pairs store clock activity. Parent rows compute totals, overnight or forgotten opens, lunch top-up, and status hours. Constants resolve from the effective-dated TimeEntryPolicy row for each entry date, so settings changes never rewrite past balances.'},
     {t:'Brazilian Holiday Import',d:'Composite import tries Nager, BrasilAPI, then the canonical calendar for 13 known concepts. Each Holiday stores its source.'},
-    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager dashboard, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'},
-    {t:'Typed Generated Contract (§6.15)',d:'The emitted OpenAPI document is what web and mobile generate their clients from. Required versus optional comes from C# nullability in both directions, and every contract enum is published as a string component and serialized by its declared name. Only an undefined value from legacy or out-of-band data falls back to its raw number — a deliberate corruption signal, unreachable through the API write paths.'}
+    {t:'Read-Only Reporting (§6.14)',d:'Every report and preview endpoint reads or computes — none can persist, by construction. The manager queue, close review, agings, and reconciliation all derive from the same ledger + snapshot pair the six stories built.'},
+    {t:'Typed Generated Contract (§6.15)',d:'The emitted OpenAPI document is what web and mobile generate their clients from. Required versus optional comes from C# nullability in both directions, and every contract enum is published as a string component and serialized by its declared name. Only an undefined value from legacy or out-of-band data falls back to its raw number — a deliberate corruption signal, unreachable through the API write paths. Response numbers are typed as numbers while request numbers still accept numeric strings, and every operation states its own token: none, the identity token, or a branch token with the roles it admits.'}
   ];
   const cs=cards.map(c=>`<div class="closing-card"><h3>${c.t}</h3><p>${c.d}</p></div>`).join('');
   return `<div class="slide closing-slide" data-idx="${i}">

@@ -108,6 +108,34 @@ public class FinalizeTransactionUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldRefuseADraftInstallmentOfAPlan_WithoutCheckingPermissionsOrCommitting()
+    {
+        var ctx = BuildContext(Role.Manager);
+        ctx.Transaction = new TransactionBuilder()
+            .WithBranchId(ctx.BranchUser.BranchId)
+            .WithVersion(42)
+            .WithDate(ctx.Transaction.Date)
+            .WithDueDate(ctx.Transaction.Date.AddDays(30))
+            .WithStatus(TransactionStatus.Draft)
+            .WithRecordedByOperatorId(ctx.CallerOperator.Id)
+            .WithOriginTransactionId(Guid.NewGuid())
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Transaction.Version));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_PLAN_FINALIZE_REQUIRED);
+        ctx.Transaction.Status.ShouldBe(TransactionStatus.Draft);
+        ctx.MutationPermissionGuard.DidNotReceiveWithAnyArgs()
+            .EnsureAllowed(null!, default, null, default);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrowNotFound_WhenTransactionIsMissingOrCrossBranch()
     {
         var ctx = BuildContext(Role.Manager);
@@ -267,6 +295,11 @@ public class FinalizeTransactionUseCaseTest
             new BranchClock(),
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            new FiadoPhysicalPairService(
+                Substitute.For<IAccountsRepository>(),
+                Substitute.For<ITransactionTypesRepository>(),
+                ctx.DailyCloseLedgerGuard,
+                memberAccountScopeGuard),
             ctx.UnitOfWork);
     }
 

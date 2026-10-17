@@ -23,7 +23,7 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
 
         AssertRequiredMembers(
             schemas,
-            "ResponseDashboardJson",
+            "ResponseManagerQueueJson",
             [
                 "date", "totalVariance", "meanVariance", "pendingApprovalCount", "closes", "notSubmitted",
                 "backlog", "unlockedDraftTransactionCount"
@@ -31,12 +31,12 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
             []);
         AssertRequiredMembers(
             schemas,
-            "ResponseDashboardBacklogJson",
+            "ResponseManagerQueueBacklogJson",
             ["submittedCount", "rejectedCount", "draftCount"],
             ["oldestPendingDate"]);
         AssertRequiredMembers(
             schemas,
-            "ResponseDashboardCloseJson",
+            "ResponseManagerQueueCloseJson",
             ["dailyCloseId", "accountId", "accountName", "status"],
             ["recordedByUserId", "recordedByUserName", "submittedAt", "varianceValue"]);
         AssertRequiredMembers(
@@ -69,7 +69,7 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
 
         var paths = root.GetProperty("paths");
         AssertQueryParameterRequired(
-            paths.GetProperty("/report/dashboard").GetProperty("get"),
+            paths.GetProperty("/report/manager-queue").GetProperty("get"),
             "Date",
             expected: true);
 

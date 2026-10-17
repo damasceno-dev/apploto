@@ -3,6 +3,7 @@ using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.UseCases.Accounts.Deactivate;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -135,12 +136,131 @@ public class DeactivateAccountUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldUnpairTerminalInTheSameCommit_WhenTerminalHoldsATab()
+    {
+        var branchUser = new BranchUserBuilder().Build();
+        var terminal = new AccountBuilder()
+            .WithType(AccountType.Terminal)
+            .WithBranchId(branchUser.BranchId)
+            .WithTabAccountId(Guid.NewGuid())
+            .Build();
+
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder()
+            .GetActiveByIdAndBranchId(terminal.Id, branchUser.BranchId, terminal)
+            .Build();
+        var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().ListActiveByAccountId(terminal.Id, []).Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var coordinationBuilder = new AccountPairingCoordinationBuilder();
+
+        var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork, coordinationBuilder.Build());
+
+        var response = await useCase.Execute(terminal.Id);
+
+        terminal.Active.ShouldBeFalse();
+        terminal.TabAccountId.ShouldBeNull();
+        response.TabAccountId.ShouldBeNull();
+        await accountsRepo.DidNotReceiveWithAnyArgs().ListTerminalsByTabAccountId(default, default);
+        Received.InOrder(() =>
+        {
+            unitOfWork.Commit();
+            coordinationBuilder.Scope.Complete(Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task Execute_ShouldReleaseEveryHolder_WhenTabIsDeactivated()
+    {
+        var branchUser = new BranchUserBuilder().Build();
+        var tab = new AccountBuilder().WithType(AccountType.Tab).WithBranchId(branchUser.BranchId).Build();
+        var activeHolder = new AccountBuilder()
+            .WithType(AccountType.Terminal)
+            .WithBranchId(branchUser.BranchId)
+            .WithTabAccountId(tab.Id)
+            .Build();
+        var staleInactiveHolder = new AccountBuilder()
+            .WithType(AccountType.Terminal)
+            .WithBranchId(branchUser.BranchId)
+            .WithTabAccountId(tab.Id)
+            .WithActive(false)
+            .Build();
+
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder()
+            .GetActiveByIdAndBranchId(tab.Id, branchUser.BranchId, tab)
+            .ListTerminalsByTabAccountId(branchUser.BranchId, tab.Id, [activeHolder, staleInactiveHolder])
+            .Build();
+        var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().ListActiveByAccountId(tab.Id, []).Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var coordinationBuilder = new AccountPairingCoordinationBuilder();
+
+        var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork, coordinationBuilder.Build());
+
+        await useCase.Execute(tab.Id);
+
+        tab.Active.ShouldBeFalse();
+        activeHolder.TabAccountId.ShouldBeNull();
+        activeHolder.Active.ShouldBeTrue();
+        staleInactiveHolder.TabAccountId.ShouldBeNull();
+        await accountsRepo.Received(1).ListTerminalsByTabAccountId(branchUser.BranchId, tab.Id, Arg.Any<CancellationToken>());
+        await unitOfWork.Received(1).Commit();
+        await coordinationBuilder.Scope.Received(1).Complete(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldTouchNoPairing_WhenBankAccountIsDeactivated()
+    {
+        var branchUser = new BranchUserBuilder().Build();
+        var bank = new AccountBuilder().WithType(AccountType.BankAccount).WithBranchId(branchUser.BranchId).Build();
+
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().GetActiveByIdAndBranchId(bank.Id, branchUser.BranchId, bank).Build();
+        var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().ListActiveByAccountId(bank.Id, []).Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork);
+
+        await useCase.Execute(bank.Id);
+
+        bank.Active.ShouldBeFalse();
+        await accountsRepo.DidNotReceiveWithAnyArgs().ListTerminalsByTabAccountId(default, default);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowConflictWithoutReadingAccounts_WhenPairingCoordinationIsBusy()
+    {
+        var branchUser = new BranchUserBuilder().Build();
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().Build();
+        var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var coordination = new AccountPairingCoordinationBuilder().Unavailable().Build();
+
+        var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork, coordination);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(Guid.NewGuid()));
+
+        exception.GetErrorMessages.ShouldHaveSingleItem().ShouldBe(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+        await coordination.Received(1).TryAcquire(branchUser.BranchId, Arg.Any<CancellationToken>());
+        await accountsRepo.DidNotReceiveWithAnyArgs().GetActiveByIdAndBranchId(default, default);
+        await operatorAccountsRepo.DidNotReceiveWithAnyArgs().ListActiveByAccountId(default);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
     private static DeactivateAccountUseCase CreateUseCase(
         IAuthenticationService authService,
         IAccountsRepository accountsRepo,
         IOperatorAccountsRepository operatorAccountsRepo,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAccountPairingCoordination? accountPairingCoordination = null)
     {
-        return new DeactivateAccountUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork);
+        return new DeactivateAccountUseCase(
+            authService,
+            accountsRepo,
+            operatorAccountsRepo,
+            accountPairingCoordination ?? new AccountPairingCoordinationBuilder().Build(),
+            unitOfWork);
     }
 }

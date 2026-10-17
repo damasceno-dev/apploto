@@ -26,7 +26,8 @@ public class TransactionEditImpactProjector(
     IDailyClosesRepository dailyClosesRepository,
     IClientsRepository clientsRepository,
     ICashVarianceCalculator cashVarianceCalculator,
-    ICashVarianceProductResolver cashVarianceProductResolver)
+    ICashVarianceProductResolver cashVarianceProductResolver,
+    IFiadoProjectionRepository fiadoProjectionRepository)
 {
     public async Task<ResponseTransactionImpactJson> Project(
         HypotheticalTransactionEdit edit,
@@ -61,7 +62,7 @@ public class TransactionEditImpactProjector(
 
         return new ResponseTransactionImpactJson
         {
-            ReceivableImpact = BuildCreateReceivableImpact(create, asOfDate),
+            ReceivableImpact = await BuildCreateReceivableImpact(create, asOfDate, branchId, ct),
             FiadoBalanceImpact = await BuildCreateFiadoBalanceImpact(create, branchId),
             CashVarianceImpact = await BuildCreateCashVarianceImpact(create, branchId, ct)
         };
@@ -174,6 +175,9 @@ public class TransactionEditImpactProjector(
 
     private static ResponseReceivableImpactJson BuildReceivableImpact(HypotheticalTransactionEdit edit, DateTime asOfDate)
     {
+        if (edit.AccountType == AccountType.Tab)
+            return BuildFiadoReceivableImpact(edit, asOfDate);
+
         var currentlyOpen = edit.CurrentPaidAt is null;
         var hypotheticallyOpen = edit.HypotheticalPaidAt is null;
 
@@ -189,6 +193,21 @@ public class TransactionEditImpactProjector(
         };
 
         // Paid → paid: no open-receivables impact.
+    }
+
+    private static ResponseReceivableImpactJson BuildFiadoReceivableImpact(HypotheticalTransactionEdit edit, DateTime asOfDate)
+    {
+        // Fiado aging is FIFO-netted per client (M7.7 Phase 5.1): PaidAt never settles a Tab row and a repayment
+        // In never ages, so only a sale's DueDate shift is a row-level aging move. Whether the sale still holds a
+        // remainder depends on the client's repayments; the fiado aging report remains the authority.
+        if (edit.CurrentDirection != Direction.Out)
+            return new ResponseReceivableImpactJson();
+
+        return new ResponseReceivableImpactJson
+        {
+            BucketBefore = ReportAgingBucketizer.BucketFor(edit.CurrentDueDate, asOfDate),
+            BucketAfter = ReportAgingBucketizer.BucketFor(edit.HypotheticalDueDate, asOfDate)
+        };
     }
 
     private async Task<ResponseFiadoBalanceImpactJson> BuildFiadoBalanceImpact(HypotheticalTransactionEdit edit, Guid branchId)
@@ -239,11 +258,33 @@ public class TransactionEditImpactProjector(
         return BuildCashVarianceSection(branchId, edit.AccountId, edit.Date, BuildVarianceDelta(edit), ct);
     }
 
-    private static ResponseReceivableImpactJson BuildCreateReceivableImpact(HypotheticalTransactionCreate create, DateTime asOfDate)
+    private async Task<ResponseReceivableImpactJson> BuildCreateReceivableImpact(
+        HypotheticalTransactionCreate create,
+        DateTime asOfDate,
+        Guid branchId,
+        CancellationToken ct)
     {
-        // Open receivables are Tab-account, unpaid rows (§6.14 fiado aging). A new row carries no
-        // PaidAt, so a Tab create always appears; a non-Tab row never enters the open-receivables set.
-        if (create.AccountType != AccountType.Tab)
+        // Fiado aging lists Tab sales (Out) with an unpaid FIFO remainder (§6.14, M7.7 Phase 5.1). A repayment (In)
+        // never ages and a non-Tab row never enters the fiado aging set. A new sale appears only when the shared
+        // netting projection says it would keep a remainder as of asOfDate: existing client credit can absorb it,
+        // and a sale dated after asOfDate is outside that aging.
+        if (create.AccountType != AccountType.Tab ||
+            create.Direction != Direction.Out ||
+            create.ClientId is not { } clientId ||
+            create.Date.Date > asOfDate.Date)
+        {
+            return new ResponseReceivableImpactJson();
+        }
+
+        var remainder = await fiadoProjectionRepository.GetHypotheticalSaleRemainderAsNoTracking(
+            branchId,
+            clientId,
+            asOfDate,
+            create.DueDate,
+            create.Date,
+            create.Value,
+            ct);
+        if (remainder <= 0m)
             return new ResponseReceivableImpactJson();
 
         return new ResponseReceivableImpactJson
@@ -278,6 +319,12 @@ public class TransactionEditImpactProjector(
         // net flow — genuinely non-zero, unlike the edit twin whose editable fields never touch
         // §6.12's inputs.
         var varianceDelta = -NetFlow(create.Direction, create.Value);
+
+        // A counted-stock fiado sale moves no close on its Tab; the affected close is its paired terminal's, which
+        // receives the generated Terminal Out of the same value (M7.7 Phase 5.6).
+        if (create.PairedTerminalAccountId is { } terminalId)
+            return BuildCashVarianceSection(branchId, terminalId, create.Date, -NetFlow(Direction.Out, create.Value), ct);
+
         return BuildCashVarianceSection(branchId, create.AccountId, create.Date, varianceDelta, ct);
     }
 

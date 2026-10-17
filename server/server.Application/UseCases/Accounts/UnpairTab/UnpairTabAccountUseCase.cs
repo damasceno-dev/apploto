@@ -9,6 +9,7 @@ namespace server.Application.UseCases.Accounts.UnpairTab;
 public class UnpairTabAccountUseCase(
     IAuthenticationService authenticationService,
     IAccountsRepository accountsRepository,
+    IAccountPairingCoordination accountPairingCoordination,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseAccountJson> Execute(Guid terminalAccountId)
@@ -16,6 +17,9 @@ public class UnpairTabAccountUseCase(
         Validate(terminalAccountId);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var coordination = await accountPairingCoordination.TryAcquire(authenticatedBranchUser.BranchId)
+            ?? throw new ConflictException(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+
         var terminalAccount = await accountsRepository.GetActiveByIdAndBranchId(terminalAccountId, authenticatedBranchUser.BranchId);
 
         if (terminalAccount is null || terminalAccount.Type != AccountType.Terminal)
@@ -30,6 +34,7 @@ public class UnpairTabAccountUseCase(
 
         terminalAccount.TabAccountId = null;
         await unitOfWork.Commit();
+        await coordination.Complete();
 
         return terminalAccount.ToAccountResponse();
     }

@@ -131,7 +131,11 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync(label, Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var account = await factory.SeedAccountAsync(branch.Id, accountType);
-        var category = await factory.SeedCategoryAsync(branch.Id, defaultDirection: Direction.In);
+        // A Tab In is a fiado repayment that only Receber pagamento records (M7.7 Phase 5.1); the Tab exemption
+        // from the open-close rule is exercised with an ordinary Tab Out instead.
+        var category = await factory.SeedCategoryAsync(
+            branch.Id,
+            defaultDirection: accountType == AccountType.Tab ? Direction.Out : Direction.In);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id,
             settlementRule: settlementRule);

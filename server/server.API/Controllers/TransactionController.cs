@@ -1,10 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
+using server.Application.UseCases.Transactions.ReceiveFiadoPayment;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
 using server.Application.UseCases.Transactions.Finalize;
+using server.Application.UseCases.Transactions.FinalizeInstallmentPlan;
+using server.Application.UseCases.Transactions.GetInstallmentPlan;
 using server.Application.UseCases.Transactions.Get;
 using server.Application.UseCases.Transactions.InstallmentPreview;
 using server.Application.UseCases.Transactions.List;
@@ -73,6 +76,26 @@ public class TransactionController : ControllerBase
     }
 
     [HttpPost]
+    [Route("fiado-payment")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseCreateTransactionJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ReceiveFiadoPayment(
+        [FromServices] ReceiveFiadoPaymentUseCase receiveFiadoPaymentUseCase,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
+        [FromBody] RequestReceiveFiadoPaymentJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await receiveFiadoPaymentUseCase.Execute(request, idempotencyKey, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
+        return Created(string.Empty, response);
+    }
+
+    [HttpPost]
     [Route("preview")]
     [TokenAuthenticateBranch]
     [ProducesResponseType(typeof(ResponseCreateTransactionPreviewJson), StatusCodes.Status200OK)]
@@ -127,6 +150,41 @@ public class TransactionController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await previewInstallmentPlanUseCase.Execute(request, asOfDate, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("installment/{originTransactionId:guid}")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseInstallmentPlanJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetInstallmentPlan(
+        [FromServices] GetInstallmentPlanUseCase getInstallmentPlanUseCase,
+        [FromRoute] Guid originTransactionId,
+        CancellationToken cancellationToken)
+    {
+        var response = await getInstallmentPlanUseCase.Execute(originTransactionId, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("installment/{originTransactionId:guid}/finalize")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseInstallmentPlanJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> FinalizeInstallmentPlan(
+        [FromServices] FinalizeInstallmentPlanUseCase finalizeInstallmentPlanUseCase,
+        [FromRoute] Guid originTransactionId,
+        [FromBody] RequestFinalizeInstallmentPlanJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await finalizeInstallmentPlanUseCase.Execute(originTransactionId, request, cancellationToken);
         return Ok(response);
     }
 

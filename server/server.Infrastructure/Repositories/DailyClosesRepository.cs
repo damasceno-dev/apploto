@@ -121,7 +121,7 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .MinAsync(ct);
     }
 
-    public async Task<IReadOnlyList<DashboardCloseRow>> ListDashboardClosesByBranchIdAndDateAsNoTracking(
+    public async Task<IReadOnlyList<ManagerQueueCloseRow>> ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
         Guid branchId,
         DateTime date,
         CancellationToken ct = default)
@@ -134,7 +134,7 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
                 dailyClose.Active)
             .OrderBy(dailyClose => dailyClose.Account.Name)
             .ThenBy(dailyClose => dailyClose.Id)
-            .Select(dailyClose => new DashboardCloseRow(
+            .Select(dailyClose => new ManagerQueueCloseRow(
                 dailyClose.Id,
                 dailyClose.AccountId,
                 dailyClose.Account.Name,
@@ -152,7 +152,7 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .ToListAsync(ct);
     }
 
-    public async Task<DashboardBacklogRow> GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+    public async Task<ManagerQueueBacklogRow> GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
         Guid branchId,
         DateTime afterDateExclusive,
         DateTime beforeDateExclusive,
@@ -178,7 +178,7 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             })
             .ToListAsync(ct);
 
-        return new DashboardBacklogRow(
+        return new ManagerQueueBacklogRow(
             groups.Where(group => group.Status == DailyCloseStatus.Submitted).Sum(group => group.Count),
             groups.Where(group => group.Status == DailyCloseStatus.Rejected).Sum(group => group.Count),
             groups.Where(group => group.Status == DailyCloseStatus.Draft).Sum(group => group.Count),

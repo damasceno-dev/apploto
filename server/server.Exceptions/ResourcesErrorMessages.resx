@@ -177,6 +177,9 @@
     <data name="ACCOUNT_TAB_ALREADY_LINKED" xml:space="preserve">
         <value>Esta conta fiado já está associada a um Terminal ativo</value>
     </data>
+    <data name="ACCOUNT_PAIRING_COORDINATION_BUSY" xml:space="preserve">
+        <value>As contas da filial estão sendo alteradas por outra operação; tente novamente</value>
+    </data>
     <data name="OPERATOR_ACCOUNT_NOT_FOUND" xml:space="preserve">
         <value>Vínculo entre operador e conta não encontrado ou já inativo</value>
     </data>
@@ -687,6 +690,30 @@
     <data name="TRANSACTION_STALE_WRITE" xml:space="preserve">
         <value>A transação foi alterada por outra operação; recarregue antes de salvar</value>
     </data>
+    <data name="TRANSACTION_PLAN_NOT_FOUND" xml:space="preserve">
+        <value>Plano de parcelas não encontrado</value>
+    </data>
+    <data name="TRANSACTION_PLAN_FINALIZE_REQUIRED" xml:space="preserve">
+        <value>Esta parcela pertence a um plano; finalize o plano inteiro</value>
+    </data>
+    <data name="TRANSACTION_PLAN_NOT_DRAFT" xml:space="preserve">
+        <value>O plano não tem parcelas em rascunho para finalizar</value>
+    </data>
+    <data name="TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED" xml:space="preserve">
+        <value>O plano já tem parcelas ativas ou canceladas; confirme a finalização somente das parcelas em rascunho restantes</value>
+    </data>
+    <data name="TRANSACTION_PLAN_STALE_WRITE" xml:space="preserve">
+        <value>O plano foi alterado por outra operação; recarregue antes de finalizar</value>
+    </data>
+    <data name="TRANSACTION_PLAN_INSTALLMENTS_REQUIRED" xml:space="preserve">
+        <value>Informe as parcelas do plano com suas versões</value>
+    </data>
+    <data name="TRANSACTION_PLAN_INSTALLMENT_ID_INVALID" xml:space="preserve">
+        <value>Cada parcela deve ter um identificador válido e não repetido</value>
+    </data>
+    <data name="TRANSACTION_PLAN_INSTALLMENT_VERSION_INVALID" xml:space="preserve">
+        <value>Cada parcela deve informar a versão carregada</value>
+    </data>
     <data name="SETTING_STALE_WRITE" xml:space="preserve">
         <value>As configurações foram alteradas por outra operação; recarregue antes de salvar</value>
     </data>
@@ -725,5 +752,44 @@
     </data>
     <data name="REPORT_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
         <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
+    </data>
+    <data name="CLIENT_FIADO_STATEMENT_ACCESS_DENIED" xml:space="preserve">
+        <value>É necessário ter acesso a uma conta fiado para consultar o extrato do cliente</value>
+    </data>
+    <data name="CLIENT_FIADO_STATEMENT_PAGE_SIZE_INVALID" xml:space="preserve">
+        <value>O tamanho da página deve estar entre 1 e 100</value>
+    </data>
+    <data name="TRANSACTION_TYPE_SYSTEM_ONLY" xml:space="preserve">
+        <value>Este tipo de movimentação é gerado automaticamente pelo sistema e não pode ser lançado manualmente</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND" xml:space="preserve">
+        <value>Recebimentos de fiado devem ser registrados pelo Receber pagamento</value>
+    </data>
+    <data name="TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE" xml:space="preserve">
+        <value>Somente uma venda fiado (saída em conta fiado com cliente) pode declarar saída de estoque contado</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED" xml:space="preserve">
+        <value>A conta fiado não está vinculada a um caixa ativo; vincule-a antes de registrar uma movimentação física</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAYMENT_METHOD_INVALID" xml:space="preserve">
+        <value>Selecione uma forma de recebimento de fiado válida</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAYMENT_CLIENT_REQUIRED" xml:space="preserve">
+        <value>O cliente do recebimento deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_GENERATED_ROW_READ_ONLY" xml:space="preserve">
+        <value>Esta movimentação foi gerada automaticamente; altere, finalize ou cancele a movimentação de origem</value>
+    </data>
+    <data name="TRANSACTION_TYPE_SYSTEM_READ_ONLY" xml:space="preserve">
+        <value>Tipos de movimentação do sistema não podem ser alterados nem desativados</value>
+    </data>
+    <data name="TRANSACTION_TYPE_FIADO_PAYMENT_KIND_INVALID" xml:space="preserve">
+        <value>Somente um tipo de entrada que exige conta fiado e cliente pode ser forma de recebimento de fiado</value>
+    </data>
+    <data name="CATEGORY_SYSTEM_READ_ONLY" xml:space="preserve">
+        <value>Esta categoria pertence ao sistema e não pode ser desativada nem receber novos tipos</value>
+    </data>
+    <data name="TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID" xml:space="preserve">
+        <value>A forma de recebimento de fiado informada é inválida</value>
     </data>
 </root>

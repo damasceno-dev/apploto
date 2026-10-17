@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
+using server.Application.UseCases.DailyCloses.History;
 using server.Application.UseCases.DailyCloses.List;
 using server.Application.UseCases.DailyCloses.Open;
 using server.Application.UseCases.DailyCloses.PutItems;
@@ -207,6 +208,22 @@ public class DailyCloseController : ControllerBase
     {
         var response = await useCase.Execute(dailyCloseId, cancellationToken);
         EntityTagHeader.Set(Response, response.Version);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("{dailyCloseId:guid}/history")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseHistoryJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> History(
+        [FromServices] GetDailyCloseHistoryUseCase useCase,
+        [FromRoute] Guid dailyCloseId,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(dailyCloseId, cancellationToken);
         return Ok(response);
     }
 

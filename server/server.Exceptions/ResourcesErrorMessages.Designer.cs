@@ -363,6 +363,12 @@ namespace server.Exceptions {
             }
         }
         
+        public static string ACCOUNT_PAIRING_COORDINATION_BUSY {
+            get {
+                return ResourceManager.GetString("ACCOUNT_PAIRING_COORDINATION_BUSY", resourceCulture);
+            }
+        }
+
         public static string OPERATOR_ACCOUNT_NOT_FOUND {
             get {
                 return ResourceManager.GetString("OPERATOR_ACCOUNT_NOT_FOUND", resourceCulture);
@@ -1383,6 +1389,54 @@ namespace server.Exceptions {
             }
         }
 
+        public static string TRANSACTION_PLAN_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_FINALIZE_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_FINALIZE_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_NOT_DRAFT {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_NOT_DRAFT", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_STALE_WRITE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_STALE_WRITE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_INSTALLMENTS_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_INSTALLMENTS_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_INSTALLMENT_ID_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_INSTALLMENT_ID_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_PLAN_INSTALLMENT_VERSION_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_PLAN_INSTALLMENT_VERSION_INVALID", resourceCulture);
+            }
+        }
+
         public static string SETTING_STALE_WRITE {
             get {
                 return ResourceManager.GetString("SETTING_STALE_WRITE", resourceCulture);
@@ -1458,6 +1512,84 @@ namespace server.Exceptions {
         public static string REPORT_MINE_AND_OPERATOR_ID_CONFLICT {
             get {
                 return ResourceManager.GetString("REPORT_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_FIADO_STATEMENT_ACCESS_DENIED {
+            get {
+                return ResourceManager.GetString("CLIENT_FIADO_STATEMENT_ACCESS_DENIED", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_FIADO_STATEMENT_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("CLIENT_FIADO_STATEMENT_PAGE_SIZE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_SYSTEM_ONLY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_SYSTEM_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAYMENT_METHOD_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAYMENT_METHOD_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAYMENT_CLIENT_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAYMENT_CLIENT_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_GENERATED_ROW_READ_ONLY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_GENERATED_ROW_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_SYSTEM_READ_ONLY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_SYSTEM_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_FIADO_PAYMENT_KIND_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_FIADO_PAYMENT_KIND_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CATEGORY_SYSTEM_READ_ONLY {
+            get {
+                return ResourceManager.GetString("CATEGORY_SYSTEM_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID", resourceCulture);
             }
         }
     }

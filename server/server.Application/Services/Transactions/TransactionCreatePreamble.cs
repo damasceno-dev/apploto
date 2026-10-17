@@ -33,7 +33,8 @@ public sealed record TransactionCreateContext(
     DateTime? DueDate = null,
     IReadOnlySet<DateOnly>? BranchHolidays = null,
     Account? Account = null,
-    Client? Client = null);
+    Client? Client = null,
+    MemberAccountScope? MemberScope = null);
 
 /// <summary>
 /// Runs the shared pre-create checks and resolution used by transaction create, installment create,
@@ -84,20 +85,88 @@ public class TransactionCreatePreamble(
             transactionTypeId: request.TransactionTypeId,
             ct: ct);
 
-        if (context.TransactionType.SettlementRule == SettlementRule.OperatorEnteredCheque && request.DueDate is null)
+        EnsureOrdinaryManualWrite(context);
+
+        if (request.HandsOutCountedStock &&
+            (context.Account!.Type != AccountType.Tab ||
+             context.TransactionType.Category.DefaultDirection != Direction.Out ||
+             request.ClientId is null))
+        {
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE);
+        }
+
+        return await CompleteSingleCreate(
+            context,
+            request.Date,
+            request.DueDate,
+            ct);
+    }
+
+    /// <summary>
+    /// Resolves the context for <i>Receber pagamento</i> (M7.7 Phase 5.1): the same branch/operator/scope checks as
+    /// a create, but the selected type must be a configured fiado repayment method — an <c>In</c> type that requires
+    /// a Tab account and a client and carries a <see cref="FiadoPaymentKind"/>. There is no default method.
+    /// </summary>
+    public async Task<TransactionCreateContext> ResolveFiadoPayment(
+        RequestCreateTransactionJson request,
+        CancellationToken ct = default)
+    {
+        var context = await ResolveCommon(
+            requestedRecordedByOperatorId: request.RecordedByOperatorId,
+            accountId: request.AccountId,
+            clientId: request.ClientId,
+            transactionTypeId: request.TransactionTypeId,
+            ct: ct);
+
+        var type = context.TransactionType;
+        if (type.SystemRole is not null ||
+            type.FiadoPaymentKind is null ||
+            type.RequiresTabAccountAndClient is false ||
+            type.Category.DefaultDirection != Direction.In)
+        {
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAYMENT_METHOD_INVALID);
+        }
+
+        return await CompleteSingleCreate(context, request.Date, request.DueDate, ct);
+    }
+
+    /// <summary>
+    /// Generic creates (single and installment) never write a system-owned type and never record a Tab <c>In</c>:
+    /// a Tab <c>In</c> is a fiado repayment by effect (§6.4 netting), and repayments go through <i>Receber
+    /// pagamento</i> so its method and physical-cash rules cannot be bypassed.
+    /// </summary>
+    private static void EnsureOrdinaryManualWrite(TransactionCreateContext context)
+    {
+        if (context.TransactionType.SystemRole is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
+
+        if (context.Account!.Type == AccountType.Tab &&
+            context.TransactionType.Category.DefaultDirection == Direction.In)
+        {
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND);
+        }
+    }
+
+    private async Task<TransactionCreateContext> CompleteSingleCreate(
+        TransactionCreateContext context,
+        DateTime date,
+        DateTime? requestedDueDate,
+        CancellationToken ct)
+    {
+        if (context.TransactionType.SettlementRule == SettlementRule.OperatorEnteredCheque && requestedDueDate is null)
             throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_CHEQUE_REQUIRES_DUE_DATE]);
 
         var holidayDates = await branchHolidaySource.GetHolidayDatesAsync(context.BranchUser.BranchId, ct);
 
         var dueDate = DueDateCalculator.Compute(
             context.TransactionType.SettlementRule,
-            request.Date,
-            request.DueDate,
+            date,
+            requestedDueDate,
             holidayDates);
 
         await lockDateGuard.EnsureNotLocked(
             context.BranchUser.BranchId,
-            request.Date,
+            date,
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
@@ -128,6 +197,8 @@ public class TransactionCreatePreamble(
             clientId: request.ClientId,
             transactionTypeId: request.TransactionTypeId,
             ct: ct);
+
+        EnsureOrdinaryManualWrite(context);
 
         await lockDateGuard.EnsureNotLocked(
             context.BranchUser.BranchId,
@@ -196,6 +267,7 @@ public class TransactionCreatePreamble(
             RecordedByOperatorId: recordedByOperatorId,
             TransactionType: consistency.TransactionType,
             Account: consistency.Account,
-            Client: consistency.Client);
+            Client: consistency.Client,
+            MemberScope: memberScope);
     }
 }

@@ -56,6 +56,32 @@ public class GetFiadoBalancesUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldSplitDebtAndCredit_WhileKeepingTheSignedNetTotal()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var asOfDate = new DateTime(2025, 5, 20);
+        var rows = new List<FiadoClientBalanceRow>
+        {
+            new(Guid.NewGuid(), "Deve", 150m),
+            new(Guid.NewGuid(), "Deve pouco", 30m),
+            new(Guid.NewGuid(), "Credito", -45m)
+        };
+        var ctx = BuildContext(branchUser);
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListFiadoBalancesByBranchIdAsNoTrackingReturns(branchUser.BranchId, null, asOfDate, rows)
+            .Build();
+
+        var response = await CreateUseCase(ctx).Execute(new RequestFiadoBalanceJsonBuilder().WithAsOfDate(asOfDate).Build());
+
+        response.TotalOutstanding.ShouldBe(135m);
+        response.DebtorCount.ShouldBe(2);
+        response.TotalDebt.ShouldBe(180m);
+        response.CreditorCount.ShouldBe(1);
+        response.TotalCredit.ShouldBe(45m);
+        (response.TotalDebt - response.TotalCredit).ShouldBe(response.TotalOutstanding);
+    }
+
+    [Fact]
     public async Task Execute_ShouldThrow403_WhenCallerIsMember()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();

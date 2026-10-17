@@ -24,6 +24,9 @@ public class DeactivateTransactionTypeUseCase(
             transactionTypeId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_TYPE_NOT_FOUND);
 
+        if (transactionType.SystemRole is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_READ_ONLY);
+
         transactionType.Active = false;
 
         await unitOfWork.Commit();

@@ -12,4 +12,10 @@ public class RequestCreateTransactionJson
     public DateTime? DueDate { get; init; }
     public Guid? RecordedByOperatorId { get; init; }
     public bool SaveAsDraft { get; init; }
+
+    /// <summary>
+    /// M7.7 Phase 5.6: true only on a fiado sale (Tab <c>Out</c> with a client) that hands the client counted stock;
+    /// the server then also writes the generated Terminal <c>Out</c> on the Tab's paired terminal. Never assumed.
+    /// </summary>
+    public bool HandsOutCountedStock { get; init; }
 }

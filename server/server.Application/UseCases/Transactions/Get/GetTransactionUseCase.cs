@@ -1,3 +1,4 @@
+using server.Domain.Entities;
 using server.Application.Services.Members;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -25,7 +26,17 @@ public class GetTransactionUseCase(
             .GetByIdAndBranchIdAsNoTracking(transactionId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
-        return transaction.ToTransactionResponse();
+        return await ToResponseWithCounterpart(transaction, branchUser.BranchId);
+    }
+
+    /// <summary>
+    /// A fiado source names its generated Terminal leg (M7.7 Phase 5.6/5.7). The id is only a navigation hint:
+    /// reading that row still applies its own branch and account scope.
+    /// </summary>
+    private async Task<ResponseTransactionJson> ToResponseWithCounterpart(Transaction transaction, Guid branchId)
+    {
+        var counterpart = await transactionsRepository.GetGeneratedBySourceIdAndBranchIdAsNoTracking(transaction.Id, branchId);
+        return transaction.ToTransactionResponse(counterpart?.Id);
     }
 
     private async Task<ResponseTransactionJson> ExecuteForMember(
@@ -51,6 +62,6 @@ public class GetTransactionUseCase(
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         }
 
-        return transaction.ToTransactionResponse();
+        return await ToResponseWithCounterpart(transaction, branchId);
     }
 }

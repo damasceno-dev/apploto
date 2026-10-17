@@ -124,14 +124,14 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
             item.Id == opened.Id &&
             item.RecordedByOperatorId == recordingOperator.Id &&
             item.SubmittedByOperatorId == managerOperator.Id);
-        var dashboardResponse = await _client.GetAuthAsync(
-            $"/report/dashboard?date={closeDate:yyyy-MM-dd}",
+        var managerQueueResponse = await _client.GetAuthAsync(
+            $"/report/manager-queue?date={closeDate:yyyy-MM-dd}",
             managerToken);
-        dashboardResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var dashboard = await dashboardResponse.ReadContentAsync<ResponseDashboardJson>();
-        var dashboardClose = dashboard.Closes.Single(close => close.DailyCloseId == opened.Id);
-        dashboardClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
-        dashboardClose.SubmittedByOperatorId.ShouldBe(managerOperator.Id);
+        managerQueueResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var managerQueue = await managerQueueResponse.ReadContentAsync<ResponseManagerQueueJson>();
+        var managerQueueClose = managerQueue.Closes.Single(close => close.DailyCloseId == opened.Id);
+        managerQueueClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
+        managerQueueClose.SubmittedByOperatorId.ShouldBe(managerOperator.Id);
 
         var predecessorEdit = await PutAsync(
             predecessor.Id,

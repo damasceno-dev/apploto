@@ -11,6 +11,12 @@ public class RequestListTransactionsJson
     public Guid? OperatorId { get; init; }
     public Guid? ClientId { get; init; }
     public Guid? OriginTransactionId { get; init; }
+    /// <summary>
+    /// Optional type filter, applied with the other filters inside the branch and Member account scope before
+    /// paging and counts. Any type id is accepted, including retired and system-generated types; an id that
+    /// matches nothing returns an empty page.
+    /// </summary>
+    public Guid? TransactionTypeId { get; init; }
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 50;
 

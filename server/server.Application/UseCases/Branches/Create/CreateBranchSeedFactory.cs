@@ -19,8 +19,19 @@ public static class CreateBranchSeedFactory
         ("Despesas Pessoal", Direction.Out),
         ("Despesas Financeiras", Direction.Out),
         ("Débito Banco", Direction.Out),
-        ("Saídas", Direction.Out)
+        ("Saídas", Direction.Out),
+        (FiadoAutomaticOutCategoryName, Direction.Out),
+        (FiadoAutomaticInCategoryName, Direction.In)
     ];
+
+    /// <summary>
+    /// M7.7 Phase 5.6: the system-owned counterpart types live in their own categories so generated Terminal
+    /// legs are classified apart from ordinary sales and receipts (the migration seeds existing branches alike).
+    /// </summary>
+    public const string FiadoAutomaticOutCategoryName = "Movimentos automáticos de fiado (saída)";
+    public const string FiadoAutomaticInCategoryName = "Movimentos automáticos de fiado (entrada)";
+    public const string FiadoCountedStockSaleCounterpartTypeName = "Saída de estoque contado — venda fiado";
+    public const string FiadoCashRepaymentCounterpartTypeName = "Entrada de dinheiro — recebimento fiado";
 
     private static readonly (string Name, string CategoryName)[] TransactionTypeSeeds =
     [
@@ -81,6 +92,23 @@ public static class CreateBranchSeedFactory
                 SettlementRule = ResolveSettlementRule(seed.Name),
                 RequiresTabAccountAndClient = seed.Name == "Cliente"
             })
+            .Concat(
+            [
+                new TransactionType
+                {
+                    Name = FiadoCountedStockSaleCounterpartTypeName,
+                    CategoryId = categoriesByName[FiadoAutomaticOutCategoryName].Id,
+                    SettlementRule = SettlementRule.SameDay,
+                    SystemRole = TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart
+                },
+                new TransactionType
+                {
+                    Name = FiadoCashRepaymentCounterpartTypeName,
+                    CategoryId = categoriesByName[FiadoAutomaticInCategoryName].Id,
+                    SettlementRule = SettlementRule.SameDay,
+                    SystemRole = TransactionTypeSystemRole.FiadoCashRepaymentCounterpart
+                }
+            ])
             .ToList();
     }
 

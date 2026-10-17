@@ -13,7 +13,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - **Cross-platform runtime TS only:** no React components, no Tailwind/NativeWind, no Next-specific or Expo-specific APIs, and no direct reads of `NEXT_PUBLIC_*` / `EXPO_PUBLIC_*` — configuration is injected by the consuming app shell (per `shared/AGENTS.md`).
 - **Source-package pattern:** packages export TypeScript source directly (no build step, no `dist/`). Web compiles them via Next `transpilePackages`; mobile via Metro. Revisit only if a consumer outside this repo ever appears.
 - **pnpm workspaces only — no Turborepo** (root `AGENTS.md`).
-- **Standing gates:** `pnpm -r typecheck` and `pnpm -r lint` stay green on every commit touching `shared/`. A test runner (Vitest) arrives with Milestone 3 — the first pure logic worth testing.
+- **Standing gates:** `pnpm -r typecheck` and `pnpm -r lint` stay green on every commit touching `shared/`. A test runner (Vitest) arrives with Milestone 2 (D1, below): the client core is the first logic worth testing. *(Amended 2026-10-17; previously "arrives with Milestone 3".)*
 
 ### Area dependency map
 
@@ -51,6 +51,17 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - [x] **1.6** Run `pnpm install` — succeeds on the empty workspace; commit `pnpm-lock.yaml`. **Install complete; lockfile retained uncommitted as requested for this Phase 1 slice.**
 
 **Phase 1 implementation notes — 2026-10-13 (items 1.1–1.6 only):**
+
+> **Amendment (2026-10-17, owner decision during server SV22 close-out): Node 24 → Node 26.** The owner moved the project toolchain to Node 26 instead of installing Node 24 next to the machine's Node 26. `.nvmrc` is now `26`, `engines.node` is `>=26.6.0 <27`, and `engine-strict=true` and pnpm `10.34.6` are unchanged.
+> - **Recorded deviation:** the official release index (latest entries dated 2026-10-14) still lists Node 26 as **Current** (`v26.12.0`, `lts: false`), while `v24.22.0` is the active LTS. The 1.1 "current LTS floor" rule is therefore knowingly relaxed until Node 26's LTS promotion, which is expected in late October 2026. When that lands, re-check the index and record it here.
+> - **The floor is `26.6.0`,** the version installed on the development host (released 2026-08-03), so the standing gates run without a new download. Any later 26.x also satisfies it.
+> - **Not yet affected:** `web/` and `mobile/` have no packages yet. When the Next and Expo apps are scaffolded, confirm that their toolchains support Node 26 before pinning their versions.
+> - **Verification on the new pin (2026-10-17):**
+>   - Node `v26.6.0` and pnpm `10.34.6` ran `pnpm install --frozen-lockfile`: exit 0, and the `pnpm-lock.yaml` sha256 `082dc0a2…d07d` is unchanged.
+>   - `pnpm config get engine-strict` → `true`.
+>   - `pnpm -r typecheck`, `pnpm -r lint` and `pnpm format:check` → exit 0 for both `@loto/api` and `@loto/core`.
+>   - Negative check: temporarily restoring `<25` made pnpm stop with `ERR_PNPM_UNSUPPORTED_ENGINE`, so the gate still enforces the range.
+> - The historical notes below stay as recorded: they describe the Node 24 runs of their time.
 
 - Toolchain verified at implementation time against the [official Node release index](https://nodejs.org/dist/index.json) and [release status](https://nodejs.org/en/about/previous-releases): Node **24.21.0**, Krypton LTS; Node 26 is still Current. `.nvmrc` pins major `24`, with `engines.node` set to `>=24.21.0 <25` to enforce the verified LTS floor and stay on that major.
 - pnpm **10.34.6** is the registry's [`latest-10`](https://registry.npmjs.org/-/package/pnpm/dist-tags) release; both `packageManager` and `engines.pnpm` pin that exact version. Its [release metadata](https://registry.npmjs.org/pnpm/10.34.6) requires Node `>=18.12`, and the [pnpm 10 compatibility table](https://pnpm.io/10.x/installation#compatibility) supports Node 24. Selected the maintained 10.x line because it honors the required `engine-strict=true` in `.npmrc`; [pnpm 11 moved non-registry settings out of `.npmrc`](https://pnpm.io/blog/releases/11.0).
@@ -202,6 +213,8 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - **D3 — auth tier per operation (F2).** *Recommended:* a narrow server handoff (**H4**). An operation transformer derives per-operation `security` from the existing filters: `[]` for anonymous, `IdentityBearer`, and `BranchBearer`. Shared then generates an operation→tier map from the document and passes the tier to the app's token provider. *Fallback:* the provider receives `{ method, path }` and each app maps paths to tokens. That duplicates a contract fact by hand in two apps, so it is accepted only if the server declines H4, and is recorded as such.
 - **D4 — committed document and generated output stay out of manual formatting and lint.** The committed document lives at `shared/api/openapi/server-api.openapi.json`. Generated code lives under `shared/api/src/generated/`, is formatted by Orval's Prettier hook with the pinned root Prettier, and is excluded from ESLint. The exported JSON is added to `.prettierignore`, so `format:check` never rewrites a contract byte. Both changes touch root tooling and need the root-tooling owner's sign-off.
 
+> **Adoption note (2026-10-17, server SV22 — technical choices independently accepted; see the final acceptance/landing record below).** D1: Vitest begins in M2; this changes policy only (the line above and `shared/AGENTS.md`), and installing the runner remains item 3.1. D2: the recommended response-only numeric fidelity is adopted and implemented by the server as **H3** (server M7.6 follow-up Phase 4.2); the `number | string` alternative is not taken. D3: the recommended derived per-operation tiers are adopted and implemented as **H4** (Phase 4.3) with schemes `IdentityBearer` and `BranchBearer`, `security: []` for anonymous operations, and `[TokenAuthorize]` role names listed on `BranchBearer` (OpenAPI 3.1 allows role names for non-OAuth schemes); the `{ method, path }` fallback is not needed. Scheme names are metadata labels: both tokens travel in the same `Authorization: Bearer` header. D4: adopted as stated; the `.prettierignore`/ESLint changes stay with the root-tooling owner and are not made by the server track. H1 and H2 shipped earlier and are not reopened.
+
 ### Server-file handoffs (agree ownership before any edit; shared never edits `server/` unless the agreement assigns it)
 
 - **H1 — SV03 rename.** Owned by the server track and already coordinated. It is the tripwire gate above. Files: the server track's choice, plus `tests/WebApi.Test/OpenApi/Snapshots/openapi-contract-surface.txt` and the `docs/` doc-sync group.
@@ -221,6 +234,16 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
   - One WebApi.Test contract test pinning one anonymous, one identity and one branch operation, and the reviewed snapshot update.
   - A §6.15 note plus a doc-sync revision bump.
 
+> **H3/H4 ownership record (2026-10-17, server SV22; input for item 1.2, which Shared ticks once the landing commit exists).** Owner: the server track (server M7.6 follow-up Phase 4). Baseline `7e8b169`, spec `v52`. Landing commit: **`763edd7`**, spec `v52` (recorded after the accepted implementation commit was created). The delivered file set is wider than the plan above, because the tier derivation is a separate resolver and the evidence needed more than one test:
+> - Server: `server/server.API/OpenApi/ResponseNumericFidelityOpenApiDocumentTransformer.cs` (H3), `OperationTokenRequirementResolver.cs` and `OperationSecurityOpenApiOperationTransformer.cs` (H4), and the registration plus the two scheme definitions in `server/server.API/ApiDependencyInjection.cs`.
+> - Tests (`server/tests/WebApi.Test/OpenApi/`): `ResponseNumericFidelityTransformerTest.cs`, `ResponseNumericFidelityGeneratorTest.cs`, `ResponseNumericWireFidelityTest.cs`, `ResponseNumericFidelityOpenApiContractTest.cs`, `OperationTokenRequirementResolverTest.cs`, `OperationSecurityOpenApiContractTest.cs`, `OperationSecurityPrecedenceTest.cs`, `AuthTierProbeHost.cs`, the `OpenApiContractSurface.cs` renderer (security section and per-operation `security` line), and the reviewed `Snapshots/openapi-contract-surface.txt`.
+> - Docs: `docs/loto-specs.md` §6.15 and the doc-sync group at `v52`, and `server/AGENTS.md` OpenAPI rules. `design/docs/product.md` / `screens.md` need no semantic change. After the round-3 review accepted the reconciliation, their markers and the `screens.md` source-contracts reference moved to `v52`, and the actual doc-sync checker plus 34/34 regression scenarios pass.
+> - Acceptance: technical/code and semantic review PASS (round 3, 2026-10-17); server Phase 4 items 4.1–4.5 are checked. The Shared standing gates now pass on the owner-chosen Node 26 pin (`>=26.6.0 <27`; see the Shared M1 amendment): `pnpm -r typecheck`, `pnpm -r lint` and `pnpm format:check` all exit 0. Final documentary/toolchain review also passed with no findings; the actual landing reference is `763edd7`. Server Phase 4 item 4.6 is now closed. Shared repeats its own integration/input gates in Phase 1.
+> The evidence (commands, hashes and parity) is in the server milestone's Phase 4 delivery note. Shared's own export script, committed input and generation (1.3 onward) remain Shared work.
+> - **Export constraint for 1.3** (found by the SV22 independent review and reproduced): once a Release export is cached, an incremental export build pointed at a *fresh* `OpenApiDocumentsDirectory` returns success but writes no document. A `--no-incremental` export to a fresh directory regenerates it. The export script must therefore force regeneration (`--no-incremental`, or an equivalent target invalidation) and must fail when the document is missing, never treat a skipped target as a fresh export. This is MSBuild/H2 caching behavior, not a transformer change.
+> - **Shared standing gates:** SV22 changes only `shared/AGENTS.md` and `shared/docs/milestones.md`, both outside `format:check` by `.prettierignore` (`**/AGENTS.md`, `**/docs/`), and no TypeScript. `pnpm -r typecheck/lint/format:check` could not run on Node `>=24.21.0 <25` during review. After the owner moved the pin to Node 26 (Shared M1 amendment), all three exit 0.
+> - **Generated names:** a component that both a request and a response reach is published twice — the input under its own id, the response as `{id}Output`. Today's contract has none (only string enums are shared), so no `…Output` component exists yet.
+
 ### Phase 1 — Contract input and deterministic export
 
 - [ ] **1.1** Tripwire gate: confirm SV03 is integrated. Record in the milestone notes:
@@ -229,7 +252,8 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 
   Phases 2–4 commit nothing generated before this item is checked.
 - [ ] **1.2** Record the agreed ownership of H2, and of H3/H4 if D2/D3 adopt them: exact files, owner and landing commit. The server owner lands H2 before 1.3 runs against the real tree. Record the H2 ordinary-build regression evidence: a no-config `dotnet build server/server.sln --no-incremental` succeeds, and no OpenAPI document is written without the explicit `-p:OpenApiGenerateDocuments=true` override.
-- [ ] **1.3** Add the export script `shared/api/scripts/export-openapi.ts`, run with Node 24's built-in type stripping, and the package script `export:openapi`.
+  - Server input handoff is accepted at `763edd7`, spec `v52`; H1/H2 were delivered earlier at `26fb2bb`. Exact H3/H4 files, owner and evidence are recorded above. This item remains for the Shared owner to verify in the actual integrated checkout and repeat the ordinary-build check; the server landing does not implement 1.3–1.6.
+- [ ] **1.3** Add the export script `shared/api/scripts/export-openapi.ts`, run with Node's built-in type stripping (Node 26 per the toolchain pin), and the package script `export:openapi`.
   - It runs `dotnet build server/server.API/server.API.csproj -c Release -p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<temp>`.
   - Inert placeholder config is passed only in the child process environment (an `.invalid` host and a non-secret signing-key placeholder, never Development credentials or a reachable database).
   - The resulting `server.API.json` is copied unmodified to `shared/api/openapi/server-api.openapi.json`.
@@ -345,7 +369,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - **Money precision strategy (locked 2026-06-10):** the wire format stays JSON `number` — the backend contract is untouched, and C# `decimal` / `numeric(14,2)` values round-trip exactly at 2 decimal places. Client code treats money as **display-only by default**: the backend computes every financial outcome (the preview endpoints exist for exactly this), so clients never recompute balances, variances, or due amounts. Where client-side arithmetic is unavoidable (input masking, optimistic column sums), it goes through integer-cents helpers in this package: `parseBrl` returns integer **cents**, `formatBrl` accepts cents or a wire `number`, and no client code performs float arithmetic on money.
 - Implements `design/specs/formatting-ptbr.md` (Design M0, Phase 2) — formatters cite the spec; the spec is the contract, the helpers are the implementation.
 - Enum label maps key off the **generated** enum types from `@loto/api`, so a backend enum change breaks the build here instead of silently desyncing labels.
-- Vitest lands with this milestone; every formatter and validator gets unit tests (the first frontend tests in the repo).
+- Vitest already exists from Shared M2 (D1); every formatter and validator gets unit tests on it.
 - Pure TS only — no Intl-locale surprises across platforms without a pinned strategy (decide `Intl` vs hand-rolled per formatter in-phase, using the Hermes `Intl` behavior measured in Mobile M1 Phase 4, and record the decision).
 
 **Precondition:** Milestone 2 (generated enum types) and Design M0 Phase 2 (the formatting spec).

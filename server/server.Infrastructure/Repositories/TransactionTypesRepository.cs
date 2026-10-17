@@ -1,3 +1,4 @@
+using server.Domain.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
@@ -35,6 +36,28 @@ internal class TransactionTypesRepository(ServerDbContext dbContext) : ITransact
                 tt.Active &&
                 tt.Id == id &&
                 tt.Category.BranchId == branchId);
+    }
+
+    public async Task<TransactionType?> GetActiveSystemTypeByBranchIdAsNoTracking(
+        Guid branchId,
+        TransactionTypeSystemRole role,
+        CancellationToken ct = default)
+    {
+        return await dbContext.TransactionTypes
+            .Include(transactionType => transactionType.Category)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(transactionType =>
+                transactionType.Active &&
+                transactionType.SystemRole == role &&
+                transactionType.Category.BranchId == branchId,
+                ct);
+    }
+
+    public async Task<bool> CategoryHostsSystemTypeAsNoTracking(Guid categoryId, CancellationToken ct = default)
+    {
+        return await dbContext.TransactionTypes
+            .AsNoTracking()
+            .AnyAsync(transactionType => transactionType.CategoryId == categoryId && transactionType.SystemRole != null, ct);
     }
 
     public async Task<TransactionType?> GetActiveByIdAndBranchIdWithCategoryAsNoTracking(

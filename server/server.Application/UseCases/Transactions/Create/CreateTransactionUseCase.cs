@@ -4,6 +4,8 @@ using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
@@ -19,6 +21,8 @@ public class CreateTransactionUseCase(
     FinancialCommandIdempotency financialCommandIdempotency,
     IBranchClock branchClock,
     LockDateGuard lockDateGuard,
+    FiadoPhysicalPairService fiadoPhysicalPairService,
+    IAccountsRepository accountsRepository,
     IUnitOfWork unitOfWork)
 {
     private const string IdempotencyEndpoint = "POST /transaction";
@@ -44,10 +48,15 @@ public class CreateTransactionUseCase(
         if (replay is not null)
             return replay;
 
-        await using var coordination = await dailyCloseAccountCoordination.Acquire(
-            branchUser.BranchId,
-            request.AccountId,
-            ct);
+        // A counted-stock fiado sale also writes its paired terminal's ledger (M7.7 Phase 5.6): discover the pairing
+        // without tracking, lock both accounts in the canonical order, and re-check the pairing inside the scope.
+        var pairedTerminalId = request.HandsOutCountedStock
+            ? await accountsRepository.GetActiveTerminalIdByTabAccountId(request.AccountId, branchUser.BranchId)
+            : null;
+
+        await using var coordination = pairedTerminalId is { } terminalToLock
+            ? await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, [request.AccountId, terminalToLock], ct)
+            : await dailyCloseAccountCoordination.Acquire(branchUser.BranchId, request.AccountId, ct);
 
         var idempotency = await financialCommandIdempotency
             .Prepare<RequestCreateTransactionJson, ResponseCreateTransactionJson>(
@@ -89,9 +98,24 @@ public class CreateTransactionUseCase(
             createdByUserId: createContext.BranchUser.UserId,
             branchId: createContext.BranchUser.BranchId);
 
+        Transaction? counterpart = null;
+        if (request.HandsOutCountedStock)
+        {
+            counterpart = await fiadoPhysicalPairService.BuildCounterpart(
+                transaction,
+                pairedTerminalId ?? throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED),
+                TransactionGenerationKind.FiadoCountedStockSale,
+                createContext.BranchUser.Role,
+                createContext.MemberScope!,
+                ct);
+        }
+
         await transactionsRepository.Add(transaction, ct);
+        if (counterpart is not null)
+            await transactionsRepository.Add(counterpart, ct);
         await unitOfWork.Commit(ct);
         var response = transaction.ToCreateResponse();
+        response.GeneratedTransactionId = counterpart?.Id;
         FinancialCommandIdempotency.Complete(idempotency, transaction.Id, response);
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);

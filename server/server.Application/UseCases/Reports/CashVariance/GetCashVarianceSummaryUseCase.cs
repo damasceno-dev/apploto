@@ -70,7 +70,10 @@ public class GetCashVarianceSummaryUseCase(
             TotalVariance = totalVariance,
             MeanVariance = meanVariance,
             MaxVariance = maxVariance,
-            MinVariance = minVariance
+            MinVariance = minVariance,
+            SubmittedCount = rows.Count(r => r.DailyCloseStatus == DailyCloseStatus.Submitted),
+            ApprovedCount = rows.Count(r => r.DailyCloseStatus == DailyCloseStatus.Approved),
+            RejectedCount = rows.Count(r => r.DailyCloseStatus == DailyCloseStatus.Rejected)
         };
     }
 

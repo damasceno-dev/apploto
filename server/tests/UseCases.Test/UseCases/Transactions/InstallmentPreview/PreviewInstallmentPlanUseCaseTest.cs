@@ -389,7 +389,8 @@ public class PreviewInstallmentPlanUseCaseTest
             ctx.DailyClosesRepository,
             ctx.ClientsRepository,
             ctx.CashVarianceCalculator,
-            ctx.CashVarianceProductResolver);
+            ctx.CashVarianceProductResolver,
+            Substitute.For<IFiadoProjectionRepository>());
 
         return new PreviewInstallmentPlanUseCase(
             transactionCreatePreamble,

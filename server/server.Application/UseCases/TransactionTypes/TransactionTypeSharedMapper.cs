@@ -15,6 +15,8 @@ internal static class TransactionTypeSharedMapper
                 Name = tt.Name,
                 SettlementRule = tt.SettlementRule,
                 RequiresTabAccountAndClient = tt.RequiresTabAccountAndClient,
+                SystemRole = tt.SystemRole,
+                FiadoPaymentKind = tt.FiadoPaymentKind,
                 CategoryId = tt.CategoryId,
                 CategoryName = tt.Category?.Name ?? string.Empty,
                 CreatedAt = tt.CreatedAt,

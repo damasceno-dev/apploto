@@ -62,6 +62,51 @@ public class RejectDailyCloseUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldRecordRejectionEventWithLinkedOperatorBeforeCommit()
+    {
+        var ctx = BuildContext(Role.Manager);
+        var reviewerOperator = new OperatorBuilder()
+            .WithBranchId(ctx.BranchUser.BranchId)
+            .WithUserId(ctx.BranchUser.UserId)
+            .Build();
+        ctx.OperatorsRepository
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(ctx.BranchUser.UserId, ctx.BranchUser.BranchId, Arg.Any<CancellationToken>())
+            .Returns(reviewerOperator);
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
+
+        Received.InOrder(() =>
+        {
+            ctx.ReviewEventRecorder.RecordRejection(
+                ctx.DailyClose,
+                ctx.Request.RejectionReason,
+                ctx.BranchUser.User,
+                reviewerOperator,
+                ctx.Now,
+                Arg.Any<CancellationToken>());
+            ctx.UnitOfWork.Commit(Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRecordRejectionEventWithoutOperator_WhenReviewerHasNoOperatorLink()
+    {
+        var ctx = BuildContext(Role.Admin);
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.DailyClose.Id, ctx.Request);
+
+        await ctx.ReviewEventRecorder.Received(1).RecordRejection(
+            ctx.DailyClose,
+            ctx.Request.RejectionReason,
+            ctx.BranchUser.User,
+            null,
+            ctx.Now,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task Execute_ShouldDefensivelyClearApprovedFields_WhenRejectingInMemoryShapeHasApprovedValues()
     {
         var ctx = BuildContext(Role.Manager);
@@ -155,6 +200,7 @@ public class RejectDailyCloseUseCaseTest
         ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
         ctx.DailyClose.RejectionReason.ShouldBeNull();
         await ctx.UnitOfWork.DidNotReceive().Commit();
+        await ctx.ReviewEventRecorder.DidNotReceiveWithAnyArgs().RecordRejection(default!, default!, default!, default, default);
     }
 
     private static RejectDailyCloseUseCase CreateUseCase(TestContext ctx)
@@ -165,6 +211,8 @@ public class RejectDailyCloseUseCaseTest
         return new RejectDailyCloseUseCase(
             ctx.AuthenticationService,
             ctx.DailyClosesRepository,
+            ctx.OperatorsRepository,
+            ctx.ReviewEventRecorder,
             ctx.WorkflowGuard,
             lockDateGuard,
             ctx.BranchClock,
@@ -248,5 +296,7 @@ public class RejectDailyCloseUseCaseTest
         public required IDailyCloseWorkflowGuard WorkflowGuard { get; set; }
         public required IBranchClock BranchClock { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
+        public IOperatorsRepository OperatorsRepository { get; init; } = Substitute.For<IOperatorsRepository>();
+        public IDailyCloseReviewEventRecorder ReviewEventRecorder { get; init; } = Substitute.For<IDailyCloseReviewEventRecorder>();
     }
 }

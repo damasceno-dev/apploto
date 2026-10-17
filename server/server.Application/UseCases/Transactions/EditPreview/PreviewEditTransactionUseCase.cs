@@ -42,6 +42,10 @@ public class PreviewEditTransactionUseCase(
         var snapshot = await transactionsRepository.GetByIdAndBranchIdAsNoTrackingWithTransactionType(transactionId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
+        // Mirrors PUT /transaction/{id}: a generated Terminal leg is never edited on its own (M7.7 Phase 5.7).
+        if (snapshot.GenerationKind is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
+
         if (snapshot.Status == TransactionStatus.Cancelled)
         {
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_CANNOT_UPDATE_CANCELLED);

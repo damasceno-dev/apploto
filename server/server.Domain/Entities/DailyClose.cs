@@ -50,5 +50,12 @@ public class DailyClose : EntityBase
     public Guid BranchId { get; init; }
     public Branch Branch { get; init; } = null!;
 
+    /// <summary>
+    /// True when every review event of this close has been captured since it was opened. Closes that
+    /// existed before review events shipped are false: their earlier rejections and opening changes
+    /// were never recorded and must be shown as unavailable, never inferred.
+    /// </summary>
+    public bool ReviewHistoryComplete { get; init; } = true;
+
     public ICollection<DailyCloseItem> Items { get; init; } = [];
 }

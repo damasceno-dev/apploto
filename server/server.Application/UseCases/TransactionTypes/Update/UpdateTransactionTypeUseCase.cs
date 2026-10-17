@@ -32,6 +32,14 @@ public class UpdateTransactionTypeUseCase(
             transactionTypeId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_TYPE_NOT_FOUND);
 
+        if (transactionType.SystemRole is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_READ_ONLY);
+
+        TransactionTypeFiadoRules.EnsureValidPaymentKind(
+            request.FiadoPaymentKind,
+            transactionType.Category.DefaultDirection,
+            request.RequiresTabAccountAndClient);
+
         var exists = await transactionTypesRepository.ExistsActiveByCategoryIdAndName(
             transactionType.CategoryId, request.Name.Trim(), exceptId: transactionTypeId);
         if (exists)
@@ -40,6 +48,7 @@ public class UpdateTransactionTypeUseCase(
         transactionType.Name = request.Name.Trim();
         transactionType.SettlementRule = request.SettlementRule;
         transactionType.RequiresTabAccountAndClient = request.RequiresTabAccountAndClient;
+        transactionType.FiadoPaymentKind = request.FiadoPaymentKind;
 
         await unitOfWork.Commit();
 

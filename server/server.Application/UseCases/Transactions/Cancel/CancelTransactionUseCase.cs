@@ -21,6 +21,7 @@ public class CancelTransactionUseCase(
     IBranchClock branchClock,
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
+    FiadoPhysicalPairService fiadoPhysicalPairService,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseTransactionJson> Execute(
@@ -38,12 +39,23 @@ public class CancelTransactionUseCase(
             ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
+        // A generated Terminal leg never moves on its own (M7.7 Phase 5.7); its source carries it.
+        if (transactionKey.GenerationKind is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
+
         var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
 
-        await using var coordination = await dailyCloseAccountCoordination.Acquire(
+        var counterpartKey = await transactionsRepository.GetGeneratedBySourceIdAndBranchIdAsNoTracking(
+            transactionKey.Id,
             branchUser.BranchId,
-            transactionKey.AccountId,
             ct);
+
+        await using var coordination = counterpartKey is null
+            ? await dailyCloseAccountCoordination.Acquire(branchUser.BranchId, transactionKey.AccountId, ct)
+            : await dailyCloseAccountCoordination.AcquireMany(
+                branchUser.BranchId,
+                [transactionKey.AccountId, counterpartKey.AccountId],
+                ct);
 
         var transaction = await transactionsRepository.GetByIdAndBranchId(transactionId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
@@ -88,17 +100,29 @@ public class CancelTransactionUseCase(
         // Cancellation never touches installment siblings: the loaded row is the only
         // entity mutated. The installment-sibling-isolation Web API test in 7.9 is the
         // executable contract for this guarantee.
-        transaction.Status = TransactionStatus.Cancelled;
-        transaction.CancelledAt = utcNow;
-        transaction.CancelledByUserId = branchUser.UserId;
-        transaction.CancellationReason = request.CancellationReason.Trim();
-        transaction.UpdatedAt = utcNow;
-        transaction.UpdatedByUserId = branchUser.UserId;
+        // The physical leg (M7.7 Phase 5.6) is cancelled with its source in the same commit — a record
+        // correction, not a refund — under its own terminal's ledger guard.
+        var counterpart = counterpartKey is null
+            ? null
+            : await transactionsRepository.GetGeneratedBySourceIdAndBranchId(transaction.Id, branchUser.BranchId, ct);
+        if (counterpart is not null)
+            await fiadoPhysicalPairService.EnsureCounterpartMutable(counterpart, branchUser.Role, memberScope, ct);
+
+        var reason = request.CancellationReason.Trim();
+        foreach (var row in counterpart is null ? [transaction] : new[] { transaction, counterpart })
+        {
+            row.Status = TransactionStatus.Cancelled;
+            row.CancelledAt = utcNow;
+            row.CancelledByUserId = branchUser.UserId;
+            row.CancellationReason = reason;
+            row.UpdatedAt = utcNow;
+            row.UpdatedByUserId = branchUser.UserId;
+        }
 
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 
-        return transaction.ToTransactionResponse();
+        return transaction.ToTransactionResponse(counterpart?.Id);
     }
 
     private static void Validate(RequestCancelTransactionJson request)

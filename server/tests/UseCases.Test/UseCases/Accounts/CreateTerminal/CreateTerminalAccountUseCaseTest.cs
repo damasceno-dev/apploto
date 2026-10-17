@@ -149,11 +149,37 @@ public class CreateTerminalAccountUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldThrowConflictWithoutReadingAccounts_WhenPairingCoordinationIsBusy()
+    {
+        var branchUser = new BranchUserBuilder().Build();
+        var request = new RequestCreateTerminalAccountJsonBuilder().WithExistingTabAccountId(Guid.NewGuid()).Build();
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var coordination = new AccountPairingCoordinationBuilder().Unavailable().Build();
+
+        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork, coordination);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
+
+        exception.GetErrorMessages.ShouldHaveSingleItem().ShouldBe(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+        await coordination.Received(1).TryAcquire(branchUser.BranchId, Arg.Any<CancellationToken>());
+        await accountsRepo.DidNotReceiveWithAnyArgs().GetActiveByIdAndBranchIdAsNoTracking(default, default);
+        await accountsRepo.DidNotReceiveWithAnyArgs().Add(default!);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
     private static CreateTerminalAccountUseCase CreateUseCase(
         IAuthenticationService authService,
         IAccountsRepository accountsRepo,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAccountPairingCoordination? accountPairingCoordination = null)
     {
-        return new CreateTerminalAccountUseCase(authService, accountsRepo, unitOfWork);
+        return new CreateTerminalAccountUseCase(
+            authService,
+            accountsRepo,
+            accountPairingCoordination ?? new AccountPairingCoordinationBuilder().Build(),
+            unitOfWork);
     }
 }

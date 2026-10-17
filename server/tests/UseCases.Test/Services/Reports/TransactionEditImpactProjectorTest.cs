@@ -47,6 +47,7 @@ public class TransactionEditImpactProjectorTest
     public async Task Project_ShouldMarkRowDisappearing_WhenPaidAtFlipsFromNullToSet()
     {
         var edit = BuildEdit(
+            accountType: AccountType.BankAccount,
             currentPaidAt: null,
             hypotheticalPaidAt: AsOfDate,
             currentDueDate: AsOfDate.AddDays(-10),
@@ -65,6 +66,7 @@ public class TransactionEditImpactProjectorTest
     public async Task Project_ShouldMarkRowAppearing_WhenPaidAtFlipsFromSetToNull()
     {
         var edit = BuildEdit(
+            accountType: AccountType.BankAccount,
             currentPaidAt: AsOfDate.AddDays(-1),
             hypotheticalPaidAt: null,
             currentDueDate: AsOfDate.AddDays(-95),
@@ -83,6 +85,7 @@ public class TransactionEditImpactProjectorTest
     public async Task Project_ShouldLeaveReceivableImpactEmpty_WhenBothPaidAtAreSet()
     {
         var edit = BuildEdit(
+            accountType: AccountType.BankAccount,
             currentPaidAt: AsOfDate.AddDays(-2),
             hypotheticalPaidAt: AsOfDate.AddDays(-1),
             currentDueDate: AsOfDate.AddDays(-10),
@@ -95,6 +98,45 @@ public class TransactionEditImpactProjectorTest
         impact.ReceivableImpact.BucketAfter.ShouldBeNull();
         impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeFalse();
         impact.ReceivableImpact.RowDisappearsFromOpenReceivables.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Project_ShouldIgnorePaidAt_ForATabSale_BecauseFiadoAgingIsFifoNetted()
+    {
+        var edit = BuildEdit(
+            accountType: AccountType.Tab,
+            direction: Direction.Out,
+            currentPaidAt: null,
+            hypotheticalPaidAt: AsOfDate,
+            currentDueDate: AsOfDate.AddDays(-10),
+            hypotheticalDueDate: AsOfDate.AddDays(-40));
+        var projector = CreateProjector();
+
+        var impact = await projector.Project(edit, AsOfDate, BranchId);
+
+        impact.ReceivableImpact.BucketBefore.ShouldBe(AgingBucket.Days0To30);
+        impact.ReceivableImpact.BucketAfter.ShouldBe(AgingBucket.Days31To60);
+        impact.ReceivableImpact.RowDisappearsFromOpenReceivables.ShouldBeFalse();
+        impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Project_ShouldLeaveReceivableImpactEmpty_ForATabRepayment()
+    {
+        var edit = BuildEdit(
+            accountType: AccountType.Tab,
+            direction: Direction.In,
+            currentPaidAt: AsOfDate,
+            hypotheticalPaidAt: null,
+            currentDueDate: AsOfDate.AddDays(-10),
+            hypotheticalDueDate: AsOfDate.AddDays(-40));
+        var projector = CreateProjector();
+
+        var impact = await projector.Project(edit, AsOfDate, BranchId);
+
+        impact.ReceivableImpact.BucketBefore.ShouldBeNull();
+        impact.ReceivableImpact.BucketAfter.ShouldBeNull();
+        impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeFalse();
     }
 
     // ---- FiadoBalanceImpact ----
@@ -298,7 +340,8 @@ public class TransactionEditImpactProjectorTest
             dailyClosesRepository ?? new DailyClosesRepositoryBuilder().Build(),
             clientsRepository ?? new ClientsRepositoryBuilder().Build(),
             cashVarianceCalculator ?? Substitute.For<ICashVarianceCalculator>(),
-            cashVarianceProductResolver ?? Substitute.For<ICashVarianceProductResolver>());
+            cashVarianceProductResolver ?? Substitute.For<ICashVarianceProductResolver>(),
+            Substitute.For<IFiadoProjectionRepository>());
     }
 
     private static Client ClientNamed(Guid id, string name)

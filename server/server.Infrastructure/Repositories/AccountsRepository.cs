@@ -24,6 +24,13 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                 ct);
     }
 
+    public async Task<Account?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id && a.BranchId == branchId && a.Branch.Active, ct);
+    }
+
     public async Task<Account?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Accounts
@@ -48,6 +55,19 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                 a.Branch.Active)
             .Select(a => (Guid?)a.Id)
             .FirstOrDefaultAsync();
+    }
+
+    public async Task<IReadOnlyList<Account>> ListTerminalsByTabAccountId(
+        Guid branchId,
+        Guid tabAccountId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.Accounts
+            .Where(a =>
+                a.BranchId == branchId &&
+                a.Type == AccountType.Terminal &&
+                a.TabAccountId == tabAccountId)
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<Account>> ListActiveByBranchId(Guid branchId)

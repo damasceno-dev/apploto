@@ -34,22 +34,35 @@ public static class ApiDependencyInjection
             options.AddOperationTransformer<NamedEnumOpenApiOperationTransformer>();
             options.AddOperationTransformer<RequiredQueryParametersOpenApiOperationTransformer>();
             options.AddOperationTransformer<FinancialHeadersOpenApiOperationTransformer>();
+            options.AddOperationTransformer<ResponseNumericFidelityOpenApiDocumentTransformer>();
+            options.AddDocumentTransformer<ResponseNumericFidelityOpenApiDocumentTransformer>();
+            options.AddOperationTransformer<OperationSecurityOpenApiOperationTransformer>();
             options.AddDocumentTransformer((document, _, _) =>
             {
+                // M7.6 follow-up Phase 4.3 (Shared M2 H4): two named bearer schemes and per-operation `security`
+                // derived from each action's filters; there is no document-wide requirement any more.
                 document.Components ??= new OpenApiComponents();
                 document.Components.SecuritySchemes ??= new Dictionary<string, IOpenApiSecurityScheme>();
-                document.Components.SecuritySchemes["Bearer"] = new OpenApiSecurityScheme
+                document.Components.SecuritySchemes[SecuritySchemeNames.IdentityBearer] = new OpenApiSecurityScheme
                 {
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer",
                     BearerFormat = "JWT",
-                    Description = "JWT Authorization header using the Bearer scheme."
+                    Description = "Identity token (global scope) issued by POST /user/register, POST /user/login and " +
+                                  "POST /user/renew-token, sent as Authorization: Bearer. Used to create, list and open branches; " +
+                                  "a branch token is refused."
                 };
-                document.Security ??= [];
-                document.Security.Add(new OpenApiSecurityRequirement
+                document.Components.SecuritySchemes[SecuritySchemeNames.BranchBearer] = new OpenApiSecurityScheme
                 {
-                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-                });
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT",
+                    Description = "Branch token (branch scope) issued by POST /branch/session for one membership, sent as " +
+                                  "Authorization: Bearer. " +
+                                  "Role names on a requirement list the branch roles admitted; none listed means any branch role. " +
+                                  "An identity token is refused."
+                };
+                document.Security = null;
                 return Task.CompletedTask;
             });
         });

@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v43
+Spec revision: v52
 -->
 <html lang="en">
 <head>
@@ -273,11 +273,20 @@ Spec revision: v43
     '  Client ||--o{ Transaction : involved\n' +
     '\n' +
     '  Transaction o|--o{ Transaction : "installment origin"\n' +
+    '  Transaction |o--o| Transaction : "generated from"\n' +
     '\n' +
     '  DailyClose ||--o{ DailyCloseItem : contains\n' +
     '  DailyClose o|--o{ DailyClose : "opening recheck source"\n' +
     '  Product ||--o{ DailyCloseItem : measured\n' +
     '  User o|--o{ DailyClose : "approved by"\n' +
+    '  DailyClose ||--o{ DailyCloseReviewEvent : "review history"\n' +
+    '  DailyClose o|--o{ DailyCloseReviewEvent : "opening source"\n' +
+    '  DailyClose o|--o{ DailyCloseReviewEvent : "previous opening source"\n' +
+    '  User ||--o{ DailyCloseReviewEvent : actor\n' +
+    '  Operator o|--o{ DailyCloseReviewEvent : actor\n' +
+    '  Branch ||--o{ DailyCloseReviewEvent : scopes\n' +
+    '  DailyCloseReviewEvent ||--o{ DailyCloseReviewEventItem : contains\n' +
+    '  Product ||--o{ DailyCloseReviewEventItem : measured\n' +
     '\n' +
     '  Branch {\n' +
     '    uuid id PK\n' +
@@ -335,6 +344,8 @@ Spec revision: v43
     '    string name\n' +
     '    enum settlementRule\n' +
     '    bool requiresTabAccountAndClient\n' +
+    '    enum systemRole "system-owned counterpart types only"\n' +
+    '    enum fiadoPaymentKind "configured fiado repayment method"\n' +
     '    uuid categoryId FK\n' +
     '  }\n' +
     '\n' +
@@ -361,6 +372,8 @@ Spec revision: v43
     '    date dueDate\n' +
     '    timestamp paidAt\n' +
     '    uuid originTransactionId FK\n' +
+    '    enum generationKind "system-generated Terminal leg"\n' +
+    '    uuid generatedFromTransactionId FK "Tab source, unique"\n' +
     '    enum status\n' +
     '    timestamp updatedAt\n' +
     '    uuid updatedByUserId\n' +
@@ -414,7 +427,35 @@ Spec revision: v43
     '    uuid openingRecheckTriggeredByUserId FK\n' +
     '    timestamp updatedAt\n' +
     '    uuid updatedByUserId FK\n' +
+    '    bool reviewHistoryComplete "false for closes that predate review events"\n' +
     '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  DailyCloseReviewEvent {\n' +
+    '    uuid id PK\n' +
+    '    smallint type "Rejected=0, OpeningChanged=1"\n' +
+    '    timestamp occurredAt\n' +
+    '    uuid dailyCloseId FK "the close this event explains"\n' +
+    '    uuid actorUserId FK\n' +
+    '    string actorUserName "snapshot at event time"\n' +
+    '    uuid actorOperatorId FK\n' +
+    '    string actorOperatorName "snapshot at event time"\n' +
+    '    string rejectionReason\n' +
+    '    uuid sourceDailyCloseId FK\n' +
+    '    uint sourceVersion\n' +
+    '    uuid previousSourceDailyCloseId FK\n' +
+    '    smallint affectedStatusBefore\n' +
+    '    smallint affectedStatusAfter\n' +
+    '    uuid branchId FK\n' +
+    '  }\n' +
+    '\n' +
+    '  DailyCloseReviewEventItem {\n' +
+    '    uuid id PK\n' +
+    '    uuid dailyCloseReviewEventId FK\n' +
+    '    uuid productId FK\n' +
+    '    string productName "snapshot at event time"\n' +
+    '    decimal beforeValue "null = no saved item"\n' +
+    '    decimal afterValue "null = no saved item"\n' +
     '  }\n' +
     '\n' +
     '  DailyCloseItem {\n' +

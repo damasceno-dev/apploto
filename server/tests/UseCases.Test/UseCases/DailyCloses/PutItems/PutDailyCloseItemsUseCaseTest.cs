@@ -615,6 +615,120 @@ public class PutDailyCloseItemsUseCaseTest
     }
 
     // ──────────────────────────────────────────────
+    // Review events (M7.7 7.6.1, gap X)
+    // ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task Execute_ShouldRecordOpeningChangeFromPreviousSource_WhenFirstCountReachesADraftSuccessor()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        var otherProductId = Guid.NewGuid();
+        var previousSource = new DailyCloseBuilder()
+            .WithAccount(ctx.DailyClose.Account)
+            .WithDate(ctx.DailyClose.Date.AddDays(-1))
+            .WithItemsFirstRecordedAt(ctx.Now.AddDays(-1))
+            .Build();
+        previousSource.Items.Add(new DailyCloseItemBuilder().WithDailyClose(previousSource).WithProductId(otherProductId).WithValue(7m).Build());
+        previousSource.Items.Add(new DailyCloseItemBuilder().WithDailyClose(previousSource).WithProductId(ctx.CashVarianceProductId).WithValue(99m).Build());
+        var successor = new DailyCloseBuilder()
+            .WithAccount(ctx.DailyClose.Account)
+            .WithDate(ctx.DailyClose.Date.AddDays(1))
+            .WithStatus(DailyCloseStatus.Draft)
+            .Build();
+        ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.DailyClose.Id, ctx.BranchUser.BranchId, ctx.DailyClose)
+            .GetNextEligibleAfterDateByBranchIdAndAccountIdReturns(
+                ctx.DailyClose.BranchId, ctx.DailyClose.AccountId, ctx.DailyClose.Date, successor)
+            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
+                ctx.DailyClose.BranchId, ctx.DailyClose.AccountId, ctx.DailyClose.Date, previousSource)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.DailyClose.Id, ctx.Request, ctx.DailyClose.Version);
+
+        response.AffectedSuccessor.ShouldBeNull();
+        successor.Status.ShouldBe(DailyCloseStatus.Draft);
+        await ctx.ReviewEventRecorder.Received(1).RecordOpeningChange(
+            ctx.DailyClose,
+            ctx.DailyClose.Version,
+            previousSource.Id,
+            Arg.Is<IReadOnlyDictionary<Guid, decimal>>(before =>
+                before.Count == 1 && before[otherProductId] == 7m),
+            Arg.Is<IReadOnlyDictionary<Guid, decimal>>(after =>
+                after.Count == 1 && after[ctx.Product.Id] == 100m),
+            Arg.Is<DailyCloseSuccessorInvalidation>(invalidation =>
+                invalidation.DailyClose == successor &&
+                invalidation.PreviousStatus == DailyCloseStatus.Draft &&
+                !invalidation.Demoted),
+            ctx.BranchUser.User,
+            ctx.CallerOperator,
+            ctx.Now,
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRecordOpeningChangeFromOwnItemsBeforeCommit_WhenCorrectionDemotesSubmittedSuccessor()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        ctx.DailyClose.ItemsFirstRecordedAt = ctx.Now.AddDays(-1);
+        ctx.DailyClose.Items.Add(new DailyCloseItemBuilder()
+            .WithDailyClose(ctx.DailyClose)
+            .WithProductId(ctx.Product.Id)
+            .WithValue(80m)
+            .Build());
+        var successor = new DailyCloseBuilder()
+            .WithAccount(ctx.DailyClose.Account)
+            .WithDate(ctx.DailyClose.Date.AddDays(1))
+            .WithStatus(DailyCloseStatus.Submitted)
+            .Build();
+        ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
+            .GetByIdAndBranchIdReturns(ctx.DailyClose.Id, ctx.BranchUser.BranchId, ctx.DailyClose)
+            .GetNextEligibleAfterDateByBranchIdAndAccountIdReturns(
+                ctx.DailyClose.BranchId, ctx.DailyClose.AccountId, ctx.DailyClose.Date, successor)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.DailyClose.Id, ctx.Request, ctx.DailyClose.Version);
+
+        response.AffectedSuccessor.ShouldNotBeNull();
+        response.AffectedSuccessor.DailyCloseId.ShouldBe(successor.Id);
+        successor.Status.ShouldBe(DailyCloseStatus.Draft);
+        await ctx.DailyClosesRepository.DidNotReceiveWithAnyArgs()
+            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(default, default, default);
+        Received.InOrder(() =>
+        {
+            ctx.ReviewEventRecorder.RecordOpeningChange(
+                ctx.DailyClose,
+                ctx.DailyClose.Version,
+                ctx.DailyClose.Id,
+                Arg.Is<IReadOnlyDictionary<Guid, decimal>>(before => before.Count == 1 && before[ctx.Product.Id] == 80m),
+                Arg.Is<IReadOnlyDictionary<Guid, decimal>>(after => after.Count == 1 && after[ctx.Product.Id] == 100m),
+                Arg.Is<DailyCloseSuccessorInvalidation>(invalidation =>
+                    invalidation.DailyClose == successor &&
+                    invalidation.PreviousStatus == DailyCloseStatus.Submitted &&
+                    invalidation.Demoted),
+                ctx.BranchUser.User,
+                ctx.CallerOperator,
+                ctx.Now,
+                Arg.Any<CancellationToken>());
+            ctx.UnitOfWork.Commit(Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRecordNoEvent_WhenNoEligibleSuccessorExists()
+    {
+        var ctx = BuildHappyPathContext(Role.Manager);
+        var useCase = CreateUseCase(ctx);
+
+        await useCase.Execute(ctx.DailyClose.Id, ctx.Request, ctx.DailyClose.Version);
+
+        await ctx.ReviewEventRecorder.DidNotReceiveWithAnyArgs().RecordOpeningChange(
+            default!, default, default, default!, default!, default!, default!, default, default);
+        await ctx.UnitOfWork.Received(1).Commit();
+    }
+
+    // ──────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────
 
@@ -641,6 +755,7 @@ public class PutDailyCloseItemsUseCaseTest
             ctx.WorkflowGuard,
             draftTransition,
             successorInvalidator,
+            ctx.ReviewEventRecorder,
             ctx.CashVarianceProductResolver,
             lockDateGuard,
             new FixedBranchClock(ctx.Now),
@@ -777,6 +892,7 @@ public class PutDailyCloseItemsUseCaseTest
         public required IDailyCloseWorkflowGuard WorkflowGuard { get; set; }
         public required ICashVarianceProductResolver CashVarianceProductResolver { get; set; }
         public required IUnitOfWork UnitOfWork { get; set; }
+        public IDailyCloseReviewEventRecorder ReviewEventRecorder { get; set; } = Substitute.For<IDailyCloseReviewEventRecorder>();
     }
 
     /// <summary>Clock that always returns the same fixed UTC instant.</summary>

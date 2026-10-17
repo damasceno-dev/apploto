@@ -45,10 +45,10 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 1, 50, AccountType.Tab, rows)
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 3)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1, 50, rows)
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 3)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -87,10 +87,10 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 1, 50, AccountType.Tab, rows)
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 2)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1, 50, rows)
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 2)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -119,10 +119,10 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 1, 50, AccountType.Tab, rows)
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 1)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1, 50, rows)
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -133,7 +133,7 @@ public class GetFiadoAgingUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldPassTabAccountTypeToRepository_WhenCalled()
+    public async Task Execute_ShouldDelegateNettedOpenSalesQueryWithFilters_WhenCalled()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var asOfDate = new DateTime(2025, 5, 28);
@@ -146,30 +146,30 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 1, 50, AccountType.Tab, [])
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 0)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1, 50, [])
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 0)
             .Build();
 
         var useCase = CreateUseCase(ctx);
         await useCase.Execute(request);
 
-        await ctx.TransactionsRepository.Received(1).ListOpenReceivablesByBranchIdAsNoTracking(
+        await ctx.TransactionsRepository.Received(1).ListFiadoOpenSalesByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<Guid?>(v => v == null),
             Arg.Is<Guid?>(v => v == null),
             Arg.Is<DateTime>(v => v == asOfDate),
             Arg.Is<int>(v => v == 1),
             Arg.Is<int>(v => v == 50),
-            Arg.Is<AccountType?>(v => v == AccountType.Tab));
+            Arg.Any<CancellationToken>());
 
-        await ctx.TransactionsRepository.Received(1).CountOpenReceivablesByBranchIdAsNoTracking(
+        await ctx.TransactionsRepository.Received(1).CountFiadoOpenSalesByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Is<Guid?>(v => v == null),
             Arg.Is<Guid?>(v => v == null),
             Arg.Is<DateTime>(v => v == asOfDate),
-            Arg.Is<AccountType?>(v => v == AccountType.Tab));
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -187,23 +187,23 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 1, 50, AccountType.Tab, [])
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 0)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1, 50, [])
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 0)
             .Build();
 
         var useCase = CreateUseCase(ctx);
         await useCase.Execute(request);
 
-        await ctx.TransactionsRepository.DidNotReceive().ListOpenReceivablesByBranchIdAsNoTracking(
+        await ctx.TransactionsRepository.DidNotReceive().ListFiadoOpenSalesByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == otherBranchId),
             Arg.Any<Guid?>(),
             Arg.Any<Guid?>(),
             Arg.Any<DateTime>(),
             Arg.Any<int>(),
             Arg.Any<int>(),
-            Arg.Any<AccountType?>());
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -235,10 +235,10 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 2, 3, AccountType.Tab, rows)
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 7)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 2, 3, rows)
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 7)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -262,10 +262,10 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, FixedLocalBusinessDate, 1, 50, AccountType.Tab, [])
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, FixedLocalBusinessDate, AccountType.Tab, 0)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, FixedLocalBusinessDate, 1, 50, [])
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, FixedLocalBusinessDate, 0)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -288,10 +288,10 @@ public class GetFiadoAgingUseCaseTest
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, 1, 50, AccountType.Tab, [])
-            .CountOpenReceivablesByBranchIdAsNoTrackingReturns(
-                branchUser.BranchId, null, null, asOfDate, AccountType.Tab, 0)
+            .ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 1, 50, [])
+            .CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
+                branchUser.BranchId, null, null, asOfDate, 0)
             .Build();
 
         var useCase = CreateUseCase(ctx);
@@ -304,10 +304,10 @@ public class GetFiadoAgingUseCaseTest
         response.HasPrevious.ShouldBeFalse();
     }
 
-    private static IReadOnlyList<TransactionOpenReceivableRow> BuildRows(
+    private static IReadOnlyList<FiadoOpenSaleRow> BuildRows(
         IEnumerable<(Guid id, DateTime dueDate, decimal value)> specs)
     {
-        return specs.Select(s => new TransactionOpenReceivableRow(
+        return specs.Select(s => new FiadoOpenSaleRow(
             s.id,
             new DateTime(2025, 1, 1),
             s.dueDate,
@@ -316,7 +316,6 @@ public class GetFiadoAgingUseCaseTest
             "Client",
             Guid.NewGuid(),
             "Account",
-            null,
             null)).ToList();
     }
 

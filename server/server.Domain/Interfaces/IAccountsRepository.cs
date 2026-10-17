@@ -8,7 +8,18 @@ public interface IAccountsRepository
     Task Add(Account account);
     Task<Account?> GetActiveByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default);
     Task<Account?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
+
+    /// <summary>
+    /// A branch-owned account whether active or deactivated (M11 Phase 2.4 historical drill-downs); null only for a
+    /// missing or cross-branch id.
+    /// </summary>
+    Task<Account?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
     Task<Guid?> GetActiveTerminalIdByTabAccountId(Guid tabAccountId, Guid branchId);
+    /// <summary>
+    /// Tracked: every Terminal in the branch, active or not, that holds the given Tab as its pairing.
+    /// Used by deactivation to clear the pairing, including any stale holder.
+    /// </summary>
+    Task<IReadOnlyList<Account>> ListTerminalsByTabAccountId(Guid branchId, Guid tabAccountId, CancellationToken ct = default);
     Task<IReadOnlyList<Account>> ListActiveByBranchId(Guid branchId);
     Task<IReadOnlyDictionary<Guid, Guid>> ListActiveTerminalIdsByTabAccountIds(Guid branchId, IReadOnlyCollection<Guid> tabAccountIds);
     /// <summary>

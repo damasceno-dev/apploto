@@ -16,6 +16,7 @@ public static class InfraDependencyInjection
     private const int DefaultExternalHolidayTimeoutSeconds = 5;
     private const int DefaultDailyCloseAccountCoordinationLockTimeoutSeconds = 5;
     private const int DefaultMonthLockCoordinationLockTimeoutSeconds = 5;
+    private const int DefaultAccountPairingCoordinationLockTimeoutSeconds = 5;
     private const int DefaultIdempotencyRequestCoordinationLockTimeoutSeconds = 5;
     private const int DefaultIdempotencyRequestCleanupIntervalHours = 24;
     private const int DefaultIdempotencyRequestCleanupBatchSize = 500;
@@ -145,6 +146,18 @@ public static class InfraDependencyInjection
 
         services.AddSingleton(new IdempotencyRequestCoordinationOptions(
             TimeSpan.FromSeconds(idempotencyLockTimeoutSeconds)));
+
+        var accountPairingLockTimeoutSeconds = configuration.GetValue<int?>(
+            "AccountPairingCoordination:LockTimeoutSeconds")
+            ?? DefaultAccountPairingCoordinationLockTimeoutSeconds;
+        if (accountPairingLockTimeoutSeconds <= 0)
+        {
+            throw new InvalidOperationException(
+                "AccountPairingCoordination:LockTimeoutSeconds must be greater than zero.");
+        }
+
+        services.AddSingleton(new AccountPairingCoordinationOptions(
+            TimeSpan.FromSeconds(accountPairingLockTimeoutSeconds)));
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IBranchesRepository, BranchesRepository>();
@@ -158,8 +171,10 @@ public static class InfraDependencyInjection
         services.AddScoped<IOperatorAccountsRepository, OperatorAccountsRepository>();
         services.AddScoped<IClientsRepository, ClientsRepository>();
         services.AddScoped<ITransactionsRepository, TransactionsRepository>();
+        services.AddScoped<IFiadoProjectionRepository, FiadoProjectionRepository>();
         services.AddScoped<IDailyClosesRepository, DailyClosesRepository>();
         services.AddScoped<IDailyCloseItemsRepository, DailyCloseItemsRepository>();
+        services.AddScoped<IDailyCloseReviewEventsRepository, DailyCloseReviewEventsRepository>();
         services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();
         services.AddScoped<ITimeEntrySegmentsRepository, TimeEntrySegmentsRepository>();
         services.AddScoped<ITimeEntryPoliciesRepository, TimeEntryPoliciesRepository>();
@@ -169,6 +184,7 @@ public static class InfraDependencyInjection
         services.AddScoped<IIdempotencyRequestCoordination, IdempotencyRequestCoordination>();
         services.AddScoped<IMonthLockCoordination, MonthLockCoordination>();
         services.AddScoped<IDailyCloseAccountCoordination, DailyCloseAccountCoordination>();
+        services.AddScoped<IAccountPairingCoordination, AccountPairingCoordination>();
     }
 
     private static void AddDbContext(IServiceCollection services, IConfiguration configuration)

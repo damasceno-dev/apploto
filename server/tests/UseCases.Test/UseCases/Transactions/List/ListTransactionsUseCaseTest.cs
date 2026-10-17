@@ -308,6 +308,96 @@ public class ListTransactionsUseCaseTest
     }
 
     [Fact]
+    public async Task Execute_ShouldPassTransactionTypeIdToListAndCount_WithTheOtherFilters()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var accountId = Guid.NewGuid();
+        var transactionTypeId = Guid.NewGuid();
+        var dateFrom = new DateTime(2026, 9, 1);
+        var dateTo = new DateTime(2026, 9, 30);
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithAccountId(accountId)
+            .WithDateFrom(dateFrom)
+            .WithDateTo(dateTo)
+            .WithStatus(TransactionStatus.Draft)
+            .WithTransactionTypeId(transactionTypeId)
+            .WithPage(1)
+            .WithPageSize(10)
+            .Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            AccountId = accountId,
+            DateFrom = dateFrom,
+            DateTo = dateTo,
+            Status = TransactionStatus.Draft,
+            TransactionTypeId = transactionTypeId,
+            Page = 1,
+            PageSize = 10
+        };
+        var ctx = BuildContext(branchUser);
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, BuildTransactions(branchUser.BranchId, accountId, 2))
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 2)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.TotalCount.ShouldBe(2);
+        await ctx.TransactionsRepository.Received(1).ListByBranchIdAsNoTracking(
+            branchUser.BranchId,
+            Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+        await ctx.TransactionsRepository.Received(1).CountByBranchIdAsNoTracking(
+            branchUser.BranchId,
+            Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldKeepMemberAccountScope_WhenFilteringByTransactionType()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
+        var callerOperator = new OperatorBuilder()
+            .WithBranchId(branchUser.BranchId)
+            .WithUserId(branchUser.UserId)
+            .Build();
+        var linkedAccountId = Guid.NewGuid();
+        var transactionTypeId = Guid.NewGuid();
+        var request = new RequestListTransactionsJsonBuilder()
+            .WithTransactionTypeId(transactionTypeId)
+            .WithPage(1)
+            .WithPageSize(25)
+            .Build();
+        var expectedFilter = new TransactionListFilter
+        {
+            AllowedAccountIds = [linkedAccountId],
+            TransactionTypeId = transactionTypeId,
+            Page = 1,
+            PageSize = 25
+        };
+        var ctx = BuildContext(branchUser);
+        ctx.OperatorsRepository = new OperatorsRepositoryBuilder()
+            .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
+            .Build();
+        ctx.OperatorAccountsRepository = new OperatorAccountsRepositoryBuilder()
+            .ListActiveByOperatorIdAsNoTracking(
+                callerOperator.Id,
+                [new OperatorAccountBuilder().WithOperator(callerOperator).WithAccountId(linkedAccountId).Build()])
+            .Build();
+        ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
+            .ListByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, BuildTransactions(branchUser.BranchId, linkedAccountId, 1))
+            .CountByBranchIdAsNoTrackingReturns(branchUser.BranchId, expectedFilter, 1)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(request);
+
+        response.TotalCount.ShouldBe(1);
+        await ctx.TransactionsRepository.Received(1).ListByBranchIdAsNoTracking(
+            branchUser.BranchId,
+            Arg.Is<TransactionListFilter>(actual => MatchesFilter(expectedFilter, actual)));
+    }
+
+    [Fact]
     public async Task Execute_ShouldStripOperatorId_WhenMemberListsWithoutMine()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Member).Build();
@@ -472,6 +562,8 @@ public class ListTransactionsUseCaseTest
                expected.Status == actual.Status &&
                expected.OperatorId == actual.OperatorId &&
                expected.ClientId == actual.ClientId &&
+               expected.OriginTransactionId == actual.OriginTransactionId &&
+               expected.TransactionTypeId == actual.TransactionTypeId &&
                MatchesAllowedAccountIds(expected.AllowedAccountIds, actual.AllowedAccountIds) &&
                expected.Page == actual.Page &&
                expected.PageSize == actual.PageSize;

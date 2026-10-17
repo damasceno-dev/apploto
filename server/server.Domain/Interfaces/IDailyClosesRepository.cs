@@ -33,18 +33,18 @@ public interface IDailyClosesRepository
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAndYearMonthAsNoTracking(
         Guid branchId, int year, int month, CancellationToken ct = default);
     /// <summary>
-    /// All active closes for the branch on one date (every status, Draft included so the dashboard can
+    /// All active closes for the branch on one date (every status, Draft included so the manager queue can
     /// deep-link not-submitted accounts), projected with account and submitting-operator identity.
     /// Ordered AccountName ASC, then Id ASC.
     /// </summary>
-    Task<IReadOnlyList<DashboardCloseRow>> ListDashboardClosesByBranchIdAndDateAsNoTracking(
+    Task<IReadOnlyList<ManagerQueueCloseRow>> ListManagerQueueClosesByBranchIdAndDateAsNoTracking(
         Guid branchId, DateTime date, CancellationToken ct = default);
     /// <summary>
     /// Per-status counts and the earliest date of active Submitted/Rejected/Draft closes strictly between
     /// the two dates (Approved excluded). One grouped aggregate — NOT the paginated list — so the counts
     /// are exact and the oldest date does not depend on list ordering.
     /// </summary>
-    Task<DashboardBacklogRow> GetDashboardBacklogByBranchIdAndDateRangeAsNoTracking(
+    Task<ManagerQueueBacklogRow> GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
         Guid branchId, DateTime afterDateExclusive, DateTime beforeDateExclusive, CancellationToken ct = default);
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(
         Guid branchId, DailyCloseListFilter filter, CancellationToken ct = default);

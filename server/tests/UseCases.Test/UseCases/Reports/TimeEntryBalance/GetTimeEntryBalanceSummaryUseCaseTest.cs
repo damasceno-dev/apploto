@@ -407,6 +407,8 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         response.Operators.ShouldBeEmpty();
         await ctx.OperatorsRepository.DidNotReceive().GetActiveByIdAndBranchIdAsNoTracking(
             Arg.Any<Guid>(), Arg.Any<Guid>());
+        await ctx.OperatorsRepository.DidNotReceive().GetByIdAndBranchIdAsNoTracking(
+            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     // -------------------------------------------------------------------------
@@ -535,7 +537,7 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         var crossBranchOperatorId = Guid.NewGuid();
 
         var ctx = BuildContext(branchUser);
-        ctx.OperatorsRepositoryBuilder.GetActiveByIdAndBranchIdAsNoTracking(crossBranchOperatorId, branchUser.BranchId, null);
+        ctx.OperatorsRepositoryBuilder.GetByIdAndBranchIdAsNoTracking(crossBranchOperatorId, branchUser.BranchId, null);
 
         var request = Request().WithOperatorId(crossBranchOperatorId).Build();
 
@@ -579,9 +581,10 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
 
         await CreateUseCase(ctx).Execute(Request().WithOperatorId(targetOperator.Id).Build());
 
-        await ctx.OperatorsRepository.Received(1).GetActiveByIdAndBranchIdAsNoTracking(
+        await ctx.OperatorsRepository.Received(1).GetByIdAndBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == targetOperator.Id),
-            Arg.Is<Guid>(v => v == branchUser.BranchId));
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Any<CancellationToken>());
         await ctx.TimeEntriesRepository.Received(1).ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
             Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<DateTime>());
@@ -788,7 +791,8 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         public void StubOperatorInBranch(Operator targetOperator)
         {
             OperatorsRepositoryBuilder
-                .GetActiveByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator);
+                .GetActiveByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator)
+                .GetByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator);
         }
 
         public void StubActiveOperators(IReadOnlyList<Operator> operators)

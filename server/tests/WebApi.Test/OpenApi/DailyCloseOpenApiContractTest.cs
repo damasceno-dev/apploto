@@ -56,7 +56,7 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
             schemas.GetProperty("ResponseListDailyCloseItemJson").GetProperty("properties"),
             includesOpener: false);
         AssertOwnershipProperties(
-            schemas.GetProperty("ResponseDashboardCloseJson").GetProperty("properties"),
+            schemas.GetProperty("ResponseManagerQueueCloseJson").GetProperty("properties"),
             includesOpener: false);
 
         var putResponseProperties = schemas

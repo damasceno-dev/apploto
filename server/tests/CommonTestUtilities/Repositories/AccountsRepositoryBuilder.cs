@@ -16,6 +16,8 @@ public class AccountsRepositoryBuilder
         _repository.ListExpectedClosersByBranchIdAsNoTracking(
                 Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(new List<ExpectedCloserRow>());
+        _repository.ListTerminalsByTabAccountId(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
+            .Returns(new List<Account>());
     }
 
     public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Account? account)
@@ -39,6 +41,12 @@ public class AccountsRepositoryBuilder
         return this;
     }
 
+    public AccountsRepositoryBuilder GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Account? account)
+    {
+        _repository.GetByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
+        return this;
+    }
+
     public AccountsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Account? account)
     {
         _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
@@ -49,6 +57,12 @@ public class AccountsRepositoryBuilder
     public AccountsRepositoryBuilder GetActiveTerminalIdByTabAccountId(Guid tabAccountId, Guid branchId, Guid? terminalAccountId)
     {
         _repository.GetActiveTerminalIdByTabAccountId(tabAccountId, branchId).Returns(terminalAccountId);
+        return this;
+    }
+
+    public AccountsRepositoryBuilder ListTerminalsByTabAccountId(Guid branchId, Guid tabAccountId, IReadOnlyList<Account> terminals)
+    {
+        _repository.ListTerminalsByTabAccountId(branchId, tabAccountId, Arg.Any<CancellationToken>()).Returns(terminals);
         return this;
     }
 

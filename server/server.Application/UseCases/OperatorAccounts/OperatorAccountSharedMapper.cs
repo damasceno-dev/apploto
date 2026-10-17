@@ -1,3 +1,4 @@
+using server.Domain.Entities.Enums;
 using server.Communication.Responses;
 using server.Domain.Entities;
 
@@ -18,7 +19,8 @@ public static class OperatorAccountSharedMapper
                 AccountType = account.Type,
                 AccountName = account.Name,
                 AccountInstitution = account.Institution,
-                AccountNumber = account.Number
+                AccountNumber = account.Number,
+                PairedTabAccountId = account.Type == AccountType.Terminal ? account.TabAccountId : null
             };
         }
 

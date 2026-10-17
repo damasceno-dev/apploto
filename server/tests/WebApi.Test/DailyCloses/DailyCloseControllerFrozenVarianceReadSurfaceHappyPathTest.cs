@@ -87,16 +87,16 @@ public class DailyCloseControllerFrozenVarianceReadSurfaceHappyPathTest(ServerWe
             .ClosingValue.ShouldBeNull();
 
         var queryDate = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        var dashboardResponse = await _client.GetAuthAsync(
-            $"/report/dashboard?date={queryDate}",
+        var managerQueueResponse = await _client.GetAuthAsync(
+            $"/report/manager-queue?date={queryDate}",
             token);
-        dashboardResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var dashboard = await dashboardResponse.ReadContentAsync<ResponseDashboardJson>();
-        dashboard.Closes.ShouldNotContain(row => row.DailyCloseId == close.Id);
-        var notSubmitted = dashboard.NotSubmitted.Single(row => row.AccountId == account.Id);
+        managerQueueResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var managerQueue = await managerQueueResponse.ReadContentAsync<ResponseManagerQueueJson>();
+        managerQueue.Closes.ShouldNotContain(row => row.DailyCloseId == close.Id);
+        var notSubmitted = managerQueue.NotSubmitted.Single(row => row.AccountId == account.Id);
         notSubmitted.DailyCloseId.ShouldBe(close.Id);
         notSubmitted.Status.ShouldBe(DailyCloseStatus.Draft);
-        dashboard.TotalVariance.ShouldBe(0m);
+        managerQueue.TotalVariance.ShouldBe(0m);
 
         var summaryResponse = await _client.GetAuthAsync(
             $"/report/cash-variance?dateFrom={queryDate}&dateTo={queryDate}&accountId={account.Id}&page=1&pageSize=50",

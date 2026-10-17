@@ -98,7 +98,7 @@ public class CreateBranchUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldSeedExactlyNineDefaultCategories()
+    public async Task Execute_ShouldSeedExactlyElevenDefaultCategories_IncludingTheTwoSystemCategories()
     {
         var authenticatedUser = new UserBuilder().Build();
         var request = new RequestCreateBranchJsonBuilder().Build();
@@ -130,7 +130,7 @@ public class CreateBranchUseCaseTest
         await useCase.Execute(request);
 
         persistedCategories.ShouldNotBeNull();
-        persistedCategories!.Count.ShouldBe(9);
+        persistedCategories!.Count.ShouldBe(11);
         persistedCategories.ShouldAllBe(category => category.BranchId == persistedBranch!.Id);
 
         var expectedCategories = new (string Name, Direction DefaultDirection)[]
@@ -143,7 +143,9 @@ public class CreateBranchUseCaseTest
             ("Despesas Pessoal", Direction.Out),
             ("Despesas Financeiras", Direction.Out),
             ("Débito Banco", Direction.Out),
-            ("Saídas", Direction.Out)
+            ("Saídas", Direction.Out),
+            ("Movimentos automáticos de fiado (saída)", Direction.Out),
+            ("Movimentos automáticos de fiado (entrada)", Direction.In)
         };
 
         foreach (var (name, direction) in expectedCategories)
@@ -156,7 +158,7 @@ public class CreateBranchUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldSeedExactlyNineteenDefaultTransactionTypes_LinkedToSeededCategories()
+    public async Task Execute_ShouldSeedNineteenOrdinaryAndTwoSystemTransactionTypes_LinkedToSeededCategories()
     {
         var authenticatedUser = new UserBuilder().Build();
         var request = new RequestCreateBranchJsonBuilder().Build();
@@ -190,7 +192,7 @@ public class CreateBranchUseCaseTest
 
         persistedCategories.ShouldNotBeNull();
         persistedTransactionTypes.ShouldNotBeNull();
-        persistedTransactionTypes!.Count.ShouldBe(19);
+        persistedTransactionTypes!.Count.ShouldBe(21);
 
         var categoryIdsByName = persistedCategories!.ToDictionary(category => category.Name, category => category.Id);
 
@@ -220,8 +222,22 @@ public class CreateBranchUseCaseTest
         foreach (var (name, categoryName) in expectedTransactionTypes)
         {
             persistedTransactionTypes.ShouldContain(type =>
-                type.Name == name && type.CategoryId == categoryIdsByName[categoryName]);
+                type.Name == name && type.CategoryId == categoryIdsByName[categoryName] && type.SystemRole == null);
         }
+
+        // M7.7 Phase 5.6: the two system-owned counterpart types, never a repayment method.
+        persistedTransactionTypes.ShouldContain(type =>
+            type.Name == "Saída de estoque contado — venda fiado" &&
+            type.CategoryId == categoryIdsByName["Movimentos automáticos de fiado (saída)"] &&
+            type.SystemRole == TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart &&
+            type.FiadoPaymentKind == null);
+        persistedTransactionTypes.ShouldContain(type =>
+            type.Name == "Entrada de dinheiro — recebimento fiado" &&
+            type.CategoryId == categoryIdsByName["Movimentos automáticos de fiado (entrada)"] &&
+            type.SystemRole == TransactionTypeSystemRole.FiadoCashRepaymentCounterpart &&
+            type.FiadoPaymentKind == null);
+        // No repayment method is invented for a new branch either.
+        persistedTransactionTypes.ShouldAllBe(type => type.FiadoPaymentKind == null);
 
         await unitOfWork.Received(1).Commit();
     }
@@ -261,7 +277,7 @@ public class CreateBranchUseCaseTest
 
         persistedCategories.ShouldNotBeNull();
         persistedTransactionTypes.ShouldNotBeNull();
-        persistedTransactionTypes!.Count.ShouldBe(19);
+        persistedTransactionTypes!.Count.ShouldBe(21);
 
         var categoryIdsByName = persistedCategories!.ToDictionary(category => category.Name, category => category.Id);
         foreach (var (seed, expected) in ExpectedTransactionTypeMetadata())
