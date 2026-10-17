@@ -55,7 +55,7 @@ public class GetDailyLedgerUseCaseTest
             .Build();
         var ctx = BuildContext(branchUser);
         ctx.AccountsRepository = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .GetByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
             .Build();
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .ListByBranchIdAndAccountIdAndDateRangeAsNoTrackingReturns(branchUser.BranchId, filter, [transaction])
@@ -101,7 +101,7 @@ public class GetDailyLedgerUseCaseTest
             .Build();
         var ctx = BuildContext(branchUser);
         ctx.AccountsRepository = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(request.AccountId, branchUser.BranchId, null)
+            .GetByIdAndBranchIdAsNoTracking(request.AccountId, branchUser.BranchId, null)
             .Build();
         var useCase = CreateUseCase(ctx);
 
@@ -144,7 +144,7 @@ public class GetDailyLedgerUseCaseTest
             .Build();
         var ctx = BuildContext(branchUser);
         ctx.AccountsRepository = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .GetByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
             .Build();
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .ListByBranchIdAndAccountIdAndDateRangeAsNoTrackingReturns(branchUser.BranchId, filter, [])
@@ -181,7 +181,7 @@ public class GetDailyLedgerUseCaseTest
             .Build();
         var ctx = BuildContext(branchUser);
         ctx.AccountsRepository = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .GetByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
             .Build();
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .ListByBranchIdAndAccountIdAndDateRangeAsNoTrackingReturns(branchUser.BranchId, filter, [])
@@ -220,7 +220,7 @@ public class GetDailyLedgerUseCaseTest
             .Build();
         var ctx = BuildContext(branchUser);
         ctx.AccountsRepository = new AccountsRepositoryBuilder()
-            .GetActiveByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
+            .GetByIdAndBranchIdAsNoTracking(account.Id, branchUser.BranchId, account)
             .Build();
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .ListByBranchIdAndAccountIdAndDateRangeAsNoTrackingReturns(branchUser.BranchId, filter, [])

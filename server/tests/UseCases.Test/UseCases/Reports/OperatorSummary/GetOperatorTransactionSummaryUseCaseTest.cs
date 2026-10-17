@@ -300,7 +300,7 @@ public class GetOperatorTransactionSummaryUseCaseTest
         var crossBranchOperatorId = Guid.NewGuid();
 
         var ctx = BuildContext(branchUser);
-        ctx.OperatorsRepositoryBuilder.GetActiveByIdAndBranchIdAsNoTracking(crossBranchOperatorId, branchUser.BranchId, null);
+        ctx.OperatorsRepositoryBuilder.GetByIdAndBranchIdAsNoTracking(crossBranchOperatorId, branchUser.BranchId, null);
 
         var useCase = CreateUseCase(ctx);
         var request = new RequestOperatorTransactionSummaryJsonBuilder()
@@ -389,9 +389,10 @@ public class GetOperatorTransactionSummaryUseCaseTest
 
         await useCase.Execute(request);
 
-        await ctx.OperatorsRepository.Received(1).GetActiveByIdAndBranchIdAsNoTracking(
+        await ctx.OperatorsRepository.Received(1).GetByIdAndBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == targetOperator.Id),
-            Arg.Is<Guid>(v => v == branchUser.BranchId));
+            Arg.Is<Guid>(v => v == branchUser.BranchId),
+            Arg.Any<CancellationToken>());
 
         await ctx.TransactionsRepository.Received(1).SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
@@ -585,7 +586,8 @@ public class GetOperatorTransactionSummaryUseCaseTest
         public void StubOperatorInBranch(Operator targetOperator)
         {
             OperatorsRepositoryBuilder
-                .GetActiveByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator);
+                .GetActiveByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator)
+                .GetByIdAndBranchIdAsNoTracking(targetOperator.Id, BranchUser.BranchId, targetOperator);
         }
 
         public void StubSummary(

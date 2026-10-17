@@ -14,6 +14,12 @@ public class OperatorsRepositoryBuilder
         return this;
     }
 
+    public OperatorsRepositoryBuilder GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Operator? op)
+    {
+        _repository.GetByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(op);
+        return this;
+    }
+
     public OperatorsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Operator? op)
     {
         _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId).Returns(op);

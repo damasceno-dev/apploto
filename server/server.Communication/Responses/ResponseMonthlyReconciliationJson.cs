@@ -16,6 +16,17 @@ public class ResponseMonthlyReconciliationJson
     /// </summary>
     public bool LockReady { get; init; }
 
+    /// <summary>
+    /// The branch's current lock boundary (M11 Phase 2.3); null when the branch has never locked a month.
+    /// </summary>
+    public DateTime? LockDate { get; init; }
+
+    /// <summary>True when the month's last day is on or before <see cref="LockDate"/>.</summary>
+    public bool IsMonthLocked { get; init; }
+
+    /// <summary>True when the month's last day is before the branch-local business date.</summary>
+    public bool IsMonthElapsed { get; init; }
+
     /// <summary>One entry per calendar day of the month, including days with no closes and no transactions.</summary>
     public IReadOnlyList<ResponseMonthlyReconciliationDayJson> Days { get; init; } = [];
 

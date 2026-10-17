@@ -113,6 +113,14 @@ internal sealed class FiadoStatementWindowSqlRow
     public int TotalCount { get; init; }
 }
 
+internal sealed class FiadoAgingTotalSqlRow
+{
+    public DateTime DueDate { get; init; }
+    public decimal Value { get; init; }
+    public int RowCount { get; init; }
+    public DateTime OldestDate { get; init; }
+}
+
 internal sealed class FiadoCountSqlRow
 {
     public int Count { get; init; }

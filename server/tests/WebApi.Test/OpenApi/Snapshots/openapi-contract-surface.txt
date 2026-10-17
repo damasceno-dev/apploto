@@ -288,6 +288,11 @@ schema ResponseAffectedDailyCloseSuccessorJson
   openingRecheckRequiredAt required string
   previousStatus required enum:DailyCloseStatus
 
+schema ResponseAgingBucketTotalJson
+  bucket required enum:AgingBucket
+  rowCount required integer|string
+  value required number|string
+
 schema ResponseBranchSummaryJson
   address optional string?
   cnpj optional string?
@@ -349,12 +354,15 @@ schema ResponseCashVarianceSummaryItemJson
   varianceValue required number|string
 
 schema ResponseCashVarianceSummaryJson
+  approvedCount required integer|string
   hasNext required boolean
   hasPrevious required boolean
   items required ResponseCashVarianceSummaryItemJson[]
   maxVariance required number|string
   meanVariance required number|string
   minVariance required number|string
+  rejectedCount required integer|string
+  submittedCount required integer|string
   totalCount required integer|string
   totalPages required integer|string
   totalVariance required number|string
@@ -618,6 +626,7 @@ schema ResponseDailyLedgerItemJson
   value required number|string
 
 schema ResponseDailyLedgerJson
+  accountActive required boolean
   accountId required string
   accountName required string
   closingBalance required number|string
@@ -656,9 +665,12 @@ schema ResponseFiadoAgingItemJson
 
 schema ResponseFiadoAgingJson
   asOfDate required string
+  byBucket required ResponseAgingBucketTotalJson[]
   hasNext required boolean
   hasPrevious required boolean
   items required ResponseFiadoAgingItemJson[]
+  oldestUnpaidDate optional string?
+  outstandingTotal required number|string
   totalCount required integer|string
   totalPages required integer|string
 
@@ -667,7 +679,11 @@ schema ResponseFiadoBalanceImpactJson
 
 schema ResponseFiadoBalanceJson
   asOfDate required string
+  creditorCount required integer|string
+  debtorCount required integer|string
   items required ResponseFiadoClientBalanceItemJson[]
+  totalCredit required number|string
+  totalDebt required number|string
   totalOutstanding required number|string
 
 schema ResponseFiadoClientBalanceItemJson
@@ -903,6 +919,9 @@ schema ResponseMonthlyReconciliationDayJson
 schema ResponseMonthlyReconciliationJson
   blockers required ResponseMonthlyReconciliationBlockerJson[]
   days required ResponseMonthlyReconciliationDayJson[]
+  isMonthElapsed required boolean
+  isMonthLocked required boolean
+  lockDate optional string?
   lockReady required boolean
   month required integer|string
   year required integer|string
@@ -937,9 +956,12 @@ schema ResponseOpenChequeAgingImpactJson
 
 schema ResponseOpenChequeAgingJson
   asOfDate required string
+  byBucket required ResponseAgingBucketTotalJson[]
   hasNext required boolean
   hasPrevious required boolean
   items required ResponseOpenChequeAgingGroupJson[]
+  openRowCount required integer|string
+  outstandingTotal required number|string
   totalCount required integer|string
   totalPages required integer|string
 
@@ -993,6 +1015,7 @@ schema ResponseOperatorTransactionSummaryJson
   generatedOutValue required number|string
   generatedTransactionCount required integer|string
   netValue required number|string
+  operatorActive required boolean
   operatorId required string
   operatorName required string
   totalInValue required number|string
@@ -1042,6 +1065,7 @@ schema ResponseTimeEntryBalanceOperatorJson
   absentDays required integer|string
   containsInProgress required boolean
   days required ResponseTimeEntryBalanceSummaryDayJson[]
+  operatorActive required boolean
   operatorId required string
   operatorName required string
   owingDays required integer|string

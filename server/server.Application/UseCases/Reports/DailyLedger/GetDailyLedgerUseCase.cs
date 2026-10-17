@@ -22,7 +22,9 @@ public class GetDailyLedgerUseCase(
 
         Validate(request);
 
-        var account = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(
+        // M11 Phase 2.4: a deactivated account's history stays drillable for Manager/Admin; only a missing or
+        // cross-branch id is 404.
+        var account = await accountsRepository.GetByIdAndBranchIdAsNoTracking(
             request.AccountId, branchUser.BranchId);
 
         if (account is null)
@@ -69,6 +71,7 @@ public class GetDailyLedgerUseCase(
             ClosingBalance = closingBalance,
             AccountId = account.Id,
             AccountName = account.Name,
+            AccountActive = account.Active,
             DateFrom = request.DateFrom,
             DateTo = request.DateTo
         };

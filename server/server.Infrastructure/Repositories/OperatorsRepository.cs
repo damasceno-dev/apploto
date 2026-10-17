@@ -21,6 +21,13 @@ internal class OperatorsRepository(ServerDbContext dbContext) : IOperatorsReposi
                 op.Branch.Active);
     }
 
+    public async Task<Operator?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.Operators
+            .AsNoTracking()
+            .FirstOrDefaultAsync(op => op.Id == id && op.BranchId == branchId && op.Branch.Active, ct);
+    }
+
     public async Task<Operator?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Operators

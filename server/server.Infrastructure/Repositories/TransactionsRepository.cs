@@ -369,6 +369,34 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToList();
     }
 
+    public async Task<FiadoAgingTotals> GetFiadoAgingTotalsByBranchIdAsNoTracking(
+        Guid branchId,
+        Guid? accountId,
+        Guid? clientId,
+        DateTime asOfDate,
+        CancellationToken ct = default)
+    {
+        var rows = await FiadoNettingSql
+            .Query<FiadoAgingTotalSqlRow>(
+                dbContext,
+                """
+                SELECT o."DueDate", SUM(o."Remaining") AS "Value", CAST(COUNT(*) AS integer) AS "RowCount",
+                       MIN(o."Date") AS "OldestDate"
+                FROM open_sales o
+                WHERE (CAST({3} AS uuid) IS NULL OR o."AccountId" = CAST({3} AS uuid))
+                GROUP BY o."DueDate"
+                """,
+                branchId,
+                asOfDate,
+                clientId,
+                accountId)
+            .ToListAsync(ct);
+
+        return new FiadoAgingTotals(
+            rows.Select(row => new AgingDueDateTotalRow(row.DueDate, row.Value, row.RowCount)).ToList(),
+            rows.Count == 0 ? null : rows.Min(row => row.OldestDate));
+    }
+
     public async Task<int> CountFiadoOpenSalesByBranchIdAsNoTracking(
         Guid branchId,
         Guid? accountId,
@@ -616,6 +644,19 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 origin?.Client?.Name,
                 origin?.Description);
         }).ToList();
+    }
+
+    public async Task<IReadOnlyList<AgingDueDateTotalRow>> ListOpenChequeTotalsByDueDateAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default)
+    {
+        // An unpaid plan row always belongs to an open plan, so the open rows are exactly the base query's unpaid rows.
+        var rows = await BuildOpenChequeBaseQuery(branchId, accountId, clientId)
+            .Where(t => t.PaidAt == null)
+            .GroupBy(t => t.DueDate)
+            .Select(g => new { DueDate = g.Key, Value = g.Sum(t => t.Value), RowCount = g.Count() })
+            .ToListAsync(ct);
+
+        return rows.Select(r => new AgingDueDateTotalRow(r.DueDate, r.Value, r.RowCount)).ToList();
     }
 
     public async Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(

@@ -62,8 +62,11 @@ public class GetTimeEntryBalanceSummaryUseCase(
                 targetOperatorId = request.OperatorId!.Value;
             }
 
-            targetOperator = await operatorsRepository
-                    .GetActiveByIdAndBranchIdAsNoTracking(targetOperatorId, branchUser.BranchId)
+            // M11 Phase 2.4: an explicitly named operator may be deactivated (its history stays drillable); Mine
+            // keeps resolving the caller's own active linked operator. Missing or cross-branch → 404.
+            targetOperator = (request.Mine
+                    ? await operatorsRepository.GetActiveByIdAndBranchIdAsNoTracking(targetOperatorId, branchUser.BranchId)
+                    : await operatorsRepository.GetByIdAndBranchIdAsNoTracking(targetOperatorId, branchUser.BranchId))
                 ?? throw new NotFoundException(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
         }
         else
@@ -102,6 +105,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
                     .Select(pair => BuildOperatorSummary(
                         pair.Key,
                         pair.Value,
+                        activeOperators.Any(op => op.Id == pair.Key),
                         entriesByOperator.GetValueOrDefault(pair.Key, []),
                         policies,
                         branchLocalNow))
@@ -114,7 +118,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
             var entries = await timeEntriesRepository.ListByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
                 branchUser.BranchId, targetOperator!.Id, request.DateFrom, request.DateTo);
 
-            operators = [BuildOperatorSummary(targetOperator.Id, targetOperator.Name, entries, policies, branchLocalNow)];
+            operators = [BuildOperatorSummary(targetOperator.Id, targetOperator.Name, targetOperator.Active, entries, policies, branchLocalNow)];
         }
 
         return new ResponseTimeEntryBalanceSummaryJson
@@ -128,6 +132,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
     private ResponseTimeEntryBalanceOperatorJson BuildOperatorSummary(
         Guid operatorId,
         string operatorName,
+        bool operatorActive,
         IReadOnlyList<TimeEntry> entries,
         IReadOnlyList<TimeEntryPolicy> policies,
         DateTime branchLocalNow)
@@ -175,6 +180,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
         {
             OperatorId = operatorId,
             OperatorName = operatorName,
+            OperatorActive = operatorActive,
             TotalHours = totalHours,
             TotalBalanceHours = totalBalanceHours,
             PresentDays = entries.Count(entry => entry.Status == TimeEntryStatus.Present),

@@ -78,6 +78,13 @@ public interface ITransactionsRepository
         Guid branchId, Guid? accountId, Guid? clientId, DateTime asOfDate, CancellationToken ct = default);
 
     /// <summary>
+    /// Whole-set FIFO aging totals from the same projection and filters as <see cref="ListFiadoOpenSalesByBranchIdAsNoTracking"/>
+    /// (M11 Phase 3.2), grouped by due date, plus the earliest sale date still holding a remainder.
+    /// </summary>
+    Task<FiadoAgingTotals> GetFiadoAgingTotalsByBranchIdAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, DateTime asOfDate, CancellationToken ct = default);
+
+    /// <summary>
     /// A client's fiado statement page over the same projection: movements dated in
     /// <c>[dateFrom ?? first movement, dateTo]</c>, ordered <c>Date DESC, CreatedAt DESC, Id DESC</c>, each with its
     /// running balance over the client's full chronological history (<c>Date, CreatedAt, Id</c>).
@@ -100,6 +107,13 @@ public interface ITransactionsRepository
         Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize);
     Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
         Guid branchId, Guid? accountId, Guid? clientId);
+
+    /// <summary>
+    /// Whole-filter open-cheque totals (M11 Phase 2.1): every unpaid row of every open plan matching the filters,
+    /// grouped by due date in one query, independent of paging.
+    /// </summary>
+    Task<IReadOnlyList<AgingDueDateTotalRow>> ListOpenChequeTotalsByDueDateAsNoTracking(
+        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default);
     Task<IReadOnlyList<Transaction>> ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
         Guid originId, Guid branchId);
     /// <summary>

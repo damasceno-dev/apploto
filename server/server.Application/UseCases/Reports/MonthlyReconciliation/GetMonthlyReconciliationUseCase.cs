@@ -1,5 +1,6 @@
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
+using server.Application.Services.Transactions;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -15,7 +16,9 @@ public class GetMonthlyReconciliationUseCase(
     ITransactionsRepository transactionsRepository,
     IDailyCloseItemsRepository dailyCloseItemsRepository,
     ICashVarianceProductResolver cashVarianceProductResolver,
-    MonthLockReadinessEvaluator readinessEvaluator)
+    MonthLockReadinessEvaluator readinessEvaluator,
+    ILockDateReader lockDateReader,
+    IBranchClock branchClock)
 {
     public async Task<ResponseMonthlyReconciliationJson> Execute(
         RequestMonthlyReconciliationJson request,
@@ -130,11 +133,18 @@ public class GetMonthlyReconciliationUseCase(
                 }))
             .ToList();
 
+        // M11 Phase 2.3 lock context; LockReady and the blockers above are unchanged.
+        var lockDate = await lockDateReader.Read(branchUser.BranchId, ct);
+        var today = branchClock.LocalBusinessDate(branchClock.UtcNow()).Date;
+
         return new ResponseMonthlyReconciliationJson
         {
             Year = year,
             Month = month,
             LockReady = readiness.IsReady,
+            LockDate = lockDate == DateTime.MinValue ? null : lockDate.Date,
+            IsMonthLocked = dateTo.Date <= lockDate.Date,
+            IsMonthElapsed = dateTo.Date < today,
             Days = days,
             Blockers = blockers
         };

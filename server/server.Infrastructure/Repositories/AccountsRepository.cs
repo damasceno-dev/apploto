@@ -24,6 +24,13 @@ internal class AccountsRepository(ServerDbContext dbContext) : IAccountsReposito
                 ct);
     }
 
+    public async Task<Account?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id && a.BranchId == branchId && a.Branch.Active, ct);
+    }
+
     public async Task<Account?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Accounts

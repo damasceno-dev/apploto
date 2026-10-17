@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v50
+Spec revision: v51
 -->
 <html lang="en">
 <head>
@@ -290,7 +290,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'The Three-Date Model',
-   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next calendar day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet)<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
+   narrative:'Every transaction has <b>three dates</b> tracking its lifecycle:<br><br>• <span style="color:#4caf50"><b>Date</b></span> — when the financial event occurred (March 15)<br>• <span style="color:#4a9eff"><b>DueDate</b></span> — when payment is expected to settle with CEF (March 16, next calendar day)<br>• <span style="color:#ef5350"><b>PaidAt</b></span> — when settlement actually occurred (null — CEF hasn\'t settled yet). It is never sent on create; a later edit (<code>PUT /transaction/{id}</code>) records it. Fiado rows ignore it: they settle through Receber pagamento.<br><br>This enables <b>receivables/payables tracking</b>: the owner can query "how much is expected to settle this week" by filtering DueDate range with PaidAt IS NULL.',
    activeTables:['Transaction'],
    activeArrows:[],
    data:[
@@ -327,7 +327,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
-   narrative:'A customer needs cash. They send <b>R$800</b> by PIX to the lotérica\'s account, and Jennifer hands them R$800 from the drawer — a <em>saque via PIX</em>. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the cash leaves the drawer; the PIX credit compensates the house on the bank side.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1, where the bank credit lands the next day (DueDate = Date + 1).',
+   narrative:'A customer needs cash. They send <b>R$800</b> by PIX to the lotérica\'s account, and Jennifer hands them R$800 from the drawer — a <em>saque via PIX</em>. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the cash leaves the drawer; the PIX credit compensates the house on the bank side.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1, where the bank credit lands the next day (DueDate = Date + 1). A create request has no <code>PaidAt</code>: every new row starts unpaid, and settlement is recorded later by an edit (<code>PUT /transaction/{id}</code>).',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -335,7 +335,7 @@ const SLIDES=[
      {n:'Date',v:'"2025-03-15"'},{n:'Value',v:'"R$ 800.00"',hl:'hl'},
      {n:'Direction',v:'"Out"',hl:'hl'},{n:'CategoryId',v:'→ Saídas'},
      {n:'TransactionTypeId',v:'→ PIX'},{n:'AccountId',v:'→ Jennifer'},
-     {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'"2025-03-15"'},
+     {n:'DueDate',v:'"2025-03-15"',hl:'hl'},{n:'PaidAt',v:'null'},
      {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'},
      {n:'Status',v:'"Active"'}
     ]}
@@ -447,7 +447,7 @@ const SLIDES=[
     {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]}
    ]},
   {title:'Receivables Tracking',
-   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b>. The other two remain as receivables — money expected in the future.',
+   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b> by an edit of that installment (creates never carry it). The other two remain as receivables — money expected in the future.',
    activeTables:['Tx1','Tx2','Tx3'],
    activeArrows:[],
    data:[
@@ -919,7 +919,7 @@ function renderIntro(s,i){
       <div class="intro-col">
         <div class="intro-card">
           <h3 class="teal-color">Beyond the Day</h3>
-          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due; monthly reconciliation totals every day and tells Maria when the month is <b>LockReady</b> — including missing closes implied by direct Terminal activity. Maria locks only through <code>POST /setting/lock-month</code>, which atomically rechecks every unlocked month and lands <code>LockDate</code> on month-end. Earlier operational data pulls the validation floor backward; ancient empty legacy boundaries are clamped away, and an impossible future value from the retired settings path can be repaired by this same validated command. Every time-entry write shares the month boundary and checks the cutoff, so neither a full snapshot, whole-row removal, nor granular correction can change payroll hours after a successful lock.</p>
+          <p>The rest of the reporting surface picks up the other stories: João no longer appears among outstanding fiado balances — his tab netted to zero — and the report splits total debt from client credit; open-cheque aging lists Carlos&#39;s three pre-dated installments as future-due, with whole-set totals by aging bucket on every page; monthly reconciliation totals every day, says whether the month is already locked or elapsed, and tells Maria when it is <b>LockReady</b> — including missing closes implied by direct Terminal activity. Maria locks only through <code>POST /setting/lock-month</code>, which atomically rechecks every unlocked month and lands <code>LockDate</code> on month-end. Earlier operational data pulls the validation floor backward; ancient empty legacy boundaries are clamped away, and an impossible future value from the retired settings path can be repaired by this same validated command. Every time-entry write shares the month boundary and checks the cutoff, so neither a full snapshot, whole-row removal, nor granular correction can change payroll hours after a successful lock.</p>
         </div>
         <div class="intro-card">
           <h3 class="in-color">Previews That Never Commit</h3>

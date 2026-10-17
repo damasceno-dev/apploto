@@ -287,7 +287,41 @@ public class GetMonthlyReconciliationUseCaseTest
             ctx.TransactionsRepository,
             ctx.DailyCloseItemsRepository,
             ctx.CashVarianceProductResolver,
-            new server.Application.Services.Settings.MonthLockReadinessEvaluator());
+            new server.Application.Services.Settings.MonthLockReadinessEvaluator(),
+            ctx.LockDateReader,
+            ctx.BranchClock);
+    }
+
+    private static void WithLockContext(TestContext ctx, Guid branchId, DateTime lockDate, DateTime today)
+    {
+        ctx.LockDateReader.Read(branchId, Arg.Any<CancellationToken>()).Returns(lockDate);
+        var utcNow = new DateTime(today.Year, today.Month, today.Day, 15, 0, 0, DateTimeKind.Utc);
+        ctx.BranchClock.UtcNow().Returns(utcNow);
+        ctx.BranchClock.LocalBusinessDate(utcNow).Returns(today);
+    }
+
+    [Theory]
+    [InlineData("0001-01-01", "2025-09-15", false, true, false)]
+    [InlineData("2025-05-31", "2025-09-15", true, true, true)]
+    [InlineData("2025-04-30", "2025-09-15", false, true, true)]
+    [InlineData("0001-01-01", "2025-05-20", false, false, false)]
+    [InlineData("2025-04-30", "2025-05-31", false, false, true)]
+    [InlineData("2025-04-30", "2025-06-01", false, true, true)]
+    public async Task Execute_ShouldReportLockContext_WithoutChangingReadiness(
+        string lockDate, string today, bool locked, bool elapsed, bool hasLockDate)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var ctx = BuildContext(branchUser, closes: [], varianceRows: [], statusCounts: []);
+        WithLockContext(ctx, branchUser.BranchId, DateTime.Parse(lockDate), DateTime.Parse(today));
+
+        var response = await CreateUseCase(ctx).Execute(new RequestMonthlyReconciliationJson { Year = Year, Month = Month });
+
+        response.IsMonthLocked.ShouldBe(locked);
+        response.IsMonthElapsed.ShouldBe(elapsed);
+        (response.LockDate is not null).ShouldBe(hasLockDate);
+        if (hasLockDate)
+            response.LockDate.ShouldBe(DateTime.Parse(lockDate));
+        response.LockReady.ShouldBeTrue();
     }
 
     private static TestContext BuildContext(
@@ -320,12 +354,16 @@ public class GetMonthlyReconciliationUseCaseTest
                 .Build(),
             CashVarianceProductResolver = new CashVarianceProductResolverBuilder()
                 .ReturnsId(branchUser.BranchId, resolvedProductId)
-                .Build()
+                .Build(),
+            LockDateReader = Substitute.For<server.Application.Services.Settings.ILockDateReader>(),
+            BranchClock = Substitute.For<server.Application.Services.Transactions.IBranchClock>()
         };
     }
 
     private class TestContext
     {
+        public required server.Application.Services.Settings.ILockDateReader LockDateReader { get; init; }
+        public required server.Application.Services.Transactions.IBranchClock BranchClock { get; init; }
         public required IAuthenticationService AuthenticationService { get; init; }
         public required IDailyClosesRepository DailyClosesRepository { get; init; }
         public required ITransactionsRepository TransactionsRepository { get; init; }

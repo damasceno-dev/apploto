@@ -36,9 +36,16 @@ public class GetFiadoAgingUseCase(
 
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / request.PageSize);
 
+        // M11 Phase 3.2: whole-set totals from the same netting projection and filters, independent of the page.
+        var totals = await transactionsRepository.GetFiadoAgingTotalsByBranchIdAsNoTracking(
+            branchUser.BranchId, request.AccountId, request.ClientId, asOfDate);
+
         return new ResponseFiadoAgingJson
         {
             AsOfDate = asOfDate,
+            OutstandingTotal = totals.ByDueDate.Sum(row => row.Value),
+            ByBucket = AgingBucketTotals.Build(totals.ByDueDate, asOfDate),
+            OldestUnpaidDate = totals.OldestUnpaidDate,
             TotalCount = totalCount,
             TotalPages = totalPages,
             HasNext = request.Page < totalPages,

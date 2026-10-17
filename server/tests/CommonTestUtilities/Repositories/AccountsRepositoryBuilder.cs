@@ -41,6 +41,12 @@ public class AccountsRepositoryBuilder
         return this;
     }
 
+    public AccountsRepositoryBuilder GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Account? account)
+    {
+        _repository.GetByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
+        return this;
+    }
+
     public AccountsRepositoryBuilder GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, Account? account)
     {
         _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(account);

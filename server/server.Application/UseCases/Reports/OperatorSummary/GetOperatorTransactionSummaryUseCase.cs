@@ -66,8 +66,11 @@ public class GetOperatorTransactionSummaryUseCase(
                 targetOperatorId = request.OperatorId!.Value;
             }
 
-            targetOperator = await operatorsRepository
-                    .GetActiveByIdAndBranchIdAsNoTracking(targetOperatorId, branchUser.BranchId)
+            // M11 Phase 2.4: an explicitly named operator may be deactivated (its history stays drillable); Mine
+            // keeps resolving the caller's own active linked operator. Missing or cross-branch → 404.
+            targetOperator = (request.Mine
+                    ? await operatorsRepository.GetActiveByIdAndBranchIdAsNoTracking(targetOperatorId, branchUser.BranchId)
+                    : await operatorsRepository.GetByIdAndBranchIdAsNoTracking(targetOperatorId, branchUser.BranchId))
                 ?? throw new NotFoundException(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
         }
 
@@ -86,6 +89,7 @@ public class GetOperatorTransactionSummaryUseCase(
         {
             OperatorId = targetOperator.Id,
             OperatorName = targetOperator.Name,
+            OperatorActive = targetOperator.Active,
             DateFrom = request.DateFrom,
             DateTo = request.DateTo,
             TotalTransactionCount = projection.TotalCount,

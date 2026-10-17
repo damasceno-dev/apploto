@@ -40,7 +40,12 @@ public class GetFiadoBalancesUseCase(
                     OutstandingTotal = row.OutstandingTotal
                 })
                 .ToList(),
-            TotalOutstanding = totalOutstanding
+            TotalOutstanding = totalOutstanding,
+            // M11 Phase 3.1: the same unpaged client set split by sign; credit is reported as a positive magnitude.
+            DebtorCount = items.Count(i => i.OutstandingTotal > 0m),
+            TotalDebt = items.Where(i => i.OutstandingTotal > 0m).Sum(i => i.OutstandingTotal),
+            CreditorCount = items.Count(i => i.OutstandingTotal < 0m),
+            TotalCredit = -items.Where(i => i.OutstandingTotal < 0m).Sum(i => i.OutstandingTotal)
         };
     }
 
