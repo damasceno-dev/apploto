@@ -25,12 +25,14 @@ public class GetFiadoAgingUseCase(
 
         var asOfDate = request.AsOfDate ?? branchClock.LocalBusinessDate(branchClock.UtcNow());
 
-        var items = await transactionsRepository.ListOpenReceivablesByBranchIdAsNoTracking(
+        // FIFO netting is branch/client-wide across every Tab (M7.7 Phase 5.1): AccountId narrows the netted
+        // remainders and never the netting input, and each item's Value is the sale's unpaid remainder.
+        var items = await transactionsRepository.ListFiadoOpenSalesByBranchIdAsNoTracking(
             branchUser.BranchId, request.AccountId, request.ClientId, asOfDate,
-            request.Page, request.PageSize, AccountType.Tab);
+            request.Page, request.PageSize);
 
-        var totalCount = await transactionsRepository.CountOpenReceivablesByBranchIdAsNoTracking(
-            branchUser.BranchId, request.AccountId, request.ClientId, asOfDate, AccountType.Tab);
+        var totalCount = await transactionsRepository.CountFiadoOpenSalesByBranchIdAsNoTracking(
+            branchUser.BranchId, request.AccountId, request.ClientId, asOfDate);
 
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / request.PageSize);
 

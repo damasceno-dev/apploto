@@ -27,6 +27,7 @@ public class PreviewCreateTransactionUseCase(
     IAuthenticationService authenticationService,
     TransactionCreatePreamble transactionCreatePreamble,
     TransactionEditImpactProjector createImpactProjector,
+    FiadoPhysicalPairService fiadoPhysicalPairService,
     IBranchClock branchClock)
 {
     public async Task<ResponseCreateTransactionPreviewJson> Execute(
@@ -41,9 +42,24 @@ public class PreviewCreateTransactionUseCase(
 
         Validate(request);
 
-        var createContext = await transactionCreatePreamble.Resolve(request);
+        var createContext = await transactionCreatePreamble.Resolve(request, ct);
 
-        var create = new HypotheticalTransactionCreate(request, createContext);
+        // A counted-stock fiado sale is previewed as the whole pair the write would record (M7.7 Phase 5.6): the
+        // same pairing, Member terminal scope and terminal open-close checks, then the terminal's impact below.
+        Guid? pairedTerminalId = null;
+        if (request.HandsOutCountedStock)
+        {
+            pairedTerminalId = await fiadoPhysicalPairService.ValidateCounterpart(
+                branchUser.BranchId,
+                request.AccountId,
+                request.Date,
+                branchUser.Role,
+                createContext.MemberScope!,
+                lockedTerminalId: null,
+                ct);
+        }
+
+        var create = new HypotheticalTransactionCreate(request, createContext) { PairedTerminalAccountId = pairedTerminalId };
         var resolvedAsOfDate = asOfDate ?? branchClock.LocalBusinessDate(branchClock.UtcNow());
         var impact = await createImpactProjector.ProjectCreate(create, resolvedAsOfDate, branchUser.BranchId, ct);
 

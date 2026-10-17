@@ -55,7 +55,7 @@ internal sealed class FinancialHeadersOpenApiOperationTransformer : IOpenApiOper
         {
             "setting" or "setting/lock-month" => true,
             "dailyclose" => method == "POST",
-            "transaction" or "transaction/installment" => method == "POST",
+            "transaction" or "transaction/installment" or "transaction/fiado-payment" => method == "POST",
             "transaction/{transactionId}" or
                 "transaction/{transactionId}/finalize" or
                 "transaction/{transactionId}/cancel" => true,

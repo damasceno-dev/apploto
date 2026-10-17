@@ -444,6 +444,45 @@ public class GetOperatorTransactionSummaryUseCaseTest
         response.ByCategory[0].Count.ShouldBe(2);
     }
 
+    [Fact]
+    public async Task Execute_ShouldMapTheAutomaticShare_OverallAndPerCategory()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var targetOperator = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
+        var stockCategoryId = Guid.NewGuid();
+        var projection = new OperatorTransactionSummaryProjection(
+            TotalCount: 3,
+            TotalIn: 5m,
+            TotalOut: 17m,
+            ByCategory:
+            [
+                new CategoryTotal(stockCategoryId, "Movimentos automáticos de fiado (saída)", 1, 0m, 5m, 1, 0m, 5m),
+                new CategoryTotal(Guid.NewGuid(), "Entradas", 2, 5m, 12m)
+            ],
+            GeneratedCount: 1,
+            GeneratedIn: 0m,
+            GeneratedOut: 5m);
+
+        var ctx = BuildContext(branchUser);
+        ctx.StubOperatorInBranch(targetOperator);
+        ctx.StubSummary(targetOperator.Id, allowedAccountIds: null, projection);
+
+        var response = await CreateUseCase(ctx).Execute(new RequestOperatorTransactionSummaryJsonBuilder()
+            .WithOperatorId(targetOperator.Id)
+            .WithDateFrom(DateFrom)
+            .WithDateTo(DateTo)
+            .Build());
+
+        response.TotalOutValue.ShouldBe(17m);
+        response.GeneratedTransactionCount.ShouldBe(1);
+        response.GeneratedInValue.ShouldBe(0m);
+        response.GeneratedOutValue.ShouldBe(5m);
+        var stock = response.ByCategory.Single(category => category.CategoryId == stockCategoryId);
+        stock.GeneratedCount.ShouldBe(1);
+        stock.GeneratedOut.ShouldBe(5m);
+        response.ByCategory.Single(category => category.CategoryName == "Entradas").GeneratedCount.ShouldBe(0);
+    }
+
     // -------------------------------------------------------------------------
     // ByCategory ordering: CategoryName ASC, CategoryId ASC preserved exactly
     // -------------------------------------------------------------------------

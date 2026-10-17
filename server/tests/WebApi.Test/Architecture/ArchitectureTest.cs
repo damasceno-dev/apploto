@@ -88,7 +88,9 @@ public class ArchitectureTest
         // M7.7 Phase 7.6.1: the review-event history (GET /dailyclose/{id}/history) only reads.
         "server.Application.UseCases.DailyCloses.History",
         // M7.7 Phase 7.6.2: the installment plan read (GET /transaction/installment/{id}) only reads.
-        "server.Application.UseCases.Transactions.GetInstallmentPlan"
+        "server.Application.UseCases.Transactions.GetInstallmentPlan",
+        // M7.7 Phase 5.5: the client fiado statement (GET /client/{id}/fiado-statement) only reads.
+        "server.Application.UseCases.Clients.FiadoStatement"
     ];
 
     [Fact]
@@ -202,7 +204,7 @@ public class ArchitectureTest
     }
 
     [Fact]
-    public void DailyCloseAccountCoordination_HasExactlyTheTwelveDeclaredMutationParticipants()
+    public void DailyCloseAccountCoordination_HasExactlyTheThirteenDeclaredMutationParticipants()
     {
         var expected = new HashSet<string>(StringComparer.Ordinal)
         {
@@ -218,7 +220,9 @@ public class ArchitectureTest
             "server.Application.UseCases.Transactions.Finalize.FinalizeTransactionUseCase",
             // M7.7 Phase 7.6.2: the atomic plan finalize mutates the plan account's ledger.
             "server.Application.UseCases.Transactions.FinalizeInstallmentPlan.FinalizeInstallmentPlanUseCase",
-            "server.Application.UseCases.Transactions.Cancel.CancelTransactionUseCase"
+            "server.Application.UseCases.Transactions.Cancel.CancelTransactionUseCase",
+            // M7.7 Phase 5.1/5.6: Receber pagamento writes the Tab and, for counted cash, the paired terminal.
+            "server.Application.UseCases.Transactions.ReceiveFiadoPayment.ReceiveFiadoPaymentUseCase"
         };
         var actual = typeof(AppDependencyInjection).Assembly.GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false })

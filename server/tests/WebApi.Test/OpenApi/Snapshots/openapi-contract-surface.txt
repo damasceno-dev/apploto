@@ -23,6 +23,7 @@ enum BrazilianHolidayType string: National, OptionalFederal
 enum DailyCloseReviewEventType string: Rejected, OpeningChanged
 enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
 enum Direction string: In, Out
+enum FiadoPaymentKind string: CountedCash, NonCash
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions, MissingExpectedClose
@@ -30,7 +31,9 @@ enum Role string: Admin, Manager, Member
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
 enum TimeEntryTapAction string: Open, Close
+enum TransactionGenerationKind string: FiadoCountedStockSale, FiadoCashRepayment
 enum TransactionStatus string: Draft, Active, Cancelled
+enum TransactionTypeSystemRole string: FiadoCountedStockSaleCounterpart, FiadoCashRepaymentCounterpart
 
 ## schemas
 
@@ -127,6 +130,7 @@ schema RequestCreateTransactionJson
   date required string
   description optional string?
   dueDate optional string?
+  handsOutCountedStock optional boolean
   recordedByOperatorId optional string?
   saveAsDraft optional boolean
   transactionTime optional string?
@@ -135,6 +139,7 @@ schema RequestCreateTransactionJson
 
 schema RequestCreateTransactionTypeJson
   categoryId required string
+  fiadoPaymentKind optional enum:FiadoPaymentKind?
   name required string
   requiresTabAccountAndClient optional boolean
   settlementRule optional enum:SettlementRule
@@ -165,6 +170,17 @@ schema RequestPairTabAccountJson
 schema RequestPutDailyCloseItemsJson
   items optional RequestUpsertDailyCloseItemJson[]?
   notes optional string?
+
+schema RequestReceiveFiadoPaymentJson
+  accountId required string
+  clientId required string
+  date required string
+  description optional string?
+  recordedByOperatorId optional string?
+  saveAsDraft optional boolean
+  transactionTime optional string?
+  transactionTypeId required string
+  value required number|string
 
 schema RequestRejectDailyCloseJson
   rejectionReason required string
@@ -224,6 +240,7 @@ schema RequestUpdateTransactionJson
   transactionTime optional string?
 
 schema RequestUpdateTransactionTypeJson
+  fiadoPaymentKind optional enum:FiadoPaymentKind?
   name required string
   requiresTabAccountAndClient optional boolean
   settlementRule optional enum:SettlementRule
@@ -355,6 +372,35 @@ schema ResponseClientBalanceDeltaJson
   clientName required string
   outstandingDelta required number|string
 
+schema ResponseClientFiadoStatementItemJson
+  accountId required string
+  accountName required string
+  date required string
+  description optional string?
+  direction required enum:Direction
+  runningBalance required number|string
+  transactionId required string
+  transactionTypeName required string
+  value required number|string
+
+schema ResponseClientFiadoStatementJson
+  asOfDate required string
+  clientId required string
+  clientName required string
+  closingBalance required number|string
+  dateFrom optional string?
+  dateTo required string
+  hasNext required boolean
+  hasPrevious required boolean
+  items required ResponseClientFiadoStatementItemJson[]
+  oldestUnpaidDate optional string?
+  openingBalance required number|string
+  outstandingTotal required number|string
+  page required integer|string
+  pageSize required integer|string
+  totalCount required integer|string
+  totalPages required integer|string
+
 schema ResponseClientJson
   address optional string?
   branchId required string
@@ -424,6 +470,9 @@ schema ResponseCreateTransactionJson
   description optional string?
   direction required enum:Direction
   dueDate required string
+  generatedFromTransactionId optional string?
+  generatedTransactionId optional string?
+  generationKind optional enum:TransactionGenerationKind?
   id required string
   paidAt optional string?
   recordedByOperatorId required string
@@ -763,6 +812,8 @@ schema ResponseListTransactionItemJson
   description optional string?
   direction required enum:Direction
   dueDate required string
+  generatedFromTransactionId optional string?
+  generationKind optional enum:TransactionGenerationKind?
   id required string
   originTransactionId optional string?
   paidAt optional string?
@@ -916,11 +967,15 @@ schema ResponseOperatorAccountJson
   id required string
   isPrimary required boolean
   operatorId required string
+  pairedTabAccountId optional string?
 
 schema ResponseOperatorCategoryTotalJson
   categoryId required string
   categoryName required string
   count required integer|string
+  generatedCount required integer|string
+  generatedIn required number|string
+  generatedOut required number|string
   totalIn required number|string
   totalOut required number|string
 
@@ -934,6 +989,9 @@ schema ResponseOperatorTransactionSummaryJson
   byCategory required ResponseOperatorCategoryTotalJson[]
   dateFrom required string
   dateTo required string
+  generatedInValue required number|string
+  generatedOutValue required number|string
+  generatedTransactionCount required integer|string
   netValue required number|string
   operatorId required string
   operatorName required string
@@ -1051,6 +1109,9 @@ schema ResponseTransactionJson
   description optional string?
   direction required enum:Direction
   dueDate required string
+  generatedFromTransactionId optional string?
+  generatedTransactionId optional string?
+  generationKind optional enum:TransactionGenerationKind?
   id required string
   originTransactionId optional string?
   paidAt optional string?
@@ -1068,10 +1129,12 @@ schema ResponseTransactionTypeJson
   categoryId required string
   categoryName required string
   createdAt required string
+  fiadoPaymentKind optional enum:FiadoPaymentKind?
   id required string
   name required string
   requiresTabAccountAndClient required boolean
   settlementRule required enum:SettlementRule
+  systemRole optional enum:TransactionTypeSystemRole?
 
 schema ResponseUpdateBranchUserRoleJson
   branchUser required ResponseBranchUserJson
@@ -1287,6 +1350,18 @@ operation PUT /client/{clientId}
 operation DELETE /client/{clientId}
   path clientId required string
   response 200 ResponseClientJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation GET /client/{clientId}/fiado-statement
+  path clientId required string
+  query DateFrom optional string
+  query DateTo optional string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  response 200 ResponseClientFiadoStatementJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
@@ -1821,6 +1896,16 @@ operation DELETE /transaction-type/{transactionTypeId}
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
+
+operation POST /transaction/fiado-payment
+  header Idempotency-Key required string
+  body required RequestReceiveFiadoPaymentJson
+  response 201 ResponseCreateTransactionJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation POST /transaction/installment
   header Idempotency-Key required string

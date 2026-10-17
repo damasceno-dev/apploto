@@ -25,7 +25,7 @@ internal static class HttpTestExtensions
             string? idempotencyKey = null,
             uint? expectedVersion = null)
         {
-            if (idempotencyKey is null && requestUri is "/transaction" or "/transaction/installment")
+            if (idempotencyKey is null && requestUri is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment")
                 idempotencyKey = $"test-{Guid.NewGuid():N}";
 
             return SendAuthAsync(

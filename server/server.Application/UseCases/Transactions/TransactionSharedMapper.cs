@@ -9,7 +9,7 @@ public static class TransactionSharedMapper
 {
     extension(Transaction transaction)
     {
-        public ResponseTransactionJson ToTransactionResponse()
+        public ResponseTransactionJson ToTransactionResponse(Guid? generatedTransactionId = null)
         {
             return new ResponseTransactionJson
             {
@@ -27,6 +27,9 @@ public static class TransactionSharedMapper
                 DueDate = transaction.DueDate,
                 PaidAt = transaction.PaidAt,
                 OriginTransactionId = transaction.OriginTransactionId,
+                GenerationKind = transaction.GenerationKind,
+                GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
+                GeneratedTransactionId = generatedTransactionId,
                 RecordedByOperatorId = transaction.RecordedByOperatorId,
                 CreatedByUserId = transaction.CreatedByUserId,
                 UpdatedAt = transaction.UpdatedAt,
@@ -60,6 +63,8 @@ public static class TransactionSharedMapper
                 DueDate = transaction.DueDate,
                 PaidAt = transaction.PaidAt,
                 OriginTransactionId = transaction.OriginTransactionId,
+                GenerationKind = transaction.GenerationKind,
+                GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
                 CreatedAt = transaction.CreatedAt
             };
         }

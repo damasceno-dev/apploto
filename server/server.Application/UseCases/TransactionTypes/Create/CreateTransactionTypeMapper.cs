@@ -12,6 +12,7 @@ internal static class CreateTransactionTypeMapper
             Name = request.Name.Trim(),
             SettlementRule = request.SettlementRule,
             RequiresTabAccountAndClient = request.RequiresTabAccountAndClient,
+            FiadoPaymentKind = request.FiadoPaymentKind,
             CategoryId = request.CategoryId
         };
     }

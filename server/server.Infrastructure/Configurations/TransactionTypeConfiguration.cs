@@ -14,6 +14,12 @@ internal class TransactionTypeConfiguration : IEntityTypeConfiguration<Transacti
         builder.Property(transactionType => transactionType.Name).HasMaxLength(255);
         builder.Property(transactionType => transactionType.SettlementRule).HasConversion<short>().IsRequired();
         builder.Property(transactionType => transactionType.RequiresTabAccountAndClient).IsRequired();
+        builder.Property(transactionType => transactionType.SystemRole).HasConversion<short?>().IsRequired(false);
+        builder.Property(transactionType => transactionType.FiadoPaymentKind).HasConversion<short?>().IsRequired(false);
+
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_TransactionTypes_SystemRole_NotPaymentMethod",
+            "\"SystemRole\" IS NULL OR \"FiadoPaymentKind\" IS NULL"));
 
         builder.HasIndex(transactionType => new { transactionType.CategoryId, transactionType.Name })
             .IsUnique()

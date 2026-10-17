@@ -92,6 +92,9 @@ public class GetOperatorTransactionSummaryUseCase(
             TotalInValue = projection.TotalIn,
             TotalOutValue = projection.TotalOut,
             NetValue = projection.TotalIn - projection.TotalOut,
+            GeneratedTransactionCount = projection.GeneratedCount,
+            GeneratedInValue = projection.GeneratedIn,
+            GeneratedOutValue = projection.GeneratedOut,
             ByCategory = projection.ByCategory
                 .Select(c => new ResponseOperatorCategoryTotalJson
                 {
@@ -99,7 +102,10 @@ public class GetOperatorTransactionSummaryUseCase(
                     CategoryName = c.CategoryName,
                     Count = c.Count,
                     TotalIn = c.TotalIn,
-                    TotalOut = c.TotalOut
+                    TotalOut = c.TotalOut,
+                    GeneratedCount = c.GeneratedCount,
+                    GeneratedIn = c.GeneratedIn,
+                    GeneratedOut = c.GeneratedOut
                 })
                 .ToList()
         };

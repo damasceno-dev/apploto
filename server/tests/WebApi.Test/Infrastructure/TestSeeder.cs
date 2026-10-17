@@ -297,7 +297,9 @@ internal static class TestSeeder
             string? name = null,
             SettlementRule settlementRule = SettlementRule.SameDay,
             bool requiresTabAccountAndClient = false,
-            bool active = true)
+            bool active = true,
+            FiadoPaymentKind? fiadoPaymentKind = null,
+            TransactionTypeSystemRole? systemRole = null)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -309,11 +311,32 @@ internal static class TestSeeder
                 CategoryId = categoryId,
                 SettlementRule = settlementRule,
                 RequiresTabAccountAndClient = requiresTabAccountAndClient,
-                Active = active
+                Active = active,
+                FiadoPaymentKind = fiadoPaymentKind,
+                SystemRole = systemRole
             };
             dbContext.TransactionTypes.Add(transactionType);
             await dbContext.SaveChangesAsync();
             return transactionType;
+        }
+
+        /// <summary>
+        /// M7.7 Phase 5.6: the two system-owned counterpart types (and their categories) that every real branch gets
+        /// from <c>CreateBranchSeedFactory</c> or the migration; seeded branches in tests start without them.
+        /// </summary>
+        public async Task<(TransactionType StockSale, TransactionType CashRepayment)> SeedFiadoSystemTypesAsync(Guid branchId)
+        {
+            var outCategory = await factory.SeedCategoryAsync(branchId, "Movimentos automáticos de fiado (saída)", Direction.Out);
+            var inCategory = await factory.SeedCategoryAsync(branchId, "Movimentos automáticos de fiado (entrada)", Direction.In);
+            var stockSale = await factory.SeedTransactionTypeAsync(
+                outCategory.Id,
+                "Saída de estoque contado — venda fiado",
+                systemRole: TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart);
+            var cashRepayment = await factory.SeedTransactionTypeAsync(
+                inCategory.Id,
+                "Entrada de dinheiro — recebimento fiado",
+                systemRole: TransactionTypeSystemRole.FiadoCashRepaymentCounterpart);
+            return (stockSale, cashRepayment);
         }
 
         public async Task<Transaction> SeedTransactionAsync(

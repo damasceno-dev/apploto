@@ -36,6 +36,10 @@ public class UpdateTransactionUseCase(
             ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
+        // A generated Terminal leg is system-owned (M7.7 Phase 5.7): it is corrected only through its source.
+        if (transactionKey.GenerationKind is not null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
+
         await using var coordination = await monthLockCoordination.TryAcquireShared(branchUser.BranchId, ct)
             ?? throw new ConflictException(ResourcesErrorMessages.SETTING_LOCK_MONTH_COORDINATION_BUSY);
 
@@ -106,7 +110,13 @@ public class UpdateTransactionUseCase(
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 
-        return transaction.ToTransactionResponse();
+        // An update never touches a fiado source's generated leg, but the response keeps naming it (M7.7 Phase 5.7)
+        // so it matches GET /transaction/{id}.
+        var counterpart = await transactionsRepository.GetGeneratedBySourceIdAndBranchIdAsNoTracking(
+            transaction.Id,
+            branchUser.BranchId,
+            ct);
+        return transaction.ToTransactionResponse(counterpart?.Id);
     }
 
     private static void Validate(RequestUpdateTransactionJson request)

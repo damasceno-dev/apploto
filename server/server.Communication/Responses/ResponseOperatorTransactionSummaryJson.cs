@@ -10,5 +10,14 @@ public class ResponseOperatorTransactionSummaryJson
     public decimal TotalInValue { get; init; }
     public decimal TotalOutValue { get; init; }
     public decimal NetValue { get; init; }
+
+    /// <summary>
+    /// The automatic share (M7.7 Phase 5.8): how many of the counted rows, and how much of the In/Out totals, are
+    /// system-generated Terminal legs of fiado operations this operator initiated. A subset of the totals above,
+    /// never an addition — a generated cash entrada is not a second receipt.
+    /// </summary>
+    public int GeneratedTransactionCount { get; init; }
+    public decimal GeneratedInValue { get; init; }
+    public decimal GeneratedOutValue { get; init; }
     public IReadOnlyList<ResponseOperatorCategoryTotalJson> ByCategory { get; init; } = [];
 }

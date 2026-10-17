@@ -82,6 +82,21 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasIndex(t => t.OriginTransactionId)
             .HasFilter("\"OriginTransactionId\" IS NOT NULL");
 
+        builder.Property(t => t.GenerationKind).HasConversion<short?>().IsRequired(false);
+        builder.HasOne(t => t.GeneratedFromTransaction)
+            .WithMany()
+            .HasForeignKey(t => t.GeneratedFromTransactionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // One generated counterpart per source, and the generation kind and source link exist together or not at all.
+        builder.HasIndex(t => t.GeneratedFromTransactionId)
+            .IsUnique()
+            .HasFilter("\"GeneratedFromTransactionId\" IS NOT NULL");
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_Transactions_GenerationOrigin",
+            "(\"GenerationKind\" IS NULL) = (\"GeneratedFromTransactionId\" IS NULL)"));
+
         builder.HasIndex(t => new { t.BranchId, t.Status });
         builder.HasIndex(t => new { t.BranchId, t.RecordedByOperatorId, t.Date });
     }

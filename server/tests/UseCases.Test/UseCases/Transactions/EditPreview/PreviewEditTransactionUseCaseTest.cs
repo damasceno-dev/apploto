@@ -302,7 +302,8 @@ public class PreviewEditTransactionUseCaseTest
             ctx.DailyClosesRepository,
             ctx.ClientsRepository,
             Substitute.For<ICashVarianceCalculator>(),
-            Substitute.For<ICashVarianceProductResolver>());
+            Substitute.For<ICashVarianceProductResolver>(),
+            Substitute.For<IFiadoProjectionRepository>());
 
         return new PreviewEditTransactionUseCase(
             ctx.AuthenticationService,

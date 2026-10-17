@@ -30,6 +30,22 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 ct);
     }
 
+    public async Task<Transaction?> GetGeneratedBySourceIdAndBranchId(Guid sourceId, Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.Transactions
+            .FirstOrDefaultAsync(t => t.GeneratedFromTransactionId == sourceId && t.BranchId == branchId, ct);
+    }
+
+    public async Task<Transaction?> GetGeneratedBySourceIdAndBranchIdAsNoTracking(
+        Guid sourceId,
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(t => t.GeneratedFromTransactionId == sourceId && t.BranchId == branchId, ct);
+    }
+
     public async Task<Transaction?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Transactions
@@ -284,123 +300,199 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     public async Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(
         Guid branchId,
         Guid? clientId,
-        DateTime asOfDate)
+        DateTime asOfDate,
+        CancellationToken ct = default)
     {
-        var query = dbContext.Transactions
-            .AsNoTracking()
-            .Where(t =>
-                t.BranchId == branchId &&
-                t.Active &&
-                t.Status == TransactionStatus.Active &&
-                t.Account.Type == AccountType.Tab &&
-                t.ClientId != null &&
-                t.Date <= asOfDate);
-
-        if (clientId is { } selectedClientId)
-        {
-            query = query.Where(t => t.ClientId == selectedClientId);
-        }
-
-        var aggregated = query
-            .GroupBy(t => t.ClientId!.Value)
-            .Select(g => new
-            {
-                ClientId = g.Key,
-                OutstandingTotal = g.Sum(t => t.Direction == Direction.Out ? t.Value : -t.Value)
-            })
-            .Where(r => r.OutstandingTotal != 0m);
-
-        var rows = await aggregated
-            .Join(
-                dbContext.Clients.AsNoTracking(),
-                row => row.ClientId,
-                client => client.Id,
-                (row, client) => new
-                {
-                    row.ClientId,
-                    ClientName = client.Name,
-                    row.OutstandingTotal
-                })
-            .OrderBy(row => row.ClientName)
-            .ThenBy(row => row.ClientId)
-            .ToListAsync();
+        var rows = await FiadoNettingSql
+            .Query<FiadoBalanceSqlRow>(
+                dbContext,
+                """
+                SELECT f."ClientId", c."Name" AS "ClientName", SUM(f."Signed") AS "OutstandingTotal"
+                FROM fiado f
+                INNER JOIN "Clients" c ON c."Id" = f."ClientId"
+                GROUP BY f."ClientId", c."Name"
+                HAVING SUM(f."Signed") <> 0
+                ORDER BY c."Name", f."ClientId"
+                """,
+                branchId,
+                asOfDate,
+                clientId)
+            .ToListAsync(ct);
 
         return rows
-            .Select(r => new FiadoClientBalanceRow(r.ClientId, r.ClientName, r.OutstandingTotal))
+            .Select(row => new FiadoClientBalanceRow(row.ClientId, row.ClientName, row.OutstandingTotal))
             .ToList();
     }
 
-    public async Task<IReadOnlyList<TransactionOpenReceivableRow>> ListOpenReceivablesByBranchIdAsNoTracking(
+    public async Task<IReadOnlyList<FiadoOpenSaleRow>> ListFiadoOpenSalesByBranchIdAsNoTracking(
         Guid branchId,
         Guid? accountId,
         Guid? clientId,
         DateTime asOfDate,
         int page,
         int pageSize,
-        AccountType? accountType = null)
+        CancellationToken ct = default)
     {
-        var query = BuildOpenReceivablesQuery(branchId, accountId, clientId, asOfDate, accountType);
+        var rows = await FiadoNettingSql
+            .Query<FiadoOpenSaleSqlRow>(
+                dbContext,
+                """
+                SELECT o."Id", o."Date", o."DueDate", o."Remaining" AS "Value", o."ClientId", c."Name" AS "ClientName",
+                       o."AccountId", a."Name" AS "AccountName", o."Description"
+                FROM open_sales o
+                INNER JOIN "Clients" c ON c."Id" = o."ClientId"
+                INNER JOIN "Accounts" a ON a."Id" = o."AccountId"
+                WHERE (CAST({3} AS uuid) IS NULL OR o."AccountId" = CAST({3} AS uuid))
+                ORDER BY o."DueDate", o."Date", o."Id"
+                LIMIT {4} OFFSET {5}
+                """,
+                branchId,
+                asOfDate,
+                clientId,
+                accountId,
+                pageSize,
+                // long: a huge but valid page must not overflow into a negative OFFSET.
+                (long)(page - 1) * pageSize)
+            .ToListAsync(ct);
 
-        var rows = await query
-            .OrderBy(t => t.DueDate)
-            .ThenBy(t => t.Date)
-            .ThenBy(t => t.Id)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(t => new TransactionOpenReceivableRow(
-                t.Id,
-                t.Date,
-                t.DueDate,
-                t.Value,
-                t.ClientId,
-                t.Client != null ? t.Client.Name : null,
-                t.AccountId,
-                t.Account.Name,
-                t.OriginTransactionId,
-                t.Description))
-            .ToListAsync();
-
-        return rows;
+        return rows
+            .Select(row => new FiadoOpenSaleRow(
+                row.Id,
+                row.Date,
+                row.DueDate,
+                row.Value,
+                row.ClientId,
+                row.ClientName,
+                row.AccountId,
+                row.AccountName,
+                row.Description))
+            .ToList();
     }
 
-    public async Task<int> CountOpenReceivablesByBranchIdAsNoTracking(
+    public async Task<int> CountFiadoOpenSalesByBranchIdAsNoTracking(
         Guid branchId,
         Guid? accountId,
         Guid? clientId,
         DateTime asOfDate,
-        AccountType? accountType = null)
+        CancellationToken ct = default)
     {
-        return await BuildOpenReceivablesQuery(branchId, accountId, clientId, asOfDate, accountType)
-            .CountAsync();
+        var rows = await FiadoNettingSql
+            .Query<FiadoCountSqlRow>(
+                dbContext,
+                """
+                SELECT CAST(COUNT(*) AS integer) AS "Count"
+                FROM open_sales o
+                WHERE (CAST({3} AS uuid) IS NULL OR o."AccountId" = CAST({3} AS uuid))
+                """,
+                branchId,
+                asOfDate,
+                clientId,
+                accountId)
+            .ToListAsync(ct);
+
+        return rows.Single().Count;
     }
 
-    private IQueryable<Transaction> BuildOpenReceivablesQuery(
+    public async Task<IReadOnlyList<FiadoStatementRow>> ListFiadoStatementByClientIdAsNoTracking(
         Guid branchId,
-        Guid? accountId,
-        Guid? clientId,
-        DateTime asOfDate,
-        AccountType? accountType)
+        Guid clientId,
+        DateTime? dateFrom,
+        DateTime dateTo,
+        int page,
+        int pageSize,
+        CancellationToken ct = default)
     {
-        var query = dbContext.Transactions
-            .AsNoTracking()
-            .Include(t => t.Account)
-            .Include(t => t.Client)
-            .Where(t =>
-                t.BranchId == branchId &&
-                t.Active &&
-                t.Status == TransactionStatus.Active &&
-                t.PaidAt == null);
+        var rows = await FiadoNettingSql
+            .Query<FiadoStatementSqlRow>(
+                dbContext,
+                """
+                , history AS (
+                    SELECT f.*,
+                           SUM(f."Signed") OVER (
+                               ORDER BY f."Date", f."CreatedAt", f."Id"
+                               ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS "RunningBalance"
+                    FROM fiado f
+                )
+                SELECT h."Id", h."Date", h."Direction", h."Value", h."AccountId", a."Name" AS "AccountName",
+                       tt."Name" AS "TransactionTypeName", h."Description", h."RunningBalance"
+                FROM history h
+                INNER JOIN "Accounts" a ON a."Id" = h."AccountId"
+                INNER JOIN "TransactionTypes" tt ON tt."Id" = h."TransactionTypeId"
+                WHERE CAST({3} AS date) IS NULL OR h."Date" >= CAST({3} AS date)
+                ORDER BY h."Date" DESC, h."CreatedAt" DESC, h."Id" DESC
+                LIMIT {4} OFFSET {5}
+                """,
+                branchId,
+                dateTo,
+                clientId,
+                dateFrom is { } from ? DateOnly.FromDateTime(from) : null,
+                pageSize,
+                // long: a huge but valid page must not overflow into a negative OFFSET.
+                (long)(page - 1) * pageSize)
+            .ToListAsync(ct);
 
-        if (accountType is { } selectedAccountType)
-            query = query.Where(t => t.Account.Type == selectedAccountType);
+        return rows
+            .Select(row => new FiadoStatementRow(
+                row.Id,
+                row.Date,
+                (Direction)row.Direction,
+                row.Value,
+                row.AccountId,
+                row.AccountName,
+                row.TransactionTypeName,
+                row.Description,
+                row.RunningBalance))
+            .ToList();
+    }
 
-        if (accountId is { } selectedAccountId)
-            query = query.Where(t => t.AccountId == selectedAccountId);
+    public async Task<FiadoStatementWindow> GetFiadoStatementWindowByClientIdAsNoTracking(
+        Guid branchId,
+        Guid clientId,
+        DateTime? dateFrom,
+        DateTime dateTo,
+        CancellationToken ct = default)
+    {
+        var rows = await FiadoNettingSql
+            .Query<FiadoStatementWindowSqlRow>(
+                dbContext,
+                """
+                SELECT COALESCE(SUM(f."Signed") FILTER (
+                           WHERE CAST({3} AS date) IS NOT NULL AND f."Date" < CAST({3} AS date)), 0) AS "OpeningBalance",
+                       COALESCE(SUM(f."Signed"), 0) AS "ClosingBalance",
+                       CAST(COUNT(*) FILTER (
+                           WHERE CAST({3} AS date) IS NULL OR f."Date" >= CAST({3} AS date)) AS integer) AS "TotalCount"
+                FROM fiado f
+                """,
+                branchId,
+                dateTo,
+                clientId,
+                dateFrom is { } from ? DateOnly.FromDateTime(from) : null)
+            .ToListAsync(ct);
 
-        if (clientId is { } selectedClientId)
-            query = query.Where(t => t.ClientId == selectedClientId);
+        var row = rows.Single();
+        return new FiadoStatementWindow(row.OpeningBalance, row.ClosingBalance, row.TotalCount);
+    }
 
-        return query;
+    public async Task<FiadoClientPosition> GetFiadoClientPositionAsNoTracking(
+        Guid branchId,
+        Guid clientId,
+        DateTime asOfDate,
+        CancellationToken ct = default)
+    {
+        var rows = await FiadoNettingSql
+            .Query<FiadoPositionSqlRow>(
+                dbContext,
+                """
+                SELECT COALESCE((SELECT SUM(f."Signed") FROM fiado f), 0) AS "OutstandingTotal",
+                       (SELECT MIN(o."Date") FROM open_sales o) AS "OldestUnpaidDate"
+                """,
+                branchId,
+                asOfDate,
+                clientId)
+            .ToListAsync(ct);
+
+        var row = rows.Single();
+        return new FiadoClientPosition(row.OutstandingTotal, row.OldestUnpaidDate);
     }
 
     public async Task<OperatorTransactionSummaryProjection> SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
@@ -433,14 +525,29 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 CategoryName = g.Key.Name,
                 Count = g.Count(),
                 TotalIn = g.Where(t => t.Direction == Direction.In).Select(t => (decimal?)t.Value).Sum() ?? 0m,
-                TotalOut = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m
+                TotalOut = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                // M7.7 Phase 5.8: generated legs keep their initiating operator, so they are already counted above;
+                // these sums only report how much of each total is automatic.
+                GeneratedCount = g.Count(t => t.GenerationKind != null),
+                GeneratedIn = g.Where(t => t.GenerationKind != null && t.Direction == Direction.In)
+                    .Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                GeneratedOut = g.Where(t => t.GenerationKind != null && t.Direction == Direction.Out)
+                    .Select(t => (decimal?)t.Value).Sum() ?? 0m
             })
             .ToListAsync();
 
         // Deterministic ordering applied on the projection (not in SQL) so the
         // contract follows .NET string comparison instead of database collation.
         var byCategory = rawGroups
-            .Select(g => new CategoryTotal(g.CategoryId, g.CategoryName, g.Count, g.TotalIn, g.TotalOut))
+            .Select(g => new CategoryTotal(
+                g.CategoryId,
+                g.CategoryName,
+                g.Count,
+                g.TotalIn,
+                g.TotalOut,
+                g.GeneratedCount,
+                g.GeneratedIn,
+                g.GeneratedOut))
             .OrderBy(c => c.CategoryName)
             .ThenBy(c => c.CategoryId)
             .ToList();
@@ -449,7 +556,10 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             byCategory.Sum(c => c.Count),
             byCategory.Sum(c => c.TotalIn),
             byCategory.Sum(c => c.TotalOut),
-            byCategory);
+            byCategory,
+            byCategory.Sum(c => c.GeneratedCount),
+            byCategory.Sum(c => c.GeneratedIn),
+            byCategory.Sum(c => c.GeneratedOut));
     }
 
     public async Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(

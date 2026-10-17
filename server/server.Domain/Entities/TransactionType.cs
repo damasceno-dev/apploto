@@ -8,6 +8,15 @@ public class TransactionType : EntityBase
     public SettlementRule SettlementRule { get; set; }
     public bool RequiresTabAccountAndClient { get; set; }
 
+    /// <summary>Non-null for the two system-owned counterpart types; such a type is never used for a manual write.</summary>
+    public TransactionTypeSystemRole? SystemRole { get; init; }
+
+    /// <summary>
+    /// Non-null marks a fiado repayment method usable by <i>Receber pagamento</i>; the value decides whether the
+    /// payment moves counted cash. Only valid on an <c>In</c> type that requires a Tab account and a client.
+    /// </summary>
+    public FiadoPaymentKind? FiadoPaymentKind { get; set; }
+
     public Guid CategoryId { get; init; }
     public Category Category { get; init; } = null!;
 }

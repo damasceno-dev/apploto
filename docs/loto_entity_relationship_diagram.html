@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v49
+Spec revision: v50
 -->
 <html lang="en">
 <head>
@@ -273,6 +273,7 @@ Spec revision: v49
     '  Client ||--o{ Transaction : involved\n' +
     '\n' +
     '  Transaction o|--o{ Transaction : "installment origin"\n' +
+    '  Transaction |o--o| Transaction : "generated from"\n' +
     '\n' +
     '  DailyClose ||--o{ DailyCloseItem : contains\n' +
     '  DailyClose o|--o{ DailyClose : "opening recheck source"\n' +
@@ -343,6 +344,8 @@ Spec revision: v49
     '    string name\n' +
     '    enum settlementRule\n' +
     '    bool requiresTabAccountAndClient\n' +
+    '    enum systemRole "system-owned counterpart types only"\n' +
+    '    enum fiadoPaymentKind "configured fiado repayment method"\n' +
     '    uuid categoryId FK\n' +
     '  }\n' +
     '\n' +
@@ -369,6 +372,8 @@ Spec revision: v49
     '    date dueDate\n' +
     '    timestamp paidAt\n' +
     '    uuid originTransactionId FK\n' +
+    '    enum generationKind "system-generated Terminal leg"\n' +
+    '    uuid generatedFromTransactionId FK "Tab source, unique"\n' +
     '    enum status\n' +
     '    timestamp updatedAt\n' +
     '    uuid updatedByUserId\n' +

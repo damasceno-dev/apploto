@@ -30,6 +30,12 @@ public class Transaction : EntityBase
     public Guid? OriginTransactionId { get; init; }
     public Transaction? OriginTransaction { get; set; }
 
+    // System-owned generation origin (M7.7 Phase 5.7): set only by the server when it writes the Terminal leg of a
+    // physical fiado operation; both are null on every ordinary row and never bound from a request.
+    public TransactionGenerationKind? GenerationKind { get; init; }
+    public Guid? GeneratedFromTransactionId { get; init; }
+    public Transaction? GeneratedFromTransaction { get; set; }
+
     public Guid RecordedByOperatorId { get; init; }
     public Operator RecordedByOperator { get; init; } = null!;
 

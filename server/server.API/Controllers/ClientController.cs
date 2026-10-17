@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Clients.Create;
 using server.Application.UseCases.Clients.Deactivate;
+using server.Application.UseCases.Clients.FiadoStatement;
 using server.Application.UseCases.Clients.Get;
 using server.Application.UseCases.Clients.List;
 using server.Application.UseCases.Clients.Update;
@@ -53,6 +54,24 @@ public class ClientController : ControllerBase
         [FromRoute] Guid clientId)
     {
         var response = await getClientUseCase.Execute(clientId);
+        return Ok(response);
+    }
+
+    [HttpGet]
+    [Route("{clientId:guid}/fiado-statement")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseClientFiadoStatementJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> FiadoStatement(
+        [FromServices] GetClientFiadoStatementUseCase useCase,
+        [FromRoute] Guid clientId,
+        [FromQuery] RequestClientFiadoStatementJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(clientId, request, cancellationToken);
         return Ok(response);
     }
 

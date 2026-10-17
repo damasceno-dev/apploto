@@ -41,11 +41,14 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
                 transactionType.Name,
                 CategoryName = transactionType.Category.Name,
                 transactionType.SettlementRule,
-                transactionType.RequiresTabAccountAndClient
+                transactionType.RequiresTabAccountAndClient,
+                transactionType.SystemRole
             })
             .ToListAsync();
 
-        persistedRows.Count.ShouldBe(19);
+        // Nineteen ordinary seeds plus the two M7.7 Phase 5.6 system-owned counterpart types.
+        persistedRows.Count.ShouldBe(21);
+        persistedRows.Count(row => row.SystemRole != null).ShouldBe(2);
 
         foreach (var (seed, expected) in ExpectedTransactionTypeMetadata())
         {

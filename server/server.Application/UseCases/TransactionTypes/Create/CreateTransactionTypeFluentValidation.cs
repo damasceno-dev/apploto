@@ -16,5 +16,9 @@ public class CreateTransactionTypeFluentValidation : AbstractValidator<RequestCr
         RuleFor(r => r.SettlementRule)
             .IsInEnum()
             .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_SETTLEMENT_RULE_INVALID);
+        RuleFor(r => r.FiadoPaymentKind)
+            .IsInEnum()
+            .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID)
+            .When(r => r.FiadoPaymentKind.HasValue);
     }
 }

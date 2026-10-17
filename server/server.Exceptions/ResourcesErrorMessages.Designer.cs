@@ -1514,5 +1514,83 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("REPORT_MINE_AND_OPERATOR_ID_CONFLICT", resourceCulture);
             }
         }
+
+        public static string CLIENT_FIADO_STATEMENT_ACCESS_DENIED {
+            get {
+                return ResourceManager.GetString("CLIENT_FIADO_STATEMENT_ACCESS_DENIED", resourceCulture);
+            }
+        }
+
+        public static string CLIENT_FIADO_STATEMENT_PAGE_SIZE_INVALID {
+            get {
+                return ResourceManager.GetString("CLIENT_FIADO_STATEMENT_PAGE_SIZE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_SYSTEM_ONLY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_SYSTEM_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAYMENT_METHOD_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAYMENT_METHOD_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_FIADO_PAYMENT_CLIENT_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_FIADO_PAYMENT_CLIENT_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_GENERATED_ROW_READ_ONLY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_GENERATED_ROW_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_SYSTEM_READ_ONLY {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_SYSTEM_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_FIADO_PAYMENT_KIND_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_FIADO_PAYMENT_KIND_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CATEGORY_SYSTEM_READ_ONLY {
+            get {
+                return ResourceManager.GetString("CATEGORY_SYSTEM_READ_ONLY", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID", resourceCulture);
+            }
+        }
     }
 }

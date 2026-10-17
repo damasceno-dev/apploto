@@ -59,6 +59,8 @@ public static class CreateTransactionMapper
                 ClientId = transaction.ClientId,
                 DueDate = transaction.DueDate,
                 PaidAt = transaction.PaidAt,
+                GenerationKind = transaction.GenerationKind,
+                GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
                 RecordedByOperatorId = transaction.RecordedByOperatorId,
                 CreatedByUserId = transaction.CreatedByUserId,
                 Status = transaction.Status,

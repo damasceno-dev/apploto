@@ -34,4 +34,10 @@ public sealed class HypotheticalTransactionCreate(RequestCreateTransactionJson r
 
     public Guid? ClientId { get; } = request.ClientId;
     public DateTime DueDate { get; } = context.DueDate ?? request.Date;
+
+    /// <summary>
+    /// Set when the would-be row is a counted-stock fiado sale (M7.7 Phase 5.6): the paired terminal that would
+    /// receive the generated Terminal <c>Out</c>, already validated exactly as the write validates it.
+    /// </summary>
+    public Guid? PairedTerminalAccountId { get; init; }
 }

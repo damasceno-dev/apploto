@@ -29,6 +29,10 @@ public class DeactivateCategoryUseCase(
             categoryId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.CATEGORY_NOT_FOUND);
 
+        // M7.7 Phase 5.6: deactivating would cascade to a system-owned counterpart type and break physical fiado pairs.
+        if (category.TransactionTypes.Any(transactionType => transactionType.SystemRole is not null))
+            throw new ConflictException(ResourcesErrorMessages.CATEGORY_SYSTEM_READ_ONLY);
+
         category.Active = false;
         foreach (var transactionType in category.TransactionTypes)
         {

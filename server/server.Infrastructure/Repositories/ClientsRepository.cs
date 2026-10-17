@@ -21,6 +21,13 @@ internal class ClientsRepository(ServerDbContext dbContext) : IClientsRepository
                 c.Branch.Active);
     }
 
+    public async Task<Client?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.Clients
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id && c.BranchId == branchId && c.Branch.Active, ct);
+    }
+
     public async Task<Client?> GetActiveByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await dbContext.Clients

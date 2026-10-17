@@ -173,48 +173,62 @@ public class TransactionsRepositoryBuilder
         _repository.ListFiadoBalancesByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid?>(value => value == clientId),
-                Arg.Is<DateTime>(value => value == asOfDate))
+                Arg.Is<DateTime>(value => value == asOfDate),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
 
-    public TransactionsRepositoryBuilder ListOpenReceivablesByBranchIdAsNoTrackingReturns(
+    public TransactionsRepositoryBuilder ListFiadoOpenSalesByBranchIdAsNoTrackingReturns(
         Guid branchId,
         Guid? accountId,
         Guid? clientId,
         DateTime asOfDate,
         int page,
         int pageSize,
-        AccountType? accountType,
-        IReadOnlyList<TransactionOpenReceivableRow> result)
+        IReadOnlyList<FiadoOpenSaleRow> result)
     {
-        _repository.ListOpenReceivablesByBranchIdAsNoTracking(
+        _repository.ListFiadoOpenSalesByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid?>(value => value == accountId),
                 Arg.Is<Guid?>(value => value == clientId),
                 Arg.Is<DateTime>(value => value == asOfDate),
                 Arg.Is<int>(value => value == page),
                 Arg.Is<int>(value => value == pageSize),
-                Arg.Is<AccountType?>(value => value == accountType))
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
 
-    public TransactionsRepositoryBuilder CountOpenReceivablesByBranchIdAsNoTrackingReturns(
+    public TransactionsRepositoryBuilder CountFiadoOpenSalesByBranchIdAsNoTrackingReturns(
         Guid branchId,
         Guid? accountId,
         Guid? clientId,
         DateTime asOfDate,
-        AccountType? accountType,
         int count)
     {
-        _repository.CountOpenReceivablesByBranchIdAsNoTracking(
+        _repository.CountFiadoOpenSalesByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid?>(value => value == accountId),
                 Arg.Is<Guid?>(value => value == clientId),
                 Arg.Is<DateTime>(value => value == asOfDate),
-                Arg.Is<AccountType?>(value => value == accountType))
+                Arg.Any<CancellationToken>())
             .Returns(count);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder GetFiadoClientPositionAsNoTrackingReturns(
+        Guid branchId,
+        Guid clientId,
+        DateTime asOfDate,
+        FiadoClientPosition result)
+    {
+        _repository.GetFiadoClientPositionAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<Guid>(value => value == clientId),
+                Arg.Is<DateTime>(value => value == asOfDate),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
         return this;
     }
 

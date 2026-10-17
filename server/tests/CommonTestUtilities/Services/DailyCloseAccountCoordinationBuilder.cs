@@ -14,6 +14,9 @@ public sealed class DailyCloseAccountCoordinationBuilder
         _coordination
             .Acquire(Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(Scope);
+        _coordination
+            .AcquireMany(Arg.Any<Guid>(), Arg.Any<IReadOnlyCollection<Guid>>(), Arg.Any<CancellationToken>())
+            .Returns(Scope);
     }
 
     public IDailyCloseAccountCoordinationScope Scope { get; }

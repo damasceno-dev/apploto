@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v49
+Spec revision: v50
 -->
 <html lang="en">
 <head>
@@ -509,7 +509,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Tab Balance = R$150',
-   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The owner can query this grouped by Client for an <b>aging report</b>: "show me all customers who owe money, sorted by oldest debt."<br><br><span class="design-note"><span class="dn-label">Important:</span> the Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product. The daily close form may display it for reference, but does not store it as a snapshot value.</span>',
+   narrative:'Outstanding credit = <b>SUM(Out) − SUM(In)</b> on the Tab account, where Status = Active. Right now there\'s one Out transaction of R$150, so the balance is <b>R$150</b> — João owes R$150.<br><br>The balance is <b>branch-wide per client</b>, across every Tab. The owner reads it in the <b>aging report</b>, where every payment is applied FIFO to the client\'s oldest-due sales and only unpaid remainders age, and in João\'s <b>fiado statement</b> (<code>GET /client/{id}/fiado-statement</code>), whose running balance reconciles row by row.<br><br><span class="design-note"><span class="dn-label">Important:</span> the Fiado balance is <b>always calculated at query time</b> from Tab account transactions — it is NOT persisted as a DailyClose product, and the close-day form does not show it for any role: a raw Tab balance shows where movements were registered, not what a client owes.</span>',
    activeTables:['AccountTab'],
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 150'},
@@ -517,7 +517,7 @@ const SLIDES=[
     {entity:'Balance Query',sql:true,text:'<span class="kw">SELECT</span>\n  <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=Out\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  - <span class="kw">SUM</span>(<span class="kw">CASE WHEN</span> Direction=In\n      <span class="kw">THEN</span> Value <span class="kw">ELSE</span> 0 <span class="kw">END</span>)\n  <span class="kw">AS</span> Balance\n<span class="kw">FROM</span> Transaction\n<span class="kw">WHERE</span> AccountId = \'Tab Jennifer\'\n\n→ <span class="res">R$ 150.00</span>'}
    ]},
   {title:'Client Pays Back',
-   narrative:'João returns the following Friday (March 14) — Jennifer is back at her own terminal — and pays his R$150 debt. She selects TransactionType <b>"Cliente"</b> under Category <b>"Entradas"</b> (Direction=In).<br><br>Same type name ("Cliente"), different category — this is <b>intentional design</b> from the original Access system. This row also requires a Tab account and ClientId, and the Transaction has <b>Direction=In</b> on the Tab account.',
+   narrative:'João returns the following Friday (March 14) — Jennifer is back at her own terminal — and pays his R$150 debt. Repayments are recorded only through <b>Receber pagamento</b> (<code>POST /transaction/fiado-payment</code>): Jennifer must pick the payment method — an In type configured as a fiado repayment method, with <b>no default</b> — and the Tab that received it. The row has <b>Direction=In</b> on the Tab account; the generic create refuses a Tab In so the method rules cannot be bypassed.<br><br>Same type name ("Cliente"), different category — the In/Out split is <b>intentional design</b> from the original Access system.',
    activeTables:['Category','TransactionType','Transaction','AccountTab','Client'],
    activeArrows:['cat-tt','tt-tx','tx-tab','client-tx'],
    data:[
@@ -530,7 +530,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Balance Zeroed — Drawer Untouched',
-   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>Throughout this entire flow, the Terminal account "Jennifer" was <b>never touched</b> — the cash drawer reconciliation stays clean. This is why the Terminal/Tab separation exists: it <b>isolates credit from cash</b>, ensuring the CashVariance calculation at end of day is accurate.',
+   narrative:'Balance recalculated: R$150 (Out) − R$150 (In) = <b style="color:var(--accent)">R$ 0</b>. The debt is cleared.<br><br>The Tab stays the source of João\'s debt; the Terminal explains only what physically moved. Paid by <b>PIX</b> (a non-cash method), the Terminal is untouched. Paid in <b>cash into Jennifer\'s counted drawer</b> (a counted-cash method), Receber pagamento also writes a <b>system-generated Terminal In R$150</b> linked to the Tab row in the same commit, so the drawer counted +R$150 reconciles at zero. Likewise a fiado sale that hands out counted stock writes a generated Terminal Out. The Tab balance itself is <b>never</b> added to the CashVariance formula — that would count the same value twice.',
    activeTables:['AccountTab','AccountTerminal'],
    activeArrows:[],
    badge:{table:'AccountTab',text:'R$ 0'},

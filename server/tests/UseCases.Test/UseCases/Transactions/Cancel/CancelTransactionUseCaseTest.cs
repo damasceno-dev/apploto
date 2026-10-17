@@ -322,6 +322,11 @@ public class CancelTransactionUseCaseTest
             ctx.BranchClock,
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            new FiadoPhysicalPairService(
+                Substitute.For<IAccountsRepository>(),
+                Substitute.For<ITransactionTypesRepository>(),
+                ctx.DailyCloseLedgerGuard,
+                memberAccountScopeGuard),
             ctx.UnitOfWork);
     }
 

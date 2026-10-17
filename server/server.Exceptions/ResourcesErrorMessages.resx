@@ -753,4 +753,43 @@
     <data name="REPORT_MINE_AND_OPERATOR_ID_CONFLICT" xml:space="preserve">
         <value>Não combine Mine = true com um identificador de operador explícito; use apenas um dos dois</value>
     </data>
+    <data name="CLIENT_FIADO_STATEMENT_ACCESS_DENIED" xml:space="preserve">
+        <value>É necessário ter acesso a uma conta fiado para consultar o extrato do cliente</value>
+    </data>
+    <data name="CLIENT_FIADO_STATEMENT_PAGE_SIZE_INVALID" xml:space="preserve">
+        <value>O tamanho da página deve estar entre 1 e 100</value>
+    </data>
+    <data name="TRANSACTION_TYPE_SYSTEM_ONLY" xml:space="preserve">
+        <value>Este tipo de movimentação é gerado automaticamente pelo sistema e não pode ser lançado manualmente</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND" xml:space="preserve">
+        <value>Recebimentos de fiado devem ser registrados pelo Receber pagamento</value>
+    </data>
+    <data name="TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE" xml:space="preserve">
+        <value>Somente uma venda fiado (saída em conta fiado com cliente) pode declarar saída de estoque contado</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED" xml:space="preserve">
+        <value>A conta fiado não está vinculada a um caixa ativo; vincule-a antes de registrar uma movimentação física</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAYMENT_METHOD_INVALID" xml:space="preserve">
+        <value>Selecione uma forma de recebimento de fiado válida</value>
+    </data>
+    <data name="TRANSACTION_FIADO_PAYMENT_CLIENT_REQUIRED" xml:space="preserve">
+        <value>O cliente do recebimento deve ser informado</value>
+    </data>
+    <data name="TRANSACTION_GENERATED_ROW_READ_ONLY" xml:space="preserve">
+        <value>Esta movimentação foi gerada automaticamente; altere, finalize ou cancele a movimentação de origem</value>
+    </data>
+    <data name="TRANSACTION_TYPE_SYSTEM_READ_ONLY" xml:space="preserve">
+        <value>Tipos de movimentação do sistema não podem ser alterados nem desativados</value>
+    </data>
+    <data name="TRANSACTION_TYPE_FIADO_PAYMENT_KIND_INVALID" xml:space="preserve">
+        <value>Somente um tipo de entrada que exige conta fiado e cliente pode ser forma de recebimento de fiado</value>
+    </data>
+    <data name="CATEGORY_SYSTEM_READ_ONLY" xml:space="preserve">
+        <value>Esta categoria pertence ao sistema e não pode ser desativada nem receber novos tipos</value>
+    </data>
+    <data name="TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID" xml:space="preserve">
+        <value>A forma de recebimento de fiado informada é inválida</value>
+    </data>
 </root>

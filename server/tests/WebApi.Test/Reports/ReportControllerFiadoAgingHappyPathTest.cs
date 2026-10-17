@@ -80,7 +80,7 @@ public class ReportControllerFiadoAgingHappyPathTest(ServerWebApplicationFactory
     }
 
     [Fact]
-    public async Task FiadoAging_ShouldExcludePaidRows_WhenPaidAtIsSet()
+    public async Task FiadoAging_ShouldIgnorePaidAt_BecauseOnlyRepaymentsSettleFiado()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("FAHappy2");
         var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab);
@@ -91,14 +91,14 @@ public class ReportControllerFiadoAgingHappyPathTest(ServerWebApplicationFactory
 
         var asOfDate = new DateTime(2025, 6, 30);
 
-        // Unpaid row — must appear
         await factory.SeedTransactionAsync(
             branch.Id, tabAccount.Id, transactionType.Id, category.Id,
             Direction.Out, op.Id, user.Id,
             date: new DateTime(2025, 6, 1), value: 100m, clientId: client.Id,
             dueDate: asOfDate.AddDays(-5));
 
-        // Paid row — must be excluded
+        // A legacy PaidAt stamp is not a fiado settlement (M7.7 decision 1.3): without a repayment In the sale
+        // still owes its full value and still ages.
         await factory.SeedTransactionAsync(
             branch.Id, tabAccount.Id, transactionType.Id, category.Id,
             Direction.Out, op.Id, user.Id,
@@ -111,9 +111,8 @@ public class ReportControllerFiadoAgingHappyPathTest(ServerWebApplicationFactory
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseFiadoAgingJson>();
-        payload.TotalCount.ShouldBe(1);
-        payload.Items.Count.ShouldBe(1);
-        payload.Items[0].Value.ShouldBe(100m);
+        payload.TotalCount.ShouldBe(2);
+        payload.Items.Select(item => item.Value).ShouldBe([999m, 100m]);
     }
 
     [Fact]
