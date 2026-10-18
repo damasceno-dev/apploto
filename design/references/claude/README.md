@@ -1,6 +1,6 @@
-# Claude — selected visual reference
+# Claude — historical prototype reference
 
-The owner selected the Claude direction in D03. These are actual captures made on **2026-10-15**, not generated illustrations or evidence of a production implementation. The direction and required adaptations are recorded in [`decisions.md`](../../docs/decisions.md). No new tool comparison was performed.
+These are actual captures made on **2026-10-15**, retained as historical comparison material. **No M1 direction is selected or locked.** The owner reset the earlier selection record on **2026-10-18** and will compare visual tools using the Rascunho guide after backend and Shared completion; [`decisions.md`](../../docs/decisions.md) records that pending process. These captures do not establish a Claude Design trial or a production implementation, and their styling is not binding token input.
 
 ## Provenance
 
@@ -10,7 +10,7 @@ The original remains outside this checkout at `../Prototypes/prototype-claude/` 
 
 The screenshot API returned JPEG bytes; the `.jpg` files preserve those bytes without cropping, retouching or synthesis. Requested desktop viewport: **1440 × 1000**, returned raster: **1425 × 990**. Requested narrow viewport: **390 × 844**, returned raster: **375 × 812**. These are browser captures, not native-device screenshots. They show a viewport, not an entire page.
 
-The prototype's text preference is **150%**. Its `assets/theme.js` uses CSS zoom, clamped by available width: effective factor **1.5** for desktop and **1.0** for the narrow captures. The preference label still says 150% on narrow screens. Authored CSS sizes in the decision record are therefore distinct from their apparent screenshot sizes. The production system must support platform text scaling; the prototype's zoom and breakpoint rewriting are not a runtime recipe.
+The prototype's text preference is **150%**. Its `assets/theme.js` uses CSS zoom, clamped by available width: effective factor **1.5** for desktop and **1.0** for the narrow captures. The preference label still says 150% on narrow screens. Apparent screenshot sizes therefore differ from authored CSS sizes. The production system must support platform text scaling; the prototype's zoom and breakpoint rewriting are not a runtime recipe.
 
 ## Representative evidence
 

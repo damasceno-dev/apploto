@@ -1,6 +1,6 @@
 {
   "capturedOn": "2026-10-15",
-  "selectionAuthority": "Owner selection supplied in task D03; no new comparison performed.",
+  "selectionAuthority": "None. Owner reset M1 to pending on 2026-10-18; historical reference only. Visual-tool comparison follows backend and Shared completion.",
   "source": {
     "locationRelativeToCheckout": "../Prototypes/prototype-claude/",
     "build": "2026-10-08.c9-seed-v3",
