@@ -14,7 +14,16 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig(
-  globalIgnores(['server/', 'design/', 'docs/', 'infra/', '**/dist/', '**/coverage/']),
+  globalIgnores([
+    'server/',
+    'design/',
+    'docs/',
+    'infra/',
+    '**/dist/',
+    '**/coverage/',
+    // Shared M2 (D4): Orval output is never hand-edited, so it is not linted.
+    'shared/api/src/generated/',
+  ]),
   {
     name: 'loto/typescript',
     files: ['**/*.{ts,tsx,mts,cts}'],

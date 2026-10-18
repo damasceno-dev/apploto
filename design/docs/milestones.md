@@ -80,6 +80,8 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 
 ## M1 — Visual Direction ·  *Owner: dev-team (external tools — no AI checkboxes)*
 
+> **D03 handoff (2026-10-15): selected — awaiting review/lock.** The owner selected the Claude direction. [`decisions.md`](decisions.md) records its reusable principles, exact source seeds for M2 and required adaptations to the v43 catalog. [Eleven actual captures and provenance](../references/claude/README.md) cover Manager/Member desktop and narrow web in light/dark, plus drawer and count/focus details; the original prototype remains outside the checkout. Narrow web is not native evidence, and the captured Cockpit layout defect must be corrected in M4. This selection record does not claim contrast/accessibility compliance, close deferred 0.4.6 or bypass any feature gate. Owner review/lock remains M2's precondition; no AI checkbox or M1 acceptance is added by D03.
+
 **Goal:** Decide *how it looks*. Explore directions in the generator tools against the M0 catalog, pick one, and lock the **palette tone** (inspired by Caixa blue/orange, with our own character — light **and** dark intent). This milestone feeds M2; it produces no design-system files itself.
 
 **Why no checkboxes:** this is taste-driven work done in external tools, by the dev-team. The milestone's job is to make the **inputs** explicit and pin the **outputs** that M2 consumes.
@@ -105,16 +107,15 @@ For each screen the dev-team prototype, attach/paste:
 
 ### Process (the dev-team call)
 
-- Use **2–3 tools, time-boxed** (not all five). Generate, compare.
-- Score each direction on the scorecard: **operator task speed · manager info density · accessibility & legibility · web↔mobile adaptability · brand fit without copying Caixa · Tailwind/NativeWind feasibility.**
+- Before a direction is selected, the dev team may use **2–3 tools, time-boxed** and compare **operator task speed · manager info density · accessibility & legibility · web↔mobile adaptability · brand fit without copying Caixa · Tailwind/NativeWind feasibility.**
+- **Current handoff:** the owner has already selected Claude. D03 records the chosen reference and evidence; it does not require a new tool comparison, numerical scorecard or full prototype walkthrough. Accessibility, native behavior and adapter feasibility need their later implementation checks; appearance alone cannot establish them.
 
 ### Outputs (these are M2's precondition)
 
-- **Chosen screens** — exported from the winning tool (links or images), parked under `design/references/`, plus a short note of *what* you picked and *why* (rough notes are fine). This is the dev-team's deliverable.
-- **`design/docs/decisions.md`** — **the AI writes this for you** at the M1→M2 handoff: it reads your chosen screens + notes and formalizes the direction (palette tone light+dark, type feel, density, component-style, rejected alternatives + scorecard). You review and lock it. *(You pick; the AI writes it up — not a separate milestone, it's the first step of M2.)*
+- **Chosen screens** — links/images plus selection/provenance under `design/references/`. D03 supplies [`references/claude/`](../references/claude/README.md), with representative screenshots and source/capture fingerprints; generated runtime code stays outside the checkout.
+- **`design/docs/decisions.md`** — the M1→M2 handoff formalizes the owner's selected direction: light/dark palette tone, typography, density, geometry, component/navigation patterns, binding token inputs, observed limitations and adaptations required by real contracts. [`decisions.md`](decisions.md) records these outputs. No undocumented rejected alternative or comparison score is invented. **You review and lock it before M2 starts.**
 
-> **Example `decisions.md` entry (what the AI produces):**
- > *"**Primary:** a deeper, warmer blue (`#1B4F8A`) over the flat institutional Caixa `#005CA9` — reads more modern, hits AA on white at body size. **Accent:** muted orange, reserved for primary CTAs + active nav only. **Surface:** warm-neutral `#F7F8FA`, not the cool Caixa gelo. **Density:** compact — 36px table rows, 8px base. **Cards:** 1px border, no heavy shadow. **Nav:** collapsible left sidebar (desktop) → bottom tab (mobile). **Dark:** near-black `#0E1116` surfaces, same accent. **Rejected:** the SciFi neon direction (fails finance-legibility + brand fit)."*
+> **Selected direction:** blue structure with sparse orange emphasis, cool neutral light surfaces and deep blue-black dark surfaces; system typography, 4px spacing base, restrained ≤4px geometry, hairline table hierarchy and sidebar → drawer adaptation. The exact source values, source zoom caveat and required responsive/accessibility corrections live in `decisions.md`. They replace the former illustrative example; no contrast pass or bottom-tab decision is implied.
 
 ---
 

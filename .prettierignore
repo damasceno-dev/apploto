@@ -13,6 +13,10 @@ infra/
 **/AGENTS.md
 CLAUDE.md
 
+# Shared M2 (D4): the exported OpenAPI document is generation input and stays byte-identical
+# to the server export. Generated code is formatted by Orval's Prettier hook instead.
+shared/api/openapi/
+
 # Build and tool output
 **/dist/
 **/coverage/

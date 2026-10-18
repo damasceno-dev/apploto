@@ -113,6 +113,13 @@ Feature scope, catalog gates, and screen behavior for M4–M11 are defined once,
 - Connectivity: a network-loss state with retry on every query and mutation, per the design 0.4.2 online-only decision.
 - Test baseline: Jest with React Native Testing Library (Expo's supported runner) for the plumbing; choose and record the end-to-end runner (for example Maestro or Detox) with one login → branch session → gate flow against the local stack.
 
+> **Shared M2 handoff (2026-10-17, S06; Shared M2 awaits independent review).** Mobile configures `@loto/api` once with `configureApiClient({ baseUrl, getAccessToken })`; `fetch` defaults to the runtime's global and may be injected.
+> - **Token provider:** it is called on every request with `{ method, path, authTier }` (`anonymous`, `identity` or `branch`, generated from the contract) and reads the matching secure-store token. Returning `null` sends no `Authorization` header.
+> - **Per-call headers:** ordinary headers may be passed in options. A caller value that conflicts with a generated financial header, and a caller `Authorization`, is refused before dispatch.
+> - **Failures** reject with `ApiError`; a failing token provider becomes kind `token-provider`. `isOutcomeUncertain(error)` identifies writes whose outcome is unknown.
+> - **Shared performs no retry, renewal or key minting.** The connectivity "retry" above is an app action, and a retried write must reuse its frozen `Idempotency-Key` and payload; generated hooks set no `retry`, so keep mutation retries at 0.
+> - **Not tested yet:** Shared has not run this code under Hermes/Metro. Mobile M1 2.2 still proves that the `@loto/api` / `@loto/api/queries` subpaths resolve.
+
 **Precondition:** Mobile M1, Shared M2, Web M2 (the locked session semantics), and design 0.4.2 authored.
 
 ---

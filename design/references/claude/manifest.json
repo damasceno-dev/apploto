@@ -1,0 +1,330 @@
+{
+  "capturedOn": "2026-10-15",
+  "selectionAuthority": "Owner selection supplied in task D03; no new comparison performed.",
+  "source": {
+    "locationRelativeToCheckout": "../Prototypes/prototype-claude/",
+    "build": "2026-10-08.c9-seed-v3",
+    "fakeBusinessClock": "2026-09-24 14:32",
+    "sha256ByFile": {
+      "README.md": "1394a96ede46abe9f5320e0ce7fada69db7b558e9981f7360cdbdd93c465a944",
+      "assets/app.js": "ca7d03b187ae58d9908ccebdd29d2faac066c4d7e5478c25afc6455f1c303241",
+      "assets/base.css": "fd76ea94f582f67a70049757659e29005c07db79b94999d3bc2e09a0d64b5d03",
+      "assets/db.js": "24587bd38ba0f207da1a4d3821ad0b026f6d0d50ee54cd25d09d63bfa9ea61cf",
+      "assets/format.js": "831fad0b44aabac02f7cf914c31c9bfd63eeb5f0fc5d2c55d149f02c30ccb8b2",
+      "assets/labels.js": "0ae746b3d0d479288d13eb1c607a1d4876ae7c3ed6a60e1810891980d2fa7a52",
+      "assets/theme.js": "be07be1d3f3a9685e516d8c33983a54cf4d11016635883c67e039b288b382702",
+      "index.css": "c211fd7d1f429dd9a3187f912c7ed4c8b7a6ffac69fc8cc19231b74b5ac1ac44",
+      "index.html": "40281819649679250d4e74ff3ab4afec78cb353e0c8b2710cc66497240c9f6af",
+      "index.js": "7181be6fcf971c171d2f4d4be22bb165ddf0e78fc76751072cc5fb16a4322e1b",
+      "screens/account-assignment.css": "56d89ca57a85d112ac337b3845dfa5760b63c9c798b8ecd31c3a68e521fbd93c",
+      "screens/account-assignment.html": "e7c1e9339c0adaa440259a3cf6c84fa8a3dac467159227ff091019562a0956e2",
+      "screens/account-assignment.js": "abc61adcb1866a87438f76699809bfcb387722542af8056b8aede74e24e9b77a",
+      "screens/accounts.css": "a8eb6fe34776dc0c1752f7eef0ee8aaa98afc1a84359eb3a14515db3a62c4668",
+      "screens/accounts.html": "02b369a1aef56c4d1f226a763d3a5085236cdff159d2ce35aa4e6eedf8e51da0",
+      "screens/accounts.js": "e7962877be9783dca7205c77dec39209a107788b1dc499d891d0e417ba167b34",
+      "screens/branch-members.css": "967e1f004a6e18403c8dd00d613632305a3e8d8fdf72e6116980037331ca36a0",
+      "screens/branch-members.html": "f6b80c71a222a85a6f4b6246c785920a6ef21a4d9e2e88cb7c210a1e391cc3f1",
+      "screens/branch-members.js": "1fcbb960f2467397446903f2dfb127f7068a1b63cb736b5dc1b1e46dfb640af8",
+      "screens/branch-picker.css": "549b469fe05c28d9ee6c4d98b0f13962d7e38df249ad522f7845e8bdff8b8a6a",
+      "screens/branch-picker.html": "dd39a63e24972c9e4002592f51c7d57a400c262862a104a777e59fe89f2b364a",
+      "screens/branch-picker.js": "2acbbc1e1c8df865c68abaaaf8c0c1c7e5f0c0e4b9b4e42b1139c78ed82a06dc",
+      "screens/cash-variance-summary.css": "bd26a2677ddd9f987f39cae379626144321974d74a835b4fa11b217f388273df",
+      "screens/cash-variance-summary.html": "96243b0623a47dcdc01f121f3c255864a1c30e0dcaa4022211e126afead57b4a",
+      "screens/cash-variance-summary.js": "6c2b74d8828826fdea50db407278fd703272c7d2df467729792218ad1c2cfb6b",
+      "screens/categories-types.css": "cc2e1905dbe17592e6976839f6cb41129ed1d53fa9a5fb9ddd6b0117f6d76839",
+      "screens/categories-types.html": "7b8a7e878c2f6f6844f3abbf0cca024a9bd3fbc702f63ff5bf87738e16bf9e88",
+      "screens/categories-types.js": "a712ed5f76a4b900174f882015a4ec5b2da717dd5ca99f6033369999c032ecf8",
+      "screens/client-statement.css": "3c12bb8ea2501e5a3de8d3b22643f4be71a075db598069bca436c5b7983a477d",
+      "screens/client-statement.html": "bb934a830f0d6f81b622c6a8a1d9f8e77757cf5ea32f10c7ab05cd8109a78e6e",
+      "screens/client-statement.js": "c7bbe5d6b648e9745fff5ed4a2e103bda1ce32fb39727b1009b1351c54cfd8f5",
+      "screens/clients.css": "302c9062a70a1da8f4937a15bc2540215b9eaea495758de64f8a9614ed71c4db",
+      "screens/clients.html": "13104499aed5c1ef060242d30e915c8e2aa659eeae55388edee464c38b319748",
+      "screens/clients.js": "7deea326f1f6b755665db737f03d78b498ce0a917ae53224e841b6d2d10acf6d",
+      "screens/clock.css": "9a66716fcbeb60aced637b58cd1eddb7fbfd2c9e89cab0d3f0e6142e107c3bbf",
+      "screens/clock.html": "bae9c8cc7c7e0d54ab3443dfddefef9fd776f1bcf4c8cfe43230a619a3e9a333",
+      "screens/clock.js": "b2f1988850218d507262992245d0777e07049981ac34aa6cba38d1c300053df3",
+      "screens/close-approval.css": "8412d48d6e38c5d84b0cf75425c644052fc72ec84553e24f08796b2f6836a1eb",
+      "screens/close-approval.html": "eabad77cb0dfebcd027bdf21551200414328f1352c512c4958a5467f997ca36f",
+      "screens/close-approval.js": "6da596901c8a63c3ce2e76c71435832192ca05776eda47845e247e9e3cf5712f",
+      "screens/close-day.css": "b300efce283377ebda1db22cbb6658056c34c347cc2f68c9f0b5c04a4ed840cf",
+      "screens/close-day.html": "4c5464e6f21a2cbf2775eb700befe848e4e667bf23689866dcbea94af7a32bf3",
+      "screens/close-day.js": "56cf5ab12ae06eb8c935fe3265d7c2a5cd2bb15062e353846e31f19952a31fdf",
+      "screens/cockpit.css": "05dde31dbad0dbae9268d1bd5b179fc18059d8e0bf061c64ed3327ef2922bf93",
+      "screens/cockpit.html": "bd4ca6e7db1d4e37e5a7b3aa1e90ca6a5450bd31df3a02e16d784c544efa2f22",
+      "screens/cockpit.js": "6fd12aff20c3af484ef5a5a1bea1c5ed2ea8f20ae636ae14ad850179013067d6",
+      "screens/daily-ledger.css": "eca416665e5d4b05e5732d58591d6e55276ffd9bf89f50b9dcb069c211afb82a",
+      "screens/daily-ledger.html": "a6219c622e3875e189649462f92f9184933e694ec2352ab27fb4cc88123adcd4",
+      "screens/daily-ledger.js": "a867c4cb03c7fe65ebc885e37a43aaa91072c19d1a76c5f447b025b8b8ed23c0",
+      "screens/fiado-aging.css": "39c341059d63044db077ebebd0cc47bc92d06ba18034a3882e6b40d8a42831f1",
+      "screens/fiado-aging.html": "44a0e0eb82ec2d87af49a95594f4fe95adfdfb128dc05d57506975c0fc18ba63",
+      "screens/fiado-aging.js": "10d8d7c7b7f3302db4f35ad897e2e614797a0c0e407238ad11dea0b68f948806",
+      "screens/fiado-balance.css": "08fb194cb04a1da0530881f6ecf022b3273e6f03708fb661717a9fb325934be4",
+      "screens/fiado-balance.html": "290ed2d93248d7f18c226e419b675d6fd76c8c05294c70d28a8f7c1760c06447",
+      "screens/fiado-balance.js": "e378f727703f9ed0f130a03d6e131087815c45a290310546907477445130eb63",
+      "screens/fix-resubmit.css": "ae61eeaa88949fd2b15ad4bc6241abd1c02996659f3689e18c1438526cf6cbb7",
+      "screens/fix-resubmit.html": "bdf729a2e41b8b242ebb7d1977e8649a69c4eaf8124be204873d38cab7a3574e",
+      "screens/fix-resubmit.js": "aa890776b545fbd9cab5cae4e6016ba03c5a8574c88a5c2b7b066cd67068095c",
+      "screens/holidays.css": "d9ba391a9bdb2ad546847ac1ae56b8c0b6ec429a3fb30be84bd8acc1a9029dca",
+      "screens/holidays.html": "5eaee13697fdd0a35dd0b1fbe8e035ac6f320e19f30abcd140fdb563bef72fe5",
+      "screens/holidays.js": "d51e687a1228f00a2aff870d935d453315a79558137ee2d57213056fcf8d7a94",
+      "screens/installment-plan.css": "a813e25cd26b97601fbdc17d7acf92158aefda2114941cb3c806f0b82470fd42",
+      "screens/installment-plan.html": "ce645026a93f32406d8b3890455800edbaccf45b4c2e30294860d94c3e737485",
+      "screens/installment-plan.js": "a9343bc0c6d951eaccde12eaa6a305d6282dcbb4069936a2edc72be3b5f3244d",
+      "screens/login.css": "dc5a0ee69f7594d4d87b3965f84f3e9a9a9f2c61b3531bc818beb727f8a3b092",
+      "screens/login.html": "88eb24621da824281aebcf69ff609979e24dc60c7c871b85d9799492dbbd684a",
+      "screens/login.js": "0682d820a83a6e2185edc8fbefdfe1ef9098380ac8dae445976bab08ed86db7c",
+      "screens/monthly-reconciliation.css": "77744a8c8e25fe4b8ec2b84efe41fba691c7c1a9a2c8fd8f4c3accc5eb3dda2e",
+      "screens/monthly-reconciliation.html": "2f189d06ff8eb1f9d0d0bd5b4c3bb5b392e039a079412b13ef282fccdf839bf2",
+      "screens/monthly-reconciliation.js": "5c14b7d9733cb64868dd0ef511e253a4d4989478005c5c8770bce6f9f3045610",
+      "screens/my-time-entry-balance.css": "6522262445478f769b2279f03b208deb20f55abc6f1cf0ba7737e3f57a89e978",
+      "screens/my-time-entry-balance.html": "9a7a286c844744079876d33bcb2bf34cd1d78324dfd0859316b2b52338713c35",
+      "screens/my-time-entry-balance.js": "a9b3c8de9ded1e090cc5bc6d2a35e7561d556c26ee15f8e7b1e1a2babb885fc3",
+      "screens/my-transaction-summary.css": "1ec83146c768e429a93d3a2b379b3d3dfb4c07bd622fad4fe6885042ed330b7a",
+      "screens/my-transaction-summary.html": "7ac5b08558c04ea732616c6b8207b5c4149e08e9585a019d33ed0375e74d2ade",
+      "screens/my-transaction-summary.js": "01c28122052fc84f28ac431f61baf31a1df90db27610fba46eae480c81f412b5",
+      "screens/open-cheque-aging.css": "f2fc63e1c5ab9975343767d9c5157b5a24668323d6fb56be864e410c841c77df",
+      "screens/open-cheque-aging.html": "316bdbea3296328bb0bf78200c8ed80b9ad559b5c361eeb791ccae0a565c8313",
+      "screens/open-cheque-aging.js": "96ba41f1d51758cc287afe675e6f55d45a6d02092e2d500b050d88063791f910",
+      "screens/open-day.css": "6a7684f55fad7579a20308d25c4770ded774f30f8b5d1e8df50f757e9bda3c30",
+      "screens/open-day.html": "fc9bb696b1a150b05b76f1cea57532bf64077031b21c27671b589517f65eec61",
+      "screens/open-day.js": "ada0aa5a24761873a421d9375c886a5e00873385fd6cc34c4a4f0930f878e5a2",
+      "screens/operators.css": "29121778e77cb3009d01e295033024b8d2fd149958cd19a8686e23c305589f63",
+      "screens/operators.html": "7435afbd444a16fa5a5577aa52f3764bca3d541c5c9d215cce140a10e433388c",
+      "screens/operators.js": "2b2ef5a63e6becdd3c12ce34ed14a14746e2886400fa7bbc41d49437368f97fb",
+      "screens/products.css": "ab7fa5636d620a6ed0dc5960532d183d835c9e39ec32e3bd0da1f15b29dc9e26",
+      "screens/products.html": "9f9c4f24d188ef142674169c09f093bcbff8e399c3a009a5b80e4dc555998cd1",
+      "screens/products.js": "dfd3659cec52400cbc3d39a3c36e364faa26c68fdc91c05cad436ee460254fb0",
+      "screens/receber-pagamento.css": "51ce64c0eddbfc3f403016af7be40c2a5a42491ee96763ec8713863322aef8a3",
+      "screens/receber-pagamento.html": "98ab6c4f63af7d695b225a1e4686684122bc881e21598ac145195e333838a794",
+      "screens/receber-pagamento.js": "c1fa32b7e71c53dbd048251df3e8042cc5e7197e1a3ffd26f1c2881c7df05375",
+      "screens/settings.css": "3bfa031620a2b150943e0269acc7e3f8ec1d779198da1a1e54f389d09e31a234",
+      "screens/settings.html": "8dea43b25914d6556d1adae70ffa5f43a16c85f632d3e09e677e9e950aef627d",
+      "screens/settings.js": "a29fa5b1303aa6976548d2d7c8bf69a67f1f1e536b4f27b9468011b3149a8628",
+      "screens/time-entry-management.css": "8f51d7343cc4fd336441fdbe4039bb1affaf44524d8984a98ff70cc29aab48a9",
+      "screens/time-entry-management.html": "2dfc9e27270af63ea9e4c93e5be5ccd945e48cef0f63be8e9b561989a2d6a09a",
+      "screens/time-entry-management.js": "088e4af0d71ef00fed845875553c97365afb8464f6d9167135fbe2d1c9c4d1f5",
+      "screens/transaction-create.css": "8b7a8889865507591ee64ade0d62a0ced5a9644f24f33b5b394518f47fe264ff",
+      "screens/transaction-create.html": "10e85865cb1353b3352d887abf16e4701cf4a9977ac4809d58c9c0ef06676d7c",
+      "screens/transaction-create.js": "34af9acfec0d9c7cf78c3352581a3cc4af2fcb33e9f61d70c08f922511135c0f",
+      "screens/transaction-edit.css": "b28b209b08f930781e87e05afe0cdb1c41d3a27987bcafd5d3450939d57e3af8",
+      "screens/transaction-edit.html": "c3a30011576c32a29a8992e98869a6400031e2990d1183a2d180b4c4f7486851",
+      "screens/transaction-edit.js": "c4fdd0ec46d46193fc1189aa3b095f21da31bb8be2b6ec7137ec45c1aa86655b",
+      "screens/transactions-list.css": "0f62ce053baeca122456ef537e5073669c80dbbbe080c568ca99fc241774aea1",
+      "screens/transactions-list.html": "42059561bb35e2be75dc559e368d2a794be7a7494b294d1665812a8f9d22cfa3",
+      "screens/transactions-list.js": "4f5697235bf8c0b83b93b293e5004f6507a7f25b69aca5bc938d87e4f6f72152",
+      "screens/work-queue.css": "04b1c6deda81364737ab226273e99a2c4f77fa507f0492e339cc5b0eddee85e4",
+      "screens/work-queue.html": "071b51d0b5b6897b44aebdf21e9dd0efd879d371bf1c7210b20508c1f60a01b7",
+      "screens/work-queue.js": "41e4b8be084aa65969982aa503a51553706700dcac61328cc9a2fdc388398d9e",
+      "screens-reading-guide.html": "f25afa89a8c2772cd160b79505e352db239ea341346eb1b8f415bc2f8cf68761",
+      "serve.py": "ba02bc23fab0c34f0fb4aec2f2f8974e2f1f50692cb53606a362635f80ca3c06"
+    }
+  },
+  "method": {
+    "browser": "Codex in-app browser",
+    "served": "Temporary loopback-only HTTP server; original files unchanged.",
+    "capture": "Viewport screenshot bytes as returned; JPEG files, no cropping, retouching or synthesis.",
+    "viewportNote": "Requested browser dimensions differ from returned raster dimensions; both are recorded. Narrow DOM observation: innerWidth 390, innerHeight 844, clientWidth 375, root zoom 1, body font 14px.",
+    "scaling": "Original preference 150%; theme.js applies zoom=min(preference/100, innerWidth/400), at least 1. Desktop 1.5; narrow 1.0.",
+    "data": "Local fake database and demo identities; no real API, messages or financial writes."
+  },
+  "captures": [
+    {
+      "file": "manager-desktop-light.jpg",
+      "screen": "screens/work-queue.html",
+      "role": "Manager",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "textPreference": "150%",
+      "notes": "Seeded queue; viewport screenshot, no edits.",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "04aafd81ba286e59cbdbfa6c66b9d9b8c7b99735d48b0110c57e0a5eafa1ed9b"
+    },
+    {
+      "file": "manager-desktop-dark.jpg",
+      "screen": "screens/work-queue.html",
+      "role": "Manager",
+      "theme": "dark",
+      "requestedViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "textPreference": "150%",
+      "notes": "Seeded queue; dark theme selected through UI.",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "7818e9777a960dc0dcd60c2a9e941eb1cec2b72896e1470a8a7737fc49456b25"
+    },
+    {
+      "file": "manager-mobile-dark.jpg",
+      "screen": "screens/work-queue.html",
+      "role": "Manager",
+      "theme": "dark",
+      "requestedViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "textPreference": "150%",
+      "notes": "Responsive web rendering; desktop text-size preference is clamped to 100% by prototype.",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "8d31198b97fb374862a150d1d52d06a8a4c9ffc813324a4269809e1625b663fa"
+    },
+    {
+      "file": "manager-mobile-light.jpg",
+      "screen": "screens/work-queue.html",
+      "role": "Manager",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "textPreference": "150%",
+      "notes": "Responsive web rendering; table continues inside its scroll container.",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "78320257db0ab39cca39cf5c28150a0848cadf8db0754349d0d15a301bbaaf7f"
+    },
+    {
+      "file": "manager-mobile-drawer-light.jpg",
+      "screen": "screens/work-queue.html",
+      "role": "Manager",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "textPreference": "150%",
+      "notes": "Open responsive navigation drawer, captured through Menu control.",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "614f3110e245a8635d3978de90b103d2da2f304809505ac8ea01cbf1bf2e2c8e"
+    },
+    {
+      "file": "operator-mobile-light.jpg",
+      "screen": "screens/cockpit.html",
+      "role": "Member",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "textPreference": "150%",
+      "notes": "Joana, Terminal 2, P3 mixed own/other Draft blockers; no ledger mutation.",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "f7a6572c296b4873cd5d288b888bc2568e347956e1ff6b6276eca04f3f099690"
+    },
+    {
+      "file": "operator-mobile-dark.jpg",
+      "screen": "screens/cockpit.html",
+      "role": "Member",
+      "theme": "dark",
+      "requestedViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "textPreference": "150%",
+      "notes": "Same operator/terminal/blocker state in dark theme.",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "0528b08016b67d975b7d23ba38c3aa72f803a1f252eed8dfed9b7100efbba393"
+    },
+    {
+      "file": "operator-desktop-dark.jpg",
+      "screen": "screens/cockpit.html",
+      "role": "Member",
+      "theme": "dark",
+      "requestedViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "textPreference": "150%",
+      "notes": "Desktop text preference 150%; same P3 blocker state.",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "151ea98a1d06550670e124c86bf989e33cb4e4abb33a8df9bf317d721342d96d"
+    },
+    {
+      "file": "operator-desktop-light.jpg",
+      "screen": "screens/cockpit.html",
+      "role": "Member",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "textPreference": "150%",
+      "notes": "Desktop text preference 150%; orange next-action emphasis.",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "9ad57df1d9462eac385fd2074aea6cfff258a306032cbaa98ed93abbce216fd5"
+    },
+    {
+      "file": "operator-count-desktop-focus-light.jpg",
+      "screen": "screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "role": "Member",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 1440,
+        "height": 1000
+      },
+      "textPreference": "150%",
+      "notes": "Keyboard Tab from Dinheiro input to its repeat action; no value changed or save invoked.",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "0ccf180bad7ff1291206c7c520ca1c859a88e22ee2dedb40863b53c3b3626083"
+    },
+    {
+      "file": "operator-count-mobile-light.jpg",
+      "screen": "screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "role": "Member",
+      "theme": "light",
+      "requestedViewport": {
+        "width": 390,
+        "height": 844
+      },
+      "textPreference": "150%",
+      "notes": "Same count form after responsive resize; no product/count values changed.",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      },
+      "sha256": "ace20b2f68b3bd40ab954ffaddc0766d54f76c586a15903efa7e6e93a4f74638"
+    }
+  ]
+}

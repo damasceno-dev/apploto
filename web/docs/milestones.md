@@ -113,6 +113,15 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 - **Unsaved input kept on the device** behind one form-draft helper, keyed by branch, user, and route, cleared on successful save and on branch switch.
 - **Test baseline:** Vitest + Testing Library for the plumbing (renewal single-flight, gate resolution, idempotency-key lifetime); Playwright with a local stack (`infra/docker-compose.yml` PostgreSQL + the running API) for login → branch session → gate.
 
+> **Shared M2 handoff (2026-10-17, S06; Shared M2 awaits independent review).** The client contract this milestone consumes, as delivered in `shared/api` (details in `shared/AGENTS.md`):
+> - **Server side, per request:** create a client per request with `createApiClient({ baseUrl, getAccessToken })` and pass it as `{ client }` in a raw function's last argument. The process-wide `configureApiClient()` default suits the browser runtime. Each call snapshots its client, so concurrent requests never share a token provider.
+> - **Browser through the BFF:** `baseUrl` may be a same-origin prefix such as `/api`, and a provider that returns `null` sends no `Authorization` header. Both forwarding designs named above therefore work without Shared changes; the choice stays in-phase here.
+> - **The provider receives `{ method, path, authTier }`** on every call. `authTier` is `anonymous`, `identity` or `branch`, generated from each operation's published `security`. Role names are not part of it.
+> - **Failures reject with one `ApiError`:** `kind`, `status`, `method`, `path`, the verbatim `errorMessages`, and `dispatched`. `isOutcomeUncertain(error)` marks the design 0.4.2 "Resultado não confirmado" cases.
+> - **Per-call headers:** ordinary headers (for example tracing) may be passed in options. A caller value that conflicts with a generated `Idempotency-Key`, `If-Match` or `Content-Type`, and any caller `Authorization`, is refused before dispatch, so the BFF attaches the bearer itself.
+> - **Shared never retries, renews, mints or replaces anything.** `Idempotency-Key` and `If-Match` are required arguments passed through unchanged, `ETag` is readable on raw results, and `toIfMatch`/`parseETag` implement §6.11. Generated hooks set no `retry`; keep mutation retries at 0.
+> - `@tanstack/react-query` is a peer dependency (`^5.104.1`), so the app owns the instance and the `QueryClient`.
+
 **Precondition:** Web M1, Shared M2, and design 0.4.2 authored (the patterns this milestone wires).
 
 ---

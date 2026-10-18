@@ -1,0 +1,10 @@
+{
+  // Build-time tooling and tests (Node 26 type stripping): scripts, configs and Vitest suites.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true
+  },
+  "include": ["scripts", "test", "orval.config.ts", "vitest.config.ts"]
+}
