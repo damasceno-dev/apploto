@@ -18,7 +18,8 @@ public class GetManagerQueueUseCase(
     ITransactionsRepository transactionsRepository,
     ICashVarianceProductResolver cashVarianceProductResolver,
     ILockDateReader lockDateReader,
-    IBranchClock branchClock)
+    IBranchClock branchClock,
+    IOnboardingRepository onboardingRepository)
 {
     public async Task<ResponseManagerQueueJson> Execute(
         RequestManagerQueueJson request,
@@ -136,6 +137,7 @@ public class GetManagerQueueUseCase(
                 DraftCount = backlog.DraftCount,
                 OldestPendingDate = backlog.OldestPendingDate
             },
+            PendingOperatorLinkRequestCount = await onboardingRepository.PendingRequestCount(branchUser.BranchId),
             UnlockedDraftTransactionCount = unlockedDraftTransactionCount
         };
     }

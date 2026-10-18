@@ -160,6 +160,21 @@ export type postUserLoginResponse401TextJson = {
   status: 401;
 };
 
+export type postUserLoginResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserLoginResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserLoginResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
 export type postUserLoginResponseSuccess = (
   | postUserLoginResponse200TextPlain
   | postUserLoginResponse200ApplicationJson
@@ -174,6 +189,9 @@ export type postUserLoginResponseError = (
   | postUserLoginResponse401TextPlain
   | postUserLoginResponse401ApplicationJson
   | postUserLoginResponse401TextJson
+  | postUserLoginResponse409TextPlain
+  | postUserLoginResponse409ApplicationJson
+  | postUserLoginResponse409TextJson
 ) & {
   headers: Headers;
 };
@@ -259,6 +277,21 @@ export type postUserRenewTokenResponse401TextJson = {
   status: 401;
 };
 
+export type postUserRenewTokenResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserRenewTokenResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserRenewTokenResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
 export type postUserRenewTokenResponseSuccess = (
   | postUserRenewTokenResponse200TextPlain
   | postUserRenewTokenResponse200ApplicationJson
@@ -273,6 +306,9 @@ export type postUserRenewTokenResponseError = (
   | postUserRenewTokenResponse401TextPlain
   | postUserRenewTokenResponse401ApplicationJson
   | postUserRenewTokenResponse401TextJson
+  | postUserRenewTokenResponse409TextPlain
+  | postUserRenewTokenResponse409ApplicationJson
+  | postUserRenewTokenResponse409TextJson
 ) & {
   headers: Headers;
 };

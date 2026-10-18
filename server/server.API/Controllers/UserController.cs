@@ -31,6 +31,7 @@ namespace server.Controllers
         [ProducesResponseType(typeof(ResponseUserLoginJson), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> Login([FromServices] UserLoginUseCase userLoginUseCase, [FromBody] RequestUserLoginJson request)
         {
             var response = await userLoginUseCase.Execute(request);
@@ -43,6 +44,7 @@ namespace server.Controllers
         [ProducesResponseType(typeof(ResponseTokenJson), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
         public async Task<IActionResult> RenewToken([FromServices] UserRenewTokenUseCase userRenewTokenUseCase, [FromBody] RequestUserRenewTokenJson request)
         {
             var response = await userRenewTokenUseCase.Execute(request);

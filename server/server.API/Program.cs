@@ -1,3 +1,4 @@
+using server.Configuration;
 using Scalar.AspNetCore;
 using server;
 using server.Application;
@@ -10,7 +11,9 @@ builder.Services.AddRouting(o => o.LowercaseUrls = true);
 builder.Services.AddMvc(f => f.Filters.Add(typeof(ExceptionFilter)));
 
 builder.Services.AddApi();
+builder.Services.AddSecurityRateLimits();
 builder.Services.AddApplication();
+builder.Services.AddAccountSecurityConfiguration(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
@@ -24,6 +27,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseRouting();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();

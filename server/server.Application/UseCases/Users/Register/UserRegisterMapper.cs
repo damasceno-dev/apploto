@@ -6,12 +6,12 @@ namespace server.Application.UseCases.Users.Register;
 
 public static class UserRegisterMapper
 {
-    public static User ToDomain(this RequestUserRegisterJson request)
+    public static User ToDomain(this RequestUserRegisterJson request, string normalizedEmail)
     {
         return new User
         {
-            Name = request.Name,
-            Email = request.Email,
+            Name = request.Name.Trim(),
+            Email = normalizedEmail,
             Password = request.Password
         };
     }

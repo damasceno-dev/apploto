@@ -1,3 +1,4 @@
+using server.Domain.Entities.Enums;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -20,7 +21,7 @@ public class CreateOperatorUseCaseTest
     public async Task Execute_ShouldCreateOperator_WhenValidRequestWithoutUserId()
     {
         // Operators are branch-owned operational records and may exist before being linked to an app user.
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var request = new RequestCreateOperatorJsonBuilder()
             .WithUserId(null)
             .Build();
@@ -54,7 +55,7 @@ public class CreateOperatorUseCaseTest
         var targetUserId = Guid.NewGuid();
         var branchUser = new BranchUserBuilder()
             .WithBranchId(Guid.NewGuid())
-            .Build();
+            .WithRole(Role.Manager).Build();
         var request = new RequestCreateOperatorJsonBuilder()
             .WithUserId(targetUserId)
             .Build();
@@ -82,7 +83,7 @@ public class CreateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldPropagateGuardException_WhenLinkedUserIsNotLinkable()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var targetUserId = Guid.NewGuid();
         var request = new RequestCreateOperatorJsonBuilder()
             .WithUserId(targetUserId)
@@ -111,7 +112,7 @@ public class CreateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldThrowOnValidationException_WhenNameIsEmpty()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var request = new RequestCreateOperatorJsonBuilder()
             .WithName(string.Empty)
             .Build();
@@ -138,7 +139,7 @@ public class CreateOperatorUseCaseTest
         IOperatorUserLinkGuard operatorUserLinkGuard,
         IUnitOfWork unitOfWork)
     {
-        return new CreateOperatorUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
+        return new CreateOperatorUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork, SecurityCoordinationBuilder.Build(), new BranchUsersRepositoryBuilder().FreshActor(authenticationService).Build());
     }
 
     private static IOperatorUserLinkGuard CreateOperatorUserLinkGuard()

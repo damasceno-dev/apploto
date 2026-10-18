@@ -26,6 +26,12 @@ const inertConfiguration: Record<string, string> = {
     'Host=openapi-export.invalid;Database=openapi_export;Username=openapi_export;Password=openapi_export',
   Token__SigningKey: 'openapi-export-placeholder-signing-key-not-a-secret-0123456789',
   Token__ExpirationTimeInMinutes: '60',
+  SecurityMail__Enabled: 'false',
+  SecurityMail__LocalCapture: 'false',
+  AccountSecurity__ApplicationUrl: 'http://127.0.0.1:3000/',
+  AccountSecurity__ResetMinutes: '30',
+  AccountSecurity__InvitationHours: '72',
+  AccountSecurity__RecoveryCooldownSeconds: '60',
 };
 /**
  * True for any variable .NET could read as database, token or environment configuration. Environment
@@ -40,7 +46,7 @@ export function isServerConfiguration(name: string): boolean {
   return (
     key.startsWith('ASPNETCORE_') ||
     key === 'DOTNET_ENVIRONMENT' ||
-    /^(CONNECTIONSTRINGS__|TOKEN__)/.test(unprefixed) ||
+    /^(CONNECTIONSTRINGS__|TOKEN__|ACCOUNTSECURITY__|SECURITYMAIL__)/.test(unprefixed) ||
     /^(SQLCONNSTR|SQLAZURECONNSTR|MYSQLCONNSTR|POSTGRESQLCONNSTR|CUSTOMCONNSTR)_/.test(unprefixed)
   );
 }

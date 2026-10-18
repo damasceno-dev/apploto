@@ -34,7 +34,10 @@ enum Direction string: In, Out
 enum FiadoPaymentKind string: CountedCash, NonCash
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
+enum InvitationStatus string: Pending, Accepted, Declined, Expired
+enum MailDeliveryStatus string: Pending, Sent, Failed
 enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions, MissingExpectedClose
+enum OperatorLinkRequestStatus string: Pending, Resolved
 enum Role string: Admin, Manager, Member
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
@@ -59,6 +62,10 @@ schema RequestAssignAccountJson
 
 schema RequestCancelTransactionJson
   cancellationReason required string
+
+schema RequestChangePasswordJson
+  currentPassword required string
+  newPassword required string
 
 schema RequestCreateBankAccountJson
   institution optional string?
@@ -159,13 +166,27 @@ schema RequestFinalizeInstallmentPlanJson
   confirmMixedPlan optional boolean
   installments optional RequestInstallmentPlanRowVersionJson[]?
 
+schema RequestForgotPasswordJson
+  email required string
+
 schema RequestInstallmentPlanRowVersionJson
   transactionId required string
   version required integer|string
 
+schema RequestInvitationTokenJson
+  token required string
+
+schema RequestIssueInvitationJson
+  email required string
+  operatorId optional string?
+  role optional enum:Role
+
 schema RequestLockSettingMonthJson
   month required integer|string
   year required integer|string
+
+schema RequestLogoutJson
+  refreshToken required string
 
 schema RequestOpenDailyCloseJson
   accountId required string
@@ -190,8 +211,20 @@ schema RequestReceiveFiadoPaymentJson
   transactionTypeId required string
   value required number|string
 
+schema RequestRegisterInvitationJson
+  name required string
+  password required string
+  token required string
+
+schema RequestReissueInvitationJson
+  operatorId optional string?
+
 schema RequestRejectDailyCloseJson
   rejectionReason required string
+
+schema RequestResetPasswordJson
+  newPassword required string
+  token required string
 
 schema RequestTimeEntrySegmentJson
   clockIn required string
@@ -228,6 +261,9 @@ schema RequestUpdateOperatorJson
 
 schema RequestUpdateProductJson
   displayOrder required integer|string
+  name required string
+
+schema RequestUpdateProfileJson
   name required string
 
 schema RequestUpdateSettingJson
@@ -275,6 +311,12 @@ schema RequestUserRegisterJson
 
 schema RequestUserRenewTokenJson
   value required string
+
+schema ResponseAcceptInvitationJson
+  branchId required string
+  branchUserId required string
+  operatorId optional string?
+  role required enum:Role
 
 schema ResponseAccountJson
   branchId required string
@@ -740,6 +782,21 @@ schema ResponseInstallmentPreviewRowJson
   index required integer
   value required number
 
+schema ResponseInvitationJson
+  deliveryStatus required enum:MailDeliveryStatus
+  email required string
+  expiresAt required string
+  id required string
+  operatorId optional string?
+  role required enum:Role
+  status required enum:InvitationStatus
+
+schema ResponseInvitationPreviewJson
+  branchName required string
+  expiresAt required string
+  operatorName optional string?
+  role required enum:Role
+
 schema ResponseListAccountsJson
   accounts required ResponseAccountJson[]
 
@@ -790,11 +847,23 @@ schema ResponseListHolidaysJson
   totalCount required integer
   totalPages required integer
 
+schema ResponseListInvitationsJson
+  items required ResponseInvitationJson[]
+  page required integer
+  pageSize required integer
+  totalCount required integer
+
 schema ResponseListMyBranchesJson
   branches required ResponseBranchSummaryJson[]
 
 schema ResponseListOperatorAccountsJson
   operatorAccounts required ResponseOperatorAccountJson[]
+
+schema ResponseListOperatorLinkRequestsJson
+  items required ResponseOperatorLinkRequestJson[]
+  page required integer
+  pageSize required integer
+  totalCount required integer
 
 schema ResponseListOperatorsJson
   operators required ResponseOperatorJson[]
@@ -889,6 +958,7 @@ schema ResponseManagerQueueJson
   meanVariance required number
   notSubmitted required ResponseManagerQueueNotSubmittedJson[]
   pendingApprovalCount required integer
+  pendingOperatorLinkRequestCount required integer
   totalVariance required number
   unlockedDraftTransactionCount required integer
 
@@ -1015,6 +1085,16 @@ schema ResponseOperatorJson
   name required string
   userId optional string?
 
+schema ResponseOperatorLinkRequestJson
+  createdAt required string
+  hasUsableAccount required boolean
+  id required string
+  operatorId optional string?
+  resolvedAt optional string?
+  status required enum:OperatorLinkRequestStatus
+  userId required string
+  userName required string
+
 schema ResponseOperatorTransactionSummaryJson
   byCategory required ResponseOperatorCategoryTotalJson[]
   dateFrom required string
@@ -1029,6 +1109,9 @@ schema ResponseOperatorTransactionSummaryJson
   totalInValue required number
   totalOutValue required number
   totalTransactionCount required integer
+
+schema ResponseOwnOperatorLinkRequestJson
+  request optional ResponseOperatorLinkRequestJson?
 
 schema ResponseProductJson
   active required boolean
@@ -1175,6 +1258,12 @@ schema ResponseUserLoginJson
   email required string
   name required string
   responseToken required ResponseTokenJson
+  userId required string
+
+schema ResponseUserProfileJson
+  email required string
+  name required string
+  userId required string
 
 schema ResponseUserRegisterJson
   email required string
@@ -1608,6 +1697,69 @@ operation DELETE /holiday/{holidayId}
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
 
+operation GET /invitation
+  security BranchBearer[Admin,Manager]
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Status optional enum:InvitationStatus
+  response 200 ResponseListInvitationsJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation POST /invitation
+  security BranchBearer[Admin,Manager]
+  body required RequestIssueInvitationJson
+  response 201 ResponseInvitationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /invitation/accept
+  security IdentityBearer[]
+  body required RequestInvitationTokenJson
+  response 200 ResponseAcceptInvitationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /invitation/decline
+  security none
+  body required RequestInvitationTokenJson
+  response 204 (no content)
+  response 400 ResponseErrorJson
+  response 409 ResponseErrorJson
+  response 429 ResponseErrorJson
+
+operation POST /invitation/preview
+  security none
+  body required RequestInvitationTokenJson
+  response 200 ResponseInvitationPreviewJson
+  response 400 ResponseErrorJson
+  response 409 ResponseErrorJson
+  response 429 ResponseErrorJson
+
+operation POST /invitation/register
+  security none
+  body required RequestRegisterInvitationJson
+  response 201 ResponseUserLoginJson
+  response 400 ResponseErrorJson
+  response 409 ResponseErrorJson
+  response 429 ResponseErrorJson
+
+operation POST /invitation/{id}/reissue
+  security BranchBearer[Admin,Manager]
+  path id required string
+  body optional RequestReissueInvitationJson?
+  response 200 ResponseInvitationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation GET /operator
   security BranchBearer[Admin,Manager]
   response 200 ResponseListOperatorsJson
@@ -1618,6 +1770,39 @@ operation POST /operator
   security BranchBearer[Admin,Manager]
   body required RequestCreateOperatorJson
   response 201 ResponseCreateOperatorJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /operator-link-request
+  security BranchBearer[Admin,Manager]
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Status optional enum:OperatorLinkRequestStatus
+  response 200 ResponseListOperatorLinkRequestsJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation POST /operator-link-request
+  security BranchBearer[Member]
+  response 200 ResponseOperatorLinkRequestJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /operator-link-request/self
+  security BranchBearer[Member]
+  response 200 ResponseOwnOperatorLinkRequestJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation POST /operator-link-request/{id}/resolve
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseOperatorLinkRequestJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
@@ -2134,12 +2319,53 @@ operation POST /transaction/{transactionId}/finalize
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation POST /user/change-password
+  security IdentityBearer[]
+  body required RequestChangePasswordJson
+  response 204 (no content)
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /user/forgot-password
+  security none
+  body required RequestForgotPasswordJson
+  response 202 (no content)
+  response 400 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation POST /user/login
   security none
   body required RequestUserLoginJson
   response 200 ResponseUserLoginJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /user/logout
+  security IdentityBearer[]
+  body required RequestLogoutJson
+  response 204 (no content)
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /user/profile
+  security IdentityBearer[]
+  response 200 ResponseUserProfileJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation PUT /user/profile
+  security IdentityBearer[]
+  body required RequestUpdateProfileJson
+  response 200 ResponseUserProfileJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation POST /user/register
   security none
@@ -2154,3 +2380,12 @@ operation POST /user/renew-token
   response 200 ResponseTokenJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /user/reset-password
+  security none
+  body required RequestResetPasswordJson
+  response 204 (no content)
+  response 400 ResponseErrorJson
+  response 409 ResponseErrorJson
+  response 429 ResponseErrorJson

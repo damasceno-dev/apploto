@@ -1,0 +1,13 @@
+# Standalone, disposable local capture. No relay and no durable plaintext mail volume.
+# docker compose -f infra/docker-compose.m8-mail.yml -p loto-m8-mail up -d
+services:
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    ports:
+      - "127.0.0.1:${LOTO_M8_SMTP_PORT:-11025}:1025"
+      - "127.0.0.1:${LOTO_M8_MAIL_UI_PORT:-18025}:8025"
+    environment:
+      MP_MAX_MESSAGES: 100
+      MP_DATABASE: /dev/shm/mailpit.db
+    tmpfs:
+      - /dev/shm

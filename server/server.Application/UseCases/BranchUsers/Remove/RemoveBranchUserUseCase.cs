@@ -1,3 +1,4 @@
+using server.Application.Services.Security;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -11,19 +12,25 @@ public class RemoveBranchUserUseCase(
     IAuthenticationService authenticationService,
     IBranchUsersRepository branchUsersRepository,
     IOperatorsRepository operatorsRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    ISecurityCoordination coordination)
 {
     public async Task<ResponseRemoveBranchUserJson> Execute(Guid branchUserId)
     {
         Validate(branchUserId);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.BranchKey(authenticatedBranchUser.BranchId));
+        authenticatedBranchUser = await SecurityRules.FreshActor(branchUsersRepository, authenticatedBranchUser);
         var targetBranchUser = await branchUsersRepository.GetById(branchUserId);
 
         if (targetBranchUser is null || targetBranchUser.Active is false || targetBranchUser.BranchId != authenticatedBranchUser.BranchId)
         {
             throw new NotFoundException(ResourcesErrorMessages.BRANCH_USER_NOT_FOUND);
         }
+
+        if (targetBranchUser.UserId == authenticatedBranchUser.UserId)
+            throw new ConflictException(ResourcesErrorMessages.BRANCH_USER_SELF_MEMBERSHIP_CONFLICT);
 
         if (BranchUserPermissionRules.CanManageMembership(authenticatedBranchUser.Role, targetBranchUser.Role) is false)
         {
@@ -40,6 +47,7 @@ public class RemoveBranchUserUseCase(
 
         targetBranchUser.Active = false;
         await unitOfWork.Commit();
+        await scope.Complete();
 
         return targetBranchUser.ToRemoveResponse();
     }

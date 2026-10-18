@@ -50,7 +50,7 @@ public class UserRenewTokenUseCaseTest
 
         response.Token.ShouldBe(expectedToken);
         response.RefreshToken.ShouldBe(expectedRefreshToken);
-        await usersRepository.Received(1).GetById(user.Id);
+        await usersRepository.Received(2).GetById(user.Id);
         await refreshTokenRepository.Received(1).SaveRefreshToken(Arg.Is<RefreshToken>(token =>
             token.Value == expectedRefreshToken && token.UserId == user.Id));
         await unitOfWork.Received(1).Commit();
@@ -141,6 +141,6 @@ public class UserRenewTokenUseCaseTest
         IUsersRepository usersRepository,
         IUnitOfWork unitOfWork)
     {
-        return new UserRenewTokenUseCase(refreshTokenRepository, tokenServices, usersRepository, unitOfWork);
+        return new UserRenewTokenUseCase(refreshTokenRepository, tokenServices, usersRepository, unitOfWork, SecurityCoordinationBuilder.Build());
     }
 }

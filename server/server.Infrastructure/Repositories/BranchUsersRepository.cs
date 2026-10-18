@@ -54,6 +54,7 @@ internal class BranchUsersRepository(ServerDbContext dbContext) : IBranchUsersRe
                 branchUser.BranchId == branchId &&
                 branchUser.Active &&
                 branchUser.Branch.Active &&
+                branchUser.User.Active &&
                 branchUser.Role == server.Domain.Entities.Enums.Role.Admin);
     }
 

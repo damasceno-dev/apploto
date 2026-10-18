@@ -27,6 +27,12 @@ public class TokenServicesBuilder
         return this;
     }
 
+    public TokenServicesBuilder FailGlobalTokenGeneration()
+    {
+        _services.GenerateGlobalToken(Arg.Any<User>()).Returns(_ => throw new InvalidOperationException("Test token generation failure."));
+        return this;
+    }
+
     public ITokenServices Build()
     {
         return _services;

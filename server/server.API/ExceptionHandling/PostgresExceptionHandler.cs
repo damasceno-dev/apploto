@@ -19,6 +19,9 @@ internal static class PostgresExceptionHandler
     private static readonly Dictionary<string, string> UniqueConstraintMessages =
         new(StringComparer.Ordinal)
         {
+            ["IX_Users_Email"] = ResourcesErrorMessages.EMAIL_ALREADY_REGISTERED,
+            ["IX_Invitations_BranchId_Email"] = ResourcesErrorMessages.INVITATION_PENDING_CONFLICT,
+            ["IX_OperatorLinkRequests_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_REQUEST_CONFLICT,
             ["IX_Clients_BranchId_Cpf"] = ResourcesErrorMessages.CLIENT_CPF_CONFLICT,
             ["IX_Operators_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED,
             ["IX_DailyCloses_BranchId_AccountId_Date"] = ResourcesErrorMessages.DAILYCLOSE_DATE_CONFLICT,

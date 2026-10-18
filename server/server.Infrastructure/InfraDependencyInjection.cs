@@ -25,6 +25,11 @@ public static class InfraDependencyInjection
     {
         AddDbContext(services, configuration);
         AddToken(services, configuration);
+        services.AddSingleton(SecurityMailOptions.FromConfiguration(configuration));
+        services.AddSingleton<ISecurityMailSender, SmtpSecurityMailSender>();
+        services.AddSingleton<RecoveryMailQueue>();
+        services.AddSingleton<IRecoveryMailQueue>(provider => provider.GetRequiredService<RecoveryMailQueue>());
+        services.AddHostedService(provider => provider.GetRequiredService<RecoveryMailQueue>());
         AddRepositories(services, configuration);
         AddIdempotencyRequestCleanup(services, configuration);
         AddExternalHolidayProviders(services, configuration);
@@ -158,6 +163,9 @@ public static class InfraDependencyInjection
 
         services.AddSingleton(new AccountPairingCoordinationOptions(
             TimeSpan.FromSeconds(accountPairingLockTimeoutSeconds)));
+        services.AddScoped<ISecurityCoordination, SecurityCoordination>();
+        services.AddScoped<IAccountSecurityRepository, AccountSecurityRepository>();
+        services.AddScoped<IOnboardingRepository, OnboardingRepository>();
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IBranchesRepository, BranchesRepository>();

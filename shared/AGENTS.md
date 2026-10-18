@@ -34,7 +34,7 @@ Commands (from `shared/api`, or `pnpm --filter @loto/api <script>` from the root
 
 | Script | What it does | Needs |
 |---|---|---|
-| `export:openapi` | `dotnet build server/server.API … -c Release --no-incremental -p:OpenApiGenerateDocuments=true` into a fresh temp directory, with only inert child-process config (an `.invalid` DB host and a non-secret signing key). Every variable .NET could read as connection-string, token or environment configuration is stripped case-insensitively, including `:` spellings, `DOTNET_`/`ASPNETCORE_`-prefixed keys and the `*CONNSTR_` prefixes, then copies `server.API.json` unmodified. It fails if the build fails or writes no document, and never falls back to an older file. | .NET 10 SDK |
+| `export:openapi` | `dotnet build server/server.API … -c Release --no-incremental -p:OpenApiGenerateDocuments=true` into a fresh temp directory, with only inert child-process config (an `.invalid` DB host and a non-secret signing key). Every variable .NET could read as connection-string, token, account-security, SMTP or environment configuration is stripped case-insensitively, including `:` spellings, `DOTNET_`/`ASPNETCORE_`-prefixed keys and the `*CONNSTR_` prefixes, then copies `server.API.json` unmodified. It fails if the build fails or writes no document, and never falls back to an older file. | .NET 10 SDK |
 | `export:check` | Re-exports to a temp file and fails on any byte difference from, or absence of, the committed document. Server M9 CI can adopt it. | .NET 10 SDK |
 | `generate` | Clears `src/generated/`, runs both Orval projects, then writes the operation map. | Node only |
 | `generate:check` | Regenerates into an isolated temporary mirror of the package and compares every path and byte with `src/generated/`. Modified, added (including untracked) and deleted files all fail; it never uses git. | Node only |
@@ -75,7 +75,7 @@ Commands (from `shared/api`, or `pnpm --filter @loto/api <script>` from the root
 - **Financial headers and no retry.**
   - `Idempotency-Key` and `If-Match` are required generated arguments (and required in mutation variables), sent byte for byte.
   - **Header boundary.** Callers may add ordinary headers (for example tracing headers) through `options.headers`, in any `HeadersInit` form. The generated header arguments still always win:
-    - Orval 8.39.0 would merge `options.headers` after them, so `scripts/header-boundary.ts` wraps Orval's own `fetch` and `react-query` builders (the documented function-valued `client` option) and emits `headers: { …generated }, callerHeaders: options?.headers` in all 88 merge sites. Generation fails if Orval ever emits an unrecognized merge.
+    - Orval 8.39.0 would merge `options.headers` after them, so `scripts/header-boundary.ts` wraps Orval's own `fetch` and `react-query` builders (the documented function-valued `client` option) and emits `headers: { …generated }, callerHeaders: options?.headers` in all 110 merge sites. Generation fails if Orval ever emits an unrecognized merge.
     - Before dispatch, the mutator refuses (`invalid-request`) a caller header that names a generated or declared header (`Idempotency-Key`, `If-Match`, `Content-Type`) with a different value in any casing, a caller `Authorization`, and a name repeated in another casing.
     - An equal value is not a conflict. Ordinary headers are sent unchanged.
   - `toIfMatch(version)` and `parseETag(header)` implement §6.11: one strong, quoted, positive decimal `xmin` up to `4294967295`.

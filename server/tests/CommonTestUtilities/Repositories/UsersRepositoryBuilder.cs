@@ -8,6 +8,11 @@ public class UsersRepositoryBuilder
 {
     private readonly IUsersRepository _repository = Substitute.For<IUsersRepository>();
 
+    public UsersRepositoryBuilder()
+    {
+        _repository.NormalizeEmail(Arg.Any<string>()).Returns(call => call.Arg<string>().Trim().ToLowerInvariant());
+    }
+
     public UsersRepositoryBuilder GetById(User? user)
     {
         _repository.GetById(Arg.Any<Guid>()).Returns(user);

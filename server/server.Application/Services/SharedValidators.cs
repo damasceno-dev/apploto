@@ -17,6 +17,7 @@ public static class SharedValidators
 
     public static void ValidatePassword<T>(this IRuleBuilder<T, string> passwordRule)
     {
+        passwordRule.Must(p => p is null || System.Text.Encoding.UTF8.GetByteCount(p) <= 72).WithMessage(ResourcesErrorMessages.SECURITY_PASSWORD_MAX_LENGTH);
         passwordRule.NotEmpty().WithMessage(ResourcesErrorMessages.PASSWORD_EMPTY);
         passwordRule.Must(p => string.IsNullOrWhiteSpace(p) || p.Length >= MinimumPasswordLength).WithMessage(string.Format(ResourcesErrorMessages.PASSWORD_LENGTH, MinimumPasswordLength));
     }

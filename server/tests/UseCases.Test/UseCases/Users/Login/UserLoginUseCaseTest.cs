@@ -50,6 +50,7 @@ public class UserLoginUseCaseTest
 
         response.Name.ShouldBe(user.Name);
         response.Email.ShouldBe(user.Email);
+        response.UserId.ShouldBe(user.Id);
         response.ResponseToken.Token.ShouldBe(expectedToken);
         response.ResponseToken.RefreshToken.ShouldBe(expectedRefreshToken);
         await refreshTokenRepository.Received(1).SaveRefreshToken(Arg.Is<RefreshToken>(token =>
@@ -134,6 +135,6 @@ public class UserLoginUseCaseTest
         IUnitOfWork unitOfWork,
         PasswordEncryption passwordEncryption)
     {
-        return new UserLoginUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork, passwordEncryption);
+        return new UserLoginUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork, passwordEncryption, SecurityCoordinationBuilder.Build());
     }
 }

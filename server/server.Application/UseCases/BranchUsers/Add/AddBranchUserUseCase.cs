@@ -1,3 +1,4 @@
+using server.Application.Services.Security;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -11,13 +12,16 @@ public class AddBranchUserUseCase(
     IAuthenticationService authenticationService,
     IUsersRepository usersRepository,
     IBranchUsersRepository branchUsersRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    ISecurityCoordination coordination)
 {
     public async Task<ResponseAddBranchUserJson> Execute(RequestAddBranchUserJson request)
     {
         Validate(request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.BranchKey(authenticatedBranchUser.BranchId));
+        authenticatedBranchUser = await SecurityRules.FreshActor(branchUsersRepository, authenticatedBranchUser);
         var targetRole = request.Role!.Value;
 
         if (BranchUserPermissionRules.CanAssignRole(authenticatedBranchUser.Role, targetRole) is false)
@@ -46,6 +50,7 @@ public class AddBranchUserUseCase(
         }
 
         await unitOfWork.Commit();
+        await scope.Complete();
 
         return branchUser.ToAddResponse(targetUser);
     }

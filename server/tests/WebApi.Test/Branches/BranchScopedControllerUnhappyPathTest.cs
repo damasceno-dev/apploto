@@ -208,7 +208,7 @@ public class BranchScopedControllerUnhappyPathTest(ServerWebApplicationFactory f
     }
 
     [Fact]
-    public async Task UpdateUserRole_ShouldReturn409_WhenDemotingLastActiveAdmin()
+    public async Task UpdateUserRole_ShouldReturnDedicated409_WhenChangingOwnMembership()
     {
         var (_, _, adminMembership, adminToken) = await factory.SeedFullBranchContextAsync("LastAdminDemote");
         var request = new RequestUpdateBranchUserRoleJsonBuilder()
@@ -219,7 +219,7 @@ public class BranchScopedControllerUnhappyPathTest(ServerWebApplicationFactory f
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.BRANCH_USER_LAST_ADMIN_CONFLICT);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.BRANCH_USER_SELF_MEMBERSHIP_CONFLICT);
 
         var persisted = await factory.ReloadAsync<BranchUser>(adminMembership.Id);
         persisted.ShouldNotBeNull();
@@ -227,7 +227,7 @@ public class BranchScopedControllerUnhappyPathTest(ServerWebApplicationFactory f
     }
 
     [Fact]
-    public async Task RemoveUser_ShouldReturn409_WhenRemovingLastActiveAdmin()
+    public async Task RemoveUser_ShouldReturnDedicated409_WhenRemovingOwnMembership()
     {
         var (_, _, adminMembership, adminToken) = await factory.SeedFullBranchContextAsync("LastAdminRemove");
 
@@ -235,7 +235,7 @@ public class BranchScopedControllerUnhappyPathTest(ServerWebApplicationFactory f
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.BRANCH_USER_LAST_ADMIN_CONFLICT);
+        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.BRANCH_USER_SELF_MEMBERSHIP_CONFLICT);
 
         var persisted = await factory.ReloadAsync<BranchUser>(adminMembership.Id);
         persisted.ShouldNotBeNull();

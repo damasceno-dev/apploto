@@ -10,5 +10,8 @@ internal class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken
     {
         builder.ToTable("RefreshTokens");
         builder.HasKey(refreshToken => refreshToken.Id);
+        builder.Property(refreshToken => refreshToken.Value).HasMaxLength(128);
+        builder.HasIndex(refreshToken => refreshToken.Value).IsUnique();
+        builder.HasIndex(refreshToken => new { refreshToken.UserId, refreshToken.SessionId });
     }
 }

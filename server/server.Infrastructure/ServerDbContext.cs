@@ -6,6 +6,10 @@ namespace server.Infrastructure;
 public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     : DbContext(options)
 {
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+public DbSet<RecoveryThrottle> RecoveryThrottles => Set<RecoveryThrottle>();
+public DbSet<OperatorLinkRequest> OperatorLinkRequests => Set<OperatorLinkRequest>();
+public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Branch> Branches => Set<Branch>();

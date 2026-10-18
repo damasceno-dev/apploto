@@ -7,6 +7,7 @@
 import type { ResponseTokenJson } from './responseTokenJson';
 
 export interface ResponseUserLoginJson {
+  userId: string;
   name: string;
   email: string;
   responseToken: ResponseTokenJson;

@@ -2365,20 +2365,20 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 **Goal:** Replace the current "add already-registered user" membership flow with an invitation system that allows branch admins/managers to invite users by email, including users who have not yet registered.
 
-**Scope boundary:** Invitation entity, email delivery integration, accept/decline flow, and the registration-via-invitation path — plus the account self-service the 2026-07 design review flagged as launch-blocking (`design/docs/screens.md` gap N): password recovery, change-password, and a minimal profile surface. The 2026-09 decisions add operated onboarding (gap C) with its platform-operator flag, Google sign-in, the caller `UserId` (design gap U), the self-membership guard, and operator-link requests (design gap V). When this milestone is planned, consider splitting it into auth/account first and onboarding/platform second.
+**Scope boundary:** Invitation entity, email delivery integration, accept/decline flow, and the registration-via-invitation path — plus the account self-service the 2026-07 design review flagged as launch-blocking (`design/docs/screens.md` gap N): password recovery, change-password, and a minimal profile surface. The 2026-09 decisions add operated onboarding (gap C) with its platform-operator flag, Google sign-in, the caller `UserId` (design gap U), the self-membership guard, and operator-link requests (design gap V). The executable phase map below splits account security/invitations (Phases 1–5) from operated onboarding/platform, verified Google and operational close-out (Phases 6–8).
 
 **Precondition:** Milestone 1 membership management is stable. This milestone was explicitly deferred from Milestone 1.
 
 **Key behaviors:**
 
 - Invitation entity with token, target email, target role, expiration, and status
-- Email delivery integration (provider TBD)
+- Provider-neutral SMTP email delivery with local capture in Phase 3; real sender/domain/provider acceptance stays Phase 8.
 - Accept flow: existing user joins branch; new user registers and joins in one step
 - Decline/expiration handling
 - Permission matrix: `Admin` and `Manager` can invite; invited role follows the existing permission rules from Milestone 1
-- **Password recovery (gap N):** forgot-password flow — emailed reset token → set new password; reuses the same email delivery integration. No recovery path exists today; a common launch-critical recovery need that blocks public launch. **Token hardening is part of the contract, not an afterthought:** reset tokens are single-use, expiring, and stored **hashed at rest**; the request endpoint is throttled and **enumeration-safe** (the same response whether or not the e-mail exists); a successful reset revokes **all** active refresh sessions for the user.
+- **Password recovery (gap N):** forgot-password flow — emailed reset token → set new password; reuses the same email delivery integration. The missing recovery path originally blocked launch; Phase 3 supplies the backend contract, while production sender/UI/operational evidence still gates launch. **Token hardening is part of the contract, not an afterthought:** reset tokens are single-use, expiring, and stored **hashed at rest**; the request endpoint is throttled and **enumeration-safe** (the same response whether or not the e-mail exists); a successful reset revokes **all** active refresh sessions for the user.
 - **Authenticated account self-service (gap N):** change-password with current-password confirmation, and a minimal profile read/update (name) — the endpoint behind the frontend's uncataloged Profile/session-menu surface (design M0 item 0.4.6). A successful change-password also revokes **all** active refresh sessions (not just the current one).
-- **Logout:** an explicit logout endpoint that revokes the refresh token server-side (identity token expires naturally) — today the frontend can only discard tokens client-side, leaving the refresh token live.
+- **Logout:** an explicit logout endpoint that revokes the refresh token server-side (identity token expires naturally) — before Phase 2 there was no server-side logout revocation; its UI remains design 0.4.6 work.
 - **Operated onboarding (gap C — decided below):** close the self-serve paths that exist today. `POST /user/register` is `[AllowAnonymous]` and `POST /branch/create` accepts any identity token; after this milestone an account is created only by accepting an invitation, and `POST /branch/create` is replaced by the platform-gated onboarding endpoint. Leaving them out of the design catalog hides them; it does not close them.
 - **Onboarding use case ("onboard lotérica"):** creates the `Branch` with the default seeds (what `CreateBranchUseCase` does today), optionally the initial structure (terminals with paired Tabs, products, operators), and an `Admin` invitation to the owner's e-mail instead of making a caller the Admin. Two entry points call it: the platform-gated endpoint behind the back-office **"Nova lotérica"** wizard, and a command-line entry point for dev/staging with an optional demo-data option. A branch whose only member is the owner's pending Admin invitation is a valid initial state (the last-active-Admin invariant guards removal, not creation); an expired owner invitation is re-issued from the Plataforma area or the command line.
 - **Platform-operator flag:** a flag on `User`, set only from the command line / database and never through the API, so it cannot be self-granted. It gates only the onboarding endpoint and the Plataforma area, and grants no access to any lotérica's data — branch access still comes only from membership.
@@ -2396,6 +2396,63 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 - **Gap U → `UserId` on the login response.** *Why:* known at the identity tier, one field, no new endpoint, and this milestone already changes that response for Google sign-in.
 - **Self-demotion → blocked.** *Why:* self-service demotion has no use case here, and allowing it — even behind a confirmation — lets a Manager lock themselves out of a branch whose Admin is absent.
 - **Operator-link requests → invitation pre-link first, requests for the rest.** *Why:* most missing links disappear at the source; the request flow covers the remainder instead of a dead-end "ask your manager".
+
+
+### M8 executable phase map — SV10 + SV11 (2026-10-18)
+
+The signed 2026-09-11 decisions above remain authoritative. This batch selects **1.1–1.4, 2.1–2.5, 3.1–3.5, 4.1–4.4 and 5.1–5.5**. Prompt labels do not renumber milestones. Implementation owner: this server delivery, including canonical three-file docs, semantic product/screens reconciliation, infra local capture and regenerated Shared input/clients. No UI, tokens, Shared M3, AA decision or future reporting is included. Initial checkout `Project`, branch `main`, HEAD `d095262488523d949032011ec67e6638013acf5f`, clean tracked/untracked status. No stage/commit/branch/worktree mutation is authorized. Detailed contracts, rationale, acceptance journey and evidence live in [m8-delivery.md](m8-delivery.md).
+
+#### Phase 1 — Technical plan, contracts and ownership
+- [x] **1.1** Record exact contracts, statuses, auth tiers, filters, error resources and UTC/default/security boundaries for Phases 2–5.
+- [x] **1.2** Record migrations/backfill, transaction/lock ordering, token privacy, delivery/failure behavior and race/rollback tests.
+- [x] **1.3** Coordinate canonical v53 and product/screens semantics; keep v52 design markers pending independent acceptance, with the exact expected doc-sync mismatch recorded. Regenerate actual OpenAPI/raw/query clients through S06; record baseline/candidate hashes and pending landing hash.
+- [ ] **1.4** Independent combined plan/implementation and semantic reconciliation acceptance, followed by reviewed marker/checklist close-out. **Review-gated.**
+
+#### Phase 2 — Caller identity, membership protection and authenticated account security
+- [x] **2.1** Login response required `UserId` from the authenticated account, serializer/OpenAPI/generated fidelity (gap U).
+- [x] **2.2** Dedicated self-membership role/removal conflict, existing role matrix and non-disclosure; last-active-Admin checked inside PostgreSQL branch serialization, including stale actor and concurrent demotion/removal tests.
+- [x] **2.3** Identity-only profile GET/name PUT, confirmed password change, all-session refresh revocation, contracted refresh-session logout; no immediate access-token revocation.
+- [x] **2.4** Serialize login/renew/password/reset/logout around account security, re-read after lock; real HTTP/PostgreSQL races and failed-commit rollback.
+- [x] **2.5** Validators/use cases/contracts and existing authorization/financial regressions pass.
+
+#### Phase 3 — Local email delivery and secure recovery
+- [x] **3.1** Provider-neutral mail boundary, pinned supported SMTP adapter, loopback disposable capture; actual SMTP test separately from fake sender tests. Real sender/DNS/provider acceptance remains Phase 8.
+- [x] **3.2** Anonymous forgot-password has equal response/status for existing/missing/inactive accounts and throttling; trusted configured URL, no request-host/redirect input, testable server UTC.
+- [x] **3.3** 256-bit capabilities, SHA-256 hash at rest, single-use expiry, reset/new-password plus all-refresh revocation in one transaction.
+- [x] **3.4** Invalid/expired/replay/simultaneous/reset-renewal, delivery/commit failure, throttle and privacy tests; H4 anonymous/identity inventories and snapshots updated intentionally.
+- [x] **3.5** Minimal truthful delivery/retry policy and local acceptance journey documented; never log capabilities or claim production delivery.
+
+#### Phase 4 — Operator-link requests and queue integration (gap V)
+- [x] **4.1** Eligible Member create/own status; database unique pending invariant and deterministic repeated request.
+- [x] **4.2** Bounded branch Manager/Admin list and resolve against actual operator/membership/account state; resolve never grants an account. Existing operator create/update plus account assignment remain setup actions where necessary.
+- [x] **4.3** Work Queue pending count and bounded explicit list contract for Queue/Operators, unchanged close totals/date/order and Member denials.
+- [x] **4.4** Disabled/stale/removed/cross-branch/concurrent-manager tests and shipped catalog source tags; V invitation pre-link remains Phase 5.
+
+#### Phase 5 — Invitations, atomic acceptance and optional operator pre-link
+- [x] **5.1** Normalized target email/branch/role/status/UTC expiry, capability hash, safe preview; role-matrix issuance/list/reissue/decline with replacement invalidating the old capability.
+- [x] **5.2** Existing correct authenticated identity/email accept; new registration+membership+consume atomically; no existing-account takeover, forged branch/role/email or inactive-account bypass.
+- [x] **5.3** Member-only optional active unlinked branch operator; membership create/reactivate and eligible link all-or-none, preserving employee history/account assignments.
+- [x] **5.4** Real invitation races, competing pre-link, retired/changed operators, expiry/decline/replay, existing links/memberships and rollback; delivery-failure paths.
+- [ ] **5.5** Full build/Validator/UseCase/WebApi/architecture, migrations, SMTP, numeric/auth/snapshots, export default/opt-in, recursive pnpm and both-directory generation/export checks; HTML scripts and doc-sync regressions. Record every remaining review/provider/future gate. **Runtime/export/HTML checks passed; composite documentary acceptance remains pending the review-gated markers.**
+  - [x] Current build, 344 Validator + 1148 UseCase + 1215 WebApi tests, architecture/auth/numeric snapshots, migration/model and actual local SMTP scenarios; 13/13 selected password/session mutants killed after assertion hardening.
+  - [x] Frozen install, recursive typecheck/lint/format/test (101 Shared tests), default export-disabled, deterministic opt-in export and generation checks from both directories; both HTML script checks.
+  - [x] All 34 checker regression scenarios pass in a disposable metadata-aligned fixture; this is checker evidence only.
+  - [ ] Actual repository doc-sync and its baseline regression gate: canonical v53 versus both design markers v52, intentionally pending Claude semantic acceptance under 1.4.
+
+Implementation evidence, complete inventory, current hashes and exact commands: [m8-delivery.md](m8-delivery.md), final validation section. No independent acceptance or whole-M8 completion is claimed.
+
+#### Phase 6 — Platform authorization, operated onboarding/shared CLI and public bootstrap cutover
+- [ ] **6.1** Non-API-grantable platform flag; one operated onboarding use case serving platform endpoint and dev/staging CLI, owner Admin invitation and optional setup/demo data.
+- [ ] **6.2** Close actual public `POST /user/register`, unrestricted `POST /branch/create` and legacy add-existing-member `POST /branch/users` coherently with replacement onboarding and test bootstrap. **Those routes stay as-is in Phases 1–5.** Invitation APIs do not yet make this system invitation-only; gap C remains OPEN.
+- [ ] **6.3** Platform access grants no tenant access; expired owner-invite reissue, audit/role tests, docs/catalog reconcile.
+
+#### Phase 7 — Verified Google sign-in/account linking
+- [ ] **7.1** Real verified Google provider, trusted token validation and verified-email match/link rules per signed decisions; no dummy endpoint.
+- [ ] **7.2** Existing/password linking, invitation-only new account creation, membership removal and provider failure tests; genuine provider acceptance.
+
+#### Phase 8 — Full M8 security/provider/operational close-out and handoff
+- [ ] **8.1** Production sender/domain/DNS/credentials and delivery acceptance, abuse controls and operational runbook under later authorization; no real messages in this batch.
+- [ ] **8.2** Complete M8 security/provider regression and independent acceptance of every phase, design 0.4.6 contract handoff, operated onboarding/Google launch gates. **M8 and launch readiness remain open.**
 
 ---
 

@@ -46,10 +46,12 @@ public sealed class OperationSecurityOpenApiContractTest(ServerWebApplicationFac
         operations.Select(operation => operation.Path).ShouldNotContain(path => path.StartsWith("/report/dashboard"));
         operations.Where(operation => operation.Tier == TokenTierName.Anonymous).Select(operation => operation.Key)
             .Order(StringComparer.Ordinal)
-            .ShouldBe(["POST /user/login", "POST /user/register", "POST /user/renew-token"]);
+            .ShouldBe(["POST /invitation/decline", "POST /invitation/preview", "POST /invitation/register",
+                "POST /user/forgot-password", "POST /user/login", "POST /user/register", "POST /user/renew-token", "POST /user/reset-password"]);
         operations.Where(operation => operation.Tier == TokenTierName.Identity).Select(operation => operation.Key)
             .Order(StringComparer.Ordinal)
-            .ShouldBe(["GET /branch/my-branches", "POST /branch/create", "POST /branch/session"]);
+            .ShouldBe(["GET /branch/my-branches", "GET /user/profile", "POST /branch/create", "POST /branch/session",
+                "POST /invitation/accept", "POST /user/change-password", "POST /user/logout", "PUT /user/profile"]);
         operations.ShouldContain(operation => operation.Tier == TokenTierName.Branch && operation.Roles.Count == 0);
         operations.ShouldContain(operation => operation.Tier == TokenTierName.Branch && operation.Roles.Count > 0);
         operations.SelectMany(operation => operation.Roles).ShouldAllBe(role => Enum.IsDefined(role));

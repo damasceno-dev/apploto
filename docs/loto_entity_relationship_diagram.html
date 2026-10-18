@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v52
+Spec revision: v53
 -->
 <html lang="en">
 <head>
@@ -238,6 +238,14 @@ Spec revision: v52
     '\n' +
     '  User ||--o{ BranchUser : joins\n' +
     '  User ||--o{ RefreshToken : has\n' +
+    "  User ||--o{ PasswordResetToken : recovers\n" +
+    "  Branch ||--o{ OperatorLinkRequest : scopes\n" +
+    "  User ||--o{ OperatorLinkRequest : requests\n" +
+    "  User o|--o{ OperatorLinkRequest : resolves\n" +
+    "  Branch ||--o{ Invitation : scopes\n" +
+    "  User ||--o{ Invitation : issues\n" +
+    "  User o|--o{ Invitation : accepts\n" +
+    "  Operator o|--o{ Invitation : preselects\n" +
     '  User o|--o{ Operator : "logs in as"\n' +
     '  User ||--o{ Transaction : "created by"\n' +
     '  User o|--o{ Transaction : "cancelled by"\n' +
@@ -303,10 +311,52 @@ Spec revision: v52
     '\n' +
     '  RefreshToken {\n' +
     '    uuid id PK\n' +
+    '    uuid sessionId "stable across rotation"\n' +
     '    string value\n' +
     '    uuid userId FK\n' +
     '  }\n' +
     '\n' +
+    "  PasswordResetToken {\n" +
+    "    uuid id PK\n" +
+    "    uuid userId FK\n" +
+    "    string tokenHash UK \"SHA-256 only\"\n" +
+    "    datetime expiresAt \"UTC\"\n" +
+    "    datetime consumedAt \"nullable UTC\"\n" +
+    "    boolean active\n" +
+    "  }\n" +
+    "\n" +
+    "  RecoveryThrottle {\n" +
+    "    uuid id PK\n" +
+    "    string keyHash UK \"normalized email SHA-256\"\n" +
+    "    datetime nextAllowedAt \"UTC\"\n" +
+    "  }\n" +
+    "\n" +
+    "  OperatorLinkRequest {\n" +
+    "    uuid id PK\n" +
+    "    uuid branchId FK\n" +
+    "    uuid userId FK\n" +
+    "    enum status \"Pending or Resolved\"\n" +
+    "    uuid resolvedByUserId FK\n" +
+    "    datetime resolvedAt \"nullable UTC\"\n" +
+    "    unique pendingMember \"active pending BranchId+UserId\"\n" +
+    "  }\n" +
+    "\n" +
+    "  Invitation {\n" +
+    "    uuid id PK\n" +
+    "    uuid branchId FK\n" +
+    "    string email \"normalized\"\n" +
+    "    enum role\n" +
+    "    uuid operatorId FK \"optional Member pre-link\"\n" +
+    "    string tokenHash UK \"SHA-256 only\"\n" +
+    "    datetime expiresAt \"UTC\"\n" +
+    "    enum status\n" +
+    "    enum deliveryStatus\n" +
+    "    uuid issuedByUserId FK\n" +
+    "    uuid acceptedByUserId FK\n" +
+    "    datetime respondedAt \"nullable UTC\"\n" +
+    "    unique pendingTarget \"active pending BranchId+Email\"\n" +
+    "  }\n" +
+    "\n" +
     '  Operator {\n' +
     '    uuid id PK\n' +
     '    string name\n' +

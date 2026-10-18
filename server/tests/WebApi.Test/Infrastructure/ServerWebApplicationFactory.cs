@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using server.Domain.Interfaces.Holidays;
+using server.Domain.Interfaces;
 using server.Infrastructure;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -21,6 +22,11 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     private const int TestTokenExpirationMinutes = 60;
 
     private readonly PostgreSqlContainer _postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
+         .WithCreateParameterModifier(parameters =>
+        {
+            foreach (var bindings in parameters.HostConfig!.PortBindings!.Values)
+                foreach (var binding in bindings) binding.HostIP = "127.0.0.1";
+        })
         .WithDatabase("loto_test")
         .WithUsername("postgres")
         .WithPassword("postgres")
@@ -65,6 +71,10 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
         builder.ConfigureServices(services =>
         {
+            // Security tests never deliver to an external provider, regardless of inherited configuration.
+            services.RemoveAll<ISecurityMailSender>();
+            services.AddSingleton<SecurityMailCapture>();
+            services.AddSingleton<ISecurityMailSender>(provider => provider.GetRequiredService<SecurityMailCapture>());
             // Replace the typed-HttpClient external holiday providers with stubbed
             // unavailable instances so the test suite never reaches BrasilAPI or
             // Nager.Date over the network. The composite resolver swallows these

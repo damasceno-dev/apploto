@@ -38,13 +38,13 @@ public class UserRegisterUseCaseTest
         var response = await useCase.Execute(request);
 
         response.Name.ShouldBe(request.Name);
-        response.Email.ShouldBe(request.Email);
+        response.Email.ShouldBe(request.Email.Trim().ToLowerInvariant());
         response.ResponseToken.Token.ShouldBe(expectedToken);
         response.ResponseToken.RefreshToken.ShouldBe(expectedRefreshToken);
 
         await usersRepository.Received(1).Register(Arg.Is<User>(user =>
             user.Name == request.Name &&
-            user.Email == request.Email &&
+            user.Email == request.Email.Trim().ToLowerInvariant() &&
             user.Password != request.Password));
         await refreshTokenRepository.Received(1).SaveRefreshToken(Arg.Is<RefreshToken>(token =>
             token.Value == expectedRefreshToken));
@@ -130,6 +130,6 @@ public class UserRegisterUseCaseTest
         IUnitOfWork unitOfWork,
         PasswordEncryption passwordEncryption)
     {
-        return new UserRegisterUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork, passwordEncryption);
+        return new UserRegisterUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork, passwordEncryption, SecurityCoordinationBuilder.Build());
     }
 }

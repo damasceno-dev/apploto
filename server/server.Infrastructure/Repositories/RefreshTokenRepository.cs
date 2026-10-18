@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
@@ -8,23 +9,19 @@ internal class RefreshTokenRepository(ServerDbContext dbContext) : IRefreshToken
 {
     public string Generate()
     {
-        return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     }
 
     public async Task SaveRefreshToken(RefreshToken refreshToken)
     {
-        var userRefreshTokens = await dbContext.RefreshTokens.Where(r => r.UserId == refreshToken.UserId).ToListAsync();
-        RemoveUserRefreshTokens(userRefreshTokens);
+        var userRefreshTokens = await dbContext.RefreshTokens.Where(r => r.UserId == refreshToken.UserId && r.Active).ToListAsync();
+        foreach (var previous in userRefreshTokens) previous.Active = false;
         await dbContext.RefreshTokens.AddAsync(refreshToken);
     }
 
     public async Task<RefreshToken?> GetRefreshTokenEntity(string value)
     {
-        return await dbContext.RefreshTokens.FirstOrDefaultAsync(r => r.Value == value);
+        return await dbContext.RefreshTokens.AsNoTracking().FirstOrDefaultAsync(r => r.Value == value && r.Active);
     }
 
-    private void RemoveUserRefreshTokens(List<RefreshToken> userRefreshTokens)
-    {
-        dbContext.RefreshTokens.RemoveRange(userRefreshTokens);
-    }
 }

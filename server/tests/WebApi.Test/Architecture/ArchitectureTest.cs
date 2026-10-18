@@ -1,3 +1,4 @@
+using server.Configuration;
 using System.Reflection;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -140,6 +141,7 @@ public class ArchitectureTest
         services.AddApi();
         services.AddApplication();
         services.AddInfrastructure(BuildArchitectureConfiguration());
+        services.AddAccountSecurityConfiguration(BuildArchitectureConfiguration());
 
         var useCases = typeof(AppDependencyInjection).Assembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false })
@@ -245,6 +247,7 @@ public class ArchitectureTest
         services.AddApi();
         services.AddApplication();
         services.AddInfrastructure(BuildArchitectureConfiguration());
+        services.AddAccountSecurityConfiguration(BuildArchitectureConfiguration());
 
         var serviceTypes = DiscoverPublicServiceTypes().ToList();
         serviceTypes.ShouldNotBeEmpty(
@@ -282,6 +285,7 @@ public class ArchitectureTest
         services.AddApi();
         services.AddApplication();
         services.AddInfrastructure(BuildArchitectureConfiguration());
+        services.AddAccountSecurityConfiguration(BuildArchitectureConfiguration());
 
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {
@@ -300,6 +304,7 @@ public class ArchitectureTest
         services.AddApi();
         services.AddApplication();
         services.AddInfrastructure(BuildArchitectureConfiguration());
+        services.AddAccountSecurityConfiguration(BuildArchitectureConfiguration());
 
         using var provider = services.BuildServiceProvider(new ServiceProviderOptions
         {

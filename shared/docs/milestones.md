@@ -262,7 +262,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
   - Prove parity with the runtime contract once: the exported document must equal the Development `/openapi/v1.json` from the WebApi.Test host, excluding `servers`. Equivalently, it must render to the checked-in `openapi-contract-surface.txt` through `OpenApiContractSurface.Render`.
   - Record the method, the result, and the path, operation and schema counts.
 - [x] **1.5** Add `export:check`: re-export to a temp file and fail on any byte difference from the committed document. It requires the .NET 10 SDK; record that requirement and that server M9 CI can adopt it.
-- [ ] **1.6** Commit the first document only after 1.1 passes. The milestone notes record the input server commit, spec revision and document sha256. Every later regeneration repeats the same record.
+- [x] **1.6** Commit the first document only after 1.1 passes. The milestone notes record the input server commit, spec revision and document sha256. Every later regeneration repeats the same record.
 
 ### Phase 2 — Generated contract types and raw functions (root entry)
 
@@ -349,7 +349,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
   - the new dependencies, keeping peer versus dev roles
 
   Notify the web and mobile owners of the configured-client contract their M2 milestones consume.
-- [ ] **5.2** Done criteria (all from a fresh clone):
+- [x] **5.2** Done criteria (all from a fresh clone):
   - `pnpm install && pnpm -r typecheck && pnpm -r lint && pnpm format:check && pnpm -r test` pass. These include the enum, fidelity and header compile-time gates and the import-boundary check.
   - `generate:check` passes from both the repository root and `shared/api`.
   - `export:check` passes on a machine with the .NET 10 SDK.
@@ -513,6 +513,11 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 >     - generated tree `d2f91f08604268fd4d67539fce3eadd88611ec307f375312cd0ed7138da20fe7` (227 files);
 >     - 91/91 tests, recursive typecheck/lint/format, `generate:check` from both directories, and `export:check`.
 > - **Not claimed:** behavior under Hermes/Metro or Next is untested here (Web/Mobile M1/M2 prove it). `Scalar.AspNetCore` floats (`Version="*"`) on the server, a restore-reproducibility risk the server owner already knows about.
+
+
+> **S06 actual-commit close-out (2026-10-18; SV10/SV11 Stage 0).** Source/landing commit `d095262488523d949032011ec67e6638013acf5f` includes the accepted round-3 implementation and the older design candidate (the latter is committed, with no implied visual approval). A disposable **local Git clone of that exact commit**, `/private/tmp/loto-s06-d095262-acceptance`, was checked out detached; no remote fetch/push, user branch change or copy of uncommitted source participated. `pnpm install --frozen-lockfile`, `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check`, `pnpm -r test` (**91/91**), root `pnpm --filter @loto/api generate:check`, package `pnpm --dir shared/api generate:check`, and `export:check` from both locations all exited 0. Export uses the accepted inert configuration and fresh build recipe. Both generations match all 227 committed files; both exports match input sha256 `6fd6f2441c38fdc76b3289afd147b2d7c04170213af368e3d7d9a00545d37ea7` (server `763edd7`, spec v52). The exact documented hash recipe (sort the **relative path strings** ordinally, then hash UTF-8 `<sha256>  <relative-path>\n` lines relative to `src/generated/`) reproduces `d2f91f08604268fd4d67539fce3eadd88611ec307f375312cd0ed7138da20fe7`. Clone `git status --porcelain` is empty after checks; no dashboard endpoint, runtime environment reads or dist output exists. Thus 1.6 and 5.2 close on the real previously authorized commit, not a self-referential hash for this documentary diff. Historical pre-commit/review notes above remain historical evidence.
+
+> **M8 candidate regeneration (2026-10-18; SV10 + SV11 Phases 1–5).** Actual source baseline remains `d095262488523d949032011ec67e6638013acf5f`, with this uncommitted server M8 candidate and canonical spec v53. This is a new input/client candidate, not a new S06 landing commit: its landing hash remains **pending a future authorized commit**. The accepted opt-in export and generator produced input SHA-256 `fcfe94155a72246a11c0a103c760524f9f80dd1164f61c75351bef4455de15b9` (87 paths, 118 operations, 186 schemas), and generated tree SHA-256 `a401811614fe34dbb68ff9da383c929e2fd531b46985aa587f9d8c844c43b4e8` over 255 files using the same ordinal relative-path-string recipe above. No generated DTO/client was edited by hand. Required `UserId`, profile/recovery/request/invitation DTOs, nullable own-request wrapper and optional reissue-body fidelity compile against both outputs. The S06 wrapper separates all 110 generated header merges; token isolation, no retry, typed error, abort and import-boundary tests remain intact. Export configuration scrubbing now also removes AccountSecurity/SecurityMail aliases and injects disabled mail/trusted inert defaults. Frozen install, recursive typecheck/lint/format/test (**101/101**), root and `shared/api` `generate:check` and `export:check` all exited 0 on the final candidate; both fresh exports match the exact input hash, both generations match all 255 files. Root boundary traversal covers 243 hook-free modules. Default Release build with server configuration removed exports zero documents. Full commands, server/migration/SMTP scenario evidence and pending independent semantic review are in `server/docs/m8-delivery.md`; canonical v53/design markers v52 intentionally keep the actual doc-sync gate open. No Web/Mobile UI or Shared M3 implementation is implied.
 
 ---
 

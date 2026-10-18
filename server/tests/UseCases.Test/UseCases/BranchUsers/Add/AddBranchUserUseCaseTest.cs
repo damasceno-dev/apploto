@@ -307,6 +307,7 @@ public class AddBranchUserUseCaseTest
         IBranchUsersRepository branchUsersRepository,
         IUnitOfWork unitOfWork)
     {
-        return new AddBranchUserUseCase(authenticationService, usersRepository, branchUsersRepository, unitOfWork);
+        branchUsersRepository.GetActiveById(Arg.Any<Guid>()).Returns(async _ => (server.Domain.Entities.BranchUser?)await authenticationService.GetAuthenticatedBranchUser());
+        return new AddBranchUserUseCase(authenticationService, usersRepository, branchUsersRepository, unitOfWork, SecurityCoordinationBuilder.Build());
     }
 }

@@ -1,3 +1,4 @@
+using server.Application.Services.Security;
 using server.Application.Services;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -8,12 +9,20 @@ using server.Exceptions.Exceptions;
 
 namespace server.Application.UseCases.Users.Login;
 
-public class UserLoginUseCase(IUsersRepository usersRepository, ITokenServices tokenServices, IRefreshTokenRepository refreshTokenRepository, IUnitOfWork unitOfWork, PasswordEncryption passwordEncryption)
+public class UserLoginUseCase(
+    IUsersRepository usersRepository,
+    ITokenServices tokenServices,
+    IRefreshTokenRepository refreshTokenRepository,
+    IUnitOfWork unitOfWork,
+    PasswordEncryption passwordEncryption,
+    ISecurityCoordination coordination)
 {
     public async Task<ResponseUserLoginJson> Execute(RequestUserLoginJson request)
     {
         Validate(request);
-        var userToVerify = await usersRepository.GetByEmail(request.Email);
+        var email = await usersRepository.NormalizeEmail(request.Email);
+        await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.EmailKey(email));
+        var userToVerify = await usersRepository.GetByEmail(email);
         var user = VerifyUserAndPassword(userToVerify, request.Password);
 
         var token = tokenServices.GenerateGlobalToken(user);
@@ -24,13 +33,14 @@ public class UserLoginUseCase(IUsersRepository usersRepository, ITokenServices t
             UserId = user.Id
         });
         await unitOfWork.Commit();
+        await scope.Complete();
         
         return user.ToResponse(token, refreshToken);
     }
 
     private User VerifyUserAndPassword(User? user, string requestPassword)
     {
-        if (user is null)
+        if (user is null || !user.Active)
         {
             throw new InvalidLoginException(ResourcesErrorMessages.EMAIL_NOT_REGISTERED);
         }

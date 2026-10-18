@@ -9,6 +9,7 @@ internal static class UserValidationExtensions
     {
         public void ValidateUserEmail()
         {
+            rule.MaximumLength(255).WithMessage(ResourcesErrorMessages.SECURITY_EMAIL_MAX_LENGTH);
             rule.NotEmpty().WithMessage(ResourcesErrorMessages.EMAIL_EMPTY);
             rule
                 .Must(email =>

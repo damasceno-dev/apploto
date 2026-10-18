@@ -1,3 +1,4 @@
+using server.Domain.Entities.Enums;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
@@ -17,7 +18,7 @@ public class DeactivateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldSetActiveFalse_WhenOperatorHasNoLinks()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithActive(true)
@@ -44,7 +45,7 @@ public class DeactivateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldCascadeDeactivateAllActiveLinks_WhenOperatorHasLinks()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
 
         var link1 = new OperatorAccountBuilder()
@@ -76,7 +77,7 @@ public class DeactivateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldNotRestoreLinks_WhenOperatorIsReactivatedLater()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
 
         var link = new OperatorAccountBuilder()
@@ -121,7 +122,7 @@ public class DeactivateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldThrowNotFoundException_WhenOperatorNotFoundInBranch()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var operatorId = Guid.NewGuid();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
@@ -146,6 +147,6 @@ public class DeactivateOperatorUseCaseTest
         IOperatorAccountsRepository operatorAccountsRepo,
         IUnitOfWork unitOfWork)
     {
-        return new DeactivateOperatorUseCase(authService, operatorsRepo, operatorAccountsRepo, unitOfWork);
+        return new DeactivateOperatorUseCase(authService, operatorsRepo, operatorAccountsRepo, unitOfWork, SecurityCoordinationBuilder.Build(), new BranchUsersRepositoryBuilder().FreshActor(authService).Build());
     }
 }

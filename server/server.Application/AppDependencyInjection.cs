@@ -249,6 +249,26 @@ public static class AppDependencyInjection
         services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.GetProfile.GetUserProfileUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.UpdateProfile.UpdateUserProfileUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.ChangePassword.ChangeUserPasswordUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.Logout.LogoutUserUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.ForgotPassword.ForgotUserPasswordUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.ResetPassword.ResetUserPasswordUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.Issue.IssueInvitationUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.List.ListInvitationsUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.Reissue.ReissueInvitationUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.Preview.PreviewInvitationUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.Decline.DeclineInvitationUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.Accept.AcceptInvitationUseCase>();
+        services.AddScoped<server.Application.UseCases.Invitations.Register.RegisterInvitationUseCase>();
+        services.AddScoped<server.Application.UseCases.OperatorLinkRequests.Create.CreateOperatorLinkRequestUseCase>();
+        services.AddScoped<server.Application.UseCases.OperatorLinkRequests.Own.GetOwnOperatorLinkRequestUseCase>();
+        services.AddScoped<server.Application.UseCases.OperatorLinkRequests.List.ListOperatorLinkRequestsUseCase>();
+        services.AddScoped<server.Application.UseCases.OperatorLinkRequests.Resolve.ResolveOperatorLinkRequestUseCase>();
+        services.AddScoped<server.Application.Services.Security.AccountPasswordUpdater>();
+        services.AddScoped<server.Application.Services.Security.InvitationWorkflow>();
+        services.AddScoped<server.Application.Services.Security.OperatorLinkRequestReader>();
         services.AddScoped<PasswordEncryption>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
     }

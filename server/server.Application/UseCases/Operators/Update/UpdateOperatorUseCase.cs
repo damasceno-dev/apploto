@@ -1,3 +1,4 @@
+using server.Application.Services.Security;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Application.Services.Operators;
@@ -11,7 +12,9 @@ public class UpdateOperatorUseCase(
     IAuthenticationService authenticationService,
     IOperatorsRepository operatorsRepository,
     IOperatorUserLinkGuard operatorUserLinkGuard,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    ISecurityCoordination coordination,
+    IBranchUsersRepository branchUsersRepository)
 {
     /// <summary>
     /// Updates mutable Operator fields. Passing <c>UserId = null</c> intentionally clears
@@ -22,6 +25,8 @@ public class UpdateOperatorUseCase(
         Validate(operatorId, request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.BranchKey(authenticatedBranchUser.BranchId));
+        authenticatedBranchUser = await SecurityRules.FreshActor(branchUsersRepository, authenticatedBranchUser);
 
         var op = await operatorsRepository.GetActiveByIdAndBranchId(operatorId, authenticatedBranchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.OPERATOR_NOT_FOUND);
@@ -35,6 +40,7 @@ public class UpdateOperatorUseCase(
         op.UserId = request.UserId;
 
         await unitOfWork.Commit();
+        await scope.Complete();
 
         return op.ToOperatorResponse();
     }

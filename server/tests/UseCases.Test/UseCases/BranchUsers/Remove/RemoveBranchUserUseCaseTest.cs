@@ -262,10 +262,11 @@ public class RemoveBranchUserUseCaseTest
         IBranchUsersRepository branchUsersRepository,
         IUnitOfWork unitOfWork)
     {
+        branchUsersRepository.GetActiveById(Arg.Any<Guid>()).Returns(async _ => (server.Domain.Entities.BranchUser?)await authenticationService.GetAuthenticatedBranchUser());
         return new RemoveBranchUserUseCase(
             authenticationService,
             branchUsersRepository,
             new OperatorsRepositoryBuilder().Build(),
-            unitOfWork);
+            unitOfWork, SecurityCoordinationBuilder.Build());
     }
 }

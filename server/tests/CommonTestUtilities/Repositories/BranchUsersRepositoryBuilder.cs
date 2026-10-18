@@ -50,6 +50,12 @@ public class BranchUsersRepositoryBuilder
         return this;
     }
 
+    public BranchUsersRepositoryBuilder FreshActor(IAuthenticationService authentication)
+    {
+        _repository.GetActiveById(Arg.Any<Guid>()).Returns(async _ => (server.Domain.Entities.BranchUser?)await authentication.GetAuthenticatedBranchUser());
+        return this;
+    }
+
     public IBranchUsersRepository Build()
     {
         return _repository;

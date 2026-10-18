@@ -12,6 +12,7 @@ export interface ResponseManagerQueueJson {
   date: string;
   totalVariance: number;
   meanVariance: number;
+  pendingOperatorLinkRequestCount: number;
   pendingApprovalCount: number;
   closes: ResponseManagerQueueCloseJson[];
   notSubmitted: ResponseManagerQueueNotSubmittedJson[];

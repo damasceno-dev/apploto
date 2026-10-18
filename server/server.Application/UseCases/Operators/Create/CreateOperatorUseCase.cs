@@ -1,3 +1,4 @@
+using server.Application.Services.Security;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Application.Services.Operators;
@@ -11,13 +12,17 @@ public class CreateOperatorUseCase(
     IAuthenticationService authenticationService,
     IOperatorsRepository operatorsRepository,
     IOperatorUserLinkGuard operatorUserLinkGuard,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    ISecurityCoordination coordination,
+    IBranchUsersRepository branchUsersRepository)
 {
     public async Task<ResponseCreateOperatorJson> Execute(RequestCreateOperatorJson request)
     {
         Validate(request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.BranchKey(authenticatedBranchUser.BranchId));
+        authenticatedBranchUser = await SecurityRules.FreshActor(branchUsersRepository, authenticatedBranchUser);
 
         if (request.UserId.HasValue)
         {
@@ -28,6 +33,7 @@ public class CreateOperatorUseCase(
 
         await operatorsRepository.Add(op);
         await unitOfWork.Commit();
+        await scope.Complete();
 
         return op.ToResponse();
     }

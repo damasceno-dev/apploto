@@ -1592,5 +1592,28 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID", resourceCulture);
             }
         }
+        public static string BRANCH_USER_SELF_MEMBERSHIP_CONFLICT => ResourceManager.GetString("BRANCH_USER_SELF_MEMBERSHIP_CONFLICT", resourceCulture);
+        public static string SECURITY_COORDINATION_BUSY => ResourceManager.GetString("SECURITY_COORDINATION_BUSY", resourceCulture);
+        public static string PROFILE_NAME_INVALID => ResourceManager.GetString("PROFILE_NAME_INVALID", resourceCulture);
+        public static string SECURITY_TOKEN_INVALID => ResourceManager.GetString("SECURITY_TOKEN_INVALID", resourceCulture);
+        public static string SECURITY_TOKEN_EMPTY => ResourceManager.GetString("SECURITY_TOKEN_EMPTY", resourceCulture);
+        public static string SECURITY_CURRENT_PASSWORD_REQUIRED => ResourceManager.GetString("SECURITY_CURRENT_PASSWORD_REQUIRED", resourceCulture);
+        public static string SECURITY_REFRESH_TOKEN_REQUIRED => ResourceManager.GetString("SECURITY_REFRESH_TOKEN_REQUIRED", resourceCulture);
+        public static string OPERATOR_REQUEST_CONFLICT => ResourceManager.GetString("OPERATOR_REQUEST_CONFLICT", resourceCulture);
+        public static string OPERATOR_REQUEST_NOT_NEEDED => ResourceManager.GetString("OPERATOR_REQUEST_NOT_NEEDED", resourceCulture);
+        public static string OPERATOR_REQUEST_NOT_FOUND => ResourceManager.GetString("OPERATOR_REQUEST_NOT_FOUND", resourceCulture);
+        public static string OPERATOR_REQUEST_SETUP_REQUIRED => ResourceManager.GetString("OPERATOR_REQUEST_SETUP_REQUIRED", resourceCulture);
+        public static string INVITATION_PENDING_CONFLICT => ResourceManager.GetString("INVITATION_PENDING_CONFLICT", resourceCulture);
+        public static string INVITATION_NOT_FOUND => ResourceManager.GetString("INVITATION_NOT_FOUND", resourceCulture);
+        public static string INVITATION_EMAIL_MISMATCH => ResourceManager.GetString("INVITATION_EMAIL_MISMATCH", resourceCulture);
+        public static string INVITATION_OPERATOR_ROLE_INVALID => ResourceManager.GetString("INVITATION_OPERATOR_ROLE_INVALID", resourceCulture);
+        public static string INVITATION_OPERATOR_UNAVAILABLE => ResourceManager.GetString("INVITATION_OPERATOR_UNAVAILABLE", resourceCulture);
+        public static string INVITATION_ALREADY_ACCEPTED => ResourceManager.GetString("INVITATION_ALREADY_ACCEPTED", resourceCulture);
+        public static string INVITATION_MEMBERSHIP_EXISTS => ResourceManager.GetString("INVITATION_MEMBERSHIP_EXISTS", resourceCulture);
+        public static string SECURITY_LIST_INVALID => ResourceManager.GetString("SECURITY_LIST_INVALID", resourceCulture);
+        public static string SECURITY_EMAIL_MAX_LENGTH => ResourceManager.GetString("SECURITY_EMAIL_MAX_LENGTH", resourceCulture);
+        public static string SECURITY_PASSWORD_MAX_LENGTH => ResourceManager.GetString("SECURITY_PASSWORD_MAX_LENGTH", resourceCulture);
+        public static string SECURITY_RATE_LIMITED => ResourceManager.GetString("SECURITY_RATE_LIMITED", resourceCulture);
+        public static string INVITATION_TARGET_UNAVAILABLE => ResourceManager.GetString("INVITATION_TARGET_UNAVAILABLE", resourceCulture);
     }
 }

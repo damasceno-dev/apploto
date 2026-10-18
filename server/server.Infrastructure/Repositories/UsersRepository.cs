@@ -6,6 +6,9 @@ namespace server.Infrastructure.Repositories;
 
 internal class UsersRepository(ServerDbContext dbContext) : IUsersRepository
 {
+    public Task<string> NormalizeEmail(string email) => dbContext.Database
+        .SqlQuery<string>($"SELECT lower({email.Trim()}) AS \"Value\"").SingleAsync();
+
     public async Task Register(User user)
     {
         await dbContext.Users.AddAsync(user);
@@ -13,12 +16,14 @@ internal class UsersRepository(ServerDbContext dbContext) : IUsersRepository
 
     public async Task<bool> VerifyIfEmailAlreadyExists(string email)
     {
-        return await dbContext.Users.AsNoTracking().AnyAsync(u => u.Email.Trim() == email.Trim());
+        var normalizedEmail = await NormalizeEmail(email);
+        return await dbContext.Users.AsNoTracking().AnyAsync(u => u.Email == normalizedEmail);
     }
 
     public async Task<User?> GetByEmail(string email)
     {
-        return await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email.Trim() == email.Trim());
+        var normalizedEmail = await NormalizeEmail(email);
+        return await dbContext.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Email == normalizedEmail);
     }
 
     public async Task<User?> GetById(Guid userId)

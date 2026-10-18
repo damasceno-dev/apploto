@@ -1,0 +1,69 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql;
+using server.Infrastructure;
+using Shouldly;
+using Testcontainers.PostgreSql;
+using Xunit;
+
+namespace WebApi.Test.Infrastructure;
+
+public sealed class M8SecurityMigrationTest : IAsyncLifetime
+{
+    private const string Previous = "20261017031934_M7_7Phase5FiadoLinkedMovements";
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
+         .WithCreateParameterModifier(parameters =>
+        {
+            foreach (var bindings in parameters.HostConfig!.PortBindings!.Values)
+                foreach (var binding in bindings) binding.HostIP = "127.0.0.1";
+        })
+        .WithDatabase("loto_m8_upgrade").WithUsername("postgres").WithPassword("postgres").Build();
+    public Task InitializeAsync() => _postgres.StartAsync();
+    public Task DisposeAsync() => _postgres.DisposeAsync().AsTask();
+    private ServerDbContext Context() => new(new DbContextOptionsBuilder<ServerDbContext>().UseNpgsql(_postgres.GetConnectionString()).Options);
+
+    [Fact]
+    public async Task Upgrade_ShouldNormalizeLegacyEmail_BackfillStableSessions_AndAddOnlyHashCapabilityStorage()
+    {
+        await using var db = Context();
+        await db.GetService<IMigrator>().MigrateAsync(Previous);
+        var userId = Guid.NewGuid();
+        var refreshId = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Users\" (\"Id\", \"Name\", \"Email\", \"Password\", \"CreatedAt\", \"Active\") VALUES ({userId}, 'Legacy', '\u00A0LEGACY@EXAMPLE.INVALID\u202F', 'legacy-hash', now(), TRUE)");
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"RefreshTokens\" (\"Id\", \"UserId\", \"Value\", \"CreatedAt\", \"Active\") VALUES ({refreshId}, {userId}, 'legacy-refresh', now(), TRUE)");
+        await db.Database.MigrateAsync();
+        (await db.Users.SingleAsync(u => u.Id == userId)).Email.ShouldBe("legacy@example.invalid");
+        var refresh = await db.RefreshTokens.SingleAsync(t => t.Id == refreshId);
+        refresh.SessionId.ShouldBe(refreshId);
+        refresh.Value.ShouldBe("legacy-refresh");
+        refresh.Active.ShouldBeTrue();
+        (await db.PasswordResetTokens.CountAsync()).ShouldBe(0);
+        (await db.Invitations.CountAsync()).ShouldBe(0);
+        (await db.OperatorLinkRequests.CountAsync()).ShouldBe(0);
+        db.Database.HasPendingModelChanges().ShouldBeFalse();
+        await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
+        await connection.OpenAsync();
+        await using var columns = new NpgsqlCommand("SELECT column_name FROM information_schema.columns WHERE table_name IN ('Invitations','PasswordResetTokens')", connection);
+        await using var reader = await columns.ExecuteReaderAsync();
+        var names = new List<string>();
+        while (await reader.ReadAsync()) names.Add(reader.GetString(0));
+        names.ShouldContain("TokenHash");
+        names.ShouldNotContain("Token");
+        names.ShouldNotContain("Capability");
+    }
+
+    [Fact]
+    public async Task CollisionPreflight_ShouldRollbackWithoutPickingOrRewritingAnAccount()
+    {
+        await using var db = Context();
+        await db.GetService<IMigrator>().MigrateAsync(Previous);
+        var first = Guid.NewGuid();
+        var second = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Users\" (\"Id\", \"Name\", \"Email\", \"Password\", \"CreatedAt\", \"Active\") VALUES ({first}, 'First', 'COLLISION@example.invalid', 'hash1', now(), TRUE), ({second}, 'Second', 'collision@example.invalid', 'hash2', now(), TRUE)");
+        var error = await Should.ThrowAsync<PostgresException>(() => db.Database.MigrateAsync());
+        error.MessageText.ShouldBe("M8_EMAIL_NORMALIZATION_COLLISION");
+        (await db.Users.SingleAsync(u => u.Id == first)).Email.ShouldBe("COLLISION@example.invalid");
+        (await db.Database.GetPendingMigrationsAsync()).ShouldContain(m => m.EndsWith("M8AccountSecurityAndInvitations"));
+    }
+}

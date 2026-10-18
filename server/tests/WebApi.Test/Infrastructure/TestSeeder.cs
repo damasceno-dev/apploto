@@ -45,7 +45,7 @@ internal static class TestSeeder
             {
                 Id = Guid.NewGuid(),
                 Name = name ?? $"Test User {Guid.NewGuid():N}",
-                Email = email ?? $"user-{Guid.NewGuid():N}@example.com",
+                Email = await scope.ServiceProvider.GetRequiredService<IUsersRepository>().NormalizeEmail(email ?? $"user-{Guid.NewGuid():N}@example.com"),
                 Password = passwordEncryption.HashPassword(DefaultPassword)
             };
 
@@ -159,7 +159,7 @@ internal static class TestSeeder
             return client;
         }
 
-        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null, Guid? userId = null, Guid? id = null)
+        public async Task<Operator> SeedOperatorAsync(Guid branchId, string? name = null, Guid? userId = null, Guid? id = null, bool active = true)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -188,6 +188,7 @@ internal static class TestSeeder
             {
                 Id = id ?? Guid.NewGuid(),
                 Name = name ?? $"Operator {Guid.NewGuid():N}",
+                Active = active,
                 BranchId = branchId,
                 UserId = userId
             };

@@ -287,6 +287,7 @@ public class UpdateBranchUserRoleUseCaseTest
         IBranchUsersRepository branchUsersRepository,
         IUnitOfWork unitOfWork)
     {
-        return new UpdateBranchUserRoleUseCase(authenticationService, branchUsersRepository, unitOfWork);
+        branchUsersRepository.GetActiveById(Arg.Any<Guid>()).Returns(async _ => (server.Domain.Entities.BranchUser?)await authenticationService.GetAuthenticatedBranchUser());
+        return new UpdateBranchUserRoleUseCase(authenticationService, branchUsersRepository, unitOfWork, SecurityCoordinationBuilder.Build());
     }
 }

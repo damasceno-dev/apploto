@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v52
+Spec revision: v53
 -->
 <html lang="en">
 <head>
@@ -378,7 +378,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Multi-Tenancy: User + Branch',
-   narrative:'Lotero is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).<br><br>Here we have two Users: <b>Jennifer</b> (Member — the day-to-day operator) and <b>Maria</b> (Manager — approves closings and can cover shifts).',
+   narrative:'Lotero is a <b>SaaS platform</b>. <b>Branch</b> is the tenant — one per lottery house. <b>User</b> is global (authentication only). <b>BranchUser</b> is the junction that gives a User a specific Role within a Branch.<br><br>A single User can belong to multiple Branches (e.g., an owner managing 2 lottery houses). <b>M8 Phases 1–5:</b> login now returns the caller UserId. Identity-only profile/name, confirmed password change and logout are available. Password change/reset atomically revoke all refresh sessions; logout revokes its stable rotated session, while JWTs expire naturally. Recovery uses a hashed, single-use, expiring capability and enumeration-safe 202 requests; local SMTP capture proves only local delivery. <b>Roles:</b> Admin (full access), Manager (approve closings, cancel old transactions), Member (operator, own terminal only).<br><br>Here we have two Users: <b>Jennifer</b> (Member — the day-to-day operator) and <b>Maria</b> (Manager — approves closings and can cover shifts).',
    activeTables:['User','BranchUser','Branch'],
    activeArrows:['user-bu','bu-branch'],
    data:[
@@ -389,7 +389,7 @@ const SLIDES=[
     {entity:'BranchUser',fields:[{n:'UserId',v:'→ Maria'},{n:'BranchId',v:'→ Lotérica Centro'},{n:'Role',v:'"Manager"',hl:'hl'}]}
    ]},
   {title:'Operator: Why Separate from User?',
-   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves, the Operator record (and all transactions, time entries, daily closings) remains intact after its login link is cleared. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Last Saturday (March 8):</b> Jennifer was <b>off</b>. Maria (Manager) logged in and covered her terminal. This is exactly why User, Operator, and Account are separate — on that day\'s transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another. Keep March 8 in mind — the next two stories happen on it.<br><br><span class="design-note"><span class="dn-label">Design note:</span> Operator links directly to User through an optional FK, while BranchUser owns login authority. Removing branch membership atomically clears every matching Operator.UserId in that branch but preserves the Operator row, history, reporting, and account assignments. Each User can have at most one active linked Operator per Branch (filtered unique index on (BranchId, UserId) where UserId is not null and Active is true).</span>',
+   narrative:'<b>Operator</b> is the employee concept within a Branch. It is linked to a User for login, but exists <em>independently</em>.<br><br><b>Why?</b> Historical integrity: if an employee leaves, the Operator record (and all transactions, time entries, daily closings) remains intact after its login link is cleared. An Operator can also exist <em>without</em> a login — a former employee, or a new hire not yet set up.<br><br><b style="color:var(--accent)">Last Saturday (March 8):</b> Jennifer was <b>off</b>. Maria (Manager) logged in and covered her terminal. This is exactly why User, Operator, and Account are separate — on that day\'s transactions, <b>RecordedByOperatorId</b> stays <b>Jennifer</b> (the terminal context), but <b>CreatedByUserId</b> is <b>Maria</b> (the person actually logged in). The system preserves full authorship even when someone covers for another. Keep March 8 in mind — the next two stories happen on it.<br><br><span class="design-note"><span class="dn-label">Design note:</span> Operator links directly to User through an optional FK, while BranchUser owns login authority. Callers cannot change/remove their own membership (a dedicated 409); serialized fresh-role checks preserve the last-active-Admin invariant. Removing branch membership atomically clears every matching Operator.UserId in that branch but preserves the Operator row, history, reporting, and account assignments. Each User can have at most one active linked Operator per Branch (filtered unique index on (BranchId, UserId) where UserId is not null and Active is true). A Member with no usable operator/account setup can create a pending operator-link request; managers see the queue count and bounded request list, link/create the operator using existing contracts, then resolve with the actual account state. Resolution never grants an account. Member invitations may pre-select an active unlinked operator; acceptance creates/reactivates membership and links it in the same transaction, preserving assignments. Invitation capabilities are hashed, expiring and replaced on reissue; reissue can clear/replace a Member preselection that became unavailable without changing email, branch or role; existing accounts accept only as the matching identity, while new accounts register and join atomically. Public register/create remain until M8 Phase 6 operated-onboarding cutover; platform, Google and production mail acceptance are still open.</span>',
    activeTables:['Operator','Branch','User'],
    activeArrows:['op-branch','op-user'],
    data:[
@@ -746,8 +746,8 @@ function renderTitle(i){
 
 function renderSchema(i){
   const groups=[
-    {name:'Auth',color:'var(--blue)',entities:['User','RefreshToken','BranchUser','Branch']},
-    {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account']},
+    {name:'Auth',color:'var(--blue)',entities:['User','RefreshToken','BranchUser','Branch','PasswordResetToken','RecoveryThrottle','Invitation']},
+    {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account','OperatorLinkRequest']},
     {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client','IdempotencyRequest']},
     {name:'Closing',color:'var(--purple)',entities:['DailyClose','DailyCloseItem','Product']},
     {name:'HR',color:'var(--teal)',entities:['TimeEntry','TimeEntrySegment','TimeEntryPolicy','Holiday','Setting']}

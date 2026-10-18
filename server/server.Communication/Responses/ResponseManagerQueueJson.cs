@@ -12,6 +12,7 @@ public class ResponseManagerQueueJson
     public DateTime Date { get; init; }
     public decimal TotalVariance { get; init; }
     public decimal MeanVariance { get; init; }
+    public int PendingOperatorLinkRequestCount { get; init; }
     public int PendingApprovalCount { get; init; }
     public IReadOnlyList<ResponseManagerQueueCloseJson> Closes { get; init; } = [];
     public IReadOnlyList<ResponseManagerQueueNotSubmittedJson> NotSubmitted { get; init; } = [];

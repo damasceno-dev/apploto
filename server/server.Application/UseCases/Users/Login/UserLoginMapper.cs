@@ -9,7 +9,8 @@ public static class UserLoginMapper
     {
         return new ResponseUserLoginJson
         {
-            Name = user.Name,
+            UserId = user.Id,
+                Name = user.Name,
             Email = user.Email,
             ResponseToken = new ResponseTokenJson
             {

@@ -413,7 +413,8 @@ public class GetManagerQueueUseCaseTest
             ctx.TransactionsRepository,
             ctx.CashVarianceProductResolver,
             new LockDateReader(ctx.SettingsRepository),
-            ctx.BranchClock);
+            ctx.BranchClock,
+            Substitute.For<IOnboardingRepository>());
     }
 
     private static TestContext BuildContext(

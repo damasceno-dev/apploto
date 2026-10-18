@@ -1,3 +1,4 @@
+using server.Application.Services.Security;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -10,19 +11,25 @@ namespace server.Application.UseCases.BranchUsers.UpdateRole;
 public class UpdateBranchUserRoleUseCase(
     IAuthenticationService authenticationService,
     IBranchUsersRepository branchUsersRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    ISecurityCoordination coordination)
 {
     public async Task<ResponseUpdateBranchUserRoleJson> Execute(Guid branchUserId, RequestUpdateBranchUserRoleJson request)
     {
         Validate(branchUserId, request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
+        await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.BranchKey(authenticatedBranchUser.BranchId));
+        authenticatedBranchUser = await SecurityRules.FreshActor(branchUsersRepository, authenticatedBranchUser);
         var targetBranchUser = await branchUsersRepository.GetById(branchUserId);
 
         if (targetBranchUser is null || targetBranchUser.Active is false || targetBranchUser.BranchId != authenticatedBranchUser.BranchId)
         {
             throw new NotFoundException(ResourcesErrorMessages.BRANCH_USER_NOT_FOUND);
         }
+
+        if (targetBranchUser.UserId == authenticatedBranchUser.UserId)
+            throw new ConflictException(ResourcesErrorMessages.BRANCH_USER_SELF_MEMBERSHIP_CONFLICT);
 
         var targetRole = request.Role!.Value;
         if (BranchUserPermissionRules.CanManageRole(authenticatedBranchUser.Role, targetBranchUser.Role, targetRole) is false)
@@ -34,6 +41,7 @@ public class UpdateBranchUserRoleUseCase(
 
         targetBranchUser.Role = targetRole;
         await unitOfWork.Commit();
+        await scope.Complete();
 
         return targetBranchUser.ToUpdateResponse();
     }

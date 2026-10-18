@@ -792,4 +792,27 @@
     <data name="TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID" xml:space="preserve">
         <value>A forma de recebimento de fiado informada é inválida</value>
     </data>
+  <data name="BRANCH_USER_SELF_MEMBERSHIP_CONFLICT" xml:space="preserve"><value>Você não pode alterar o próprio cargo nem remover o próprio vínculo com a lotérica.</value></data>
+  <data name="SECURITY_COORDINATION_BUSY" xml:space="preserve"><value>Outra alteração de acesso está em andamento. Tente novamente.</value></data>
+  <data name="PROFILE_NAME_INVALID" xml:space="preserve"><value>Informe um nome com até 255 caracteres.</value></data>
+  <data name="SECURITY_TOKEN_INVALID" xml:space="preserve"><value>O código é inválido, expirou ou já foi utilizado.</value></data>
+  <data name="SECURITY_TOKEN_EMPTY" xml:space="preserve"><value>Informe um código válido.</value></data>
+  <data name="SECURITY_CURRENT_PASSWORD_REQUIRED" xml:space="preserve"><value>Informe a senha atual.</value></data>
+  <data name="SECURITY_REFRESH_TOKEN_REQUIRED" xml:space="preserve"><value>Informe o token de renovação.</value></data>
+  <data name="OPERATOR_REQUEST_CONFLICT" xml:space="preserve"><value>Já existe uma solicitação de vínculo pendente.</value></data>
+  <data name="OPERATOR_REQUEST_NOT_NEEDED" xml:space="preserve"><value>Seu vínculo já possui uma conta disponível.</value></data>
+  <data name="OPERATOR_REQUEST_NOT_FOUND" xml:space="preserve"><value>Solicitação de vínculo não encontrada.</value></data>
+  <data name="OPERATOR_REQUEST_SETUP_REQUIRED" xml:space="preserve"><value>Vincule um operador ativo antes de resolver a solicitação.</value></data>
+  <data name="INVITATION_PENDING_CONFLICT" xml:space="preserve"><value>Já existe um convite pendente para este e-mail nesta lotérica.</value></data>
+  <data name="INVITATION_NOT_FOUND" xml:space="preserve"><value>Convite não encontrado.</value></data>
+  <data name="INVITATION_EMAIL_MISMATCH" xml:space="preserve"><value>Entre com a conta correspondente ao e-mail do convite.</value></data>
+  <data name="INVITATION_OPERATOR_ROLE_INVALID" xml:space="preserve"><value>Somente convites de membro podem indicar um operador.</value></data>
+  <data name="INVITATION_OPERATOR_UNAVAILABLE" xml:space="preserve"><value>O operador indicado não está disponível para este convite.</value></data>
+  <data name="INVITATION_ALREADY_ACCEPTED" xml:space="preserve"><value>Este convite já foi aceito.</value></data>
+  <data name="INVITATION_MEMBERSHIP_EXISTS" xml:space="preserve"><value>Esta pessoa já possui vínculo ativo com a lotérica.</value></data>
+  <data name="SECURITY_LIST_INVALID" xml:space="preserve"><value>Informe filtros válidos, página entre 1 e 1000000 e tamanho entre 1 e 100.</value></data>
+  <data name="SECURITY_EMAIL_MAX_LENGTH" xml:space="preserve"><value>O e-mail deve ter até 255 caracteres.</value></data>
+  <data name="SECURITY_PASSWORD_MAX_LENGTH" xml:space="preserve"><value>A senha deve ter até 72 bytes em UTF-8.</value></data>
+  <data name="SECURITY_RATE_LIMITED" xml:space="preserve"><value>Muitas tentativas. Aguarde e tente novamente.</value></data>
+  <data name="INVITATION_TARGET_UNAVAILABLE" xml:space="preserve"><value>Não é possível convidar esta conta. Verifique o cadastro da pessoa.</value></data>
 </root>

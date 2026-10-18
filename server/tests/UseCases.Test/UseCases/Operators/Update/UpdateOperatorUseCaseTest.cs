@@ -1,3 +1,4 @@
+using server.Domain.Entities.Enums;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -19,7 +20,7 @@ public class UpdateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldUpdateName_WhenValidRequestWithoutUserId()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).WithName("Old Name").Build();
         var request = new RequestUpdateOperatorJsonBuilder()
             .WithName("New Name")
@@ -51,7 +52,7 @@ public class UpdateOperatorUseCaseTest
     public async Task Execute_ShouldLinkUserId_WhenGuardPasses()
     {
         var targetUserId = Guid.NewGuid();
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
         var request = new RequestUpdateOperatorJsonBuilder()
             .WithUserId(targetUserId)
@@ -81,7 +82,7 @@ public class UpdateOperatorUseCaseTest
     public async Task Execute_ShouldSucceed_WhenUserIdIsUnchanged()
     {
         var targetUserId = Guid.NewGuid();
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithUserId(targetUserId)
@@ -114,7 +115,7 @@ public class UpdateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldUnlinkUserId_WhenUserIdIsNull()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithUserId(Guid.NewGuid())
@@ -146,7 +147,7 @@ public class UpdateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldThrowOnValidationException_WhenOperatorIdIsEmpty()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var request = new RequestUpdateOperatorJsonBuilder().Build();
 
         var authenticationService = new AuthenticationServiceBuilder()
@@ -167,7 +168,7 @@ public class UpdateOperatorUseCaseTest
     [Fact]
     public async Task Execute_ShouldThrowNotFoundException_WhenOperatorNotInBranch()
     {
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var operatorId = Guid.NewGuid();
         var request = new RequestUpdateOperatorJsonBuilder().Build();
 
@@ -194,7 +195,7 @@ public class UpdateOperatorUseCaseTest
     public async Task Execute_ShouldPropagateGuardException_WhenLinkedUserIsNotLinkable()
     {
         var targetUserId = Guid.NewGuid();
-        var branchUser = new BranchUserBuilder().Build();
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
         var op = new OperatorBuilder().WithBranchId(branchUser.BranchId).Build();
         var request = new RequestUpdateOperatorJsonBuilder()
             .WithUserId(targetUserId)
@@ -228,7 +229,7 @@ public class UpdateOperatorUseCaseTest
         IOperatorUserLinkGuard operatorUserLinkGuard,
         IUnitOfWork unitOfWork)
     {
-        return new UpdateOperatorUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork);
+        return new UpdateOperatorUseCase(authenticationService, operatorsRepository, operatorUserLinkGuard, unitOfWork, SecurityCoordinationBuilder.Build(), new BranchUsersRepositoryBuilder().FreshActor(authenticationService).Build());
     }
 
     private static IOperatorUserLinkGuard CreateOperatorUserLinkGuard()
