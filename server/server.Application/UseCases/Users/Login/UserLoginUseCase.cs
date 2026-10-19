@@ -17,6 +17,8 @@ public class UserLoginUseCase(
     PasswordEncryption passwordEncryption,
     ISecurityCoordination coordination)
 {
+    private static readonly string UnavailableAccountHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString());
+
     public async Task<ResponseUserLoginJson> Execute(RequestUserLoginJson request)
     {
         Validate(request);
@@ -40,17 +42,17 @@ public class UserLoginUseCase(
 
     private User VerifyUserAndPassword(User? user, string requestPassword)
     {
-        if (user is null || !user.Active)
-        {
-            throw new InvalidLoginException(ResourcesErrorMessages.EMAIL_NOT_REGISTERED);
-        }
-
-        if (passwordEncryption.VerifyPassword(requestPassword, user.Password) is false)
+        // Verify one BCrypt hash even for unavailable accounts so response time does not
+        // trivially distinguish them from a wrong password on an active account.
+        var usable = user is { Active: true } && !string.IsNullOrEmpty(user.Password);
+        var passwordMatches = passwordEncryption.VerifyPassword(requestPassword,
+            usable ? user!.Password : UnavailableAccountHash);
+        if (!usable || !passwordMatches)
         {
             throw new InvalidLoginException(ResourcesErrorMessages.PASSWORD_WRONG);
         }
 
-        return user;
+        return user!;
     }
 
     private static void Validate(RequestUserLoginJson request)

@@ -52,24 +52,18 @@ public class BranchTokenScopeTest(ServerWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task AddUser_ShouldRejectGlobalToken_AndAcceptBranchToken()
+    public async Task LegacyAddUser_ShouldBeUnavailableForBothTokenScopes()
     {
         var (user, _, _, branchToken) = await factory.SeedFullBranchContextAsync("ScopeAddUser");
         var globalToken = factory.IssueGlobalToken(user);
         var targetUser = await factory.SeedUserAsync();
-        var request = new RequestAddBranchUserJsonBuilder()
-            .WithUserId(targetUser.Id)
-            .WithEmail(null)
-            .WithRole(Role.Member)
-            .Build();
+        var request = new { userId = targetUser.Id, role = Role.Member };
 
         var rejected = await _client.PostAuthAsync("/branch/users", request, globalToken);
-        rejected.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        var rejectedPayload = await rejected.ReadContentAsync<TestResponseErrorJson>();
-        rejectedPayload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
+        rejected.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
 
         var accepted = await _client.PostAuthAsync("/branch/users", request, branchToken);
-        accepted.StatusCode.ShouldBe(HttpStatusCode.OK);
+        accepted.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
     }
 
     [Fact]

@@ -20,6 +20,30 @@ public sealed class AccountSecurityHttpTest(ServerWebApplicationFactory factory)
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
+    public async Task Login_ShouldNotDiscloseMissing_Inactive_OrPasswordlessAccounts()
+    {
+        var active = await factory.SeedUserAsync();
+        var inactive = await factory.SeedUserAsync();
+        var passwordless = await factory.SeedUserAsync();
+        await factory.UpdateDb(async db =>
+        {
+            (await db.Users.FindAsync(inactive.Id))!.Active = false;
+            (await db.Users.FindAsync(passwordless.Id))!.Password = string.Empty;
+        });
+        var responses = new List<string>();
+        foreach (var email in new[] { $"missing-{Guid.NewGuid():N}@example.invalid", inactive.Email,
+                     passwordless.Email, active.Email })
+        {
+            using var response = await _client.PostAsJsonAsync("/user/login", new RequestUserLoginJson
+            { Email = email, Password = "WrongPassword123" });
+            response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+            responses.Add(await response.Content.ReadAsStringAsync());
+        }
+        responses.Distinct().Count().ShouldBe(1);
+        responses[0].ShouldContain(ResourcesErrorMessages.PASSWORD_WRONG);
+    }
+
+    [Fact]
     public async Task Profile_ShouldUseIdentity_ExposeOnlySafeFields_AndChangeOnlyName()
     {
         var user = await factory.SeedUserAsync();
@@ -28,13 +52,15 @@ public sealed class AccountSecurityHttpTest(ServerWebApplicationFactory factory)
         using var read = await _client.GetAuthAsync("/user/profile", identity);
         read.StatusCode.ShouldBe(HttpStatusCode.OK);
         using var document = JsonDocument.Parse(await read.Content.ReadAsStringAsync());
-        document.RootElement.EnumerateObject().Select(p => p.Name).Order().ShouldBe(["email", "name", "userId"]);
-        using var update = await _client.PutAuthAsync("/user/profile", new { name = "  Nome atualizado  ", email = "forged@example.invalid" }, identity);
+        document.RootElement.EnumerateObject().Select(p => p.Name).Order().ShouldBe(["email", "hasPassword", "isPlatformOperator", "name", "userId"]);
+        using var update = await _client.PutAuthAsync("/user/profile", new { name = "  Nome atualizado  ", email = "forged@example.invalid", isPlatformOperator = true }, identity);
         update.StatusCode.ShouldBe(HttpStatusCode.OK);
         var profile = await update.ReadContentAsync<ResponseUserProfileJson>();
         profile.UserId.ShouldBe(user.Id);
         profile.Name.ShouldBe("Nome atualizado");
         profile.Email.ShouldBe(user.Email);
+        profile.IsPlatformOperator.ShouldBeFalse();
+        profile.HasPassword.ShouldBeTrue();
         (await factory.ReloadAsync<User>(user.Id))!.Name.ShouldBe(profile.Name);
         using var invalid = await _client.PutAuthAsync("/user/profile", new { name = " " }, identity);
         invalid.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

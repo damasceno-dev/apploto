@@ -74,6 +74,7 @@ public sealed class InvitationWorkflow(
     {
         if (!BranchUserPermissionRules.CanAssignRole(actor.Role, role)) throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
     }
+    public TimeSpan InvitationLifetime => options.InvitationLifetime;
     public DateTime Now() => time.GetUtcNow().UtcDateTime;
     public static ConflictException InvalidToken() => new(ResourcesErrorMessages.SECURITY_TOKEN_INVALID);
     public static NotFoundException NotFound() => new(ResourcesErrorMessages.INVITATION_NOT_FOUND);

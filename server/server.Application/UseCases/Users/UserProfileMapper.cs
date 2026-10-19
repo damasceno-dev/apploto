@@ -7,6 +7,6 @@ public static class UserProfileMapper
 {
     extension(User user)
     {
-        public ResponseUserProfileJson ToProfileResponse() => new() { UserId = user.Id, Name = user.Name, Email = user.Email };
+        public ResponseUserProfileJson ToProfileResponse() => new() { UserId = user.Id, Name = user.Name, Email = user.Email, IsPlatformOperator = user.IsPlatformOperator, HasPassword = !string.IsNullOrEmpty(user.Password) };
     }
 }

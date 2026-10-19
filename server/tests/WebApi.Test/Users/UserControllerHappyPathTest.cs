@@ -14,21 +14,13 @@ public class UserControllerHappyPathTest(ServerWebApplicationFactory factory)
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Register_ShouldReturnCreatedWithTokens()
+    public async Task LegacyRegister_ShouldBeUnavailable()
     {
-        var request = new RequestUserRegisterJsonBuilder()
-            .WithEmail($"register-{Guid.NewGuid():N}@example.com")
-            .Build();
+        var request = new { email = $"register-{Guid.NewGuid():N}@example.com", name = "Registro antigo", password = "Password123" };
 
         var httpResponse = await _client.PostAsJsonAsync("/user/register", request);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var payload = await httpResponse.ReadContentAsync<ResponseUserRegisterJson>();
-        payload.Name.ShouldBe(request.Name);
-        payload.Email.ShouldBe(request.Email);
-        payload.ResponseToken.ShouldNotBeNull();
-        payload.ResponseToken.Token.ShouldNotBeNullOrWhiteSpace();
-        payload.ResponseToken.RefreshToken.ShouldNotBeNullOrWhiteSpace();
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]

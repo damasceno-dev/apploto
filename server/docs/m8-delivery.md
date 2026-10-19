@@ -4,7 +4,7 @@
 
 2026-10-18: checkout `/Users/fernandodamasceno/Coding/apploto/Project`, `main`, initial HEAD `d095262488523d949032011ec67e6638013acf5f`, initial `git status --short` empty. That commit includes accepted S06 round-3 fixes and the older Claude design candidate; no visual lock follows from inclusion. Stage 0 closes S06 1.6/5.2 using the actual local clone evidence in Shared's existing delivery note. This delivery owns server code/migrations/tests, local-only SMTP capture, canonical docs and semantic product/screens reconciliation, and generated Shared input/raw/query clients. Root dependency/lockfile changes only if technically necessary; none planned. No staging/commit/push/deploy or branch/worktree mutation.
 
-Selected items are M8 1.1–1.4, 2.1–2.5, 3.1–3.5, 4.1–4.4, 5.1–5.5 in `milestones.md`. Complete implementation and meaningful PostgreSQL/HTTP/SMTP/contract checks are required before implementation ticks; 1.4 stays open until independent Claude acceptance. This note records the implementation delivery and its evidence; it does not claim independent acceptance. Phase 6 closes legacy public register and unrestricted branch create together with operated onboarding; they remain available now. Phase 7 implements real Google validation. Phase 8 owns production provider and full launch close-out. Gap C, Google/platform, uncataloged design 0.4.6 and full M8 remain open.
+This opening section records the historical Phases 1–5 delivery at `d095262`; its then-future Phase 6/7 statements describe that baseline, not the current server. Selected items were M8 1.1–1.4, 2.1–2.5, 3.1–3.5, 4.1–4.4 and 5.1–5.5 in `milestones.md`. The current Phase 6/7 candidate and its remaining acceptance gates are recorded below. Independent technical and semantic acceptance of both M8 batches was recorded by the 2026-10-18 repeat review; Phase 8/provider/launch acceptance remains open.
 
 ## Phase 1 technical contract (selected before editing runtime code)
 
@@ -81,7 +81,7 @@ Safe reset boundary: dispose only the test-owned PostgreSQL/Mailpit containers. 
 
 ## Final delivery and validation — 2026-10-18
 
-Implementation delivered for **1.1–1.3, 2.1–2.5, 3.1–3.5, 4.1–4.4 and 5.1–5.4**. Item **1.4** remains unchecked because independent Claude plan/implementation/semantic acceptance has not happened. Composite **5.5** remains unchecked only for the actual repository documentary gate that depends on 1.4; its completed runtime/export/HTML/regression subcriteria are checked explicitly. All other selected implementation items have current evidence. Stage 0 S06 **1.6/5.2** are checked on the previously committed actual source clone, with historical review evidence preserved in Shared's existing note. Phases 6–8 and whole M8 completion remain unchecked.
+Implementation delivered for **1.1–1.3, 2.1–2.5, 3.1–3.5, 4.1–4.4 and 5.1–5.4**. At that first delivery, item **1.4** and composite **5.5** remained unchecked pending independent review and the actual repository documentary gate. The later accepted repeat review and v54 doc-sync close-out are recorded below. All other selected implementation items have current evidence. Stage 0 S06 **1.6/5.2** are checked on the previously committed actual source clone, with historical review evidence preserved in Shared's existing note. Phases 6–8 and whole M8 completion remain unchecked.
 
 ### Current command results
 
@@ -138,11 +138,11 @@ From `server/server.Application`, final command:
 
 ### Contract source and reproducibility
 
-Source baseline: `d095262488523d949032011ec67e6638013acf5f` plus this uncommitted M8 candidate. Canonical revision: **v53**. Source/landing hash for this new delivery: **pending future authorized commit**; no self-referential hash is asserted. Actual OpenAPI input SHA-256: `fcfe94155a72246a11c0a103c760524f9f80dd1164f61c75351bef4455de15b9` (**87 paths, 118 operations, 186 schemas**; 8 anonymous, 8 identity and 102 branch operations). Login carries required authenticated `UserId`; request self-status has an explicit nullable wrapper; reissue has its intentional optional DTO body. Existing transport numeric/enum/nullability/required header guarantees remain pinned.
+The historical Phases 1–5 candidate began at `d095262488523d949032011ec67e6638013acf5f` and subsequently landed in `9ea777cdb5376f5f6396de65bfba39db41ae91ee`; that commit also carried separate M9.5 evidence, not independent M8 acceptance. Its canonical revision was **v53**. Its OpenAPI input SHA-256 was `fcfe94155a72246a11c0a103c760524f9f80dd1164f61c75351bef4455de15b9` (**87 paths, 118 operations, 186 schemas**; 8 anonymous, 8 identity and 102 branch operations). Login carried required authenticated `UserId`; request self-status had an explicit nullable wrapper; reissue had its intentional optional DTO body. Existing transport numeric/enum/nullability/required header guarantees were pinned.
 
-Generated tree SHA-256: `a401811614fe34dbb68ff9da383c929e2fd531b46985aa587f9d8c844c43b4e8` over **255 files**. Recipe: sort **relative path strings** under `shared/api/src/generated/` ordinally, emit UTF-8 `<file-sha256>  <relative-path>\n` for each file, then SHA-256 the complete bytes. Actual export/generation commands produced every generated file; no DTO/client was hand-edited. Header boundary has 110 separated merges and zero lossy merges. The root/query split, injected token provider, no automatic retry, typed errors and abort behavior remain green. A fresh clone of this uncommitted candidate is not claimed; the actual-commit fresh clone belongs to Stage 0 only.
+Generated tree SHA-256 at that delivery: `a401811614fe34dbb68ff9da383c929e2fd531b46985aa587f9d8c844c43b4e8` over **255 files**. Recipe: sort **relative path strings** under `shared/api/src/generated/` ordinally, emit UTF-8 `<file-sha256>  <relative-path>\n` for each file, then SHA-256 the complete bytes. Actual export/generation commands produced every generated file; no DTO/client was hand-edited. Header boundary had 110 separated merges and zero lossy merges. The root/query split, injected token provider, no automatic retry, typed errors and abort behavior were green. The original delivery did not claim a fresh clone of its then-uncommitted candidate; the actual-commit fresh clone belongs to S06 Stage 0 only.
 
-### Remaining acceptance, operational risks and handoff
+### Phases 1–5 handoff recorded before Phase 6–7 work
 
 1. Claude independently inspects the checkout/diff, implementation and semantic v53 reconciliation. **1.4 remains open.** Fix findings and repeat review before acceptance; no review transcript/approval is fabricated.
 2. Only after that acceptance, update both product/screens markers from v52 to v53, run the **actual** `bash docs/check-loto-doc-sync.sh` and `bash docs/test-loto-doc-sync.sh` to green, then record accepted 1.4 and complete 5.5 evidence in a small documentary close-out diff for review. Current mismatch is exactly the two design markers; the checker reports product first. No visual approval/lock follows from the older committed Claude candidate.
@@ -371,73 +371,282 @@ M shared/docs/milestones.md
 ```
 
 
-## Proposed repository-style commit message (not executed)
+## SV11 Phase 6–7 technical plan — source baseline 9ea777c (2026-10-18)
+
+Initial checkout: `Project`, branch `main`, HEAD `9ea777cdb5376f5f6396de65bfba39db41ae91ee`, clean. This commit carries the Phase 1–5 implementation and the separate M9.5 evidence update. S06 actual-commit closure remains recorded; no new independent M8 acceptance was supplied by that commit or the M9.5 review. Items 1.4/5.5 and both v52 design markers remain pending combined Claude review. Selected implementation: 6.1–6.3, 7.1 and the technical scenarios within 7.2; genuine provider acceptance and Phase 8 remain separate gates. M9.5 evidence and shop-answer gates are preserved.
+
+Ownership/files: Domain user/platform/provider/challenge/onboarding records and pure ports; Communication DTOs; Application operation use cases/validators and shared seed/invitation primitives; Infrastructure repositories/configuration/verifier/migration; API platform guard, thin controllers and derived OpenAPI metadata; server-owned executable CLI; real PostgreSQL/HTTP/SMTP/CLI and isolated protocol tests; canonical three-file v54 plus semantic product/screens reconciliation; actual S06 export/generated clients. No app UI, Shared M3, design tokens, reporting or financial formula changes.
+
+Contract/acceptance selected before runtime edits:
+
+- Platform flag defaults false; profile exposes read-only capability. `PlatformOperator` is an authoritative identity-tier guard with explicit OpenAPI platform restriction metadata, never a new bearer tier or tenant role. `POST /platform/onboarding` accepts a required request UUID, branch/owner fields and bounded optional setup; 201 on first create, 200 repeat for identical actor/request/content, 409 changed repeat. `GET /platform/onboarding/{requestId}` and `POST .../reissue-owner-invitation` expose only the operated record and owner invitation metadata; platform authority grants no branch membership/session/data. Missing/false/revoked authority 403; unknown record 404. All mutation conflicts use pt-BR resources.
+- One application onboarding use case atomically creates the branch, existing default seed factory output, explicit optional terminals/paired Tabs/additional products/operators/assignments and pending Admin invitation. No initial member is required. A persisted request identity/hash prevents duplicate branches after an uncertain response; mail is post-commit with existing truthful delivery policy. Reissue replaces the owner capability, preserving the branch. Advisory keys include request, caller email, owner email and branch, all globally sorted; fresh authority is checked under the caller account key.
+- CLI supports explicit `Development`/`Staging`, an explicit PostgreSQL target and JSON request file, read-only inspect/dry-run, separately explicit platform grant/revoke, onboarding and owner reissue. It uses the same Application use cases and real configured infrastructure, never an API seed route or fake branch Admin. `--demo-data` is CLI-only, requires an `@example.invalid` owner and otherwise empty optional setup, and supplies only fake terminal/paired Tab/product/operator structure. Normal stdout contains ids/bounded statuses, no passwords/capabilities/connection strings. Tests use only owned disposable databases/capture.
+- Remove actual `POST /user/register`, `POST /branch/create` and `POST /branch/users` actions; unsupported URLs return normal routing 404/405. Other reads/membership/session contracts stay. Refactor fixture bootstrap to explicit test-owned seeds/application seams. Generated functions disappear through actual export/generation.
+- `POST /user/google/challenge` is anonymous and returns a five-minute UUID/nonce/state challenge. Persist only nonce/state hashes, server UTC expiry and consumption. `POST /user/google/sign-in` accepts challenge UUID/state, ID token, optional invitation capability/name/current password; returns ordinary `ResponseUserLoginJson`. JSON/body transport, client-held state and Google-bound nonce, single consumption and default no cross-origin/cookie authentication prevent callback/token replay; future app adapters must retain their own challenge and pass nonce to Google. No redirect-cookie GIS endpoint is introduced. Both routes use existing bounded anonymous rate limiting.
+- Real verifier uses Google's `Google.Apis.Auth` ID-token validation library with its trusted Google certificates, issuer/audience/signature/lifetime checks, then requires verified email and a challenge-bound nonce. Only configured client audiences are variable; missing audiences disable with resource 503, invalid assertions 401, provider outage 503. An injected verifier supports isolated application tests; configuration never selects a test verifier or arbitrary issuer/JWKS endpoint. No live Google login is performed.
+- Unique stable `(issuer, subject)` provider identity and one Google identity per user; safe-null local `EmailVerifiedAt`. Legacy users are not backfilled verified. Successful invitation acceptance/recovery proves local email. First link to an existing unverified password account requires current password; non-Google-authoritative email also requires password. New Google account creation requires a matching valid invitation; existing linked users use stable subject even if provider email changes. Inactive accounts/collisions/mismatched invites fail without partial membership/link/session. Google-only users have no usable password until secure recovery establishes one. Session issue, provider link, challenge consumption and optional invitation join commit atomically under shared account/branch/provider/challenge coordination.
+- Verify fresh/upgrade/backfill/Down limitations, concurrent repeats/acceptance/provider links/reset/renewal, trigger rollback and no-tenant authority; run full existing suites and systemic auth/snapshot/generated transport gates. At this planning stage, the canonical v54/design v52 mismatch remained explicit pending independent combined semantic acceptance; the later accepted review and marker close-out are recorded below, without a full-M8/provider readiness claim.
+
+Primary protocol references: [Google server verification](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token), [Google nonce/state client contract](https://developers.google.com/identity/gsi/web/reference/js-reference), [Google .NET ID-token validator](https://cloud.google.com/dotnet/docs/reference/Google.Apis/latest/Google.Apis.Auth.GoogleJsonWebSignature). These justify trusted JWT validation, stable subject and explicit proof for legacy/non-authoritative email rather than decoding a caller assertion.
+
+## SV11 Phase 6–7 implementation and local acceptance (2026-10-18)
+
+The source baseline was clean `main` at `9ea777cdb5376f5f6396de65bfba39db41ae91ee`. During this work the coordinator landed `a326b4d` for Design M1, changing only `design/docs/decisions.md`, `design/docs/milestones.md` and the Claude reference manifest/readme. It did not change the M8 source; this delivery did not stage, commit, switch branch, merge or alter those four paths. The preceding M8 Phases 1–5 candidate is in `9ea777c` but 1.4/5.5 independent acceptance was not recorded by that commit. S06 1.6/5.2 real-commit clone evidence remains in the Shared note. M9.5 legacy evidence and shop-answer gates were left intact.
+
+**Behavior and security boundary.** `IsPlatformOperator` upgrades false for every legacy account and cannot be set by an API DTO. Platform HTTP and the CLI call the same `OperateBranchUseCase`; a request UUID + actor + canonical content hash gives 201 once, 200 on identical repeat, 409 on changed repeat. The single database transaction writes branch/default seeds/explicit optional setup/pending hashed owner Admin invitation and the idempotency record. Local SMTP acceptance is attempted after commit; failed or uncertain delivery is visible and owner reissue replaces the capability without cloning the branch. The platform caller receives no membership or branch token. The three actual public bootstrap POST actions are removed; `POST /branch/users` is 405 because its GET sibling remains, while register/create POSTs are 404. There is no development-only public escape route.
+
+`POST /user/google/challenge` and `/sign-in` keep state and nonce hashes, server-UTC five-minute expiry and single use. The production verifier uses `Google.Apis.Auth` with fixed Google trust and configured audiences; no test verifier is selected by configuration. An injected verifier drives local application/HTTP scenarios only. Existing password accounts require current-password proof unless both recorded local mailbox proof and Google Gmail/Workspace authority exist. A stable linked subject signs in through the ordinary identity/refresh envelope; unknown subjects create accounts only through a matching invitation. Passwordless Google-created accounts cannot use password login or current-password change until the existing recovery path establishes a local password. All changed membership and refresh-session authority remains database-backed.
+
+**Disposable local journey.** The `OperatedOnboardingHttpTest` fixture starts a private PostgreSQL Testcontainer, applies the real migration, creates a fake platform identity and fake `@example.invalid` owner, then calls `POST /platform/onboarding`. Immediate observations are a single seeded branch with zero memberships, Pending owner Admin invitation and captured local capability; the platform identity's `/branch/my-branches` is empty and `/branch/session` for that branch is denied. Over-posted platform/role/membership fields cannot change that result. `POST /invitation/register` with the captured capability creates the owner's identity/membership, and a new branch session succeeds. The same fixture launches `dotnet server/server.Cli/bin/Debug/net10.0/server.Cli.dll onboard --environment Development --connection <test-container-connection> --actor-user-id <fake-platform-user-id> --request-file <test-owned-json> --execute`, then repeats that UUID by HTTP and observes the identical branch. `set-platform` without `--execute` writes nothing; grant enables the route and revoke denies it immediately. `--demo-data` with an `@example.invalid` owner first runs without `--execute` (zero writes), then with it (one fake Terminal/paired Tab/product/operator, no financial ledger or payment-method claim). A concurrent duplicate request creates one branch/invitation; a database trigger rejecting the invitation insert rolls back branch/seeds/request identity, and a retry after removing the test trigger succeeds. Expired owner-invite reissue invalidates the prior capability. The test fixture disposes only its own database/capture; no shared database reset or real SMTP delivery occurs.
+
+`GoogleSignInHttpTest` is explicitly **TEST-ONLY** at the verifier boundary: it exercises actual HTTP/PostgreSQL transaction behavior for password proof, stable subject, identity/refresh renewal, invitation-only new account, replay, unverified email, wrong state/nonce, invitation mismatch and two subjects racing to link one password account. `GoogleVerifierBoundaryTest` directly exercises the production adapter's no-audience fail-closed path and malformed/unsigned rejection without contacting Google. These scenarios do **not** prove a real Google project, consent screen, client audience, rotating certificate fetch or live login. The local mail capture likewise proves no production sender/domain/DNS acceptance.
+
+**Migration and compatibility.** `20261018165353_M8OperatedOnboardingAndGoogleIdentity` adds nullable `Users.EmailVerifiedAt`, false-default `Users.IsPlatformOperator`, unique `(Issuer,Subject)` and `UserId` Google link indexes, unique hashed challenge state/nonce indexes and unique operated request/branch/invitation indexes with restricted FKs. Upgrade from the pre-M8 schema preserves the old normalized account/refresh session and leaves legacy email proof null/platform authority false; fresh Testcontainer migrations and EF model check pass. A disposable database test applies the new migration and downgrades to `20261018040013_M8AccountSecurityAndInvitations`, confirming the three new tables/two columns disappear. `Down` therefore loses newly recorded provider/onboarding/proof state; it is a schema rollback, not a reversible identity-data migration. No financial schema, variance or FIFO rule changes.
+
+**Shared/document ownership.** Canonical v54 is in all three project-level files. Independent repeat review accepted both M8 batches technically and semantically; product/screens reconciliation and both `Synced against loto-specs` markers now align at v54. The actual `bash docs/check-loto-doc-sync.sh` exits 0 and `bash docs/test-loto-doc-sync.sh` passes all 34 scenarios. Items 1.4 and composite 5.5 are checked in the owning milestone; this documentary close-out diff remains available for its separate review. This candidate closes gap C's backend escape paths and implements N/U/V backend contracts, but uncataloged design 0.4.6, production providers, owner visual direction and launch readiness remain open.
+
+**Phase 8 operator/provider acceptance checklist (all open):** configure a real trusted application URL, sender address and SMTP transport only under later deployment authorization; verify sender domain SPF/DKIM/DMARC and received-link behavior with approved recipient fixtures; define retry/monitoring for uncertain SMTP acceptance and bounded in-memory queue loss; create a real Google OAuth client/consent project with exact web/mobile audiences and origin policy, configure `GoogleIdentity:ClientIds` through secrets and verify a live signed ID token and account link/renewal without logging tokens; review token/session/key rotation, rate limits, retained challenge/refresh data and audit/alerting; complete the 0.4.6 invite/profile/recovery/Google/Plataforma/owner-checklist UI catalog and real app acceptance; perform the remaining Phase 8 security/provider and launch review. None of these is inferred from local adapters or checked as complete here.
+
+## SV11 validation ledger and remaining gates
+
+| Exact command or focused fixture | Result on this candidate |
+|---|---|
+| `dotnet build server/server.sln --no-restore -v:q` | Exit 0; zero errors and six pre-existing EF1002 warnings in older migration tests. |
+| `dotnet test server/tests/Validators.Test --no-build -v:q`; `dotnet test server/tests/UseCases.Test --no-build -v:q` | 344/344 and 1148/1148 passed after the final server build. |
+| `dotnet test server/tests/WebApi.Test --no-build -v:n > /private/tmp/loto-m8-final-webapi.log 2>&1` | Final exact-tree run exits 0: **1231/1231** WebApi/architecture tests in 4m22s. One preceding quiet run had 1230/1231 with an older `CloseReviewEventsMigrationTest` failure; that test passed 1/1 when isolated, and the full diagnostic rerun passed. The quiet output did not retain the first failure detail, so no cause is asserted. |
+| Focused `OperatedOnboardingHttpTest`, `GoogleSignInHttpTest`, `GoogleVerifierBoundaryTest`, `M8SecurityMigrationTest` filters | Real PostgreSQL/HTTP/CLI/capture scenarios passed, including concurrent duplicate, trigger rollback/retry, CLI parity/demo/grant/revoke, Google link races and removed membership, adapter malformed/unsigned fail-closed, upgrade/backfill and Down. The final over-post and verifier pair passed 2/2. |
+| `dotnet ef migrations has-pending-model-changes --project server.Infrastructure --startup-project server.API --no-build` in `server/` | Exit 0; no pending model changes. Fresh migration application is exercised by the full disposable HTTP fixture. |
+| `CI=true pnpm install --frozen-lockfile`; `pnpm typecheck`; `pnpm lint`; `pnpm format:check`; `pnpm test` | All exit 0 with the exact lockfile; 103/103 Shared tests, 244 hook-free root modules and no generated retry. Initial sandboxed offline install could not find a cached tarball; the allowed frozen install succeeded without lockfile changes. |
+| `pnpm --filter @loto/api export:openapi`; `pnpm --filter @loto/api generate`; root/package `export:check` and `generate:check` | Exit 0. Candidate input SHA-256 `e903b801be1db602d6e02ec505c4ae2a48888d869f58af7c3af50b26f5e11d48` (90 paths, 120 operations, 186 schemas); 257-file generated tree SHA-256 `115efe12e51f58f0ae3decd7a4d9b9059386130d076a35320dee07f637dadad6`. Landing hash awaits an authorized commit. |
+| Inert Release build without `OpenApiGenerateDocuments=true`; CLI `--help` and refused `Production` target | Zero exported documents by default; help exits 0; Production request exits 1 before any database contact. |
+| `node --check` on extracted scripts from both canonical HTML files; `git diff --check` | All scripts parse; whitespace clean. |
+| `bash docs/check-loto-doc-sync.sh`; `bash docs/test-loto-doc-sync.sh` | After independent semantic acceptance, actual repository markers align at v54: checker exit 0 and all 34 baseline regression scenarios pass. The prior v52-marker failure is historical pre-review evidence. |
+
+Items **1.4** and composite **5.5** are now closed by the accepted combined review and actual v54 doc-sync checks. The remaining selected gate is **7.2/7.2.2** genuine Google project/consent/client/live-provider acceptance. Phase 8 sender/DNS/monitoring, 0.4.6 UI and whole-M8/launch acceptance remain open. No real credentials, outbound messages, device login, deployment, stage or commit are claimed.
+
+## SV11 repeat-review correction and first-operator procedure
+
+The technical repeat review inspected the Phase 6–7 candidate on `main` at `a326b4d937543e0a243bd1c5aac8204090cee24f` and found two blocking issues: an empty migrated database had no way to acquire its first platform operator after public registration closed, and password login disclosed whether an account existed. The correction adds no public bootstrap or grant route and changes no financial rules or existing M8 migration.
+
+`bootstrap-platform --name --email` now checks the database under a global PostgreSQL advisory transaction lock. Only zero users, or exactly one active platform user with the same normalized email/name and still no password or recorded email proof, are eligible. It creates a passwordless platform user and a hashed 256-bit, UTC-expiring password-reset capability in one commit. The existing SMTP adapter then sends a trusted application link; a send failure is reported and the command can replace the token only for that still-unactivated sole account. The normal `/user/reset-password` path consumes the capability, sets the password, records email proof and revokes sessions. The CLI never accepts or prints a password or capability. Dry-run validates the payload and reads current database eligibility without writing. Operated-onboarding dry-run validates the full request and the actor's fresh platform flag. Both CLI and API use the same bounded `AccountSecurity` URL/lifetime parser. CLI process tests resolve the actual built CLI project reference, including from a separate output tree.
+
+For Development/Staging, an operator sets `LOTO_CLI_AccountSecurity__ApplicationUrl` and the local SMTP capture settings, migrates an owned database, then runs `dotnet run --project server/server.Cli/server.Cli.csproj -- bootstrap-platform --environment Development --connection <owned-disposable-connection> --name <operator-name> --email <fake-address@example.invalid>` to preview; `--execute` commits and attempts delivery. The captured `reset-password#token=` capability is sent to `/user/reset-password` with a new password. The operator can then log in and use the ordinary platform onboarding workflow. The disposable `FirstPlatformOperatorCliTest` performs this full journey, including a failed-delivery retry and a configured seven-minute lifetime. No production sender is inferred from local Mailpit.
+
+Production bootstrap uses the **same** command only after Phase 8 approves the sender, trusted HTTPS application URL, target database and recipient. Its exact gated invocation is `dotnet run --project server/server.Cli/server.Cli.csproj -- bootstrap-platform --environment Production --allow-production-bootstrap --connection-env LOTO_BOOTSTRAP_DB --name "$LOTO_OPERATOR_NAME" --email "$LOTO_OPERATOR_EMAIL" --execute`, with the connection string supplied only through the named environment variable, plus approved `LOTO_CLI_AccountSecurity__ApplicationUrl`, `LOTO_CLI_SecurityMail__Enabled=true`, TLS SMTP host/port/from/auth settings and `LOTO_CLI_SecurityMail__LocalCapture=false`. The command rejects ordinary Production operations, a Production connection on the command line, disabled/plaintext mail and non-HTTPS application links. This is a documented procedure, **not** evidence that a real sender, recipient or production environment was configured or exercised.
+
+Password login now returns the same pt-BR 401 resource for missing, inactive, wrong-password and passwordless accounts, with one BCrypt verification on each path to reduce the obvious timing distinction. The HTTP test compares their exact serialized error bodies. Login throttling is explicitly still Phase 8.1. Retired `UserRegisterUseCase`, `CreateBranchUseCase` and `AddBranchUserUseCase`, their validators/mappers/unused DTOs and tests are gone; the internal `BranchBootstrap` and its seed fixture remain. Google sign-in has a dedicated validator and tested post-library identity policy, while challenge creation purges expired rows. No live Google provider acceptance is claimed.
+
+The prior SV11 generated-tree entry used path-object sorting and was wrong. Recomputing all 257 generated files by ordinal **relative path string**, hashing each file and then hashing the UTF-8 `<sha256>  <relative-path>\n` lines yields `115efe12e51f58f0ae3decd7a4d9b9059386130d076a35320dee07f637dadad6`. This correction is recorded in both this note and Shared's milestone note. The OpenAPI input/clients are unchanged by the review fixes; the landing commit hash still awaits a separately authorized commit.
+
+Canonical v54 and the derived presentation/ERD describe the first-operator path and generic login behavior; product/screens reconcile those backend facts. The clean independent repeat review accepted both M8 batches technically and semantically. Both design markers now read **v54**; the actual doc-sync checker and all 34 regressions pass. Items 1.4 and 5.5 are checked, while 7.2/7.2.2 and 8.1–8.2 stay open for genuine provider, UI and launch evidence.
+
+### Repeat-review correction validation
+
+This correction started from `main` at `a326b4d937543e0a243bd1c5aac8204090cee24f` with the prior Phase 6–7 candidate already staged (109 paths) and no unstaged files. The index was preserved; every correction below remains unstaged. `dotnet build server/server.sln --no-restore -m:1 -nr:false -v q` passes with zero errors and six existing EF1002 warnings in older integration fixtures. After that ordinary build, `dotnet test server/tests/Validators.Test/Validators.Test.csproj --no-build --no-restore -m:1 -nr:false -v q` passes **328/328** and the corresponding `UseCases.Test.csproj` command passes **1144/1144**. A real disposable PostgreSQL/Mailpit first-operator test covers an empty migrated database, no-write preview, failed-delivery retry, hashed capability with the configured seven-minute lifetime, reset/login and successful platform onboarding by the activated operator. Its separately built CLI path is resolved from the project reference, not a hard-coded in-tree binary.
+
+Targeted Stryker mutation testing of `BootstrapPlatformOperatorUseCase` and `UserLoginUseCase` killed **56/56 runnable selected mutants**, with no survivors or no-coverage mutants; one block-removal mutant could not compile and seven mutants were ignored by the scope/filter. This is targeted evidence, not a whole-server score. Tests strengthened the single-account retry guard, validation rejection and transaction completion assertions; the unavailable-account dummy BCrypt hash was made non-equivalent to an ordinary hard-coded password. The ordinary build above restored unmutated outputs after Stryker.
+
+`dotnet test server/tests/WebApi.Test/WebApi.Test.csproj --no-build --no-restore -m:1 -nr:false -v q` passes **1237/1237** in 4m46s on the final code, including architecture, real PostgreSQL migrations/HTTP, CLI process and local Mailpit capture. The separate-output CLI project-reference regression also passes 1/1 with `BaseOutputPath=/private/tmp/loto-sv13-cli-scratch/`. The frozen workspace install, recursive typecheck/lint/format/test (103 Shared tests), both-directory `generate:check` and `export:check`, default export-disabled build, migration model check, HTML script parse and 34 disposable doc-checker regressions passed earlier in this same correction after the API/Shared source changes; the later mutation-driven source change was confined to the login dummy BCrypt hash and unit assertions, with the final server build and three suites repeated above. `git diff --check` and `git diff --cached --check` pass. At the correction stage before independent review, the repository doc-sync checker failed only for the deliberate canonical v54/design v52 marker gate; after the accepted semantic review and marker update it exits 0, with 34/34 regression scenarios passing. No live SMTP sender or Google provider was exercised.
+
+## M8 repeat-review acceptance and documentary close-out (2026-10-18)
+
+The independent repeat review inspected a disposable clone of `a326b4d` plus the unchanged 109-path staged candidate, the 58-path unstaged correction and nine new files. It reproduced and accepted every P2/P3 finding and the three earlier P4 suggestions, with build, 328 Validator, 1144 UseCase, 1237 WebApi/architecture, separate-output CLI, EF-model, Shared generation/export and HTML checks passing. The reviewer explicitly accepted **both M8 batches, Phases 1–5 and 6–7, technically and semantically**, without claiming business-owner, provider, UI or launch acceptance. The review's optional P4 suggestions are non-blocking future refinements and were not mixed into this documentary close-out.
+
+The reviewed canonical v54 spec, presentation and ERD and the semantically reconciled product/screens now share v54 markers. On this checkout, `bash docs/check-loto-doc-sync.sh` exits **0** and `bash docs/test-loto-doc-sync.sh` passes the baseline plus **34/34** disposable checker scenarios. Owning milestone items **1.4** and **5.5**, including its actual-repository doc-sync sub-item, are checked on that evidence. The Phase 6–7 landing commit hash remains pending a separately authorized commit; no self-reference is recorded here. **7.2/7.2.2, 8.1 and 8.2 remain unchecked** for live Google, production sender/abuse controls, UI handoff and whole-M8/launch acceptance. The documentary close-out is left as a diff for independent review, without staging or committing it.
+
+## SV11 exact changed/new-file inventory (Phase 6–7 candidate at first delivery)
+
+At inventory capture: 69 changed tracked paths (including deletions) and 41 new paths; `git diff --cached --name-only` is empty. `M`, `D` and `A` denote modified, deleted and new. Generated OpenAPI/client paths are actual generator output, not hand edits. The later Design M1 commit is HEAD-only and absent from this working-tree inventory.
+
+Changed tracked paths:
+```text
+M	design/docs/product.md
+M	design/docs/screens.md
+M	docs/loto-specs.md
+M	docs/loto_entity_relationship_diagram.html
+M	docs/loto_presentation.html
+M	server/docs/m8-delivery.md
+M	server/docs/milestones.md
+M	server/server.API/ApiDependencyInjection.cs
+M	server/server.API/Controllers/BranchController.cs
+M	server/server.API/Controllers/UserController.cs
+M	server/server.API/OpenApi/OperationSecurityOpenApiOperationTransformer.cs
+M	server/server.API/OpenApi/OperationTokenRequirementResolver.cs
+M	server/server.Application/AppDependencyInjection.cs
+M	server/server.Application/Services/Security/InvitationWorkflow.cs
+M	server/server.Application/UseCases/Branches/Create/CreateBranchUseCase.cs
+M	server/server.Application/UseCases/Invitations/Accept/AcceptInvitationUseCase.cs
+M	server/server.Application/UseCases/Invitations/Register/RegisterInvitationUseCase.cs
+M	server/server.Application/UseCases/Users/ChangePassword/ChangeUserPasswordUseCase.cs
+M	server/server.Application/UseCases/Users/Login/UserLoginUseCase.cs
+M	server/server.Application/UseCases/Users/ResetPassword/ResetUserPasswordUseCase.cs
+M	server/server.Application/UseCases/Users/UserProfileMapper.cs
+M	server/server.Communication/Responses/ResponseUserProfileJson.cs
+M	server/server.Domain/Entities/User.cs
+M	server/server.Exceptions/ResourcesErrorMessages.Designer.cs
+M	server/server.Exceptions/ResourcesErrorMessages.resx
+M	server/server.Infrastructure/Configurations/UserConfiguration.cs
+M	server/server.Infrastructure/InfraDependencyInjection.cs
+M	server/server.Infrastructure/Migrations/ServerDbContextModelSnapshot.cs
+M	server/server.Infrastructure/ServerDbContext.cs
+M	server/server.Infrastructure/server.Infrastructure.csproj
+M	server/server.sln
+M	server/tests/WebApi.Test/AccountSecurity/AccountSecurityHttpTest.cs
+M	server/tests/WebApi.Test/AccountSecurity/EmailNormalizationHttpTest.cs
+M	server/tests/WebApi.Test/AccountSecurity/M8LocalAcceptanceJourneyTest.cs
+M	server/tests/WebApi.Test/Architecture/ArchitectureTest.cs
+M	server/tests/WebApi.Test/Branches/BranchGlobalControllerHappyPathTest.cs
+M	server/tests/WebApi.Test/Branches/BranchScopedControllerHappyPathTest.cs
+M	server/tests/WebApi.Test/Branches/BranchScopedControllerUnhappyPathTest.cs
+M	server/tests/WebApi.Test/Branches/BranchTokenScopeTest.cs
+M	server/tests/WebApi.Test/Branches/Create/CreateBranchSeedPersistenceTest.cs
+M	server/tests/WebApi.Test/Infrastructure/M8SecurityMigrationTest.cs
+M	server/tests/WebApi.Test/Infrastructure/ServerWebApplicationFactory.cs
+M	server/tests/WebApi.Test/Infrastructure/TestSeeder.cs
+M	server/tests/WebApi.Test/OpenApi/M8AccountSecurityOpenApiContractTest.cs
+M	server/tests/WebApi.Test/OpenApi/OperationSecurityOpenApiContractTest.cs
+M	server/tests/WebApi.Test/OpenApi/Snapshots/openapi-contract-surface.txt
+M	server/tests/WebApi.Test/Serialization/NamedEnumRequestValidationTest.cs
+M	server/tests/WebApi.Test/Users/UserControllerHappyPathTest.cs
+M	shared/api/openapi/server-api.openapi.json
+M	shared/api/scripts/export-openapi.ts
+M	shared/api/src/contract-checks/account-security-fidelity.ts
+M	shared/api/src/generated/endpoints/branch/branch.ts
+M	shared/api/src/generated/endpoints/index.ts
+M	shared/api/src/generated/endpoints/user/user.ts
+M	shared/api/src/generated/model/index.ts
+D	shared/api/src/generated/model/requestAddBranchUserJson.ts
+D	shared/api/src/generated/model/requestCreateBranchJson.ts
+D	shared/api/src/generated/model/requestUserRegisterJson.ts
+D	shared/api/src/generated/model/responseAddBranchUserJson.ts
+D	shared/api/src/generated/model/responseCreateBranchJson.ts
+M	shared/api/src/generated/model/responseUserProfileJson.ts
+D	shared/api/src/generated/model/responseUserRegisterJson.ts
+M	shared/api/src/generated/operations/operations.ts
+M	shared/api/src/generated/queries/branch/branch.ts
+M	shared/api/src/generated/queries/index.ts
+M	shared/api/src/generated/queries/user/user.ts
+M	shared/api/test/export-environment.test.ts
+M	shared/api/test/header-boundary.test.ts
+M	shared/docs/milestones.md
+```
+
+New paths:
+```text
+A	server/server.API/Controllers/PlatformController.cs
+A	server/server.API/Filters/TokenPlatformOperatorFilter.cs
+A	server/server.Application/Services/Security/BranchBootstrap.cs
+A	server/server.Application/UseCases/Platform/OperateBranch/OperateBranchFluentValidation.cs
+A	server/server.Application/UseCases/Platform/OperateBranch/OperateBranchUseCase.cs
+A	server/server.Application/UseCases/Platform/ReadOnboarding/ReadOperatedOnboardingUseCase.cs
+A	server/server.Application/UseCases/Platform/ReissueOwnerInvitation/ReissueOwnerInvitationUseCase.cs
+A	server/server.Application/UseCases/Users/Google/CreateGoogleChallengeUseCase.cs
+A	server/server.Application/UseCases/Users/Google/GoogleSignInUseCase.cs
+A	server/server.Cli/Program.cs
+A	server/server.Cli/server.Cli.csproj
+A	server/server.Communication/Requests/RequestGoogleSignInJson.cs
+A	server/server.Communication/Requests/RequestOperateBranchJson.cs
+A	server/server.Communication/Responses/ResponseGoogleChallengeJson.cs
+A	server/server.Communication/Responses/ResponseOperatedOnboardingJson.cs
+A	server/server.Domain/Entities/GoogleIdentity.cs
+A	server/server.Domain/Entities/GoogleLoginChallenge.cs
+A	server/server.Domain/Entities/OperatedOnboarding.cs
+A	server/server.Domain/Interfaces/IGoogleIdentityRepository.cs
+A	server/server.Domain/Interfaces/IGoogleIdentityVerifier.cs
+A	server/server.Domain/Interfaces/IOperatedOnboardingRepository.cs
+A	server/server.Exceptions/Exceptions/GoogleProviderUnavailableException.cs
+A	server/server.Infrastructure/Configurations/GoogleIdentityConfiguration.cs
+A	server/server.Infrastructure/Configurations/GoogleLoginChallengeConfiguration.cs
+A	server/server.Infrastructure/Configurations/OperatedOnboardingConfiguration.cs
+A	server/server.Infrastructure/Migrations/20261018165353_M8OperatedOnboardingAndGoogleIdentity.Designer.cs
+A	server/server.Infrastructure/Migrations/20261018165353_M8OperatedOnboardingAndGoogleIdentity.cs
+A	server/server.Infrastructure/Repositories/GoogleIdentityRepository.cs
+A	server/server.Infrastructure/Repositories/OperatedOnboardingRepository.cs
+A	server/server.Infrastructure/Services/GoogleIdentityVerifier.cs
+A	server/tests/WebApi.Test/AccountSecurity/GoogleSignInHttpTest.cs
+A	server/tests/WebApi.Test/AccountSecurity/GoogleVerifierBoundaryTest.cs
+A	server/tests/WebApi.Test/Platform/OperatedOnboardingHttpTest.cs
+A	shared/api/src/generated/endpoints/platform/platform.ts
+A	shared/api/src/generated/model/requestGoogleSignInJson.ts
+A	shared/api/src/generated/model/requestOnboardingOperatorJson.ts
+A	shared/api/src/generated/model/requestOnboardingTerminalJson.ts
+A	shared/api/src/generated/model/requestOperateBranchJson.ts
+A	shared/api/src/generated/model/responseGoogleChallengeJson.ts
+A	shared/api/src/generated/model/responseOperatedOnboardingJson.ts
+A	shared/api/src/generated/queries/platform/platform.ts
+```
+
+## SV11 repeat-review correction file inventory
+
+These paths are the review-fix delta relative to the earlier Phase 6–7 candidate. `M` means edited, `D` removed and `A` newly added. The preceding SV11 inventory records the first candidate separately.
 
 ```text
-Server M8 Phases 1–5 — feat(auth): account security, recovery and invitations
-
-SV10 + SV11: implement M8 1.1–1.3, 2.1–2.5, 3.1–3.5,
-4.1–4.4 and 5.1–5.4; deliver 5.5 runtime/contract evidence.
-Keep independent acceptance 1.4 and documentary 5.5 close-out open.
-
-Close Shared S06 1.6/5.2 using a clean local fresh clone of actual
-source commit d095262488523d949032011ec67e6638013acf5f, preserving
-round-3 review history and exact committed input/generated hashes.
-
-Return authenticated UserId on login. Add safe identity profile/name,
-confirmed password change and stable refresh-session logout. Reject
-self-membership role/removal separately from last-active-Admin rules.
-Serialize mutable branch/account authorization and refresh operations
-inside PostgreSQL transactions, rechecking queued actors and tokens.
-
-Add hashed, single-use UTC recovery and invitation capabilities;
-normalize email consistently with PostgreSQL and preflight legacy
-collisions. Revoke every active refresh session atomically on password
-change/reset. Backfill stable refresh-session ids and retain inactive
-rotation history so logout also revokes a racing successor.
-
-Provide an explicit MailKit SMTP boundary, bounded volatile recovery
-queue, truthful post-commit send outcomes and isolated loopback Mailpit.
-Use configured trusted links, target/IP throttles and no token logging,
-durable plaintext outbox, automatic mail retry or real recipients.
-Pin the newly introduced PKCS dependency to patched 10.0.13.
-
-Persist eligible Member operator-link requests, unique pending state,
-bounded Manager/Admin reads/resolution and the Work Queue count.
-Return actual Terminal-grant setup state without implicitly assigning
-accounts. Add role-scoped invitation issue/list/preview/reissue/decline,
-correct-identity acceptance and atomic new-user membership/pre-link.
-Allow safe preselection replacement on reissue; invalidate old tokens.
-
-Apply the M8 migration on fresh/upgraded disposable PostgreSQL and
-verify collision/commit rollback, single-use and authorization races,
-operator competition, removal history and real API-to-local-SMTP flows.
-Keep money/FIFO rules and the existing role matrix intact.
-
-Reconcile the canonical three-file group to v53 and product/screens
-semantics for shipped N/U/V contracts. Keep design markers at v52
-pending independent acceptance; C, operated onboarding, actual public
-bootstrap closure, Google and production provider remain future scope.
-Regenerate actual OpenAPI/raw/query clients through accepted S06 tools;
-preserve server-safe imports, token/header/error/abort/no-retry contracts.
-
-Validation:
-- actual d095262 fresh clone: frozen install, recursive checks, 91 tests,
-  generation/export from both directories; clean clone after checks
-- solution build: zero errors; six pre-existing migration-test warnings
-- Validators 344/344; UseCases 1148/1148; WebApi/architecture 1215/1215
-- targeted password/session mutations: 13/13 killed, 100%, Stryker 5.0.0
-- real PostgreSQL migration/race/rollback and actual local SMTP scenarios
-- no pending EF model changes; numeric/auth/enum/nullability snapshots
-- frozen pnpm install; recursive typecheck/lint/format; Shared 101/101
-- both-directory generation/export checks; default export stays disabled
-- input fcfe94155a72246a11c0a103c760524f9f80dd1164f61c75351bef4455de15b9
-- 255-file tree a401811614fe34dbb68ff9da383c929e2fd531b46985aa587f9d8c844c43b4e8
-- both canonical HTML scripts parse; 34 checker regressions pass in
-  disposable metadata-aligned fixtures; git diff --check passes
-- actual doc-sync/regression baseline intentionally fails v53/v52
-  until independent semantic review and documentary marker close-out
-
-No full-M8, launch, visual, Google or production-provider acceptance.
-New landing hash remains pending a separately authorized commit.
+M	design/docs/product.md
+M	design/docs/screens.md
+M	docs/loto-specs.md
+M	docs/loto_entity_relationship_diagram.html
+M	docs/loto_presentation.html
+M	server/docs/m8-delivery.md
+M	server/docs/milestones.md
+M	server/server.API/Configuration/AccountSecurityConfiguration.cs
+M	server/server.API/Controllers/PlatformController.cs
+M	server/server.API/Controllers/UserController.cs
+M	server/server.Application/AppDependencyInjection.cs
+A	server/server.Application/Services/Security/AccountSecurityOptionsFactory.cs
+M	server/server.Application/Services/Security/BranchBootstrap.cs
+D	server/server.Application/UseCases/BranchUsers/Add/AddBranchUserFluentValidation.cs
+D	server/server.Application/UseCases/BranchUsers/Add/AddBranchUserMapper.cs
+D	server/server.Application/UseCases/BranchUsers/Add/AddBranchUserUseCase.cs
+D	server/server.Application/UseCases/Branches/Create/CreateBranchFluentValidation.cs
+D	server/server.Application/UseCases/Branches/Create/CreateBranchMapper.cs
+D	server/server.Application/UseCases/Branches/Create/CreateBranchUseCase.cs
+A	server/server.Application/UseCases/Platform/Bootstrap/BootstrapPlatformOperatorUseCase.cs
+M	server/server.Application/UseCases/Platform/OperateBranch/OperateBranchFluentValidation.cs
+M	server/server.Application/UseCases/Users/Google/CreateGoogleChallengeUseCase.cs
+A	server/server.Application/UseCases/Users/Google/GoogleSignInFluentValidation.cs
+M	server/server.Application/UseCases/Users/Google/GoogleSignInUseCase.cs
+M	server/server.Application/UseCases/Users/Login/UserLoginUseCase.cs
+D	server/server.Application/UseCases/Users/Register/UserRegisterFluentValidation.cs
+D	server/server.Application/UseCases/Users/Register/UserRegisterMapper.cs
+D	server/server.Application/UseCases/Users/Register/UserRegisterUseCase.cs
+M	server/server.Cli/Program.cs
+D	server/server.Communication/Requests/RequestAddBranchUserJson.cs
+D	server/server.Communication/Requests/RequestUserRegisterJson.cs
+D	server/server.Communication/Responses/ResponseAddBranchUserJson.cs
+D	server/server.Communication/Responses/ResponseCreateBranchJson.cs
+D	server/server.Communication/Responses/ResponseUserRegisterJson.cs
+M	server/server.Domain/Interfaces/IGoogleIdentityRepository.cs
+M	server/server.Domain/Interfaces/IUsersRepository.cs
+M	server/server.Exceptions/ResourcesErrorMessages.Designer.cs
+M	server/server.Exceptions/ResourcesErrorMessages.resx
+M	server/server.Infrastructure/Repositories/GoogleIdentityRepository.cs
+M	server/server.Infrastructure/Repositories/UsersRepository.cs
+A	server/server.Infrastructure/Services/GoogleIdentityPolicy.cs
+M	server/server.Infrastructure/Services/GoogleIdentityVerifier.cs
+D	server/tests/CommonTestUtilities/Requests/RequestAddBranchUserJsonBuilder.cs
+D	server/tests/CommonTestUtilities/Requests/RequestUserRegisterJsonBuilder.cs
+A	server/tests/UseCases.Test/UseCases/AccountSecurity/AccountSecurityOptionsFactoryTest.cs
+A	server/tests/UseCases.Test/UseCases/AccountSecurity/BootstrapPlatformOperatorUseCaseTest.cs
+A	server/tests/UseCases.Test/UseCases/AccountSecurity/M8PlatformAndGoogleUseCaseTest.cs
+D	server/tests/UseCases.Test/UseCases/BranchUsers/Add/AddBranchUserUseCaseTest.cs
+D	server/tests/UseCases.Test/UseCases/Branches/Create/CreateBranchUseCaseTest.cs
+M	server/tests/UseCases.Test/UseCases/Users/Login/UserLoginUseCaseTest.cs
+D	server/tests/UseCases.Test/UseCases/Users/Register/UserRegisterUseCaseTest.cs
+A	server/tests/Validators.Test/AccountSecurity/M8PlatformAndGoogleValidatorsTest.cs
+D	server/tests/Validators.Test/BranchUsers/Add/AddBranchUserFluentValidationTest.cs
+D	server/tests/Validators.Test/Branches/Create/CreateBranchFluentValidationTest.cs
+D	server/tests/Validators.Test/Users/Register/UserRegisterFluentValidationTest.cs
+M	server/tests/WebApi.Test/AccountSecurity/AccountSecurityHttpTest.cs
+M	server/tests/WebApi.Test/AccountSecurity/GoogleSignInHttpTest.cs
+M	server/tests/WebApi.Test/AccountSecurity/GoogleVerifierBoundaryTest.cs
+M	server/tests/WebApi.Test/Branches/BranchScopedControllerHappyPathTest.cs
+M	server/tests/WebApi.Test/Branches/BranchScopedControllerUnhappyPathTest.cs
+M	server/tests/WebApi.Test/Branches/BranchTokenScopeTest.cs
+M	server/tests/WebApi.Test/Infrastructure/ServerWebApplicationFactory.cs
+A	server/tests/WebApi.Test/Platform/FirstPlatformOperatorCliTest.cs
+M	server/tests/WebApi.Test/Platform/OperatedOnboardingHttpTest.cs
+M	server/tests/WebApi.Test/Users/UserControllerHappyPathTest.cs
+M	server/tests/WebApi.Test/WebApi.Test.csproj
+M	shared/docs/milestones.md
 ```

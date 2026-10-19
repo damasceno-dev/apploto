@@ -5,115 +5,16 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  RequestGoogleSignInJson,
   RequestUserLoginJson,
-  RequestUserRegisterJson,
   RequestUserRenewTokenJson,
   ResponseErrorJson,
+  ResponseGoogleChallengeJson,
   ResponseTokenJson,
   ResponseUserLoginJson,
-  ResponseUserRegisterJson,
 } from '../../model';
 
 import { apiFetch } from '../../../client/fetch';
-
-export type postUserRegisterResponse201TextPlain = {
-  data: ResponseUserRegisterJson;
-  status: 201;
-};
-
-export type postUserRegisterResponse201ApplicationJson = {
-  data: ResponseUserRegisterJson;
-  status: 201;
-};
-
-export type postUserRegisterResponse201TextJson = {
-  data: ResponseUserRegisterJson;
-  status: 201;
-};
-
-export type postUserRegisterResponse400TextPlain = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postUserRegisterResponse400ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postUserRegisterResponse400TextJson = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postUserRegisterResponse409TextPlain = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postUserRegisterResponse409ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postUserRegisterResponse409TextJson = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postUserRegisterResponseSuccess = (
-  | postUserRegisterResponse201TextPlain
-  | postUserRegisterResponse201ApplicationJson
-  | postUserRegisterResponse201TextJson
-) & {
-  headers: Headers;
-};
-export type postUserRegisterResponseError = (
-  | postUserRegisterResponse400TextPlain
-  | postUserRegisterResponse400ApplicationJson
-  | postUserRegisterResponse400TextJson
-  | postUserRegisterResponse409TextPlain
-  | postUserRegisterResponse409ApplicationJson
-  | postUserRegisterResponse409TextJson
-) & {
-  headers: Headers;
-};
-
-export const getPostUserRegisterUrl = () => {
-  return `/user/register`;
-};
-
-export const postUserRegister = async (
-  requestUserRegisterJson: RequestUserRegisterJson,
-  options?: Parameters<typeof apiFetch>[1],
-): Promise<postUserRegisterResponseSuccess> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-  return apiFetch<postUserRegisterResponseSuccess>(getPostUserRegisterUrl(), {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    callerHeaders: options?.headers,
-    body: JSON.stringify(requestUserRegisterJson),
-  });
-};
 
 export type postUserLoginResponse200TextPlain = {
   data: ResponseUserLoginJson;
@@ -229,6 +130,253 @@ export const postUserLogin = async (
     headers: { 'Content-Type': 'application/json' },
     callerHeaders: options?.headers,
     body: JSON.stringify(requestUserLoginJson),
+  });
+};
+
+export type postUserGoogleChallengeResponse200TextPlain = {
+  data: ResponseGoogleChallengeJson;
+  status: 200;
+};
+
+export type postUserGoogleChallengeResponse200ApplicationJson = {
+  data: ResponseGoogleChallengeJson;
+  status: 200;
+};
+
+export type postUserGoogleChallengeResponse200TextJson = {
+  data: ResponseGoogleChallengeJson;
+  status: 200;
+};
+
+export type postUserGoogleChallengeResponse429TextPlain = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleChallengeResponse429ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleChallengeResponse429TextJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleChallengeResponse503TextPlain = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleChallengeResponse503ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleChallengeResponse503TextJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleChallengeResponseSuccess = (
+  | postUserGoogleChallengeResponse200TextPlain
+  | postUserGoogleChallengeResponse200ApplicationJson
+  | postUserGoogleChallengeResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postUserGoogleChallengeResponseError = (
+  | postUserGoogleChallengeResponse429TextPlain
+  | postUserGoogleChallengeResponse429ApplicationJson
+  | postUserGoogleChallengeResponse429TextJson
+  | postUserGoogleChallengeResponse503TextPlain
+  | postUserGoogleChallengeResponse503ApplicationJson
+  | postUserGoogleChallengeResponse503TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostUserGoogleChallengeUrl = () => {
+  return `/user/google/challenge`;
+};
+
+export const postUserGoogleChallenge = async (
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postUserGoogleChallengeResponseSuccess> => {
+  return apiFetch<postUserGoogleChallengeResponseSuccess>(getPostUserGoogleChallengeUrl(), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export type postUserGoogleSignInResponse200TextPlain = {
+  data: ResponseUserLoginJson;
+  status: 200;
+};
+
+export type postUserGoogleSignInResponse200ApplicationJson = {
+  data: ResponseUserLoginJson;
+  status: 200;
+};
+
+export type postUserGoogleSignInResponse200TextJson = {
+  data: ResponseUserLoginJson;
+  status: 200;
+};
+
+export type postUserGoogleSignInResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postUserGoogleSignInResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postUserGoogleSignInResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postUserGoogleSignInResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postUserGoogleSignInResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postUserGoogleSignInResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postUserGoogleSignInResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postUserGoogleSignInResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postUserGoogleSignInResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postUserGoogleSignInResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserGoogleSignInResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserGoogleSignInResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserGoogleSignInResponse429TextPlain = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleSignInResponse429ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleSignInResponse429TextJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleSignInResponse503TextPlain = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleSignInResponse503ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleSignInResponse503TextJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleSignInResponseSuccess = (
+  | postUserGoogleSignInResponse200TextPlain
+  | postUserGoogleSignInResponse200ApplicationJson
+  | postUserGoogleSignInResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postUserGoogleSignInResponseError = (
+  | postUserGoogleSignInResponse400TextPlain
+  | postUserGoogleSignInResponse400ApplicationJson
+  | postUserGoogleSignInResponse400TextJson
+  | postUserGoogleSignInResponse401TextPlain
+  | postUserGoogleSignInResponse401ApplicationJson
+  | postUserGoogleSignInResponse401TextJson
+  | postUserGoogleSignInResponse403TextPlain
+  | postUserGoogleSignInResponse403ApplicationJson
+  | postUserGoogleSignInResponse403TextJson
+  | postUserGoogleSignInResponse409TextPlain
+  | postUserGoogleSignInResponse409ApplicationJson
+  | postUserGoogleSignInResponse409TextJson
+  | postUserGoogleSignInResponse429TextPlain
+  | postUserGoogleSignInResponse429ApplicationJson
+  | postUserGoogleSignInResponse429TextJson
+  | postUserGoogleSignInResponse503TextPlain
+  | postUserGoogleSignInResponse503ApplicationJson
+  | postUserGoogleSignInResponse503TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostUserGoogleSignInUrl = () => {
+  return `/user/google/sign-in`;
+};
+
+export const postUserGoogleSignIn = async (
+  requestGoogleSignInJson: RequestGoogleSignInJson,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postUserGoogleSignInResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postUserGoogleSignInResponseSuccess>(getPostUserGoogleSignInUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    callerHeaders: options?.headers,
+    body: JSON.stringify(requestGoogleSignInJson),
   });
 };
 

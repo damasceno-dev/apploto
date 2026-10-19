@@ -18,7 +18,6 @@ using server.Application.UseCases.Reports.MonthlyReconciliation;
 using server.Application.UseCases.Reports.OpenChequeAging;
 using server.Application.UseCases.Reports.OperatorSummary;
 using server.Application.UseCases.Reports.TimeEntryBalance;
-using server.Application.UseCases.BranchUsers.Add;
 using server.Application.UseCases.BranchUsers.List;
 using server.Application.UseCases.BranchUsers.Remove;
 using server.Application.UseCases.BranchUsers.UpdateRole;
@@ -108,7 +107,6 @@ using server.Application.UseCases.DailyCloses.Review;
 using server.Application.UseCases.DailyCloses.Submit;
 using server.Application.UseCases.DailyCloses.VariancePreview;
 using server.Application.UseCases.Users.Login;
-using server.Application.UseCases.Users.Register;
 using server.Application.UseCases.Users.RenewToken;
 using server.Domain.Interfaces;
 
@@ -118,11 +116,9 @@ public static class AppDependencyInjection
 {
     public static void AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<AddBranchUserUseCase>();
         services.AddScoped<ListBranchUsersUseCase>();
         services.AddScoped<UpdateBranchUserRoleUseCase>();
         services.AddScoped<RemoveBranchUserUseCase>();
-        services.AddScoped<CreateBranchUseCase>();
         services.AddScoped<ListMyBranchesUseCase>();
         services.AddScoped<CreateBranchSessionUseCase>();
         services.AddScoped<GetCurrentBranchSummaryUseCase>();
@@ -246,9 +242,10 @@ public static class AppDependencyInjection
         services.AddScoped<GetManagerQueueUseCase>();
         services.AddScoped<GetOperatorTransactionSummaryUseCase>();
         services.AddScoped<GetTimeEntryBalanceSummaryUseCase>();
-        services.AddScoped<UserRegisterUseCase>();
         services.AddScoped<UserLoginUseCase>();
         services.AddScoped<UserRenewTokenUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.Google.CreateGoogleChallengeUseCase>();
+        services.AddScoped<server.Application.UseCases.Users.Google.GoogleSignInUseCase>();
         services.AddScoped<server.Application.UseCases.Users.GetProfile.GetUserProfileUseCase>();
         services.AddScoped<server.Application.UseCases.Users.UpdateProfile.UpdateUserProfileUseCase>();
         services.AddScoped<server.Application.UseCases.Users.ChangePassword.ChangeUserPasswordUseCase>();
@@ -269,6 +266,11 @@ public static class AppDependencyInjection
         services.AddScoped<server.Application.Services.Security.AccountPasswordUpdater>();
         services.AddScoped<server.Application.Services.Security.InvitationWorkflow>();
         services.AddScoped<server.Application.Services.Security.OperatorLinkRequestReader>();
+        services.AddScoped<server.Application.Services.Security.BranchBootstrap>();
+        services.AddScoped<server.Application.UseCases.Platform.OperateBranch.OperateBranchUseCase>();
+        services.AddScoped<server.Application.UseCases.Platform.Bootstrap.BootstrapPlatformOperatorUseCase>();
+        services.AddScoped<server.Application.UseCases.Platform.ReadOnboarding.ReadOperatedOnboardingUseCase>();
+        services.AddScoped<server.Application.UseCases.Platform.ReissueOwnerInvitation.ReissueOwnerInvitationUseCase>();
         services.AddScoped<PasswordEncryption>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
     }

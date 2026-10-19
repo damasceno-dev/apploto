@@ -25,6 +25,9 @@ internal sealed class OperationSecurityOpenApiOperationTransformer : IOpenApiOpe
             _ => [Requirement(SecuritySchemeNames.BranchBearer, requirement.Roles.Select(role => role.ToString()).ToList(), context)]
         };
 
+        if (requirement.RequiresPlatform)
+            operation.Description = string.Join("\n\n", new[] { operation.Description, "Requer operador da plataforma ativo; não concede acesso aos dados de nenhuma lotérica." }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
         return Task.CompletedTask;
     }
 

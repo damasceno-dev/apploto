@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v53
+Spec revision: v54
 -->
 <html lang="en">
 <head>
@@ -238,7 +238,7 @@ Spec revision: v53
     '\n' +
     '  User ||--o{ BranchUser : joins\n' +
     '  User ||--o{ RefreshToken : has\n' +
-    "  User ||--o{ PasswordResetToken : recovers\n" +
+    "  User ||--o{ PasswordResetToken : recoversAndActivatesFirstOperator\n" +
     "  Branch ||--o{ OperatorLinkRequest : scopes\n" +
     "  User ||--o{ OperatorLinkRequest : requests\n" +
     "  User o|--o{ OperatorLinkRequest : resolves\n" +
@@ -246,6 +246,10 @@ Spec revision: v53
     "  User ||--o{ Invitation : issues\n" +
     "  User o|--o{ Invitation : accepts\n" +
     "  Operator o|--o{ Invitation : preselects\n" +
+    "  Branch ||--o| OperatedOnboarding : initiatedByPlatform\n" +
+    "  User ||--o{ OperatedOnboarding : operates\n" +
+    "  Invitation ||--o| OperatedOnboarding : ownerInvite\n" +
+    "  User ||--o| GoogleIdentity : linked\n" +
     '  User o|--o{ Operator : "logs in as"\n' +
     '  User ||--o{ Transaction : "created by"\n' +
     '  User o|--o{ Transaction : "cancelled by"\n' +
@@ -307,6 +311,8 @@ Spec revision: v53
     '    string name\n' +
     '    string email\n' +
     '    string password\n' +
+    '    boolean isPlatformOperator\n' +
+    '    datetime emailVerifiedAt "nullable UTC"\n' +
     '  }\n' +
     '\n' +
     '  RefreshToken {\n' +
@@ -355,6 +361,30 @@ Spec revision: v53
     "    uuid acceptedByUserId FK\n" +
     "    datetime respondedAt \"nullable UTC\"\n" +
     "    unique pendingTarget \"active pending BranchId+Email\"\n" +
+    "  }\n" +
+    "\n" +
+    "  OperatedOnboarding {\n" +
+    "    uuid id PK\n" +
+    "    uuid requestId UK\n" +
+    "    uuid branchId FK\n" +
+    "    uuid platformUserId FK\n" +
+    "    uuid ownerInvitationId FK\n" +
+    "    string requestHash \"SHA-256\"\n" +
+    "  }\n" +
+    "\n" +
+    "  GoogleLoginChallenge {\n" +
+    "    uuid id PK\n" +
+    "    string stateHash UK\n" +
+    "    string nonceHash UK\n" +
+    "    datetime expiresAt \"UTC\"\n" +
+    "    datetime consumedAt \"nullable UTC\"\n" +
+    "  }\n" +
+    "\n" +
+    "  GoogleIdentity {\n" +
+    "    uuid id PK\n" +
+    "    uuid userId FK\n" +
+    "    string issuer \"Google canonical\"\n" +
+    "    string subject \"stable sub\"\n" +
     "  }\n" +
     "\n" +
     '  Operator {\n' +

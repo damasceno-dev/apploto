@@ -23,7 +23,7 @@ internal enum TokenTier
 
 /// <param name="Roles">For <see cref="TokenTier.Branch"/>: the roles every <c>[TokenAuthorize]</c> filter admits
 /// (empty = any branch role).</param>
-internal sealed record OperationTokenRequirement(TokenTier Tier, IReadOnlyList<Role> Roles);
+internal sealed record OperationTokenRequirement(TokenTier Tier, IReadOnlyList<Role> Roles, bool RequiresPlatform = false);
 
 /// <summary>
 /// Derives an operation's token requirement from the filters MVC actually runs for the action (global, controller and
@@ -64,6 +64,7 @@ internal static class OperationTokenRequirementResolver
         }
 
         var identity = 0;
+        var platform = 0;
         var branch = 0;
         var authorizedRoleSets = new List<HashSet<Role>>();
         foreach (var filter in action.FilterDescriptors.Select(descriptor => descriptor.Filter))
@@ -72,6 +73,9 @@ internal static class OperationTokenRequirementResolver
             {
                 case TokenFilter.Identity:
                     identity++;
+                    break;
+                case TokenFilter.Platform:
+                    platform++;
                     break;
                 case TokenFilter.Branch:
                     branch++;
@@ -86,7 +90,7 @@ internal static class OperationTokenRequirementResolver
         }
 
         var allowAnonymous = action.EndpointMetadata.OfType<IAllowAnonymous>().Any();
-        if (identity + branch + authorizedRoleSets.Count == 0)
+        if (identity + platform + branch + authorizedRoleSets.Count == 0)
         {
             return allowAnonymous
                 ? new OperationTokenRequirement(TokenTier.Anonymous, [])
@@ -101,7 +105,7 @@ internal static class OperationTokenRequirementResolver
                 "[AllowAnonymous], so the token is still required; remove one of the two declarations.");
         }
 
-        if (identity > 0 && branch + authorizedRoleSets.Count > 0)
+        if (identity + platform > 0 && branch + authorizedRoleSets.Count > 0)
         {
             // Observed, not assumed: the outcome depends on filter order and the per-request user cache (a branch filter
             // that runs first lets a branch token through the identity filter; the opposite order refuses both tokens).
@@ -110,8 +114,8 @@ internal static class OperationTokenRequirementResolver
                 "the per-request user cache, so the contract cannot state one tier; declare a single token tier.");
         }
 
-        if (identity > 0)
-            return new OperationTokenRequirement(TokenTier.Identity, []);
+        if (identity + platform > 0)
+            return new OperationTokenRequirement(TokenTier.Identity, [], platform > 0);
 
         if (authorizedRoleSets.Count == 0)
             return new OperationTokenRequirement(TokenTier.Branch, []);
@@ -128,6 +132,7 @@ internal static class OperationTokenRequirementResolver
     {
         None,
         Identity,
+        Platform,
         Branch,
         Authorize
     }
@@ -147,6 +152,8 @@ internal static class OperationTokenRequirementResolver
     {
         if (type == typeof(TokenAuthenticateFilter))
             return TokenFilter.Identity;
+        if (type == typeof(TokenPlatformOperatorFilter))
+            return TokenFilter.Platform;
         if (type == typeof(TokenAuthenticateBranchFilter))
             return TokenFilter.Branch;
         if (type == typeof(TokenAuthorizeFilter))

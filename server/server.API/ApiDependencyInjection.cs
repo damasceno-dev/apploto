@@ -48,8 +48,8 @@ public static class ApiDependencyInjection
                     Type = SecuritySchemeType.Http,
                     Scheme = "bearer",
                     BearerFormat = "JWT",
-                    Description = "Identity token (global scope) issued by POST /user/register, POST /user/login and " +
-                                  "POST /user/renew-token, sent as Authorization: Bearer. Used to create, list and open branches; " +
+                    Description = "Identity token (global scope) issued by POST /user/login, POST /invitation/register, POST /user/google/sign-in and " +
+                                  "POST /user/renew-token, sent as Authorization: Bearer. Used to list and open branches; " +
                                   "a branch token is refused."
                 };
                 document.Components.SecuritySchemes[SecuritySchemeNames.BranchBearer] = new OpenApiSecurityScheme

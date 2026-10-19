@@ -15,8 +15,17 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\server.API\server.API.csproj" />
+      <ProjectReference Include="..\..\server.Cli\server.Cli.csproj" ReferenceOutputAssembly="false" />
       <ProjectReference Include="..\CommonTestUtilities\CommonTestUtilities.csproj" />
     </ItemGroup>
+
+    <Target Name="RecordBuiltCliPath" AfterTargets="Build">
+      <MSBuild Projects="..\..\server.Cli\server.Cli.csproj" Targets="GetTargetPath"
+               Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+        <Output TaskParameter="TargetOutputs" ItemName="BuiltCliPath" />
+      </MSBuild>
+      <WriteLinesToFile File="$(TargetDir)built-cli-path.txt" Lines="@(BuiltCliPath)" Overwrite="true" />
+    </Target>
 
     <ItemGroup>
       <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.5" />

@@ -4,6 +4,7 @@ namespace server.Domain.Interfaces;
 
 public interface IUsersRepository
 {
+    Task<int> CountAll();
     Task<string> NormalizeEmail(string email);
     Task Register(User user);
     Task<bool> VerifyIfEmailAlreadyExists(string email);

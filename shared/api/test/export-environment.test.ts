@@ -17,6 +17,8 @@ describe('export child environment', () => {
     'accountsecurity:resetminutes',
     'DOTNET_AccountSecurity__InvitationHours',
     'ASPNETCORE_AccountSecurity__RecoveryCooldownSeconds',
+    'GoogleIdentity__ClientIds__0',
+    'DOTNET_GoogleIdentity__ClientIds__1',
     'Token__SigningKey',
     'TOKEN__SigningKey',
     'token:signingkey',
@@ -52,6 +54,7 @@ describe('export child environment', () => {
       'SecurityMail:Password': 'REAL-SMTP',
       DOTNET_SecurityMail__Host: 'real-smtp.example',
       AccountSecurity__ApplicationUrl: 'https://real-app.example/',
+      GoogleIdentity__ClientIds__0: 'REAL-CLIENT-ID',
       'accountsecurity:resetminutes': '999',
       'Token:ExpirationTimeInMinutes': '999',
       aspnetcore_environment: 'Development',
@@ -69,6 +72,7 @@ describe('export child environment', () => {
       AccountSecurity__ResetMinutes: '30',
       AccountSecurity__InvitationHours: '72',
       AccountSecurity__RecoveryCooldownSeconds: '60',
+      GoogleIdentity__ClientIds__0: 'openapi-export.invalid',
     });
     expect(JSON.stringify(child)).not.toMatch(/REAL|real-db|Development|999/);
   });

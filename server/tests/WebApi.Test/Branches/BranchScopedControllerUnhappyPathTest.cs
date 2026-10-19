@@ -72,21 +72,15 @@ public class BranchScopedControllerUnhappyPathTest(ServerWebApplicationFactory f
     }
 
     [Fact]
-    public async Task AddUser_ShouldReturn403_WhenManagerAssignsAdminRole()
+    public async Task LegacyAddUser_ShouldBeUnavailable_WhenManagerAssignsAdminRole()
     {
         var (_, _, _, managerToken) = await factory.SeedFullBranchContextAsync("AddForbidden", Role.Manager);
         var targetUser = await factory.SeedUserAsync();
-        var request = new RequestAddBranchUserJsonBuilder()
-            .WithUserId(targetUser.Id)
-            .WithEmail(null)
-            .WithRole(Role.Admin)
-            .Build();
+        var request = new { userId = targetUser.Id, role = Role.Admin };
 
         var httpResponse = await _client.PostAuthAsync("/branch/users", request, managerToken);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
     }
 
     [Fact]
@@ -189,22 +183,16 @@ public class BranchScopedControllerUnhappyPathTest(ServerWebApplicationFactory f
     // -------------------------------------------------------------------------
 
     [Fact]
-    public async Task AddUser_ShouldReturn409_WhenUserAlreadyHasActiveMembership()
+    public async Task LegacyAddUser_ShouldBeUnavailable_WhenUserAlreadyHasActiveMembership()
     {
         var (_, branch, _, adminToken) = await factory.SeedFullBranchContextAsync("AddConflict");
         var existingMember = await factory.SeedUserAsync();
         await factory.SeedBranchUserAsync(existingMember.Id, branch.Id, Role.Member);
-        var request = new RequestAddBranchUserJsonBuilder()
-            .WithUserId(existingMember.Id)
-            .WithEmail(null)
-            .WithRole(Role.Manager)
-            .Build();
+        var request = new { userId = existingMember.Id, role = Role.Manager };
 
         var httpResponse = await _client.PostAuthAsync("/branch/users", request, adminToken);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
-        payload.ErrorMessages.ShouldContain(ResourcesErrorMessages.BRANCH_USER_ALREADY_ACTIVE);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
     }
 
     [Fact]

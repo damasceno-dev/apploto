@@ -43,6 +43,6 @@ describe('committed generated output', () => {
 
   it('keeps no lossy merge and separates every one in both outputs', () => {
     expect(count('getHeaders(options?.headers)')).toBe(0);
-    expect(count('callerHeaders: options?.headers')).toBe(110);
+    expect(count('callerHeaders: options?.headers')).toBe(108);
   });
 });

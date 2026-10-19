@@ -28,7 +28,8 @@ public sealed class RegisterInvitationUseCase(
         workflow.RequirePending(invitation);
         if (await users.VerifyIfEmailAlreadyExists(invitation.Email))
             throw new ConflictException(ResourcesErrorMessages.EMAIL_ALREADY_REGISTERED);
-        var user = new User { Name = request.Name.Trim(), Email = invitation.Email, Password = passwords.HashPassword(request.Password), CreatedAt = workflow.Now() };
+        var user = new User { Name = request.Name.Trim(), Email = invitation.Email, Password = passwords.HashPassword(request.Password),
+            CreatedAt = workflow.Now(), EmailVerifiedAt = workflow.Now() };
         await users.Register(user);
         await workflow.Join(invitation, user);
         var refresh = refreshTokens.Generate();

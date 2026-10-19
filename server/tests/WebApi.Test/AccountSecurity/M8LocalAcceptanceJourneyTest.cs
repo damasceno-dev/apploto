@@ -35,9 +35,7 @@ public sealed class M8LocalAcceptanceJourneyTest(ServerWebApplicationFactory fac
         host.Services.GetRequiredService<ISecurityMailSender>().ShouldBeOfType<SmtpSecurityMailSender>();
         var (_, branch, _, admin) = await factory.SeedFullBranchContextAsync("M8LocalJourney");
         var email = $"journey-{Guid.NewGuid():N}@example.invalid";
-        using var bootstrap = await client.PostAsJsonAsync("/user/register", new RequestUserRegisterJson
-        { Email = email, Name = "Pessoa local", Password = TestSeeder.DefaultPassword });
-        bootstrap.StatusCode.ShouldBe(HttpStatusCode.Created); // Legacy local bootstrap remains until Phase 6.
+        await factory.SeedUserAsync(email, "Pessoa local");
         var login = await Login(client, email, TestSeeder.DefaultPassword);
         using var profile = await client.PutAuthAsync("/user/profile", new RequestUpdateProfileJson { Name = "Nome local atualizado" }, login.ResponseToken.Token);
         (await profile.ReadContentAsync<ResponseUserProfileJson>()).Name.ShouldBe("Nome local atualizado");
@@ -55,8 +53,7 @@ public sealed class M8LocalAcceptanceJourneyTest(ServerWebApplicationFactory fac
         using var reset = await client.PostAsJsonAsync("/user/reset-password", new RequestResetPasswordJson { Token = resetCapability, NewPassword = "ResetPassword123" });
         reset.StatusCode.ShouldBe(HttpStatusCode.NoContent);
         login = await Login(client, email, "ResetPassword123");
-        using var member = await client.PostAuthAsync("/branch/users", new RequestAddBranchUserJson { UserId = login.UserId, Role = Role.Member }, admin);
-        member.StatusCode.ShouldBe(HttpStatusCode.OK);
+        await factory.SeedBranchUserAsync(login.UserId, branch.Id, Role.Member);
         var branchSession = await Session(client, branch.Id, login.ResponseToken.Token);
         using var requested = await client.PostAuthAsync("/operator-link-request", branchSession);
         var linkRequest = await requested.ReadContentAsync<ResponseOperatorLinkRequestJson>();

@@ -48,11 +48,6 @@ enum TransactionTypeSystemRole string: FiadoCountedStockSaleCounterpart, FiadoCa
 
 ## schemas
 
-schema RequestAddBranchUserJson
-  email optional string?
-  role optional enum:Role?
-  userId optional string?
-
 schema RequestAddTimeEntrySegmentJson
   clockIn required string
   clockOut optional string?
@@ -71,12 +66,6 @@ schema RequestCreateBankAccountJson
   institution optional string?
   name required string
   number optional string?
-
-schema RequestCreateBranchJson
-  address optional string?
-  cnpj optional string?
-  name required string
-  phone optional string?
 
 schema RequestCreateBranchSessionJson
   branchId required string
@@ -169,6 +158,14 @@ schema RequestFinalizeInstallmentPlanJson
 schema RequestForgotPasswordJson
   email required string
 
+schema RequestGoogleSignInJson
+  challengeId required string
+  currentPassword optional string?
+  idToken required string
+  invitationToken optional string?
+  name optional string?
+  state required string
+
 schema RequestInstallmentPlanRowVersionJson
   transactionId required string
   version required integer|string
@@ -188,9 +185,28 @@ schema RequestLockSettingMonthJson
 schema RequestLogoutJson
   refreshToken required string
 
+schema RequestOnboardingOperatorJson
+  name required string
+  terminalIndexes required integer|string[]
+
+schema RequestOnboardingTerminalJson
+  name required string
+  pairedTabName optional string?
+
 schema RequestOpenDailyCloseJson
   accountId required string
   date required string
+
+schema RequestOperateBranchJson
+  additionalProducts required string[]
+  address optional string?
+  cnpj optional string?
+  name required string
+  operators required RequestOnboardingOperatorJson[]
+  ownerEmail required string
+  phone optional string?
+  requestId required string
+  terminals required RequestOnboardingTerminalJson[]
 
 schema RequestPairTabAccountJson
   tabAccountId required string
@@ -304,11 +320,6 @@ schema RequestUserLoginJson
   email required string
   password required string
 
-schema RequestUserRegisterJson
-  email required string
-  name required string
-  password required string
-
 schema RequestUserRenewTokenJson
   value required string
 
@@ -327,9 +338,6 @@ schema ResponseAccountJson
   tabAccountId optional string?
   terminalAccountId optional string?
   type required enum:AccountType
-
-schema ResponseAddBranchUserJson
-  branchUser required ResponseBranchUserJson
 
 schema ResponseAffectedDailyCloseSuccessorJson
   dailyCloseId required string
@@ -480,13 +488,6 @@ schema ResponseCreateAccountJson
   tabAccountId optional string?
   terminalAccountId optional string?
   type required enum:AccountType
-
-schema ResponseCreateBranchJson
-  address optional string?
-  cnpj optional string?
-  id required string
-  name required string
-  phone optional string?
 
 schema ResponseCreateBranchSessionJson
   branch required ResponseBranchSummaryJson
@@ -745,6 +746,12 @@ schema ResponseGetCurrentBranchSummaryJson
   branch required ResponseBranchSummaryJson
   branchLocalDate required string
   branchLocalDateTime required string
+
+schema ResponseGoogleChallengeJson
+  challengeId required string
+  expiresAt required string
+  nonce required string
+  state required string
 
 schema ResponseHolidayJson
   active required boolean
@@ -1058,6 +1065,16 @@ schema ResponseOpenChequeAgingRowJson
   transactionId required string
   value required number
 
+schema ResponseOperatedOnboardingJson
+  branchId required string
+  branchName required string
+  deliveryStatus required enum:MailDeliveryStatus
+  expiresAt required string
+  ownerEmail required string
+  ownerInvitationId required string
+  ownerInvitationStatus required enum:InvitationStatus
+  requestId required string
+
 schema ResponseOperatorAccountJson
   accountId required string
   accountInstitution optional string?
@@ -1262,13 +1279,10 @@ schema ResponseUserLoginJson
 
 schema ResponseUserProfileJson
   email required string
+  hasPassword required boolean
+  isPlatformOperator required boolean
   name required string
   userId required string
-
-schema ResponseUserRegisterJson
-  email required string
-  name required string
-  responseToken required ResponseTokenJson
 
 ## operations
 
@@ -1354,14 +1368,6 @@ operation DELETE /account/{accountId}
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
-operation POST /branch/create
-  security IdentityBearer[]
-  body required RequestCreateBranchJson
-  response 201 ResponseCreateBranchJson
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-
 operation GET /branch/current
   security BranchBearer[]
   response 200 ResponseGetCurrentBranchSummaryJson
@@ -1389,16 +1395,6 @@ operation GET /branch/users
   response 200 ResponseListBranchUsersJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
-
-operation POST /branch/users
-  security BranchBearer[Admin,Manager]
-  body required RequestAddBranchUserJson
-  response 200 ResponseAddBranchUserJson
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
 
 operation DELETE /branch/users/{branchUserId}
   security BranchBearer[Admin,Manager]
@@ -1883,6 +1879,34 @@ operation PUT /operator/{operatorId}/accounts/{accountId}/primary
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
 
+operation POST /platform/onboarding
+  security IdentityBearer[]
+  body required RequestOperateBranchJson
+  response 200 ResponseOperatedOnboardingJson
+  response 201 ResponseOperatedOnboardingJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /platform/onboarding/{requestId}
+  security IdentityBearer[]
+  path requestId required string
+  response 200 ResponseOperatedOnboardingJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /platform/onboarding/{requestId}/reissue-owner-invitation
+  security IdentityBearer[]
+  path requestId required string
+  response 200 ResponseOperatedOnboardingJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation GET /product
   security BranchBearer[]
   response 200 ResponseListProductsJson
@@ -2335,6 +2359,23 @@ operation POST /user/forgot-password
   response 400 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation POST /user/google/challenge
+  security none
+  response 200 ResponseGoogleChallengeJson
+  response 429 ResponseErrorJson
+  response 503 ResponseErrorJson
+
+operation POST /user/google/sign-in
+  security none
+  body required RequestGoogleSignInJson
+  response 200 ResponseUserLoginJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+  response 429 ResponseErrorJson
+  response 503 ResponseErrorJson
+
 operation POST /user/login
   security none
   body required RequestUserLoginJson
@@ -2365,13 +2406,6 @@ operation PUT /user/profile
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation POST /user/register
-  security none
-  body required RequestUserRegisterJson
-  response 201 ResponseUserRegisterJson
-  response 400 ResponseErrorJson
   response 409 ResponseErrorJson
 
 operation POST /user/renew-token

@@ -9,4 +9,6 @@ export interface ResponseUserProfileJson {
   userId: string;
   name: string;
   email: string;
+  isPlatformOperator: boolean;
+  hasPassword: boolean;
 }

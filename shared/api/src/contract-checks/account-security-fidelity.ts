@@ -19,7 +19,14 @@ export type AccountSecurityFidelityChecks = [
   Expect<Equal<IsNullable<RequestReissueInvitationJson['operatorId']>, true>>,
   Expect<Equal<IsOptional<ResponseUserLoginJson, 'userId'>, false>>,
   Expect<Equal<ResponseUserLoginJson['userId'], string>>,
-  Expect<Equal<keyof ResponseUserProfileJson, 'userId' | 'name' | 'email'>>,
+  Expect<
+    Equal<
+      keyof ResponseUserProfileJson,
+      'userId' | 'name' | 'email' | 'isPlatformOperator' | 'hasPassword'
+    >
+  >,
+  Expect<Equal<ResponseUserProfileJson['isPlatformOperator'], boolean>>,
+  Expect<Equal<ResponseUserProfileJson['hasPassword'], boolean>>,
   Expect<
     Equal<keyof ResponseInvitationPreviewJson, 'branchName' | 'role' | 'expiresAt' | 'operatorName'>
   >,

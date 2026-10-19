@@ -13,13 +13,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  RequestGoogleSignInJson,
   RequestUserLoginJson,
-  RequestUserRegisterJson,
   RequestUserRenewTokenJson,
   ResponseErrorJson,
+  ResponseGoogleChallengeJson,
   ResponseTokenJson,
   ResponseUserLoginJson,
-  ResponseUserRegisterJson,
 } from '../../model';
 
 import { apiFetch } from '../../../client/fetch';
@@ -31,169 +31,6 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
-export type postUserRegisterResponse201TextPlain = {
-  data: ResponseUserRegisterJson;
-  status: 201;
-};
-
-export type postUserRegisterResponse201ApplicationJson = {
-  data: ResponseUserRegisterJson;
-  status: 201;
-};
-
-export type postUserRegisterResponse201TextJson = {
-  data: ResponseUserRegisterJson;
-  status: 201;
-};
-
-export type postUserRegisterResponse400TextPlain = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postUserRegisterResponse400ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postUserRegisterResponse400TextJson = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postUserRegisterResponse409TextPlain = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postUserRegisterResponse409ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postUserRegisterResponse409TextJson = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postUserRegisterResponseSuccess = (
-  | postUserRegisterResponse201TextPlain
-  | postUserRegisterResponse201ApplicationJson
-  | postUserRegisterResponse201TextJson
-) & {
-  headers: Headers;
-};
-export type postUserRegisterResponseError = (
-  | postUserRegisterResponse400TextPlain
-  | postUserRegisterResponse400ApplicationJson
-  | postUserRegisterResponse400TextJson
-  | postUserRegisterResponse409TextPlain
-  | postUserRegisterResponse409ApplicationJson
-  | postUserRegisterResponse409TextJson
-) & {
-  headers: Headers;
-};
-
-export const getPostUserRegisterUrl = () => {
-  return `/user/register`;
-};
-
-export const postUserRegister = async (
-  requestUserRegisterJson: RequestUserRegisterJson,
-  options?: Parameters<typeof apiFetch>[1],
-): Promise<postUserRegisterResponseSuccess> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-  return apiFetch<postUserRegisterResponseSuccess>(getPostUserRegisterUrl(), {
-    ...options,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    callerHeaders: options?.headers,
-    body: JSON.stringify(requestUserRegisterJson),
-  });
-};
-
-export const getPostUserRegisterMutationKey = () => ['postUserRegister'] as const;
-
-export const getPostUserRegisterMutationOptions = <
-  TError = ErrorType<ResponseErrorJson>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof postUserRegister>>,
-    TError,
-    PostUserRegisterMutationVariables,
-    TContext
-  >;
-  request?: SecondParameter<typeof apiFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof postUserRegister>>,
-  TError,
-  PostUserRegisterMutationVariables,
-  TContext
-> => {
-  const mutationKey = getPostUserRegisterMutationKey();
-  const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
-      ? options
-      : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey }, request: undefined };
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof postUserRegister>>,
-    PostUserRegisterMutationVariables
-  > = (props) => {
-    const { data } = props ?? {};
-
-    return postUserRegister(data, requestOptions);
-  };
-
-  return { mutationFn, ...mutationOptions };
-};
-
-export type PostUserRegisterMutationResult = NonNullable<
-  Awaited<ReturnType<typeof postUserRegister>>
->;
-export type PostUserRegisterMutationBody = RequestUserRegisterJson;
-export type PostUserRegisterMutationError = ErrorType<ResponseErrorJson>;
-export type PostUserRegisterMutationVariables = { data: RequestUserRegisterJson };
-
-export const usePostUserRegister = <TError = ErrorType<ResponseErrorJson>, TContext = unknown>(
-  options?: {
-    mutation?: UseMutationOptions<
-      Awaited<ReturnType<typeof postUserRegister>>,
-      TError,
-      PostUserRegisterMutationVariables,
-      TContext
-    >;
-    request?: SecondParameter<typeof apiFetch>;
-  },
-  queryClient?: QueryClient,
-): UseMutationResult<
-  Awaited<ReturnType<typeof postUserRegister>>,
-  TError,
-  PostUserRegisterMutationVariables,
-  TContext
-> => {
-  return useMutation(getPostUserRegisterMutationOptions(options), queryClient);
-};
 export type postUserLoginResponse200TextPlain = {
   data: ResponseUserLoginJson;
   status: 200;
@@ -372,6 +209,381 @@ export const usePostUserLogin = <TError = ErrorType<ResponseErrorJson>, TContext
   TContext
 > => {
   return useMutation(getPostUserLoginMutationOptions(options), queryClient);
+};
+export type postUserGoogleChallengeResponse200TextPlain = {
+  data: ResponseGoogleChallengeJson;
+  status: 200;
+};
+
+export type postUserGoogleChallengeResponse200ApplicationJson = {
+  data: ResponseGoogleChallengeJson;
+  status: 200;
+};
+
+export type postUserGoogleChallengeResponse200TextJson = {
+  data: ResponseGoogleChallengeJson;
+  status: 200;
+};
+
+export type postUserGoogleChallengeResponse429TextPlain = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleChallengeResponse429ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleChallengeResponse429TextJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleChallengeResponse503TextPlain = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleChallengeResponse503ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleChallengeResponse503TextJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleChallengeResponseSuccess = (
+  | postUserGoogleChallengeResponse200TextPlain
+  | postUserGoogleChallengeResponse200ApplicationJson
+  | postUserGoogleChallengeResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postUserGoogleChallengeResponseError = (
+  | postUserGoogleChallengeResponse429TextPlain
+  | postUserGoogleChallengeResponse429ApplicationJson
+  | postUserGoogleChallengeResponse429TextJson
+  | postUserGoogleChallengeResponse503TextPlain
+  | postUserGoogleChallengeResponse503ApplicationJson
+  | postUserGoogleChallengeResponse503TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostUserGoogleChallengeUrl = () => {
+  return `/user/google/challenge`;
+};
+
+export const postUserGoogleChallenge = async (
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postUserGoogleChallengeResponseSuccess> => {
+  return apiFetch<postUserGoogleChallengeResponseSuccess>(getPostUserGoogleChallengeUrl(), {
+    ...options,
+    method: 'POST',
+  });
+};
+
+export const getPostUserGoogleChallengeMutationKey = () => ['postUserGoogleChallenge'] as const;
+
+export const getPostUserGoogleChallengeMutationOptions = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postUserGoogleChallenge>>,
+    TError,
+    void,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postUserGoogleChallenge>>,
+  TError,
+  void,
+  TContext
+> => {
+  const mutationKey = getPostUserGoogleChallengeMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postUserGoogleChallenge>>,
+    void
+  > = () => {
+    return postUserGoogleChallenge(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostUserGoogleChallengeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postUserGoogleChallenge>>
+>;
+
+export type PostUserGoogleChallengeMutationError = ErrorType<ResponseErrorJson>;
+
+export const usePostUserGoogleChallenge = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof postUserGoogleChallenge>>,
+      TError,
+      void,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof postUserGoogleChallenge>>,
+  TError,
+  void,
+  TContext
+> => {
+  return useMutation(getPostUserGoogleChallengeMutationOptions(options), queryClient);
+};
+export type postUserGoogleSignInResponse200TextPlain = {
+  data: ResponseUserLoginJson;
+  status: 200;
+};
+
+export type postUserGoogleSignInResponse200ApplicationJson = {
+  data: ResponseUserLoginJson;
+  status: 200;
+};
+
+export type postUserGoogleSignInResponse200TextJson = {
+  data: ResponseUserLoginJson;
+  status: 200;
+};
+
+export type postUserGoogleSignInResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postUserGoogleSignInResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postUserGoogleSignInResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postUserGoogleSignInResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postUserGoogleSignInResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postUserGoogleSignInResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postUserGoogleSignInResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postUserGoogleSignInResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postUserGoogleSignInResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postUserGoogleSignInResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserGoogleSignInResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserGoogleSignInResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postUserGoogleSignInResponse429TextPlain = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleSignInResponse429ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleSignInResponse429TextJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserGoogleSignInResponse503TextPlain = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleSignInResponse503ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleSignInResponse503TextJson = {
+  data: ResponseErrorJson;
+  status: 503;
+};
+
+export type postUserGoogleSignInResponseSuccess = (
+  | postUserGoogleSignInResponse200TextPlain
+  | postUserGoogleSignInResponse200ApplicationJson
+  | postUserGoogleSignInResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postUserGoogleSignInResponseError = (
+  | postUserGoogleSignInResponse400TextPlain
+  | postUserGoogleSignInResponse400ApplicationJson
+  | postUserGoogleSignInResponse400TextJson
+  | postUserGoogleSignInResponse401TextPlain
+  | postUserGoogleSignInResponse401ApplicationJson
+  | postUserGoogleSignInResponse401TextJson
+  | postUserGoogleSignInResponse403TextPlain
+  | postUserGoogleSignInResponse403ApplicationJson
+  | postUserGoogleSignInResponse403TextJson
+  | postUserGoogleSignInResponse409TextPlain
+  | postUserGoogleSignInResponse409ApplicationJson
+  | postUserGoogleSignInResponse409TextJson
+  | postUserGoogleSignInResponse429TextPlain
+  | postUserGoogleSignInResponse429ApplicationJson
+  | postUserGoogleSignInResponse429TextJson
+  | postUserGoogleSignInResponse503TextPlain
+  | postUserGoogleSignInResponse503ApplicationJson
+  | postUserGoogleSignInResponse503TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostUserGoogleSignInUrl = () => {
+  return `/user/google/sign-in`;
+};
+
+export const postUserGoogleSignIn = async (
+  requestGoogleSignInJson: RequestGoogleSignInJson,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postUserGoogleSignInResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postUserGoogleSignInResponseSuccess>(getPostUserGoogleSignInUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    callerHeaders: options?.headers,
+    body: JSON.stringify(requestGoogleSignInJson),
+  });
+};
+
+export const getPostUserGoogleSignInMutationKey = () => ['postUserGoogleSignIn'] as const;
+
+export const getPostUserGoogleSignInMutationOptions = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postUserGoogleSignIn>>,
+    TError,
+    PostUserGoogleSignInMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postUserGoogleSignIn>>,
+  TError,
+  PostUserGoogleSignInMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPostUserGoogleSignInMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postUserGoogleSignIn>>,
+    PostUserGoogleSignInMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return postUserGoogleSignIn(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostUserGoogleSignInMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postUserGoogleSignIn>>
+>;
+export type PostUserGoogleSignInMutationBody = RequestGoogleSignInJson;
+export type PostUserGoogleSignInMutationError = ErrorType<ResponseErrorJson>;
+export type PostUserGoogleSignInMutationVariables = { data: RequestGoogleSignInJson };
+
+export const usePostUserGoogleSignIn = <TError = ErrorType<ResponseErrorJson>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof postUserGoogleSignIn>>,
+      TError,
+      PostUserGoogleSignInMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof postUserGoogleSignIn>>,
+  TError,
+  PostUserGoogleSignInMutationVariables,
+  TContext
+> => {
+  return useMutation(getPostUserGoogleSignInMutationOptions(options), queryClient);
 };
 export type postUserRenewTokenResponse200TextPlain = {
   data: ResponseTokenJson;

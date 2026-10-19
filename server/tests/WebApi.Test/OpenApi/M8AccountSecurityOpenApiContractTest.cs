@@ -19,7 +19,7 @@ public sealed class M8AccountSecurityOpenApiContractTest(ServerWebApplicationFac
         id.GetProperty("type").GetString().ShouldBe("string");
         id.GetProperty("format").GetString().ShouldBe("uuid");
         schemas.GetProperty("ResponseUserProfileJson").GetProperty("properties").EnumerateObject().Select(p => p.Name).Order()
-            .ShouldBe(["email", "name", "userId"]);
+            .ShouldBe(["email", "hasPassword", "isPlatformOperator", "name", "userId"]);
         schemas.GetRawText().ShouldNotContain("\"sessionId\"");
         schemas.GetRawText().ShouldNotContain("\"tokenHash\"");
     }
@@ -37,14 +37,16 @@ public sealed class M8AccountSecurityOpenApiContractTest(ServerWebApplicationFac
     }
 
     [Fact]
-    public async Task Recovery_ShouldPublishEmpty202_AndLeaveLegacyBootstrapOpenUntilPhase6()
+    public async Task Recovery_ShouldPublishEmpty202_AndLegacyBootstrapShouldBeClosed()
     {
         using var document = await Load();
         var paths = document.RootElement.GetProperty("paths");
         paths.GetProperty("/user/forgot-password").GetProperty("post").GetProperty("responses").GetProperty("202")
             .TryGetProperty("content", out _).ShouldBeFalse();
-        paths.GetProperty("/user/register").GetProperty("post").GetProperty("security").GetArrayLength().ShouldBe(0);
-        paths.GetProperty("/branch/create").GetProperty("post").GetProperty("security")[0]
+        paths.TryGetProperty("/user/register", out _).ShouldBeFalse();
+        paths.TryGetProperty("/branch/create", out _).ShouldBeFalse();
+        paths.GetProperty("/branch/users").TryGetProperty("post", out _).ShouldBeFalse();
+        paths.GetProperty("/platform/onboarding").GetProperty("post").GetProperty("security")[0]
             .TryGetProperty("IdentityBearer", out _).ShouldBeTrue();
     }
 

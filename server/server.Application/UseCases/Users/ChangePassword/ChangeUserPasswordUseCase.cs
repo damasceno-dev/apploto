@@ -21,7 +21,7 @@ public sealed class ChangeUserPasswordUseCase(
         var identity = await authentication.GetAuthenticatedUser();
         await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.EmailKey(identity.Email));
         var user = await SecurityRules.RequireUser(security, identity.Id);
-        if (!passwords.VerifyPassword(request.CurrentPassword, user.Password))
+        if (string.IsNullOrEmpty(user.Password) || !passwords.VerifyPassword(request.CurrentPassword, user.Password))
             throw new InvalidLoginException(ResourcesErrorMessages.PASSWORD_WRONG);
         await passwordUpdater.Execute(user, request.NewPassword);
         await unitOfWork.Commit();

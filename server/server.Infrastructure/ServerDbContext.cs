@@ -10,6 +10,9 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
 public DbSet<RecoveryThrottle> RecoveryThrottles => Set<RecoveryThrottle>();
 public DbSet<OperatorLinkRequest> OperatorLinkRequests => Set<OperatorLinkRequest>();
 public DbSet<Invitation> Invitations => Set<Invitation>();
+    public DbSet<OperatedOnboarding> OperatedOnboardings => Set<OperatedOnboarding>();
+    public DbSet<GoogleLoginChallenge> GoogleLoginChallenges => Set<GoogleLoginChallenge>();
+    public DbSet<GoogleIdentity> GoogleIdentities => Set<GoogleIdentity>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Branch> Branches => Set<Branch>();

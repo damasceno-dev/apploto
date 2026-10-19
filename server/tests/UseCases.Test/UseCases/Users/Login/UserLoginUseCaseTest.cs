@@ -44,7 +44,9 @@ public class UserLoginUseCaseTest
         var unitOfWork = new UnitOfWorkBuilder().Build();
         var passwordEncryption = PasswordEncryptionBuilder.Build();
 
-        var useCase = CreateUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork, passwordEncryption);
+        var scope = Substitute.For<ISecurityScope>();
+        var useCase = CreateUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork,
+            passwordEncryption, SecurityCoordinationBuilder.Build(scope));
 
         var response = await useCase.Execute(request);
 
@@ -56,6 +58,7 @@ public class UserLoginUseCaseTest
         await refreshTokenRepository.Received(1).SaveRefreshToken(Arg.Is<RefreshToken>(token =>
             token.Value == expectedRefreshToken && token.UserId == user.Id));
         await unitOfWork.Received(1).Commit();
+        await scope.Received(1).Complete();
     }
 
     [Fact]
@@ -75,7 +78,7 @@ public class UserLoginUseCaseTest
 
         var exception = await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
 
-        exception.Message.ShouldBe(ResourcesErrorMessages.EMAIL_NOT_REGISTERED);
+        exception.Message.ShouldBe(ResourcesErrorMessages.PASSWORD_WRONG);
         await unitOfWork.DidNotReceive().Commit();
     }
 
@@ -107,6 +110,25 @@ public class UserLoginUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    public async Task Execute_ShouldUseTheSameCredentialsError_ForInactiveOrPasswordlessAccount(bool active, bool passwordless)
+    {
+        var user = new UserBuilder().WithEmail("user@example.com").WithHashedPassword("Password123").Build();
+        user.Active = active;
+        if (passwordless) user.Password = string.Empty;
+        var request = new RequestUserLoginJsonBuilder().WithEmail(user.Email).WithPassword("Password123").Build();
+        var users = new UsersRepositoryBuilder().GetByEmail(user).Build();
+        var work = new UnitOfWorkBuilder().Build();
+        var useCase = CreateUseCase(users, new TokenServicesBuilder().Build(),
+            new RefreshTokenRepositoryBuilder().Build(), work, PasswordEncryptionBuilder.Build());
+
+        var error = await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
+        error.Message.ShouldBe(ResourcesErrorMessages.PASSWORD_WRONG);
+        await work.DidNotReceive().Commit();
+    }
+
     [Fact]
     public async Task Execute_ShouldThrowValidation_WhenRequestIsInvalid()
     {
@@ -133,8 +155,10 @@ public class UserLoginUseCaseTest
         ITokenServices tokenServices,
         IRefreshTokenRepository refreshTokenRepository,
         IUnitOfWork unitOfWork,
-        PasswordEncryption passwordEncryption)
+        PasswordEncryption passwordEncryption,
+        ISecurityCoordination? coordination = null)
     {
-        return new UserLoginUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork, passwordEncryption, SecurityCoordinationBuilder.Build());
+        return new UserLoginUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork,
+            passwordEncryption, coordination ?? SecurityCoordinationBuilder.Build());
     }
 }

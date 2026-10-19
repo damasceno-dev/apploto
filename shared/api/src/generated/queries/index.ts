@@ -9,6 +9,7 @@ export * from './invitation/invitation';
 export * from './operator/operator';
 export * from './operator-account/operator-account';
 export * from './operator-link-request/operator-link-request';
+export * from './platform/platform';
 export * from './product/product';
 export * from './report/report';
 export * from './setting/setting';

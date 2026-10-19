@@ -3,6 +3,8 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using server.Infrastructure;
 using server.Domain.Entities.Enums;
 using server.Exceptions;
 using Shouldly;
@@ -47,11 +49,16 @@ public sealed class OperationSecurityOpenApiContractTest(ServerWebApplicationFac
         operations.Where(operation => operation.Tier == TokenTierName.Anonymous).Select(operation => operation.Key)
             .Order(StringComparer.Ordinal)
             .ShouldBe(["POST /invitation/decline", "POST /invitation/preview", "POST /invitation/register",
-                "POST /user/forgot-password", "POST /user/login", "POST /user/register", "POST /user/renew-token", "POST /user/reset-password"]);
+                "POST /user/forgot-password", "POST /user/google/challenge", "POST /user/google/sign-in", "POST /user/login", "POST /user/renew-token", "POST /user/reset-password"]);
         operations.Where(operation => operation.Tier == TokenTierName.Identity).Select(operation => operation.Key)
             .Order(StringComparer.Ordinal)
-            .ShouldBe(["GET /branch/my-branches", "GET /user/profile", "POST /branch/create", "POST /branch/session",
-                "POST /invitation/accept", "POST /user/change-password", "POST /user/logout", "PUT /user/profile"]);
+            .ShouldBe(["GET /branch/my-branches", "GET /platform/onboarding/{requestId}", "GET /user/profile",
+                "POST /branch/session", "POST /invitation/accept", "POST /platform/onboarding",
+                "POST /platform/onboarding/{requestId}/reissue-owner-invitation", "POST /user/change-password",
+                "POST /user/logout", "PUT /user/profile"]);
+        operations.Where(operation => operation.RequiresPlatform).Select(operation => operation.Key).Order(StringComparer.Ordinal)
+            .ShouldBe(["GET /platform/onboarding/{requestId}", "POST /platform/onboarding",
+                "POST /platform/onboarding/{requestId}/reissue-owner-invitation"]);
         operations.ShouldContain(operation => operation.Tier == TokenTierName.Branch && operation.Roles.Count == 0);
         operations.ShouldContain(operation => operation.Tier == TokenTierName.Branch && operation.Roles.Count > 0);
         operations.SelectMany(operation => operation.Roles).ShouldAllBe(role => Enum.IsDefined(role));
@@ -95,12 +102,13 @@ public sealed class OperationSecurityOpenApiContractTest(ServerWebApplicationFac
         IReadOnlyList<(string Name, bool IsInteger)> PathParameters,
         bool HasBody,
         TokenTierName Tier,
-        IReadOnlyList<Role> Roles)
+        IReadOnlyList<Role> Roles,
+        bool RequiresPlatform = false)
     {
         public string Key => $"{Method} {Path}";
     }
 
-    internal sealed record Credential(string Name, string? Token, CredentialKind Kind, Role? Role = null);
+    internal sealed record Credential(string Name, string? Token, CredentialKind Kind, Role? Role = null, bool Platform = false);
 
     internal enum CredentialKind
     {
@@ -119,6 +127,14 @@ public sealed class OperationSecurityOpenApiContractTest(ServerWebApplicationFac
         };
         var identityUser = await factory.SeedUserAsync();
         credentials.Add(new Credential("identity token", factory.IssueGlobalToken(identityUser), CredentialKind.Identity));
+        var platformUser = await factory.SeedUserAsync();
+        using (var scope = factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+            (await db.Users.FindAsync(platformUser.Id))!.IsPlatformOperator = true;
+            await db.SaveChangesAsync();
+        }
+        credentials.Add(new Credential("platform identity token", factory.IssueGlobalToken(platformUser), CredentialKind.Identity, Platform: true));
         foreach (var role in Enum.GetValues<Role>())
         {
             var (_, _, _, token) = await factory.SeedFullBranchContextAsync($"H4Probe{role}", role);
@@ -138,7 +154,9 @@ public sealed class OperationSecurityOpenApiContractTest(ServerWebApplicationFac
             CredentialKind.None => $"401 {ResourcesErrorMessages.TOKEN_EMPTY}",
             CredentialKind.Malformed => $"401 {ResourcesErrorMessages.TOKEN_INVALID}",
             CredentialKind.Identity => operation.Tier == TokenTierName.Identity
-                ? "reached"
+                ? operation.RequiresPlatform && !credential.Platform
+                    ? $"403 {ResourcesErrorMessages.PLATFORM_ONLY}"
+                    : "reached"
                 : $"403 {ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION}",
             _ => operation.Tier == TokenTierName.Branch &&
                  (operation.Roles.Count == 0 || operation.Roles.Contains(credential.Role!.Value))
@@ -194,7 +212,9 @@ public sealed class OperationSecurityOpenApiContractTest(ServerWebApplicationFac
                     pathParameters,
                     operation.Value.TryGetProperty("requestBody", out _),
                     tier,
-                    roles));
+                    roles,
+                    operation.Value.TryGetProperty("description", out var description) &&
+                    description.GetString()?.Contains("Requer operador da plataforma ativo", StringComparison.Ordinal) == true));
             }
         }
 

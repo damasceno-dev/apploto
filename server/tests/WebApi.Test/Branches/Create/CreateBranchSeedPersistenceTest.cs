@@ -19,23 +19,17 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
     [Fact]
     public async Task Create_ShouldPersistTransactionTypeSettlementMetadata()
     {
-        var user = await factory.SeedUserAsync();
-        var token = factory.IssueGlobalToken(user);
         var request = new RequestCreateBranchJsonBuilder()
             .WithName($"Seed Metadata {Guid.NewGuid():N}")
             .Build();
-
-        var httpResponse = await _client.PostAuthAsync("/branch/create", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var payload = await httpResponse.ReadContentAsync<ResponseCreateBranchJson>();
+        var branch = await factory.SeedConfiguredBranchAsync(request.Name, request.Cnpj, request.Address, request.Phone);
 
         using var scope = factory.Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
         var persistedRows = await dbContext.TransactionTypes
             .AsNoTracking()
             .Include(transactionType => transactionType.Category)
-            .Where(transactionType => transactionType.Category.BranchId == payload.Id)
+            .Where(transactionType => transactionType.Category.BranchId == branch.Id)
             .Select(transactionType => new
             {
                 transactionType.Name,
@@ -63,16 +57,10 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
     [Fact]
     public async Task Create_ShouldPersistSettingAndInitialTimeEntryPolicy()
     {
-        var user = await factory.SeedUserAsync();
-        var token = factory.IssueGlobalToken(user);
         var request = new RequestCreateBranchJsonBuilder()
             .WithName($"Seed TimeEntryPolicy {Guid.NewGuid():N}")
             .Build();
-
-        var httpResponse = await _client.PostAuthAsync("/branch/create", request, token);
-
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var payload = await httpResponse.ReadContentAsync<ResponseCreateBranchJson>();
+        var branch = await factory.SeedConfiguredBranchAsync(request.Name, request.Cnpj, request.Address, request.Phone);
 
         // Real database reload — not a mocked Received(Add) assertion — so a later
         // EF/repository/transaction regression that drops either row before commit
@@ -82,7 +70,7 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
 
         var persistedSetting = await dbContext.Settings
             .AsNoTracking()
-            .SingleOrDefaultAsync(setting => setting.BranchId == payload.Id);
+            .SingleOrDefaultAsync(setting => setting.BranchId == branch.Id);
         persistedSetting.ShouldNotBeNull();
         persistedSetting.DailyTargetHours.ShouldBe(7.33m);
         persistedSetting.LunchDeductionOver6H.ShouldBe(1.00m);
@@ -90,7 +78,7 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
 
         var persistedPolicy = await dbContext.TimeEntryPolicies
             .AsNoTracking()
-            .SingleOrDefaultAsync(policy => policy.BranchId == payload.Id);
+            .SingleOrDefaultAsync(policy => policy.BranchId == branch.Id);
         persistedPolicy.ShouldNotBeNull();
         persistedPolicy.EffectiveFrom.ShouldBe(DateTime.MinValue);
         persistedPolicy.DailyTargetHours.ShouldBe(persistedSetting.DailyTargetHours);

@@ -815,4 +815,16 @@
   <data name="SECURITY_PASSWORD_MAX_LENGTH" xml:space="preserve"><value>A senha deve ter até 72 bytes em UTF-8.</value></data>
   <data name="SECURITY_RATE_LIMITED" xml:space="preserve"><value>Muitas tentativas. Aguarde e tente novamente.</value></data>
   <data name="INVITATION_TARGET_UNAVAILABLE" xml:space="preserve"><value>Não é possível convidar esta conta. Verifique o cadastro da pessoa.</value></data>
+  <data name="PLATFORM_ONLY" xml:space="preserve"><value>Esta operação exige autorização de operador da plataforma.</value></data>
+  <data name="ONBOARDING_REQUEST_CONFLICT" xml:space="preserve"><value>Esta solicitação de cadastro já foi utilizada com dados diferentes.</value></data>
+  <data name="ONBOARDING_NOT_FOUND" xml:space="preserve"><value>Cadastro operado não encontrado.</value></data>
+  <data name="ONBOARDING_INPUT_INVALID" xml:space="preserve"><value>Confira os dados da lotérica, do convite e da configuração inicial.</value></data>
+  <data name="BOOTSTRAP_FIRST_OPERATOR_ONLY" xml:space="preserve"><value>A operação inicial exige um banco sem usuários ou a retomada da única conta de operação ainda sem senha.</value></data>
+  <data name="BOOTSTRAP_DELIVERY_FAILED" xml:space="preserve"><value>A conta inicial foi criada, mas o e-mail de ativação não foi entregue. Corrija o envio e repita o comando.</value></data>
+  <data name="GOOGLE_NOT_CONFIGURED" xml:space="preserve"><value>A entrada com Google não está disponível.</value></data>
+  <data name="GOOGLE_PROVIDER_UNAVAILABLE" xml:space="preserve"><value>Não foi possível verificar a identidade Google agora. Tente novamente.</value></data>
+  <data name="GOOGLE_ASSERTION_INVALID" xml:space="preserve"><value>Não foi possível confirmar a identidade Google.</value></data>
+  <data name="GOOGLE_CHALLENGE_INVALID" xml:space="preserve"><value>A tentativa de entrada expirou ou já foi utilizada.</value></data>
+  <data name="GOOGLE_LINK_PROOF_REQUIRED" xml:space="preserve"><value>Confirme a senha atual para vincular esta conta ao Google.</value></data>
+  <data name="GOOGLE_IDENTITY_CONFLICT" xml:space="preserve"><value>Esta identidade Google não pode ser vinculada a esta conta.</value></data>
 </root>

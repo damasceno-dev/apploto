@@ -32,6 +32,7 @@ const inertConfiguration: Record<string, string> = {
   AccountSecurity__ResetMinutes: '30',
   AccountSecurity__InvitationHours: '72',
   AccountSecurity__RecoveryCooldownSeconds: '60',
+  GoogleIdentity__ClientIds__0: 'openapi-export.invalid',
 };
 /**
  * True for any variable .NET could read as database, token or environment configuration. Environment
@@ -46,7 +47,9 @@ export function isServerConfiguration(name: string): boolean {
   return (
     key.startsWith('ASPNETCORE_') ||
     key === 'DOTNET_ENVIRONMENT' ||
-    /^(CONNECTIONSTRINGS__|TOKEN__|ACCOUNTSECURITY__|SECURITYMAIL__)/.test(unprefixed) ||
+    /^(CONNECTIONSTRINGS__|TOKEN__|ACCOUNTSECURITY__|SECURITYMAIL__|GOOGLEIDENTITY__)/.test(
+      unprefixed,
+    ) ||
     /^(SQLCONNSTR|SQLAZURECONNSTR|MYSQLCONNSTR|POSTGRESQLCONNSTR|CUSTOMCONNSTR)_/.test(unprefixed)
   );
 }

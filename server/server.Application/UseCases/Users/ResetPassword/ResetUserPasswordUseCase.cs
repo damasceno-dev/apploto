@@ -26,6 +26,7 @@ public sealed class ResetUserPasswordUseCase(
         if (token is null || !token.Active || token.ConsumedAt.HasValue || token.ExpiresAt <= now) throw InvalidToken();
         var user = await security.GetUserForUpdate(identity.Id) ?? throw InvalidToken();
         await passwordUpdater.Execute(user, request.NewPassword);
+        user.EmailVerifiedAt ??= now;
         token.ConsumedAt = now;
         await unitOfWork.Commit();
         await scope.Complete();

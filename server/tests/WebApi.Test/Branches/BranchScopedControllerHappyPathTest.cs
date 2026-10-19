@@ -92,32 +92,15 @@ public class BranchScopedControllerHappyPathTest(ServerWebApplicationFactory fac
     }
 
     [Fact]
-    public async Task AddUser_ShouldReturnOkWithNewMembership_WhenAdminAddsMember()
+    public async Task LegacyAddUser_ShouldBeUnavailable_WhenAdminTriesIt()
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("Add");
         var targetUser = await factory.SeedUserAsync();
-        var request = new RequestAddBranchUserJsonBuilder()
-            .WithUserId(targetUser.Id)
-            .WithEmail(null)
-            .WithRole(Role.Member)
-            .Build();
+        var request = new { userId = targetUser.Id, role = Role.Member };
 
         var httpResponse = await _client.PostAuthAsync("/branch/users", request, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var payload = await httpResponse.ReadContentAsync<ResponseAddBranchUserJson>();
-        payload.BranchUser.ShouldNotBeNull();
-        payload.BranchUser.UserId.ShouldBe(targetUser.Id);
-        payload.BranchUser.Email.ShouldBe(targetUser.Email);
-        payload.BranchUser.Name.ShouldBe(targetUser.Name);
-        payload.BranchUser.Role.ShouldBe(Role.Member);
-        payload.BranchUser.Active.ShouldBeTrue();
-
-        var persisted = await factory.ReloadAsync<BranchUser>(payload.BranchUser.Id);
-        persisted.ShouldNotBeNull();
-        persisted.BranchId.ShouldBe(branch.Id);
-        persisted.Role.ShouldBe(Role.Member);
-        persisted.Active.ShouldBeTrue();
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.MethodNotAllowed);
     }
 
     [Fact]

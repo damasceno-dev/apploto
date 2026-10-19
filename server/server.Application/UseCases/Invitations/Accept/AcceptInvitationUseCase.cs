@@ -10,7 +10,7 @@ namespace server.Application.UseCases.Invitations.Accept;
 
 public sealed class AcceptInvitationUseCase(
     IAuthenticationService authentication,
-    IUsersRepository users,
+    IAccountSecurityRepository security,
     ISecurityCoordination coordination,
     IUnitOfWork unitOfWork,
     InvitationWorkflow workflow)
@@ -23,10 +23,12 @@ public sealed class AcceptInvitationUseCase(
         await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.BranchKey(candidate.BranchId), SecurityRules.EmailKey(candidate.Email));
         var invitation = await workflow.FindCapability(request.Token);
         workflow.RequirePending(invitation);
-        var user = await users.GetById(identity.Id) ?? throw InvitationWorkflow.InvalidToken();
+        var user = await security.GetUserForUpdate(identity.Id) ?? throw InvitationWorkflow.InvalidToken();
         if (user.Email != invitation.Email)
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.INVITATION_EMAIL_MISMATCH);
         var membership = await workflow.Join(invitation, user);
+        // Possession of the delivered capability plus the matching authenticated identity proves mailbox control.
+        user.EmailVerifiedAt ??= workflow.Now();
         await unitOfWork.Commit();
         await scope.Complete();
         return new() { BranchId = invitation.BranchId, BranchUserId = membership.Id, Role = membership.Role, OperatorId = invitation.OperatorId };

@@ -5,6 +5,8 @@ public class User : EntityBase
     public string Name { get; set; } = string.Empty;
     public string Email { get; init; } = string.Empty;
     public string Password { get; set; } = string.Empty;
+    public bool IsPlatformOperator { get; set; }
+    public DateTime? EmailVerifiedAt { get; set; }
 
     public ICollection<BranchUser> BranchUsers { get; init; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; init; } = [];

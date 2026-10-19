@@ -9,9 +9,7 @@ using Xunit;
 namespace WebApi.Test.Branches;
 
 /// <summary>
-/// Happy-path coverage for the Milestone 1 Branch endpoints that require a global
-/// (user-scoped) token: <c>POST /branch/create</c>, <c>GET /branch/my-branches</c>,
-/// and <c>POST /branch/session</c>.
+/// Identity-scoped branch list/session coverage plus the M8 public-create cutover.
 /// </summary>
 [Collection(ServerApiCollection.Name)]
 public class BranchGlobalControllerHappyPathTest(ServerWebApplicationFactory factory)
@@ -19,7 +17,7 @@ public class BranchGlobalControllerHappyPathTest(ServerWebApplicationFactory fac
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task Create_ShouldReturnCreated_WhenCallerHasGlobalToken()
+    public async Task LegacyCreate_ShouldBeUnavailable_EvenWithGlobalToken()
     {
         var user = await factory.SeedUserAsync();
         var token = factory.IssueGlobalToken(user);
@@ -32,13 +30,7 @@ public class BranchGlobalControllerHappyPathTest(ServerWebApplicationFactory fac
 
         var httpResponse = await _client.PostAuthAsync("/branch/create", request, token);
 
-        httpResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var payload = await httpResponse.ReadContentAsync<ResponseCreateBranchJson>();
-        payload.Id.ShouldNotBe(Guid.Empty);
-        payload.Name.ShouldBe(request.Name);
-        payload.Cnpj.ShouldBe(request.Cnpj);
-        payload.Address.ShouldBe(request.Address);
-        payload.Phone.ShouldBe(request.Phone);
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
 
     [Fact]

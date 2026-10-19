@@ -16,22 +16,17 @@ public sealed class EmailNormalizationHttpTest(ServerWebApplicationFactory facto
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task DatabaseCanonicalEmail_ShouldAgreeForRegistrationLoginDuplicateCheckAndRecoveryThrottle()
+    public async Task DatabaseCanonicalEmail_ShouldAgreeForSeededLoginAndRecoveryThrottle()
     {
         // .NET invariant lower retains U+0130; PostgreSQL's locale maps it to i. Never mix the two identity keys.
         var raw = $"\u0130DENTITY-{Guid.NewGuid():N}@EXAMPLE.INVALID";
         var canonical = await factory.ReadDb(db => db.Database.SqlQuery<string>($"SELECT lower({raw.Trim()}) AS \"Value\"").SingleAsync());
-        using var registered = await _client.PostAsJsonAsync("/user/register", new RequestUserRegisterJson
-        { Email = raw, Name = "Pessoa", Password = TestSeeder.DefaultPassword });
-        registered.StatusCode.ShouldBe(HttpStatusCode.Created);
-        (await registered.ReadContentAsync<ResponseUserRegisterJson>()).Email.ShouldBe(canonical);
+        var seeded = await factory.SeedUserAsync(raw);
+        seeded.Email.ShouldBe(canonical);
         using var login = await _client.PostAsJsonAsync("/user/login", new RequestUserLoginJson { Email = raw, Password = TestSeeder.DefaultPassword });
         login.StatusCode.ShouldBe(HttpStatusCode.OK);
         var user = await login.ReadContentAsync<ResponseUserLoginJson>();
         user.Email.ShouldBe(canonical);
-        using var duplicate = await _client.PostAsJsonAsync("/user/register", new RequestUserRegisterJson
-        { Email = canonical, Name = "Outra pessoa", Password = TestSeeder.DefaultPassword });
-        duplicate.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         foreach (var email in new[] { raw, canonical })
         {
             using var forgot = await _client.PostAsJsonAsync("/user/forgot-password", new RequestForgotPasswordJson { Email = email });

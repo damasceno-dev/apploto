@@ -27,6 +27,8 @@ public static class InfraDependencyInjection
         AddToken(services, configuration);
         services.AddSingleton(SecurityMailOptions.FromConfiguration(configuration));
         services.AddSingleton<ISecurityMailSender, SmtpSecurityMailSender>();
+        services.AddSingleton<IGoogleIdentityVerifier>(_ => new GoogleIdentityVerifier(
+            configuration.GetSection("GoogleIdentity:ClientIds").Get<string[]>() ?? []));
         services.AddSingleton<RecoveryMailQueue>();
         services.AddSingleton<IRecoveryMailQueue>(provider => provider.GetRequiredService<RecoveryMailQueue>());
         services.AddHostedService(provider => provider.GetRequiredService<RecoveryMailQueue>());
@@ -166,6 +168,8 @@ public static class InfraDependencyInjection
         services.AddScoped<ISecurityCoordination, SecurityCoordination>();
         services.AddScoped<IAccountSecurityRepository, AccountSecurityRepository>();
         services.AddScoped<IOnboardingRepository, OnboardingRepository>();
+        services.AddScoped<IOperatedOnboardingRepository, OperatedOnboardingRepository>();
+        services.AddScoped<IGoogleIdentityRepository, GoogleIdentityRepository>();
         services.AddScoped<IUsersRepository, UsersRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IBranchesRepository, BranchesRepository>();

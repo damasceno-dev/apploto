@@ -6,6 +6,7 @@ namespace server.Infrastructure.Repositories;
 
 internal class UsersRepository(ServerDbContext dbContext) : IUsersRepository
 {
+    public Task<int> CountAll() => dbContext.Users.CountAsync();
     public Task<string> NormalizeEmail(string email) => dbContext.Database
         .SqlQuery<string>($"SELECT lower({email.Trim()}) AS \"Value\"").SingleAsync();
 

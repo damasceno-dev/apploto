@@ -1615,5 +1615,17 @@ namespace server.Exceptions {
         public static string SECURITY_PASSWORD_MAX_LENGTH => ResourceManager.GetString("SECURITY_PASSWORD_MAX_LENGTH", resourceCulture);
         public static string SECURITY_RATE_LIMITED => ResourceManager.GetString("SECURITY_RATE_LIMITED", resourceCulture);
         public static string INVITATION_TARGET_UNAVAILABLE => ResourceManager.GetString("INVITATION_TARGET_UNAVAILABLE", resourceCulture);
+        public static string PLATFORM_ONLY => ResourceManager.GetString("PLATFORM_ONLY", resourceCulture);
+        public static string ONBOARDING_REQUEST_CONFLICT => ResourceManager.GetString("ONBOARDING_REQUEST_CONFLICT", resourceCulture);
+        public static string ONBOARDING_NOT_FOUND => ResourceManager.GetString("ONBOARDING_NOT_FOUND", resourceCulture);
+        public static string ONBOARDING_INPUT_INVALID => ResourceManager.GetString("ONBOARDING_INPUT_INVALID", resourceCulture);
+        public static string BOOTSTRAP_FIRST_OPERATOR_ONLY => ResourceManager.GetString("BOOTSTRAP_FIRST_OPERATOR_ONLY", resourceCulture);
+        public static string BOOTSTRAP_DELIVERY_FAILED => ResourceManager.GetString("BOOTSTRAP_DELIVERY_FAILED", resourceCulture);
+        public static string GOOGLE_NOT_CONFIGURED => ResourceManager.GetString("GOOGLE_NOT_CONFIGURED", resourceCulture);
+        public static string GOOGLE_PROVIDER_UNAVAILABLE => ResourceManager.GetString("GOOGLE_PROVIDER_UNAVAILABLE", resourceCulture);
+        public static string GOOGLE_ASSERTION_INVALID => ResourceManager.GetString("GOOGLE_ASSERTION_INVALID", resourceCulture);
+        public static string GOOGLE_CHALLENGE_INVALID => ResourceManager.GetString("GOOGLE_CHALLENGE_INVALID", resourceCulture);
+        public static string GOOGLE_LINK_PROOF_REQUIRED => ResourceManager.GetString("GOOGLE_LINK_PROOF_REQUIRED", resourceCulture);
+        public static string GOOGLE_IDENTITY_CONFLICT => ResourceManager.GetString("GOOGLE_IDENTITY_CONFLICT", resourceCulture);
     }
 }

@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using server.Application.Services;
+using server.Application.Services.Security;
+using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
@@ -52,6 +54,18 @@ internal static class TestSeeder
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync();
             return user;
+        }
+
+        // Test-owned bootstrap after the public create route is closed. It exercises the
+        // same seed writer as operated onboarding without exposing another HTTP escape.
+        public async Task<Branch> SeedConfiguredBranchAsync(string name, string? cnpj = null,
+            string? address = null, string? phone = null)
+        {
+            using var scope = factory.Services.CreateScope();
+            var branch = await scope.ServiceProvider.GetRequiredService<BranchBootstrap>().Create(new RequestCreateBranchJson
+            { Name = name, Cnpj = cnpj, Address = address, Phone = phone });
+            await scope.ServiceProvider.GetRequiredService<IUnitOfWork>().Commit();
+            return branch;
         }
 
         private async Task<Branch> SeedBranchAsync(string? name = null, DateTime? createdAt = null)

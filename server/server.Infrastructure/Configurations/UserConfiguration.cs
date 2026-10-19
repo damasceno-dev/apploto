@@ -14,6 +14,8 @@ internal class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.Name).HasMaxLength(255);
         builder.Property(user => user.Email).HasMaxLength(255);
         builder.Property(user => user.Password).HasMaxLength(255);
+        builder.Property(user => user.IsPlatformOperator).HasDefaultValue(false);
+        builder.Property(user => user.EmailVerifiedAt).IsRequired(false);
 
         builder.HasIndex(user => user.Email).IsUnique();
 

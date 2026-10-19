@@ -58,6 +58,7 @@ public class ArchitectureTest
     private static readonly Type[] AuthIntentAttributeTypes =
     [
         typeof(TokenAuthenticateAttribute),
+        typeof(TokenPlatformOperatorAttribute),
         typeof(TokenAuthenticateBranchAttribute),
         typeof(TokenAuthorizeAttribute),
         typeof(AllowAnonymousAttribute),

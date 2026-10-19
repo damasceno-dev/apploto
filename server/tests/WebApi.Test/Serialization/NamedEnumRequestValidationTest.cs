@@ -28,7 +28,7 @@ public sealed class NamedEnumRequestValidationTest(ServerWebApplicationFactory f
     }
 
     [Fact]
-    public async Task BranchUserRequest_ShouldRetainFeatureMessageForUndefinedIntegerRole()
+    public async Task InvitationRequest_ShouldRetainFeatureMessageForUndefinedIntegerRole()
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("InvalidRoleEnum", Role.Admin);
         var request = new
@@ -37,7 +37,7 @@ public sealed class NamedEnumRequestValidationTest(ServerWebApplicationFactory f
             role = 999
         };
 
-        using var response = await _client.PostAuthAsync("/branch/users", request, token);
+        using var response = await _client.PostAuthAsync("/invitation", request, token);
 
         await AssertInvalidEnum(response, ResourcesErrorMessages.ROLE_INVALID);
     }

@@ -20,6 +20,9 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 {
     private const string TestSigningKey = "LotoTestSigningKey-0123456789ABCDEF-TestOnly";
     private const int TestTokenExpirationMinutes = 60;
+    private string? _previousConnection;
+    private string? _previousSigningKey;
+    private string? _previousTokenExpiration;
 
     private readonly PostgreSqlContainer _postgresContainer = new PostgreSqlBuilder("postgres:16-alpine")
          .WithCreateParameterModifier(parameters =>
@@ -32,9 +35,15 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         .WithPassword("postgres")
         .Build();
 
+    public string DisposableConnectionString => _postgresContainer.GetConnectionString();
+
     public async Task InitializeAsync()
     {
         await _postgresContainer.StartAsync();
+
+        _previousConnection = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        _previousSigningKey = Environment.GetEnvironmentVariable("Token__SigningKey");
+        _previousTokenExpiration = Environment.GetEnvironmentVariable("Token__ExpirationTimeInMinutes");
 
         // Program.cs consumes `builder.Configuration` eagerly at service registration time
         // (before `builder.Build()`), so `ConfigureWebHost` → `ConfigureAppConfiguration`
@@ -54,9 +63,9 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
     public new async Task DisposeAsync()
     {
-        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", null);
-        Environment.SetEnvironmentVariable("Token__SigningKey", null);
-        Environment.SetEnvironmentVariable("Token__ExpirationTimeInMinutes", null);
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", _previousConnection);
+        Environment.SetEnvironmentVariable("Token__SigningKey", _previousSigningKey);
+        Environment.SetEnvironmentVariable("Token__ExpirationTimeInMinutes", _previousTokenExpiration);
 
         await _postgresContainer.DisposeAsync();
         await base.DisposeAsync();
