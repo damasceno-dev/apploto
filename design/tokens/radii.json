@@ -1,0 +1,16 @@
+{
+  "$description": "Lotero corner radii (Design M2), logical pixels. Panels and controls never exceed 4; full is reserved for avatars and indicator dots.",
+  "radius": {
+    "none": 0,
+    "xs": 2,
+    "sm": 3,
+    "md": 4,
+    "full": 9999,
+    "control": "{radius.md}",
+    "panel": "{radius.md}",
+    "badge": "{radius.sm}",
+    "focus": "{radius.md}",
+    "avatar": "{radius.full}",
+    "dot": "{radius.full}"
+  }
+}

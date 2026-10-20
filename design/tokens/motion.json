@@ -1,0 +1,32 @@
+{
+  "$description": "Lotero motion (Design M2). Durations in milliseconds, easings as cubic-bezier [x1, y1, x2, y2]. Each transition has a reduced-motion counterpart used when the platform's reduce-motion preference is on.",
+  "motion": {
+    "duration": { "instant": 0, "fast": 120, "moderate": 180, "slow": 240, "shimmer": 1200 },
+    "easing": {
+      "standard": [0.2, 0, 0, 1],
+      "enter": [0, 0, 0.2, 1],
+      "exit": [0.4, 0, 1, 1],
+      "linear": [0, 0, 1, 1]
+    },
+    "transition": {
+      "control": { "duration": "{motion.duration.fast}", "easing": "{motion.easing.standard}" },
+      "disclosure": { "duration": "{motion.duration.fast}", "easing": "{motion.easing.standard}" },
+      "drawer-enter": { "duration": "{motion.duration.moderate}", "easing": "{motion.easing.enter}" },
+      "drawer-exit": { "duration": "{motion.duration.fast}", "easing": "{motion.easing.exit}" },
+      "dialog-enter": { "duration": "{motion.duration.moderate}", "easing": "{motion.easing.enter}" },
+      "dialog-exit": { "duration": "{motion.duration.fast}", "easing": "{motion.easing.exit}" },
+      "toast": { "duration": "{motion.duration.moderate}", "easing": "{motion.easing.standard}" },
+      "skeleton": { "duration": "{motion.duration.shimmer}", "easing": "{motion.easing.linear}" }
+    },
+    "reduced": {
+      "control": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "disclosure": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "drawer-enter": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "drawer-exit": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "dialog-enter": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "dialog-exit": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "toast": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" },
+      "skeleton": { "duration": "{motion.duration.instant}", "easing": "{motion.easing.linear}" }
+    }
+  }
+}

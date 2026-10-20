@@ -63,6 +63,10 @@ Canonical UI terms, mapped from the domain spec and the backend's own pt-BR erro
 | ponto                                                      | clock in/out context — "bater o ponto", "registro de ponto"                                                                | §6.7                                      |
 | Gestão                                                     | management navigation context — Manager/Admin home (Manager Work Queue); a mode, not a role. **Not** "modo gerente"        | `screens.md` IA map (design 0.4.1)        |
 | Meu turno                                                  | shift navigation context — Operator Day Cockpit; the Member home and a linked Manager/Admin's switchable mode; not a role  | `screens.md` IA map (design 0.4.1)        |
+| convite                                                    | `Invitation` — how every person joins a lotérica; "aceitar", "recusar", "reenviar"; never "cadastro"                       | §6.16                                     |
+| vínculo / solicitação de vínculo                           | the login ↔ operator link, and the Member's `OperatorLinkRequest`                                                        | §6.16                                     |
+| Plataforma / operador da plataforma                        | the Lotero team's onboarding area and its read-only account flag; never a branch role                                      | §6.17                                     |
+| Minha conta / Sair                                          | Profile and logout in the Session menu; "Sair" ends this device's session only                                            | `screens.md` Session menu                 |
 
 ## 5. Enum label maps (pt-BR)
 
@@ -94,7 +98,23 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **TimeEntryTapAction** *(§6.7 — request-only: the tap the client sends, never shown in a response; the labels double as the clock-screen buttons)*: `Open` → "Entrada" · `Close` → "Saída". *(The standard ponto terms — same words as `Direction`, but the contexts never mix.)*
 
-**MonthlyReconciliationBlockerType** *(§6.14)*: `UnapprovedClose` → "Fechamento não aprovado" · `DraftTransactions` → "Transações em rascunho". *(Blockers arrive structured; the client formats the sentence around these labels.)*
+**MonthlyReconciliationBlockerType** *(§6.14)*: `UnapprovedClose` → "Fechamento não aprovado" · `DraftTransactions` → "Transações em rascunho" · `MissingExpectedClose` → "Fechamento ausente" *(direct Terminal activity on a day with no close)*. *(Blockers arrive structured; the client formats the sentence around these labels.)*
+
+**InstallmentPlanStatus** *(§4, Installment plan existing-plan mode)*: `Draft` → "Rascunho" · `Active` → "Ativo" · `Mixed` → "Misto" *(hint: "parcelas em rascunho e em outras situações")* · `Cancelled` → "Cancelado". *(Masculine — agrees with "plano".)*
+
+**DailyCloseReviewEventType** *(§3.21, Fix & resubmit)*: `Rejected` → "Rejeitado na conferência" · `OpeningChanged` → "Abertura alterada".
+
+**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoCountedStockSale` → "venda fiado com entrega de mercadoria" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro".
+
+**FiadoPaymentKind** *(§6.4, admin types and Receber pagamento)*: `CountedCash` → "Dinheiro (entra no caixa)" · `NonCash` → "Outro meio (não entra no caixa)".
+
+**TransactionTypeSystemRole** *(admin types, read-only)*: `FiadoCountedStockSaleCounterpart` → "Saída automática de mercadoria (venda fiado)" · `FiadoCashRepaymentCounterpart` → "Entrada automática de dinheiro (recebimento de fiado)".
+
+**InvitationStatus** *(§6.16)*: `Pending` → "Pendente" · `Accepted` → "Aceito" · `Declined` → "Recusado" · `Expired` → "Expirado". *(Masculine — agrees with "convite".)*
+
+**MailDeliveryStatus** *(§6.16 — SMTP acceptance, never inbox arrival)*: `Pending` → "Envio pendente" · `Sent` → "Enviado ao servidor de e-mail" · `Failed` → "Falha no envio".
+
+**OperatorLinkRequestStatus** *(§6.16)*: `Pending` → "Pendente" · `Resolved` → "Resolvida". *(Feminine — agrees with "solicitação".)*
 
 ## 6. Error display
 
@@ -150,6 +170,21 @@ The backend is the single source of error-message truth. Every API error is `Res
 - The linked stock saída is described as stock leaving custody, explicitly not a cash withdrawal.
 - My transaction summary's automatic share: "7 transações, 2 delas automáticas", with the automatic entradas and saídas beside the totals.
 - Client balance: "Data da venda mais antiga em aberto" for the oldest unpaid sale; credit explained in words ("o cliente pagou R$ 10,00 a mais"), never as an equation.
+
+### 7.4 Account, invitation and access
+
+- Login: "Entrar", "Continuar com Google", "Esqueci minha senha", and the static hint "Primeiro acesso? Abra o link do convite recebido por e-mail." Never "Criar conta" or "Cadastre-se" on Login — there is no public sign-up.
+- Google link step: heading "Confirme sua senha do Lotero", action "Confirmar senha e vincular".
+- Forgot password confirmation (identical for every outcome): "Se houver uma conta ativa com este e-mail, enviaremos um link para definir uma nova senha. O link vale por tempo limitado."
+- Reset password: title "Definir nova senha", success "Senha definida. Entre com a nova senha.", missing token "Abra novamente o link recebido por e-mail.", unusable link action "Peça um novo link".
+- Change password: consequence "Ao alterar a senha, todas as sessões desta conta são encerradas, inclusive neste dispositivo."; success on Login "Senha alterada. Entre novamente com a nova senha."; repeat mismatch "As senhas não conferem."
+- Profile: "Minha conta", "Nome atualizado", "Senha definida", "Sem senha — esta conta entra com Google", "Receber link para criar senha", marker "Operador da plataforma".
+- Invitation: "Você foi convidado para {lotérica} como {função}.", "Válido até {data/hora}", "Você será vinculado ao operador {nome}.", "Use o e-mail que recebeu este convite.", actions "Criar conta com senha", "Continuar com Google", "Já tenho conta — entrar e aceitar", "Aceitar convite", "Recusar convite" (confirmation body "O convite deixará de valer."), unusable "Peça um novo convite a quem administra a lotérica."
+- Session menu: "Sair"; with device-kept input: "Há alterações guardadas neste dispositivo. Elas continuam guardadas e voltam quando você entrar de novo com este e-mail."; unconfirmed: "Você saiu deste dispositivo. Não foi possível confirmar o encerramento da sessão no servidor."
+- Branch picker empty: "Você ainda não tem acesso a uma lotérica."
+- Delivery status is never "entregue" or "recebido": "Enviado ao servidor de e-mail" / "Falha no envio"; a failed delivery offers "Reenviar convite".
+- Guided employee journeys: "Adicionar funcionário", "Desligar", "Concluir depois", remaining items "Sem terminal atribuído", "Convite pendente até {data/hora}", "Vincular login depois", "Envio do convite falhou"; removal confirmation "A pessoa deixará de acessar esta lotérica. O histórico registrado continua disponível."
+- Owner setup checklist: item states "Concluído", "Pendente", "Não foi possível verificar"; collapsed line "Configuração inicial concluída".
 
 ## 8. Do / don't
 

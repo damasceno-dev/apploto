@@ -36,3 +36,5 @@ Remove prototype controls, demo logins, fake clock/data, source/gap annotations 
 4. **Web/Mobile foundations:** follow their own prerequisite maps; scaffold work may proceed when its Shared prerequisites are ready. App design-system implementation consumes Design M2 + M3; feature UI also waits for the corresponding M4 blueprint. Dashboard and unanswered product rules continue on their existing tracks.
 
 The selection is an owner decision. The extraction documents and implementation adaptations remain reviewable technical work; this record does not assert an independent review, WCAG certification, native-device acceptance, full financial-flow validation or production launch acceptance.
+
+> **Follow-up · 2026-10-20 · D04:** the direction above is now encoded as Design M2 [tokens](../tokens/README.md), the M3 [component contract](../specs/components/README.md) and the M4 [screen blueprints](../specs/screens/README.md), with the four contrast failures (and three more found by the gate) corrected inside the same look. The account and Plataforma screens are cataloged (0.4.6). This record's owner decision is unchanged; the new artifacts await independent review.

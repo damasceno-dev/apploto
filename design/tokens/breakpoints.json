@@ -1,0 +1,8 @@
+{
+  "$description": "Lotero layout thresholds (Design M2), minimum widths in logical pixels at a 16px root. Web media queries use em (value / 16) so enlarged text moves layouts to the narrower arrangement; native compares the window width in dp. Layouts change where content stops fitting, not per device.",
+  "breakpoint": {
+    "medium": 640,
+    "wide": 1024,
+    "xwide": 1440
+  }
+}

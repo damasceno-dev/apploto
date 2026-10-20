@@ -1,0 +1,18 @@
+{
+  "$description": "Lotero stacking order (Design M2): z-index integers from base content to the skip link, plus the backdrop opacity applied to color.semantic.<theme>.overlay.backdrop-base. Popovers sit above dialogs because pickers and menus open inside them.",
+  "layer": {
+    "base": 0,
+    "raised": 1,
+    "sticky": 100,
+    "drawer-backdrop": 200,
+    "drawer": 210,
+    "dialog-backdrop": 400,
+    "dialog": 410,
+    "popover": 500,
+    "toast": 600,
+    "skip-link": 700,
+    "backdrop": {
+      "opacity": { "light": 0.46, "dark": 0.6 }
+    }
+  }
+}

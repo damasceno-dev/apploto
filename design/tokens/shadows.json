@@ -1,0 +1,13 @@
+{
+  "$description": "Lotero elevation (Design M2), scarce by design: raised for sticky regions, floating for menus, popovers, drawers and dialogs. Offsets and blur are logical pixels; color references the theme's semantic shadow color; elevation is the Android equivalent.",
+  "shadow": {
+    "light": {
+      "raised": { "offsetX": 0, "offsetY": 1, "blur": 2, "spread": 0, "color": "{color.semantic.light.shadow.raised}", "elevation": 1 },
+      "floating": { "offsetX": 0, "offsetY": 14, "blur": 36, "spread": 0, "color": "{color.semantic.light.shadow.floating}", "elevation": 8 }
+    },
+    "dark": {
+      "raised": { "offsetX": 0, "offsetY": 1, "blur": 2, "spread": 0, "color": "{color.semantic.dark.shadow.raised}", "elevation": 1 },
+      "floating": { "offsetX": 0, "offsetY": 16, "blur": 40, "spread": 0, "color": "{color.semantic.dark.shadow.floating}", "elevation": 8 }
+    }
+  }
+}

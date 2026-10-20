@@ -1,0 +1,49 @@
+{
+  "$description": "Lotero spacing and size tokens (Design M2), logical pixels on a 4px grid. Web emits rem (value / 16) so layout follows text scaling; native emits dp/pt without font scaling. Touch sizes are minimums for the hit area, not the drawn box. See design/tokens/README.md.",
+  "spacing": {
+    "scale": { "0": 0, "1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, "8": 32, "10": 40, "12": 48, "16": 64 },
+    "page": {
+      "inline-wide": "{spacing.scale.8}",
+      "inline-compact": "{spacing.scale.4}",
+      "block-start": "{spacing.scale.6}",
+      "block-end": "{spacing.scale.10}",
+      "section-gap": "{spacing.scale.8}"
+    },
+    "stack": { "xs": "{spacing.scale.1}", "sm": "{spacing.scale.2}", "md": "{spacing.scale.4}", "lg": "{spacing.scale.6}" },
+    "inline": { "xs": "{spacing.scale.1}", "sm": "{spacing.scale.2}", "md": "{spacing.scale.3}", "lg": "{spacing.scale.4}" },
+    "inset": {
+      "control-x": "{spacing.scale.3}",
+      "button-x": "{spacing.scale.4}",
+      "badge-x": "{spacing.scale.2}",
+      "table-cell-x": "{spacing.scale.3}",
+      "table-edge-x": "{spacing.scale.4}",
+      "table-cell-y": "{spacing.scale.3}",
+      "panel": "{spacing.scale.4}",
+      "dialog": "{spacing.scale.6}",
+      "notice": "{spacing.scale.4}"
+    },
+    "form": { "column-min": 224, "column-gap": "{spacing.scale.4}", "row-gap": "{spacing.scale.4}" },
+    "size": {
+      "control-height": 40,
+      "control-height-touch": 48,
+      "control-height-small": 32,
+      "touch-target-min": 44,
+      "touch-target-comfortable": 48,
+      "touch-target-gap": "{spacing.scale.2}",
+      "icon": 16,
+      "icon-large": 20,
+      "focus-ring-width": 2,
+      "focus-ring-offset": 2,
+      "border-width": 1,
+      "marker-width": 3,
+      "avatar": 32,
+      "sidebar": 256,
+      "topbar-min": 56,
+      "drawer-max": 304,
+      "menu-max": 320,
+      "dialog-max": 560,
+      "form-max": 768,
+      "content-max": 1280
+    }
+  }
+}

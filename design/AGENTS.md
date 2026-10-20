@@ -22,6 +22,24 @@ Write the text with a natural, engaging, and highly fluid narrative style. Focus
 - references
 - visual guidelines for web and mobile
 
+## Design system layout
+
+- `docs/` — product framing, the semantic screen catalog (`screens.md`), milestones and the visual-direction decision.
+- `tokens/` — plain nested JSON, one file per category (`colors`, `typography`, `spacing`, `radii`, `shadows`, `breakpoints`, `motion`, `layers`); the model and every table live in `tokens/README.md`.
+- `specs/components/` — the component contract (Design M3): anatomy, states, token mapping and accessibility per component; `specs/components/README.md` is the index.
+- `specs/screens/` — per-feature screen blueprints (Design M4); `specs/screens/README.md` maps every cataloged screen to its blueprint.
+- `specs/` root — pt-BR formatting and copy contracts that `shared/core` and both apps implement.
+- `references/` — inputs only (palette reference, selected screenshots and measurements); never executable prototypes.
+
+## Token model
+
+- Three layers: **primitive → semantic → domain**. Semantic and domain colors are keyed under `light` and `dark` with identical names; domain groups mirror backend enums value-for-value (`daily-close-status.Submitted`).
+- Values are literals or whole-value `{path.to.token}` references; keys are letters, digits and hyphens. Primitives are literals; semantic tokens reference primitives; domain tokens reference same-theme semantic tokens or primitives.
+- **Apps consume semantic and domain tokens only**, at build time, through their own adapter (web Tailwind preset, mobile NativeWind theme). No raw hex and no primitive reference outside that adapter; nothing imports `design/` at runtime.
+- Units: logical px for type, spacing, sizes, radii and breakpoints (web emits rem/em, native dp/pt with OS font scaling for text); ms and cubic-bezier for motion; integers for layers.
+- Validate every change with `node scripts/check-contrast.mjs` (resolution, structure, enum coverage against the committed OpenAPI document, WCAG contrast in both themes, coverage of every text and indicator token) and `node scripts/test-check-contrast.mjs` (disposable negative cases). Never relax thresholds or drop a pair to make the gate pass; a passing gate proves color pairs, not overall accessibility.
+- Component specs and blueprints name tokens by their semantic/domain path and never introduce a parallel palette; `node scripts/check-design-docs.mjs` verifies those references, local links, screen coverage and copy labels (`--scope components` checks tokens and component specs alone).
+
 ## Rules
 
 - `design/` is not a runtime component package

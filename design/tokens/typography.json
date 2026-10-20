@@ -1,0 +1,47 @@
+{
+  "$description": "Lotero typography tokens (Design M2). fontSize and lineHeight are logical pixels at 100% text scale; letterSpacing is em; numeric \"tabular-lining\" means tabular lining figures. Web emits rem (value / 16) so browser text size and zoom apply; native emits dp/pt and honors the OS font scale. See design/tokens/README.md.",
+  "typography": {
+    "family": {
+      "sans": ["-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
+      "mono": ["ui-monospace", "SFMono-Regular", "Menlo", "Consolas", "monospace"]
+    },
+    "weight": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700
+    },
+    "size": {
+      "xs": 12,
+      "sm": 13,
+      "md": 14,
+      "table": 15,
+      "base": 16,
+      "lg": 18,
+      "xl": 22,
+      "2xl": 24,
+      "3xl": 26,
+      "4xl": 28
+    },
+    "role": {
+      "page-title": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.4xl}", "lineHeight": 34, "fontWeight": "{typography.weight.semibold}", "letterSpacing": -0.01 },
+      "page-title-compact": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.xl}", "lineHeight": 28, "fontWeight": "{typography.weight.semibold}", "letterSpacing": -0.01 },
+      "next-action": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.3xl}", "lineHeight": 32, "fontWeight": "{typography.weight.semibold}", "letterSpacing": -0.01 },
+      "summary-value": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.2xl}", "lineHeight": 30, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0, "numeric": "tabular-lining" },
+      "section-title": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.lg}", "lineHeight": 26, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0 },
+      "body": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.base}", "lineHeight": 24, "fontWeight": "{typography.weight.regular}", "letterSpacing": 0 },
+      "body-strong": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.base}", "lineHeight": 24, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0 },
+      "control": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.base}", "lineHeight": 24, "fontWeight": "{typography.weight.regular}", "letterSpacing": 0 },
+      "button": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.base}", "lineHeight": 24, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0 },
+      "button-small": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.md}", "lineHeight": 20, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0 },
+      "label": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.md}", "lineHeight": 20, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0 },
+      "money": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.base}", "lineHeight": 24, "fontWeight": "{typography.weight.regular}", "letterSpacing": 0, "numeric": "tabular-lining" },
+      "table": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.table}", "lineHeight": 22, "fontWeight": "{typography.weight.regular}", "letterSpacing": 0, "numeric": "tabular-lining" },
+      "table-header": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.sm}", "lineHeight": 18, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0.05, "textTransform": "uppercase" },
+      "helper": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.md}", "lineHeight": 20, "fontWeight": "{typography.weight.regular}", "letterSpacing": 0 },
+      "badge": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.sm}", "lineHeight": 18, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0.02 },
+      "overline": { "fontFamily": "{typography.family.sans}", "fontSize": "{typography.size.sm}", "lineHeight": 18, "fontWeight": "{typography.weight.semibold}", "letterSpacing": 0.06, "textTransform": "uppercase" },
+      "code": { "fontFamily": "{typography.family.mono}", "fontSize": "{typography.size.md}", "lineHeight": 20, "fontWeight": "{typography.weight.regular}", "letterSpacing": 0 }
+    }
+  }
+}

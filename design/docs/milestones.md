@@ -70,11 +70,13 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 - [x] **0.4.3** Add `Synced against loto-specs: vNN` markers to `product.md` + `screens.md`; mark both **Reviewed baseline** — a close-out with explicit *decision-blocked* entries (every screen named in the catalog's **gap → screen map** stays draft until its gap's decision lands and the entry is re-synced; the map is authoritative, inline pointers are mirrors), **not** a claim that all semantics are final. M1 may now start. Requires 0.4.5 done (gap P is Work-Queue semantics, not visuals). **D02 (2026-10-15):** markers align at v43; the expanded checker and its disposable regression suite preserve the original three-file gates. The D02 implementation audit checked 33 screen templates, IA/role/mode/entry/return, source attribution, lock/states and per-feature ownership against actual contracts. Source tags, an empty state and stale revision prose were reconciled. Newly exposed retired-product count edit/preview/save recovery stays explicitly blocked as gap AA, owned by server DailyClose/Product with scheduling pending M7.7 close-out triage. This records the implementation audit, not acceptance of the current review. The proposed baseline permits M1 visual direction after reviewer acceptance; it does not implement pending contracts or close deferred 0.4.6.
 - [x] **0.4.4** Reconcile `product.md` with the 2026-07 review findings: the identity-tier "profile" promise has no cataloged Profile screen (gap N — profile / logout / password recovery are uncataloged and unserved by the contract, now scoped into server M8); clarify that **mobile clones web** means the same screen *set and semantics*, with platform-appropriate interaction patterns. **Authored and checked in D01 (2026-10-15):** framing now distinguishes role/mode, Member scopes, unlinked-manager close access, manager time-entry snapshots, app-owned transport/storage, M8 auth/Plataforma and M11 deferred reports from current promises.
 - [x] **0.4.5** Resolve **gap P** in the catalog before the 0.4.3 baseline: define the Work Queue default-day rule (no silently borrowed due-date business-day convention; whether Saturdays/Sundays count as operating days is itself part of the decision — the system has no universal operating calendar), the cross-date pending-backlog presentation, and the Draft-count composition (scope to the earliest unlocked month and drop the extra call, or define its range). **Done:** today is literal and never switched automatically; a pending-backlog banner covers earlier unlocked days; the Draft count spans every unlocked day up to today (both served by the dashboard aggregate — gap W, server M7.7 Phase 7.5); the queue's group order is fixed — gap P is resolved in `screens.md`.
-- [ ] **0.4.6** *(deferred, owned — executes when its dependencies land)* Catalog the **auth & account screen set**: Invite accept, Registration-via-invite, Forgot/Reset password, Profile, Change password, Logout/session menu, **Continuar com Google** on Login and Invite accept (which offers **Criar senha** or **Continuar com Google**), the internal **Plataforma** area with the "Nova lotérica" onboarding wizard, and the owner **setup checklist** on Manager Work Queue — onboarding is operated (gap C, decided in server M8), so there is no public Register or Create-branch screen — plus the **guided Add employee / Offboard employee flows** (membership + operator link + account assignment in one journey; the Operators screen's "under a minute" promise currently spans three screens; a Member invitation may pre-select the operator, so accepting it creates the link). Depends on **server M8** (auth contract) and **server M7.7** decision 1.8 (Terminal↔Tab assignment pairing). Gap E is resolved in M7.7 Phase 6: removing branch membership atomically clears matching Operator login links, so the employee flows no longer need to invent stale-link display behavior.
+- [x] **0.4.6** Catalog the **auth & account screen set** against the shipped server M8 contracts (Phases 1–7) and M7.7 decision 1.8. **Authored 2026-10-20 (D04), independent review pending:** nine new entries — Session menu, Profile, Change password, Forgot password, Reset password, Invitation (preview / password register / Google / existing-account accept / decline), Plataforma — Nova lotérica (wizard, lookup by request id, owner-invite reissue), Add employee and Offboard employee (guided, composed from separate commands with honest partial completion) — and reconciled Login (**Continuar com Google** with the link-confirmation step), Branch picker (empty state, Plataforma entry), Manager Work Queue (owner setup checklist composed from existing reads, no invented readiness field), Operator Day Cockpit (link-request status), Operators (request resolution), Categories & Transaction Types (`FiadoPaymentKind`/`SystemRole`) and Branch members (invitation list/reissue). A new cross-screen section fixes capability-link privacy, account-wide session ends, generic login failure, fresh platform authority and membership guards. Gaps C/N leave the blueprint map (launch-only provider gates stay with server M8 Phase 8); **AB** (no onboarding list) and **AC** (no invitation withdrawal) qualify single features. Product framing, the screen index (42 entries) and copy (§4 glossary, §5 labels for every displayed shipped enum including the previously missing `MissingExpectedClose`, §7.4 microcopy) follow. No spec bump: this reconciles design to shipped facts at v54.
 
 > **D01 bounded delivery (2026-10-15):** only 0.4.2 + 0.4.4 are checked by this slice. M0 remains open: 0.4.3 owns revision markers/doc-check extension and reviewed-baseline close-out; 0.4.6 waits for its server contracts. No IA/backlog endpoint, server contract, canonical-domain document, migration, tooling or lockfile change. Independent review/acceptance pending; review handoff artifacts stay outside the repository.
 
 > **D02 baseline handoff (2026-10-15):** 0.4.3 is the only item checked by this slice. D01 is integrated; the current product/catalog are the reviewed baseline against v43, with their authoritative feature gates intact. 0.4.6 remains deferred under its named server prerequisites, so M0 is not declared fully complete. Reviewer acceptance of this D02 delivery remains pending; after acceptance, M1 may start from this brief. Server phases retain their own order/ownership; gap AA requires server triage before its affected feature can be built.
+
+> **D04 addendum (2026-10-20):** 0.4.6 is authored against the shipped M8 contracts and checked by this slice; independent review is pending, so M0 is not yet declared complete. No spec bump was needed: design was reconciled to shipped facts at v54.
 
 ---
 
@@ -134,28 +136,28 @@ For each screen the dev-team prototype, attach/paste:
 
 ### Phase 1 — Architecture & conventions
 
-- [ ] **2.1.1** Create `design/tokens/` and write `design/tokens/README.md`: the three-layer model, the naming convention (dot-path, e.g. `color.semantic.light.surface-raised`), the `{path.to.token}` syntax, the build-time consumption rule (apps read JSON via their own adapters; only semantic/domain may be referenced), and the light+dark theme structure. *(Folders are created as files land — no empty scaffolding.)*
-- [ ] **2.1.2** Document the JSON file shape: one file per category (`colors.json`, `typography.json`, `spacing.json`, `radii.json`, `shadows.json`, `breakpoints.json`, `motion.json`, `layers.json`).
-- [ ] **2.1.3** Base the color work on the parked inputs — `design/references/caixa-palette.md` + the locked tone in `decisions.md` + the tool's exported styles. Do not create a new identity reference here.
+- [x] **2.1.1** Create `design/tokens/` and write `design/tokens/README.md`: the three-layer model, the naming convention (dot-path, e.g. `color.semantic.light.surface-raised`), the `{path.to.token}` syntax, the build-time consumption rule (apps read JSON via their own adapters; only semantic/domain may be referenced), and the light+dark theme structure. *(Folders are created as files land — no empty scaffolding.)* *(D04: model, dot paths, whole-value references, build-time consumption and theme structure in `design/tokens/README.md`; semantic groups nest, so the example reads `color.semantic.light.surface.raised`.)*
+- [x] **2.1.2** Document the JSON file shape: one file per category (`colors.json`, `typography.json`, `spacing.json`, `radii.json`, `shadows.json`, `breakpoints.json`, `motion.json`, `layers.json`). *(D04: eight files with one top-level group each; units and per-platform interpretation tabled in the README.)*
+- [x] **2.1.3** Base the color work on the parked inputs — `design/references/caixa-palette.md` + the locked tone in `decisions.md` + the tool's exported styles. Do not create a new identity reference here. *(D04: ramps derived from the handoff's observed anchors and the Caixa reference; no new identity reference.)*
 
 ### Phase 2 — Color system (light + dark)
 
-- [ ] **2.2.1** Primitive layer in `colors.json`: brand-blue, brand-orange, neutral, plus green/red/amber/sky feedback ramps (~10 steps each), derived from the M1 tone.
-- [ ] **2.2.2** Semantic layer under **both** `light` and `dark`: `background`, `surface`, `surface-raised`, `border`, `text-primary/secondary/muted`, `text-on-primary`, `primary`/`primary-hover`/`primary-active`, `accent`, `focus-ring`, and `success`/`danger`/`warning`/`info` as `-bg`+`-text` pairs. All `{...}` references into primitives.
-- [ ] **2.2.3** Domain layer: one token per value of every colored enum (spec §4) — `TransactionStatus`, `DailyCloseStatus`, `Direction`, `AgingBucket` (severity ramp), `TimeEntryStatus` — for both themes.
-- [ ] **2.2.4** `scripts/check-contrast.mjs` (repo-level): zero-dep Node script that resolves references and verifies every text/bg + badge pair meets WCAG AA in **both themes**. Doubles as the JSON/reference validator. Run green.
-- [ ] **2.2.5** Domain-token table in the README.
+- [x] **2.2.1** Primitive layer in `colors.json`: brand-blue, brand-orange, neutral, plus green/red/amber/sky feedback ramps (~10 steps each), derived from the M1 tone. *(D04: blue, orange, neutral, night (dark surfaces), green, red, amber, sky and teal ramps plus named translucent overlays.)*
+- [x] **2.2.2** Semantic layer under **both** `light` and `dark`: `background`, `surface`, `surface-raised`, `border`, `text-primary/secondary/muted`, `text-on-primary`, `primary`/`primary-hover`/`primary-active`, `accent`, `focus-ring`, and `success`/`danger`/`warning`/`info` as `-bg`+`-text` pairs. All `{...}` references into primitives. *(D04: both themes with identical names; actions carry hover/active/disabled, plus focus, nav, top bar, overlay, shadow and skeleton roles. Corrected the four handoff failures and three more found by the gate: light turquoise text, light muted text on read-only fills, and feedback text on selected rows.)*
+- [x] **2.2.3** Domain layer: one token per value of every colored enum (spec §4) — `TransactionStatus`, `DailyCloseStatus`, `Direction`, `AgingBucket` (severity ramp), `TimeEntryStatus` — for both themes. *(D04: the five named enums plus InstallmentPlanStatus, InvitationStatus, MailDeliveryStatus, OperatorLinkRequestStatus and DailyCloseReviewEventType, each matched value-for-value to the committed OpenAPI enum; signed cash variance, fiado balance, hour balance and the generated-movement marker. Direction is deliberately neutral.)*
+- [x] **2.2.4** `scripts/check-contrast.mjs` (repo-level): zero-dep Node script that resolves references and verifies every text/bg + badge pair meets WCAG AA in **both themes**. Doubles as the JSON/reference validator. Run green. *(D04: `node scripts/check-contrast.mjs` — 727 tokens, 912 combinations, all green (lowest text 4.63 light / 4.61 dark; lowest essential boundary 3.04); action states and domain surfaces are generated and required by the checker, so a trimmed list or missing state fails; `node scripts/test-check-contrast.mjs` — 34 disposable scenarios, source hashes unchanged. Review fixes: ghost/danger pressed fills, selection indicator for selected rows.)*
+- [x] **2.2.5** Domain-token table in the README. *(D04: domain table with labels, both themes and lowest ratios.)*
 
 ### Phase 3 — Typography, spacing, geometry, motion, layers
 
-- [ ] **2.3.1** `typography.json`: font stacks (system-first unless M1 chose a face), role scale (`display`→`overline`), weights, line heights, tabular-numerals rule for money/tables.
-- [ ] **2.3.2** `spacing.json` (4px base) + `radii.json` + `shadows.json`.
-- [ ] **2.3.3** `breakpoints.json` (web) + touch-target guidance (mobile) + `motion.json` (durations/easings) + `layers.json` (z-index scale + backdrop opacity).
-- [ ] **2.3.4** Extend README tables; re-run the contrast script green.
+- [x] **2.3.1** `typography.json`: font stacks (system-first unless M1 chose a face), role scale (`display`→`overline`), weights, line heights, tabular-numerals rule for money/tables. *(D04: system stacks, 18 roles, weights 400–700, tabular lining figures; the README relates the scale to the 150% captures without global zoom.)*
+- [x] **2.3.2** `spacing.json` (4px base) + `radii.json` + `shadows.json`. *(D04: 4px scale with named page/stack/inline/inset/form uses and sizes; radii capped at 4 except avatars/dots; two shadow recipes per theme.)*
+- [x] **2.3.3** `breakpoints.json` (web) + touch-target guidance (mobile) + `motion.json` (durations/easings) + `layers.json` (z-index scale + backdrop opacity). *(D04: em-based content breakpoints 640/1024/1440; 44/48 touch targets with 8 gaps; motion with a reduced counterpart for every transition; ordered layers with backdrop opacity per theme.)*
+- [x] **2.3.4** Extend README tables; re-run the contrast script green. *(D04: every category tabled; gate re-run green after the last color change.)*
 
 ### Phase 4 — Close-out
 
-- [ ] **2.4.1** README tables complete for every category; contrast green in both themes; update `design/AGENTS.md` with the token model + consumption rules.
+- [x] **2.4.1** README tables complete for every category; contrast green in both themes; update `design/AGENTS.md` with the token model + consumption rules. *(D04: README complete, contrast green in both themes, `design/AGENTS.md` records the model and consumption rules. Independent review pending; app adapters and real-UI verification belong to Web/Mobile M3.)*
 
 ---
 
@@ -169,6 +171,34 @@ For each screen the dev-team prototype, attach/paste:
 
 **Precondition:** M2 (tokens to map against) + the M0 cross-screen patterns (Phase 4) that say which components the screens actually need.
 
+> **D04 plan and delivery (2026-10-20):** M3 had no phase map at the start of D04; the plan below was written and executed in the same authorized batch. Independent review is pending, so 3.5.2 stays open and M3 is not declared complete.
+
+### Phase 1 — Contract frame
+
+- [x] **3.1.1** `design/specs/components/README.md`: index of every component with its catalog uses, the fixed spec template, and the token notation (`sem.*`, `dom.*`, full paths for other categories; no primitives or raw colors).
+- [x] **3.1.2** Shared state vocabulary (disabled · read-only · loading · error · success, plus uncertain) and the cross-cutting contracts components honor by reference — verbatim `ErrorMessages`, uncertain writes and retries, session recovery without financial replay, provenance versus status, whole-row destinations with nested actions, origin/scope return, focus, motion, text scaling, money/date presentation — pointing at the catalog's cross-screen patterns instead of restating them.
+
+### Phase 2 — Inputs and forms
+
+- [x] **3.2.1** FormField, Input (text, e-mail, password, textarea, search, masked identifiers) and MoneyInput (blank versus recorded zero, cents entry through `@loto/core`, provenance of read-only amounts).
+- [x] **3.2.2** Select (native, listbox, searchable over complete collections, no-default), DatePicker (date, range, day stepper, month, time — branch clock, calendar-only values) and Checkbox/Radio/Switch (no preselection where the catalog forbids it).
+
+### Phase 3 — Actions and feedback
+
+- [x] **3.3.1** Button (primary, scarce CTA, secondary, text/link, outlined and solid danger; loading and uncertain behavior) and Badge (domain status, aging severity, provenance marker, feedback and mode markers; unknown values neutral).
+- [x] **3.3.2** Notice (including the error summary and **Resultado não confirmado**), Toast (confirmed success echo only), SaveStatus (pending/saved/failed/unsaved-on-server/stale/device-only with the acknowledged save time), Skeleton and EmptyState (no records · no matches · all-clear · setup needed).
+
+### Phase 4 — Structure and data
+
+- [x] **3.4.1** PageHeader (breadcrumb/return to the semantic origin), Card (sparing; Cockpit next action, checklist, auth sheet), SummaryStrip (scoped, never fabricated totals) and DetailList (identities, provenance, restriction reasons).
+- [x] **3.4.2** Table/List (record tables, grouped lists, editable grid, expandable groups, selectable rows; whole-row destination with an explicit link and independent nested actions; horizontal scroll regions), FilterBar (real query fields, scope summary, preserved context) and Pagination (endpoint envelope, page subtotal labelling).
+- [x] **3.4.3** Modal/Sheet (dialog, confirmation, drawer, bottom sheet; focus containment and return, phone keyboard), Menu (Session menu, overflow), Tabs (and segmented control), Disclosure (collapsed help, Ver o que mudou) and Stepper (confirmed per-step status for composed journeys).
+
+### Phase 5 — Close-out
+
+- [x] **3.5.1** `scripts/check-design-docs.mjs` verifies every token named by the component and screen specs exists in both themes, that no spec names a primitive or raw color, local links and anchors under `design/`, screen-to-blueprint coverage and copy labels for every contract enum; it passes, and `node scripts/test-check-design-docs.mjs` proves each rule fails on a disposable copy (14 scenarios, `design/` hashed unchanged). `--scope components` validates M2/M3 alone — links and token references in tokens and component specs, without the catalog, blueprints or copy coverage — and is proven on a tree with only the committed M0 docs.
+- [ ] **3.5.2** Independent review of the component contract; Web M3 and Mobile M3 then prove it in running code (`/styleguide`, in-app gallery) — real keyboard, screen-reader, touch and text-scaling evidence is theirs.
+
 ---
 
 ## M4 — Design System: Screen Blueprints
@@ -177,6 +207,98 @@ For each screen the dev-team prototype, attach/paste:
 
 **Scope boundary:** One blueprint per feature in `design/specs/screens/`. Stays open across the frontend build.
 
-**Precondition:** M3 + M0's baselined `screens.md` + M1's direction. **Per-screen gate:** a blueprint for any screen named in the catalog's **gap → screen map** (the authoritative table in `screens.md`'s gaps section — inline pointers are convenience mirrors) requires that gap's implementation has landed and the entry has been re-synced. A parenthetical feature qualifier on a map row limits the gate to that feature; the rest of that screen's blueprint proceeds. D/F/J shipped in server M7.7 Phase 2; G, I, and L's server open guards in Phase 3; K in Phase 4; S in Phase 5.3; B, E, M, and T in Phase 6; O in Phase 7; W in Phase 7.5. The remaining map spans Close day's fiado reference (A), the fiado screens with Client statement and Receber pagamento (H), paired-Tab routing data on Transaction — Create and Account assignment (L), the future auth/report screens (C/N/Q), the self-recorded marker and own-row guard (U, server M8), and the operator-link request surfaces (V, server M8). Gap P is resolved by 0.4.5. Gap R is resolved by 0.4.1 and no longer gates the navigation shell.
+**Precondition:** M3 + M0's baselined `screens.md` + M1's direction. **Per-screen gate:** a blueprint for any screen named in the catalog's **gap → screen map** (the authoritative table in `screens.md`'s gaps section — inline pointers are convenience mirrors) requires that gap's implementation has landed and the entry has been re-synced. A parenthetical feature qualifier on a map row limits the gate to that feature; the rest of that screen's blueprint proceeds. At D04 (2026-10-20) the map holds only Q (uncataloged M11 reports), AA (retained retired-product edit/preview/save and the Products deactivation warning), AB (Plataforma onboarding list) and AC (withdrawing a pending invitation). Every server dependency through M7.7 and M8 Phases 1–7 is shipped; M8 Phase 8 provider and launch acceptance is a release gate, not a blueprint gate.
 
-**Seeded blueprint backlog** (named tasks the review already identified): the multi-terminal cockpit selector + workstation-first Open-day framing (semantics now in the catalog; M4 owns the visual blueprint); the guided Add/Offboard-employee journey, the Plataforma onboarding wizard, and the owner setup checklist (0.4.6). The manager-as-operator mode switch semantics are resolved in 0.4.1; M4 owns only its visual blueprint.
+> **D04 plan and delivery (2026-10-20):** the plan and inventory below were written and executed in the same authorized batch; every currently unblocked blueprint is authored, review is pending, and M4 stays open for its gated remainders and for the updates real app milestones bring.
+
+### Phase 1 — Plan and coverage
+
+- [x] **4.1.1** Blueprint inventory below, keyed to the 42 catalog entries with their owning app milestone, current contract and precise remainder; this table is the coverage authority.
+- [x] **4.1.2** `design/specs/screens/README.md` screen → blueprint index; `scripts/check-design-docs.mjs` fails on any entry without a row, a missing blueprint, or a blueprint without that screen's heading.
+
+### Phase 2 — Shell, identity and account
+
+- [x] **4.2.1** Navigation shell: sidebar/top bar/drawer, status rail, mode groups, the three presentation questions delegated by the catalog, native navigation model and the web route map (origins in navigation state, never URL authority).
+- [x] **4.2.2** Login (with the Google link-confirmation step), Branch picker / session, Session menu.
+- [x] **4.2.3** Profile, Change password, Forgot password, Reset password and Invitation, including capability-fragment handling.
+
+### Phase 3 — Operator day and review
+
+- [x] **4.3.1** Operator Day Cockpit — the phone grid defect fixed by single-column stacking below `breakpoint.wide`, today's close always reachable beside a different next action — and Open day.
+- [x] **4.3.2** Close day and Fix & resubmit: autosave versus explicit correction save, visible disabled **Salvar**, repeat undo, collapsed variance help, candidate equation distinct from the official value, compact per-product count list. Retired-product editing stays as the AA remainder.
+- [x] **4.3.3** Manager Work Queue (fixed group order, backlog banner, owner setup checklist region) and Daily-close approval.
+
+### Phase 4 — Transactions, cheque plans and fiado
+
+- [x] **4.4.1** Transaction — Create, Transaction — Edit and Transactions list (three-date labelling, generated-movement links, no date-only link, uncertain-create recovery).
+- [x] **4.4.2** Installment plan in creation and existing-plan modes (atomic **Finalizar plano**, Mixed confirmation, per-row saves, no single-row finalize).
+- [x] **4.4.3** Client statement and Receber pagamento (branch-wide FIFO balance from the server, positive credit display, method without default, drawer effect by `FiadoPaymentKind`, no Tab balance).
+
+### Phase 5 — Reports and month lock
+
+- [x] **4.5.1** Shared report frame and the six reports, including the lock confirmation and earlier-month refusal path.
+
+### Phase 6 — Time and personal work
+
+- [x] **4.6.1** Clock in / out (overnight choice), Time-entry management (snapshot versus granular edits made visible), My transaction summary (automatic share) and My time-entry balance (per-day target only for one operator).
+
+### Phase 7 — Administration, onboarding and employee setup
+
+- [x] **4.7.1** The nine administration screens with their guards; AA (Products) and AC (Branch members) recorded as remainders.
+- [x] **4.7.2** Plataforma — Nova lotérica (wizard, idempotent request id, device-local list per AB), Add employee and Offboard employee (committed steps, confirmed-versus-pending summary, AC).
+
+### Phase 8 — Coverage and close-out
+
+- [x] **4.8.1** Cross-document audit and checks: catalog/index/IA, token and component references, local links, enum labels, contrast gate and doc-sync, all green.
+- [ ] **4.8.2** AA remainder blueprints after the server DailyClose/Product contract decision and catalog re-sync.
+- [ ] **4.8.3** AB and AC remainders after their owner decisions/contracts.
+- [ ] **4.8.4** Dashboard, Upcoming settlements and Monthly financial report blueprints after server M11 contracts and their catalog entries (gap Q).
+- [ ] **4.8.5** Independent review of the D04 blueprints.
+- [ ] **4.8.6** Blueprint updates from real Web/Mobile feature milestones (keyboard, screen reader, touch, 375px, enlarged text and native verification against the API).
+
+### Blueprint inventory
+
+| Screen (catalog entry) | Blueprint | App milestone | Current contract (server) | Remainder |
+|---|---|---|---|---|
+| Login | `shell-and-identity.md` | Web/Mobile M4 (Google: M11) | M8 Ph 2, 7 (password + verified Google) | — |
+| Branch picker / session | `shell-and-identity.md` | Web/Mobile M4 | M1 session; M7.7 Ph 6 branch clock; M8 profile flag | — |
+| Session menu | `shell-and-identity.md` | Web/Mobile M4 (account items: M11) | M8 Ph 2 (profile, logout); self-context | — |
+| Profile | `shell-and-identity.md` | Web/Mobile M11 | M8 Ph 2 | — |
+| Change password | `shell-and-identity.md` | Web/Mobile M11 | M8 Ph 2 | — |
+| Forgot password | `shell-and-identity.md` | Web/Mobile M11 | M8 Ph 3 | — |
+| Reset password | `shell-and-identity.md` | Web/Mobile M11 | M8 Ph 3, 6 (first-operator activation) | — |
+| Invitation | `shell-and-identity.md` | Web/Mobile M11 | M8 Ph 5, 7 | — |
+| Plataforma — Nova lotérica | `onboarding-and-employees.md` | Web/Mobile M11 | M8 Ph 6 | onboarding list (gap AB) |
+| Manager Work Queue | `queue-and-review.md` | Web/Mobile M7 (setup checklist: M11) | M7.5; M7.7 Ph 4, 7.5, 7.8; M8 Ph 4 | — |
+| Daily-close approval | `queue-and-review.md` | Web/Mobile M7 | M7.5; M7.7 Ph 2, 3, 7.6.1 | — |
+| Transaction — Create (fast entry) | `transactions.md` | Web/Mobile M6 | M3; M7.7 Ph 5, 6 | — |
+| Transaction — Edit (correction / audit) | `transactions.md` | Web/Mobile M6 | M3; M7.7 Ph 5, 6, 7.6.2 | — |
+| Transactions list | `transactions.md` | Web/Mobile M6 | M3; M7.7 Ph 6, 7.6.3 | — |
+| Installment (pre-dated cheque) plan | `transactions.md` | Web/Mobile M6 | M3; M7 Ph 6/7.2; M7.7 Ph 6, 7.6.2 | — |
+| Client statement (Extrato de fiado) | `transactions.md` | Web/Mobile M6 | M7.7 Ph 5.5 | — |
+| Receber pagamento | `transactions.md` | Web/Mobile M6 | M7.7 Ph 5.1, 5.6 | — |
+| Daily ledger | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 2; M11 Ph 2.4 | — |
+| Fiado balance | `reports-and-month-lock.md` | Web/Mobile M8 | M7.7 Ph 5; M11 Ph 3.1 | — |
+| Fiado aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7.7 Ph 5.1; M11 Ph 3.2 | — |
+| Open-cheque aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 5; M11 Ph 2.1 | — |
+| Cash-variance summary | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 8; M7.7 Ph 6; M11 Ph 2.2 | — |
+| Monthly reconciliation + lock | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 10; M7.7 Ph 4; M11 Ph 2.3 | — |
+| My transaction summary | `time-and-self-service.md` | Web/Mobile M9 | M7 Ph 9; M7.7 Ph 5.8 | — |
+| My time-entry balance | `time-and-self-service.md` | Web/Mobile M9 | M7 Ph 11; M7.7 Ph 7 | — |
+| Operator Day Cockpit | `operator-day.md` | Web/Mobile M5 | M4; M7.7 Ph 3, 5.6, 7.6.1; M8 Ph 4 | — |
+| Open day | `operator-day.md` | Web/Mobile M5 | M4; M7.7 Ph 3 | — |
+| Close day | `operator-day.md` | Web/Mobile M5 | M4; M7.7 Ph 2, 3, 6, 7.6.1 | retained retired-product edit/preview/save (gap AA) |
+| Fix & resubmit | `operator-day.md` | Web/Mobile M5 | M4; M7.7 Ph 3, 7.6.1 | retained retired-product edit/preview/save (gap AA) |
+| Clock in / out | `time-and-self-service.md` | Web/Mobile M9 | M5 | — |
+| Time-entry management | `time-and-self-service.md` | Web/Mobile M9 | M5; M7.7 Ph 6, 7 | — |
+| Operators (admin) | `administration.md` | Web/Mobile M10 (link requests: M11) | M2; M7.7 Ph 6; M8 Ph 4 | — |
+| Account assignment (admin) | `administration.md` | Web/Mobile M10 | M2; M7.7 Ph 5.3, 5.6 | — |
+| Accounts (admin) | `administration.md` | Web/Mobile M10 | M2; M7.7 Ph 5.3 | — |
+| Clients (admin + counter) | `administration.md` | Web/Mobile M10 | M2 | — |
+| Categories & Transaction Types (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 5 | — |
+| Products (admin) | `administration.md` | Web/Mobile M10 | M6 | deactivation warning/recovery (gap AA) |
+| Holidays (admin) | `administration.md` | Web/Mobile M10 | M5, M6 | — |
+| Settings (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 4, 6, 7 | — |
+| Branch members (admin) | `administration.md` | Web/Mobile M10 (invitations: M11) | M1; M8 Ph 2, 5 | withdrawing an invitation (gap AC) |
+| Add employee (guided) | `onboarding-and-employees.md` | Web/Mobile M11 | M2 operator/assignment; M8 Ph 5 invitation | — |
+| Offboard employee (guided) | `onboarding-and-employees.md` | Web/Mobile M11 | M1 membership; M2; M8 Ph 2, 5 | withdrawing an invitation (gap AC) |

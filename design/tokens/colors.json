@@ -1,0 +1,1258 @@
+{
+  "$description": "Lotero color tokens (Design M2). Plain nested JSON; {path.to.token} references; primitive -> semantic -> domain. Apps consume only color.semantic.<theme>.* and color.domain.<theme>.*. See design/tokens/README.md.",
+  "color": {
+    "primitive": {
+      "blue": {
+        "50": "#eef5fb",
+        "100": "#d7e8f6",
+        "200": "#b0d2ee",
+        "300": "#5fb0ea",
+        "400": "#2a93d8",
+        "500": "#0075bf",
+        "550": "#0068ac",
+        "600": "#005ca9",
+        "700": "#004b8b",
+        "800": "#003f74",
+        "900": "#082440",
+        "950": "#061a2e"
+      },
+      "orange": {
+        "50": "#fff4e5",
+        "100": "#ffe3bd",
+        "200": "#ffc978",
+        "300": "#ffb347",
+        "400": "#ffa21f",
+        "500": "#f39200",
+        "600": "#d97f00",
+        "700": "#b46800",
+        "800": "#7a4600",
+        "950": "#1b1409"
+      },
+      "neutral": {
+        "0": "#ffffff",
+        "25": "#f6fafb",
+        "50": "#f4f8f9",
+        "75": "#f1f5f7",
+        "100": "#ebf1f3",
+        "125": "#e9f0f2",
+        "150": "#e4ecef",
+        "200": "#d3e0e4",
+        "300": "#bfd0d6",
+        "400": "#7a909d",
+        "450": "#6e8391",
+        "500": "#546978",
+        "700": "#33495a",
+        "800": "#1f3445",
+        "900": "#0f2230"
+      },
+      "night": {
+        "100": "#e4edf2",
+        "200": "#b6c6d0",
+        "250": "#93a8b8",
+        "300": "#8699a7",
+        "400": "#587389",
+        "450": "#6a7f91",
+        "500": "#2c4458",
+        "600": "#22384a",
+        "650": "#1a2e3e",
+        "675": "#1a2d3d",
+        "700": "#182a3a",
+        "750": "#142637",
+        "800": "#132433",
+        "850": "#0f1d2a",
+        "900": "#0c1924",
+        "950": "#0a1520"
+      },
+      "green": {
+        "50": "#e8f5ee",
+        "100": "#cdebdb",
+        "200": "#9fd8bb",
+        "300": "#52c48d",
+        "400": "#2fa66e",
+        "500": "#1f8a59",
+        "600": "#146b45",
+        "700": "#105c3b",
+        "800": "#0b452c",
+        "900": "#062c1c"
+      },
+      "red": {
+        "50": "#fdeeec",
+        "100": "#fad5d0",
+        "200": "#ffb1a8",
+        "300": "#ff897c",
+        "400": "#e5584a",
+        "500": "#cf4334",
+        "600": "#b33225",
+        "700": "#992a20",
+        "800": "#741f17",
+        "900": "#4d140f"
+      },
+      "amber": {
+        "50": "#fff7e6",
+        "100": "#fdebc8",
+        "200": "#f9d48f",
+        "300": "#f2b347",
+        "400": "#e09a20",
+        "500": "#c27d00",
+        "600": "#a86a00",
+        "700": "#8f5300",
+        "800": "#6f4100",
+        "900": "#4a2c00"
+      },
+      "sky": {
+        "50": "#eaf6fd",
+        "100": "#cdeafa",
+        "200": "#9fd5f5",
+        "300": "#63b8f0",
+        "400": "#2f9fe0",
+        "500": "#0d86c9",
+        "600": "#0067ad",
+        "700": "#005592",
+        "800": "#004473",
+        "900": "#002f50"
+      },
+      "teal": {
+        "50": "#e9f7f4",
+        "100": "#cdeee7",
+        "200": "#9fdcd0",
+        "300": "#6cc9b9",
+        "400": "#54bbab",
+        "500": "#3a9f8f",
+        "600": "#2a8576",
+        "700": "#226f63",
+        "800": "#154f46",
+        "900": "#0c342e"
+      },
+      "black": "#000000",
+      "alpha": {
+        "blue-08": "#005ca914",
+        "blue-30": "#0075bf4d",
+        "blue-light-13": "#5fb0ea21",
+        "blue-light-16": "#5fb0ea29",
+        "blue-light-35": "#5fb0ea59",
+        "green-10": "#146b451a",
+        "green-light-14": "#52c48d24",
+        "red-09": "#b3322517",
+        "red-light-13": "#ff897c21",
+        "orange-14": "#f3920024",
+        "orange-16": "#f3920029",
+        "orange-24": "#f392003d",
+        "sky-09": "#0067ad17",
+        "sky-light-13": "#63b8f021",
+        "teal-16": "#54bbab29",
+        "white-05": "#ffffff0d",
+        "white-08": "#ffffff14",
+        "white-12": "#ffffff1f",
+        "white-14": "#ffffff24",
+        "clear": "#00000000",
+        "blue-16": "#005ca929",
+        "blue-light-18": "#5fb0ea2e",
+        "red-16": "#b3322529",
+        "red-light-24": "#ff897c3d",
+        "ink-05": "#0f22300d",
+        "ink-18": "#0f22302e",
+        "black-30": "#0000004d",
+        "black-50": "#00000080"
+      },
+      "navy": {
+        "backdrop": "#061626"
+      }
+    },
+    "semantic": {
+      "light": {
+        "background": "{color.primitive.neutral.75}",
+        "surface": {
+          "default": "{color.primitive.neutral.0}",
+          "subtle": "{color.primitive.neutral.50}",
+          "muted": "{color.primitive.neutral.125}",
+          "raised": "{color.primitive.neutral.0}",
+          "hover": "{color.primitive.neutral.25}",
+          "selected": "{color.primitive.alpha.blue-08}"
+        },
+        "text": {
+          "primary": "{color.primitive.neutral.900}",
+          "secondary": "{color.primitive.neutral.700}",
+          "muted": "{color.primitive.neutral.500}",
+          "placeholder": "{color.primitive.neutral.500}",
+          "disabled": "{color.primitive.neutral.450}",
+          "link": "{color.primitive.blue.600}",
+          "link-hover": "{color.primitive.blue.700}"
+        },
+        "border": {
+          "subtle": "{color.primitive.neutral.150}",
+          "default": "{color.primitive.neutral.200}",
+          "strong": "{color.primitive.neutral.300}",
+          "control": "{color.primitive.neutral.400}",
+          "control-hover": "{color.primitive.neutral.500}",
+          "control-invalid": "{color.primitive.red.600}"
+        },
+        "action": {
+          "primary": {
+            "bg": "{color.primitive.blue.600}",
+            "bg-hover": "{color.primitive.blue.700}",
+            "bg-active": "{color.primitive.blue.800}",
+            "fg": "{color.primitive.neutral.0}"
+          },
+          "cta": {
+            "bg": "{color.primitive.orange.500}",
+            "bg-hover": "{color.primitive.orange.400}",
+            "bg-active": "{color.primitive.orange.600}",
+            "fg": "{color.primitive.orange.950}"
+          },
+          "secondary": {
+            "bg": "{color.primitive.neutral.0}",
+            "bg-hover": "{color.primitive.neutral.50}",
+            "bg-active": "{color.primitive.neutral.100}",
+            "fg": "{color.primitive.neutral.900}",
+            "border": "{color.primitive.neutral.400}"
+          },
+          "ghost": {
+            "bg": "{color.primitive.alpha.clear}",
+            "bg-hover": "{color.primitive.alpha.blue-08}",
+            "bg-active": "{color.primitive.alpha.blue-16}",
+            "fg": "{color.primitive.blue.600}",
+            "fg-hover": "{color.primitive.blue.700}"
+          },
+          "danger": {
+            "bg": "{color.primitive.neutral.0}",
+            "bg-hover": "{color.primitive.alpha.red-09}",
+            "bg-active": "{color.primitive.alpha.red-16}",
+            "fg": "{color.primitive.red.600}",
+            "border": "{color.primitive.red.600}"
+          },
+          "danger-solid": {
+            "bg": "{color.primitive.red.600}",
+            "bg-hover": "{color.primitive.red.700}",
+            "bg-active": "{color.primitive.red.800}",
+            "fg": "{color.primitive.neutral.0}"
+          },
+          "disabled": {
+            "bg": "{color.primitive.neutral.100}",
+            "fg": "{color.primitive.neutral.450}",
+            "border": "{color.primitive.neutral.200}"
+          }
+        },
+        "selection": {
+          "indicator": "{color.primitive.blue.600}",
+          "indicator-fg": "{color.primitive.neutral.0}"
+        },
+        "focus": {
+          "ring": "{color.primitive.blue.600}",
+          "ring-on-nav": "{color.primitive.neutral.0}",
+          "halo": "{color.primitive.alpha.blue-30}"
+        },
+        "accent": {
+          "secondary-fg": "{color.primitive.teal.700}",
+          "secondary-bg": "{color.primitive.alpha.teal-16}"
+        },
+        "feedback": {
+          "success": {
+            "fg": "{color.primitive.green.600}",
+            "bg": "{color.primitive.alpha.green-10}",
+            "border": "{color.primitive.green.600}"
+          },
+          "danger": {
+            "fg": "{color.primitive.red.600}",
+            "bg": "{color.primitive.alpha.red-09}",
+            "border": "{color.primitive.red.600}"
+          },
+          "warning": {
+            "fg": "{color.primitive.amber.700}",
+            "bg": "{color.primitive.alpha.orange-14}",
+            "border": "{color.primitive.orange.500}"
+          },
+          "info": {
+            "fg": "{color.primitive.sky.600}",
+            "bg": "{color.primitive.alpha.sky-09}",
+            "border": "{color.primitive.sky.600}"
+          },
+          "neutral": {
+            "fg": "{color.primitive.neutral.700}",
+            "bg": "{color.primitive.neutral.100}",
+            "border": "{color.primitive.neutral.300}"
+          }
+        },
+        "nav": {
+          "bg": "{color.primitive.blue.700}",
+          "text": "{color.primitive.blue.50}",
+          "text-strong": "{color.primitive.neutral.0}",
+          "text-muted": "{color.primitive.blue.200}",
+          "hover": "{color.primitive.alpha.white-08}",
+          "active": "{color.primitive.alpha.white-14}",
+          "marker": "{color.primitive.orange.500}",
+          "divider": "{color.primitive.alpha.white-12}"
+        },
+        "topbar": {
+          "bg": "{color.primitive.neutral.0}",
+          "border": "{color.primitive.neutral.200}"
+        },
+        "overlay": {
+          "backdrop-base": "{color.primitive.navy.backdrop}"
+        },
+        "shadow": {
+          "raised": "{color.primitive.alpha.ink-05}",
+          "floating": "{color.primitive.alpha.ink-18}"
+        },
+        "skeleton": {
+          "base": "{color.primitive.neutral.100}",
+          "highlight": "{color.primitive.neutral.50}"
+        }
+      },
+      "dark": {
+        "background": "{color.primitive.night.950}",
+        "surface": {
+          "default": "{color.primitive.night.850}",
+          "subtle": "{color.primitive.night.800}",
+          "muted": "{color.primitive.night.700}",
+          "raised": "{color.primitive.night.800}",
+          "hover": "{color.primitive.night.750}",
+          "selected": "{color.primitive.alpha.blue-light-13}"
+        },
+        "text": {
+          "primary": "{color.primitive.night.100}",
+          "secondary": "{color.primitive.night.200}",
+          "muted": "{color.primitive.night.300}",
+          "placeholder": "{color.primitive.night.300}",
+          "disabled": "{color.primitive.night.450}",
+          "link": "{color.primitive.blue.300}",
+          "link-hover": "{color.primitive.blue.200}"
+        },
+        "border": {
+          "subtle": "{color.primitive.night.650}",
+          "default": "{color.primitive.night.600}",
+          "strong": "{color.primitive.night.500}",
+          "control": "{color.primitive.night.400}",
+          "control-hover": "{color.primitive.night.300}",
+          "control-invalid": "{color.primitive.red.300}"
+        },
+        "action": {
+          "primary": {
+            "bg": "{color.primitive.blue.500}",
+            "bg-hover": "{color.primitive.blue.550}",
+            "bg-active": "{color.primitive.blue.600}",
+            "fg": "{color.primitive.neutral.0}"
+          },
+          "cta": {
+            "bg": "{color.primitive.orange.500}",
+            "bg-hover": "{color.primitive.orange.400}",
+            "bg-active": "{color.primitive.orange.600}",
+            "fg": "{color.primitive.orange.950}"
+          },
+          "secondary": {
+            "bg": "{color.primitive.night.850}",
+            "bg-hover": "{color.primitive.night.750}",
+            "bg-active": "{color.primitive.night.700}",
+            "fg": "{color.primitive.night.100}",
+            "border": "{color.primitive.night.400}"
+          },
+          "ghost": {
+            "bg": "{color.primitive.alpha.clear}",
+            "bg-hover": "{color.primitive.alpha.blue-light-13}",
+            "bg-active": "{color.primitive.alpha.blue-light-18}",
+            "fg": "{color.primitive.blue.300}",
+            "fg-hover": "{color.primitive.blue.200}"
+          },
+          "danger": {
+            "bg": "{color.primitive.night.850}",
+            "bg-hover": "{color.primitive.alpha.red-light-13}",
+            "bg-active": "{color.primitive.alpha.red-light-24}",
+            "fg": "{color.primitive.red.300}",
+            "border": "{color.primitive.red.300}"
+          },
+          "danger-solid": {
+            "bg": "{color.primitive.red.300}",
+            "bg-hover": "{color.primitive.red.200}",
+            "bg-active": "{color.primitive.red.100}",
+            "fg": "{color.primitive.night.950}"
+          },
+          "disabled": {
+            "bg": "{color.primitive.night.675}",
+            "fg": "{color.primitive.night.450}",
+            "border": "{color.primitive.night.600}"
+          }
+        },
+        "selection": {
+          "indicator": "{color.primitive.blue.300}",
+          "indicator-fg": "{color.primitive.night.950}"
+        },
+        "focus": {
+          "ring": "{color.primitive.blue.300}",
+          "ring-on-nav": "{color.primitive.neutral.0}",
+          "halo": "{color.primitive.alpha.blue-light-35}"
+        },
+        "accent": {
+          "secondary-fg": "{color.primitive.teal.300}",
+          "secondary-bg": "{color.primitive.alpha.teal-16}"
+        },
+        "feedback": {
+          "success": {
+            "fg": "{color.primitive.green.300}",
+            "bg": "{color.primitive.alpha.green-light-14}",
+            "border": "{color.primitive.green.300}"
+          },
+          "danger": {
+            "fg": "{color.primitive.red.300}",
+            "bg": "{color.primitive.alpha.red-light-13}",
+            "border": "{color.primitive.red.300}"
+          },
+          "warning": {
+            "fg": "{color.primitive.amber.300}",
+            "bg": "{color.primitive.alpha.orange-16}",
+            "border": "{color.primitive.orange.500}"
+          },
+          "info": {
+            "fg": "{color.primitive.sky.300}",
+            "bg": "{color.primitive.alpha.sky-light-13}",
+            "border": "{color.primitive.sky.300}"
+          },
+          "neutral": {
+            "fg": "{color.primitive.night.200}",
+            "bg": "{color.primitive.night.675}",
+            "border": "{color.primitive.night.500}"
+          }
+        },
+        "nav": {
+          "bg": "{color.primitive.blue.900}",
+          "text": "{color.primitive.night.100}",
+          "text-strong": "{color.primitive.neutral.0}",
+          "text-muted": "{color.primitive.night.250}",
+          "hover": "{color.primitive.alpha.white-05}",
+          "active": "{color.primitive.alpha.blue-light-16}",
+          "marker": "{color.primitive.orange.500}",
+          "divider": "{color.primitive.alpha.white-08}"
+        },
+        "topbar": {
+          "bg": "{color.primitive.night.900}",
+          "border": "{color.primitive.night.600}"
+        },
+        "overlay": {
+          "backdrop-base": "{color.primitive.black}"
+        },
+        "shadow": {
+          "raised": "{color.primitive.alpha.black-30}",
+          "floating": "{color.primitive.alpha.black-50}"
+        },
+        "skeleton": {
+          "base": "{color.primitive.night.675}",
+          "highlight": "{color.primitive.night.700}"
+        }
+      }
+    },
+    "domain": {
+      "light": {
+        "transaction-status": {
+          "$enum": "TransactionStatus",
+          "Draft": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "Active": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          },
+          "Cancelled": {
+            "fg": "{color.semantic.light.text.muted}",
+            "bg": "{color.semantic.light.surface.muted}"
+          }
+        },
+        "daily-close-status": {
+          "$enum": "DailyCloseStatus",
+          "Draft": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "Submitted": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "Approved": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          },
+          "Rejected": {
+            "fg": "{color.semantic.light.feedback.danger.fg}",
+            "bg": "{color.semantic.light.feedback.danger.bg}"
+          }
+        },
+        "direction": {
+          "$enum": "Direction",
+          "In": {
+            "fg": "{color.semantic.light.text.primary}"
+          },
+          "Out": {
+            "fg": "{color.semantic.light.text.primary}"
+          }
+        },
+        "aging-bucket": {
+          "$enum": "AgingBucket",
+          "Current": {
+            "fg": "{color.primitive.neutral.700}",
+            "bg": "{color.primitive.neutral.100}"
+          },
+          "Days0To30": {
+            "fg": "{color.primitive.amber.700}",
+            "bg": "{color.primitive.amber.50}"
+          },
+          "Days31To60": {
+            "fg": "{color.primitive.amber.800}",
+            "bg": "{color.primitive.amber.100}"
+          },
+          "Days61To90": {
+            "fg": "{color.primitive.red.700}",
+            "bg": "{color.primitive.red.50}"
+          },
+          "Days91Plus": {
+            "fg": "{color.primitive.neutral.0}",
+            "bg": "{color.primitive.red.600}"
+          }
+        },
+        "time-entry-status": {
+          "$enum": "TimeEntryStatus",
+          "Present": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          },
+          "DayOff": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "Sunday": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Holiday": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Vacation": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "JustifiedAbsence": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "UnjustifiedAbsence": {
+            "fg": "{color.semantic.light.feedback.danger.fg}",
+            "bg": "{color.semantic.light.feedback.danger.bg}"
+          }
+        },
+        "installment-plan-status": {
+          "$enum": "InstallmentPlanStatus",
+          "Draft": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "Active": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          },
+          "Mixed": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "Cancelled": {
+            "fg": "{color.semantic.light.text.muted}",
+            "bg": "{color.semantic.light.surface.muted}"
+          }
+        },
+        "invitation-status": {
+          "$enum": "InvitationStatus",
+          "Pending": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Accepted": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          },
+          "Declined": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "Expired": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          }
+        },
+        "mail-delivery-status": {
+          "$enum": "MailDeliveryStatus",
+          "Pending": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "Sent": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Failed": {
+            "fg": "{color.semantic.light.feedback.danger.fg}",
+            "bg": "{color.semantic.light.feedback.danger.bg}"
+          }
+        },
+        "operator-link-request-status": {
+          "$enum": "OperatorLinkRequestStatus",
+          "Pending": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "Resolved": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          }
+        },
+        "review-event-type": {
+          "$enum": "DailyCloseReviewEventType",
+          "Rejected": {
+            "fg": "{color.semantic.light.feedback.danger.fg}",
+            "bg": "{color.semantic.light.feedback.danger.bg}"
+          },
+          "OpeningChanged": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          }
+        },
+        "cash-variance": {
+          "shortage": {
+            "fg": "{color.semantic.light.feedback.danger.fg}"
+          },
+          "surplus": {
+            "fg": "{color.semantic.light.feedback.success.fg}"
+          },
+          "zero": {
+            "fg": "{color.semantic.light.text.primary}"
+          }
+        },
+        "fiado-balance": {
+          "debt": {
+            "fg": "{color.semantic.light.text.primary}"
+          },
+          "settled": {
+            "fg": "{color.semantic.light.text.secondary}"
+          },
+          "credit": {
+            "fg": "{color.semantic.light.feedback.success.fg}"
+          }
+        },
+        "hour-balance": {
+          "positive": {
+            "fg": "{color.semantic.light.feedback.success.fg}"
+          },
+          "negative": {
+            "fg": "{color.semantic.light.feedback.danger.fg}"
+          },
+          "zero": {
+            "fg": "{color.semantic.light.text.primary}"
+          }
+        },
+        "generated-movement": {
+          "automatic": {
+            "fg": "{color.semantic.light.text.secondary}",
+            "border": "{color.semantic.light.border.strong}"
+          }
+        }
+      },
+      "dark": {
+        "transaction-status": {
+          "$enum": "TransactionStatus",
+          "Draft": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "Active": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          },
+          "Cancelled": {
+            "fg": "{color.semantic.dark.text.muted}",
+            "bg": "{color.semantic.dark.surface.muted}"
+          }
+        },
+        "daily-close-status": {
+          "$enum": "DailyCloseStatus",
+          "Draft": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "Submitted": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "Approved": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          },
+          "Rejected": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}",
+            "bg": "{color.semantic.dark.feedback.danger.bg}"
+          }
+        },
+        "direction": {
+          "$enum": "Direction",
+          "In": {
+            "fg": "{color.semantic.dark.text.primary}"
+          },
+          "Out": {
+            "fg": "{color.semantic.dark.text.primary}"
+          }
+        },
+        "aging-bucket": {
+          "$enum": "AgingBucket",
+          "Current": {
+            "fg": "{color.primitive.night.200}",
+            "bg": "{color.primitive.night.675}"
+          },
+          "Days0To30": {
+            "fg": "{color.primitive.amber.300}",
+            "bg": "{color.primitive.alpha.orange-16}"
+          },
+          "Days31To60": {
+            "fg": "{color.primitive.amber.200}",
+            "bg": "{color.primitive.alpha.orange-24}"
+          },
+          "Days61To90": {
+            "fg": "{color.primitive.red.300}",
+            "bg": "{color.primitive.alpha.red-light-13}"
+          },
+          "Days91Plus": {
+            "fg": "{color.primitive.night.950}",
+            "bg": "{color.primitive.red.300}"
+          }
+        },
+        "time-entry-status": {
+          "$enum": "TimeEntryStatus",
+          "Present": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          },
+          "DayOff": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "Sunday": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Holiday": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Vacation": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "JustifiedAbsence": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "UnjustifiedAbsence": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}",
+            "bg": "{color.semantic.dark.feedback.danger.bg}"
+          }
+        },
+        "installment-plan-status": {
+          "$enum": "InstallmentPlanStatus",
+          "Draft": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "Active": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          },
+          "Mixed": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "Cancelled": {
+            "fg": "{color.semantic.dark.text.muted}",
+            "bg": "{color.semantic.dark.surface.muted}"
+          }
+        },
+        "invitation-status": {
+          "$enum": "InvitationStatus",
+          "Pending": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Accepted": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          },
+          "Declined": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "Expired": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          }
+        },
+        "mail-delivery-status": {
+          "$enum": "MailDeliveryStatus",
+          "Pending": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "Sent": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Failed": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}",
+            "bg": "{color.semantic.dark.feedback.danger.bg}"
+          }
+        },
+        "operator-link-request-status": {
+          "$enum": "OperatorLinkRequestStatus",
+          "Pending": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "Resolved": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          }
+        },
+        "review-event-type": {
+          "$enum": "DailyCloseReviewEventType",
+          "Rejected": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}",
+            "bg": "{color.semantic.dark.feedback.danger.bg}"
+          },
+          "OpeningChanged": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          }
+        },
+        "cash-variance": {
+          "shortage": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}"
+          },
+          "surplus": {
+            "fg": "{color.semantic.dark.feedback.success.fg}"
+          },
+          "zero": {
+            "fg": "{color.semantic.dark.text.primary}"
+          }
+        },
+        "fiado-balance": {
+          "debt": {
+            "fg": "{color.semantic.dark.text.primary}"
+          },
+          "settled": {
+            "fg": "{color.semantic.dark.text.secondary}"
+          },
+          "credit": {
+            "fg": "{color.semantic.dark.feedback.success.fg}"
+          }
+        },
+        "hour-balance": {
+          "positive": {
+            "fg": "{color.semantic.dark.feedback.success.fg}"
+          },
+          "negative": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}"
+          },
+          "zero": {
+            "fg": "{color.semantic.dark.text.primary}"
+          }
+        },
+        "generated-movement": {
+          "automatic": {
+            "fg": "{color.semantic.dark.text.secondary}",
+            "border": "{color.semantic.dark.border.strong}"
+          }
+        }
+      }
+    }
+  },
+  "$contrast": {
+    "$description": "Declared foreground/background pairs checked by scripts/check-contrast.mjs in both themes. Paths are relative to color.semantic.<theme>. A background is a single opaque token or a bottom-to-top stack of tokens; a translucent token must sit on an opaque base. Coverage rules in the checker fail any text/fg, control-border or focus token that no pair checks.",
+    "thresholds": {
+      "text": 4.5,
+      "large-text": 3,
+      "non-text": 3,
+      "disabled": 3
+    },
+    "domainSurfaces": [
+      "background",
+      "surface.default",
+      "surface.subtle",
+      "surface.raised",
+      "surface.hover",
+      [
+        "surface.default",
+        "surface.selected"
+      ]
+    ],
+    "pairs": [
+      {
+        "id": "body text on every surface",
+        "kind": "text",
+        "fg": [
+          "text.primary",
+          "text.secondary",
+          "text.muted",
+          "text.placeholder",
+          "text.link",
+          "text.link-hover"
+        ],
+        "bg": [
+          "background",
+          "surface.default",
+          "surface.subtle",
+          "surface.raised",
+          "surface.hover",
+          [
+            "surface.default",
+            "surface.selected"
+          ],
+          "surface.muted"
+        ]
+      },
+      {
+        "id": "disabled label (WCAG-exempt; project floor)",
+        "kind": "disabled",
+        "fg": [
+          "action.disabled.fg",
+          "text.disabled"
+        ],
+        "bg": [
+          "action.disabled.bg",
+          "surface.default",
+          "surface.muted"
+        ]
+      },
+      {
+        "id": "secondary accent (Meu turno) text",
+        "kind": "text",
+        "fg": [
+          "accent.secondary-fg"
+        ],
+        "bg": [
+          "surface.default",
+          [
+            "surface.default",
+            "accent.secondary-bg"
+          ],
+          [
+            "topbar.bg",
+            "accent.secondary-bg"
+          ]
+        ]
+      },
+      {
+        "id": "navigation text",
+        "kind": "text",
+        "fg": [
+          "nav.text",
+          "nav.text-strong"
+        ],
+        "bg": [
+          "nav.bg",
+          [
+            "nav.bg",
+            "nav.hover"
+          ],
+          [
+            "nav.bg",
+            "nav.active"
+          ]
+        ]
+      },
+      {
+        "id": "navigation group labels",
+        "kind": "text",
+        "fg": [
+          "nav.text-muted"
+        ],
+        "bg": [
+          "nav.bg"
+        ]
+      },
+      {
+        "id": "top bar text",
+        "kind": "text",
+        "fg": [
+          "text.primary",
+          "text.secondary",
+          "text.muted",
+          "text.link"
+        ],
+        "bg": [
+          "topbar.bg"
+        ]
+      },
+      {
+        "id": "essential control boundary",
+        "kind": "non-text",
+        "fg": [
+          "border.control",
+          "border.control-hover",
+          "border.control-invalid",
+          "action.secondary.border",
+          "action.danger.border"
+        ],
+        "bg": [
+          "surface.default",
+          "surface.subtle",
+          "background",
+          "surface.raised"
+        ]
+      },
+      {
+        "id": "focus indicator",
+        "kind": "non-text",
+        "fg": [
+          "focus.ring"
+        ],
+        "bg": [
+          "surface.default",
+          "surface.subtle",
+          "surface.muted",
+          "background",
+          "surface.raised",
+          "topbar.bg"
+        ]
+      },
+      {
+        "id": "focus indicator in navigation",
+        "kind": "non-text",
+        "fg": [
+          "focus.ring-on-nav"
+        ],
+        "bg": [
+          "nav.bg",
+          [
+            "nav.bg",
+            "nav.active"
+          ]
+        ]
+      },
+      {
+        "id": "selection indicator (checkbox, radio, switch, selected tab)",
+        "kind": "non-text",
+        "fg": [
+          "selection.indicator"
+        ],
+        "bg": [
+          "surface.default",
+          "surface.subtle",
+          "surface.raised",
+          "surface.hover",
+          "background",
+          [
+            "surface.default",
+            "surface.selected"
+          ],
+          [
+            "surface.hover",
+            "surface.selected"
+          ]
+        ]
+      },
+      {
+        "id": "check mark on the selection indicator",
+        "kind": "non-text",
+        "fg": [
+          "selection.indicator-fg"
+        ],
+        "bg": [
+          "selection.indicator"
+        ]
+      },
+      {
+        "id": "success feedback text on its own tint",
+        "kind": "text",
+        "fg": [
+          "feedback.success.fg"
+        ],
+        "bg": [
+          [
+            "background",
+            "feedback.success.bg"
+          ],
+          [
+            "surface.default",
+            "feedback.success.bg"
+          ],
+          [
+            "surface.subtle",
+            "feedback.success.bg"
+          ],
+          [
+            "surface.hover",
+            "feedback.success.bg"
+          ],
+          [
+            "surface.raised",
+            "feedback.success.bg"
+          ],
+          [
+            "surface.default",
+            "surface.selected",
+            "feedback.success.bg"
+          ]
+        ]
+      },
+      {
+        "id": "danger feedback text on its own tint",
+        "kind": "text",
+        "fg": [
+          "feedback.danger.fg"
+        ],
+        "bg": [
+          [
+            "background",
+            "feedback.danger.bg"
+          ],
+          [
+            "surface.default",
+            "feedback.danger.bg"
+          ],
+          [
+            "surface.subtle",
+            "feedback.danger.bg"
+          ],
+          [
+            "surface.hover",
+            "feedback.danger.bg"
+          ],
+          [
+            "surface.raised",
+            "feedback.danger.bg"
+          ],
+          [
+            "surface.default",
+            "surface.selected",
+            "feedback.danger.bg"
+          ]
+        ]
+      },
+      {
+        "id": "warning feedback text on its own tint",
+        "kind": "text",
+        "fg": [
+          "feedback.warning.fg"
+        ],
+        "bg": [
+          [
+            "background",
+            "feedback.warning.bg"
+          ],
+          [
+            "surface.default",
+            "feedback.warning.bg"
+          ],
+          [
+            "surface.subtle",
+            "feedback.warning.bg"
+          ],
+          [
+            "surface.hover",
+            "feedback.warning.bg"
+          ],
+          [
+            "surface.raised",
+            "feedback.warning.bg"
+          ],
+          [
+            "surface.default",
+            "surface.selected",
+            "feedback.warning.bg"
+          ]
+        ]
+      },
+      {
+        "id": "info feedback text on its own tint",
+        "kind": "text",
+        "fg": [
+          "feedback.info.fg"
+        ],
+        "bg": [
+          [
+            "background",
+            "feedback.info.bg"
+          ],
+          [
+            "surface.default",
+            "feedback.info.bg"
+          ],
+          [
+            "surface.subtle",
+            "feedback.info.bg"
+          ],
+          [
+            "surface.hover",
+            "feedback.info.bg"
+          ],
+          [
+            "surface.raised",
+            "feedback.info.bg"
+          ],
+          [
+            "surface.default",
+            "surface.selected",
+            "feedback.info.bg"
+          ]
+        ]
+      },
+      {
+        "id": "neutral feedback text on its own tint",
+        "kind": "text",
+        "fg": [
+          "feedback.neutral.fg"
+        ],
+        "bg": [
+          [
+            "background",
+            "feedback.neutral.bg"
+          ],
+          [
+            "surface.default",
+            "feedback.neutral.bg"
+          ],
+          [
+            "surface.subtle",
+            "feedback.neutral.bg"
+          ],
+          [
+            "surface.hover",
+            "feedback.neutral.bg"
+          ],
+          [
+            "surface.raised",
+            "feedback.neutral.bg"
+          ],
+          [
+            "surface.default",
+            "surface.selected",
+            "feedback.neutral.bg"
+          ]
+        ]
+      },
+      {
+        "id": "feedback text directly on surfaces",
+        "kind": "text",
+        "fg": [
+          "feedback.success.fg",
+          "feedback.danger.fg",
+          "feedback.warning.fg",
+          "feedback.info.fg"
+        ],
+        "bg": [
+          "background",
+          "surface.default",
+          "surface.subtle",
+          "surface.raised",
+          "surface.hover",
+          [
+            "surface.default",
+            "surface.selected"
+          ]
+        ]
+      }
+    ]
+  }
+}
