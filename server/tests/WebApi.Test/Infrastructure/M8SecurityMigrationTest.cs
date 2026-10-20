@@ -33,7 +33,7 @@ public sealed class M8SecurityMigrationTest : IAsyncLifetime
         var refreshId = Guid.NewGuid();
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Users\" (\"Id\", \"Name\", \"Email\", \"Password\", \"CreatedAt\", \"Active\") VALUES ({userId}, 'Legacy', '\u00A0LEGACY@EXAMPLE.INVALID\u202F', 'legacy-hash', now(), TRUE)");
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"RefreshTokens\" (\"Id\", \"UserId\", \"Value\", \"CreatedAt\", \"Active\") VALUES ({refreshId}, {userId}, 'legacy-refresh', now(), TRUE)");
-        await db.Database.MigrateAsync();
+        await db.GetService<IMigrator>().MigrateAsync("20261018165353_M8OperatedOnboardingAndGoogleIdentity");
         var migratedUser = await db.Users.SingleAsync(u => u.Id == userId);
         migratedUser.Email.ShouldBe("legacy@example.invalid");
         migratedUser.IsPlatformOperator.ShouldBeFalse();
@@ -81,7 +81,7 @@ public sealed class M8SecurityMigrationTest : IAsyncLifetime
     public async Task PhaseSixSevenDown_ShouldDropOnlyItsNewSchemaObjects()
     {
         await using var db = Context();
-        await db.Database.MigrateAsync();
+        await db.GetService<IMigrator>().MigrateAsync("20261018165353_M8OperatedOnboardingAndGoogleIdentity");
         await db.GetService<IMigrator>().MigrateAsync(BeforeOperatedAndGoogle);
         var newTables = await db.Database.SqlQuery<long>($"""
             SELECT COUNT(*)::bigint AS "Value" FROM information_schema.tables

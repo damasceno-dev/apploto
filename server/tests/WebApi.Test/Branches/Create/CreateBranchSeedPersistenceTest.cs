@@ -34,15 +34,22 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
             {
                 transactionType.Name,
                 CategoryName = transactionType.Category.Name,
+                transactionType.Category.DefaultDirection,
                 transactionType.SettlementRule,
                 transactionType.RequiresTabAccountAndClient,
                 transactionType.SystemRole
             })
             .ToListAsync();
 
-        // Nineteen ordinary seeds plus the two M7.7 Phase 5.6 system-owned counterpart types.
-        persistedRows.Count.ShouldBe(21);
+        // Twenty-one ordinary seeds plus the two M7.7 Phase 5.6 system-owned counterpart types.
+        persistedRows.Count.ShouldBe(23);
         persistedRows.Count(row => row.SystemRole != null).ShouldBe(2);
+
+        persistedRows.Where(row => row.Name is "Tarifa Bolão" or "Operador")
+            .ShouldAllBe(row => row.DefaultDirection == Direction.In && row.SystemRole == null);
+        var products = await dbContext.Products.AsNoTracking().Where(row => row.BranchId == branch.Id).ToListAsync();
+        products.Count.ShouldBe(7);
+        products.ShouldNotContain(row => row.Name == "Tarifa Bolão");
 
         foreach (var (seed, expected) in ExpectedTransactionTypeMetadata())
         {
@@ -92,6 +99,8 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
     {
         return new Dictionary<(string Name, string CategoryName), (SettlementRule SettlementRule, bool RequiresTabAccountAndClient)>
         {
+            [("Tarifa Bolão", "Receita")] = (SettlementRule.SameDay, false),
+            [("Operador", "Entradas")] = (SettlementRule.SameDay, false),
             [("Cliente", "Saídas")] = (SettlementRule.SameDay, true),
             [("Depósito Dinheiro", "Saídas")] = (SettlementRule.NextCalendarDay, false),
             [("Cartão de Crédito", "Saídas")] = (SettlementRule.TwoBusinessDays, false),

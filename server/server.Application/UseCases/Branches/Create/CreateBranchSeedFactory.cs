@@ -35,6 +35,8 @@ public static class CreateBranchSeedFactory
 
     private static readonly (string Name, string CategoryName)[] TransactionTypeSeeds =
     [
+        ("Tarifa Bolão", "Receita"),
+        ("Operador", "Entradas"),
         ("Cliente", "Saídas"),
         ("Depósito Dinheiro", "Saídas"),
         ("Cartão de Crédito", "Saídas"),
@@ -63,7 +65,6 @@ public static class CreateBranchSeedFactory
         ("Jogos", 3),
         ("Loteria Especial", 4),
         ("Dinheiro", 5),
-        ("Tarifa Bolão", 6),
         ("Federal", 7),
         ("Diferença Caixa", 8)
     ];

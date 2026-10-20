@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v54
+Spec revision: v55
 -->
 <html lang="en">
 <head>
@@ -627,7 +627,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 3: Sobra de Bolão (Out, R$200)',
-   narrative:'At 16:00, Jennifer pays out a <b>R$200</b> lottery-pool leftover (<em>Sobra de Bolão</em>) from the drawer. This is under <b>Despesas Comerciais</b> (Out) — a different Category from the previous two (which were under Saídas).<br><br>All three transactions are Direction=Out — typical for a terminal: recorded rows are value <em>leaving</em> the operator\'s custody (deposits to the bank, cash-outs, payouts). No counter sales appear in this day\'s ledger — in this story they ride the counted stock/cash swap. The rule that matters: each value is represented <em>exactly once</em>, as a row or in the count, never both (§6.12).<br><br><b>Running total: 3 transactions, R$3,000 Out</b> (2,000 + 800 + 200).',
+   narrative:'At 16:00, Jennifer records a <b>R$200</b> loss for unsold lottery-pool quotas kept by the shop (working Q4, pending shop question 4) (<em>Sobra de Bolão</em>) on the Terminal. This is under <b>Despesas Comerciais</b> (Out) — a different Category from the previous two (which were under Saídas).<br><br>All three transactions are Direction=Out — typical for a terminal: recorded rows are value <em>leaving</em> the operator\'s custody (deposits to the bank, cash-outs, payouts). No counter sales appear in this day\'s ledger — in this story they ride the counted stock/cash swap. The rule that matters: each value is represented <em>exactly once</em>, as a row or in the count, never both (§6.12).<br><br><b>Running total: 3 transactions, R$3,000 Out</b> (2,000 + 800 + 200).',
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -641,6 +641,11 @@ const SLIDES=[
      {n:'TotalTransactions',v:'"R$ 3,000.00"  (2,000 + 800 + 200)',hl:'hl'}
     ]}
    ]},
+  {title:'Opening-side inflows: fee and Operador (working Q3/Q9)',
+   narrative:'Under the owner-adopted working answers, <b>Tarifa Bolão</b> is today’s fee and <b>Operador</b> is today’s expected inflow. Their exact shop meaning still awaits questions 3 and 9. Enter actual amounts through the existing transaction flow: <b>Receita / In</b> and <b>Entradas / In</b>, both SameDay, no Tab or client. No fee rate or mandatory daily row is generated. Neither belongs in the fresh product count; physical cash stays in Dinheiro.<br><br>Separate exact-count example: physical opening 2,000; fee today 120, yesterday 100 already in opening cash; ordinary Out 40; physical closing 2,080. Old counted-fee representation gives <b>+140</b>; the explicit Access opening-side model and the corrected In representation give <b>0</b>. With Operador 350 alone, old +350; combined, old +490; corrected zero. Access DSum ignored sign and the export contains positive/misclassified/test-like rows: this is not global historical parity.<br><br>Ordinary cash sales are count-only under working Q5, pending question 5. Existing-branch migration requires reviewed IDs; unlocked retained fee counts block retirement under gap AA. Locked history and opening chains are preserved. M10 import/opening and M11 reports remain pending. The following Jennifer story assumes no fee or Operador inflow.',
+   activeTables:['TransactionType','Category','Transaction'],
+   activeArrows:[],
+   data:[{entity:'Representation',fields:[{n:'Tarifa Bolão',v:'Receita · In · SameDay'},{n:'Operador',v:'Entradas · In · SameDay (editable label pending Q9)'},{n:'Count',v:'Physical assets only; no fee/Operador slot'}]}]},
   {title:'Close Day: Physical Count',
    narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. As she types, <code>POST /dailyclose/{id}/variance-preview</code> sends those unsaved candidates through the same calculator Submit uses, so the displayed <b>−R$20</b> updates before any save and preview never persists. Her first successful complete item-save atomically stamps <code>ItemsFirstRecordedAt</code>, <code>RecordedByUserId</code>, and <code>RecordedByOperatorId</code>; even an explicit empty save counts and claims the recorder. An elevated-opened close starts unclaimed, so the first account-scoped Member to save may claim it; account coordination makes that first claim win. Retry, Notes-only, and correction saves never reassign the recorder. The <code>xmin</code> Version prevents a stale tab from overwriting values or Notes.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged. Jennifer does <b>not</b> enter Diferença Caixa — the system persists it only on submit. A true later change reports and demotes only the next eligible official successor for opening recheck; identical, reordered, retry, and Notes-only saves do not cascade.',
    activeTables:['Product','DailyCloseItem','DailyClose'],

@@ -68,9 +68,10 @@ public sealed class OperateBranchUseCase(
                 await accounts.Add(terminal);
                 terminals.Add(terminal);
             }
-            var seededCount = server.Application.UseCases.Branches.Create.CreateBranchSeedFactory.CreateDefaultProducts(branch.Id).Count;
+            var highestSeededOrder = server.Application.UseCases.Branches.Create.CreateBranchSeedFactory.CreateDefaultProducts(branch.Id)
+                .Max(product => product.DisplayOrder);
             for (var i = 0; i < request.AdditionalProducts.Count; i++)
-                await products.Add(new Product { BranchId = branch.Id, Name = request.AdditionalProducts[i].Trim(), DisplayOrder = seededCount + i + 1 });
+                await products.Add(new Product { BranchId = branch.Id, Name = request.AdditionalProducts[i].Trim(), DisplayOrder = highestSeededOrder + i + 1 });
             foreach (var setup in request.Operators)
             {
                 var op = new Operator { BranchId = branch.Id, Name = setup.Name.Trim() };
