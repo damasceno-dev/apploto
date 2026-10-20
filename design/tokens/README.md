@@ -1,6 +1,6 @@
 # Lotero design tokens
 
-> **Status:** Design M2, authored 2026-10-20 (D04); the token architecture and contrast fixes passed independent repeat verification against canonical v54. Final server-integration checks remain gated by design milestone 2.4.2. Light and dark ship together. These files encode the [selected Claude direction](../docs/decisions.md) and its [implementation handoff](../references/claude/implementation-handoff.md), corrected where the handoff measured insufficient contrast.
+> **Status:** Design M2, authored 2026-10-20 (D04); the token architecture and contrast fixes passed independent repeat verification against canonical v54. The integrated v55 financial source reconciliation is recorded in design milestone 2.4.2; it changes no token or enum contract. Light and dark ship together. These files encode the [selected Claude direction](../docs/decisions.md) and its [implementation handoff](../references/claude/implementation-handoff.md), corrected where the handoff measured insufficient contrast.
 
 Tokens are the smallest shared decisions of the Lotero design system — a color for muted text, the height of a touch target, how long a drawer takes to open. They live here as plain JSON that both apps read **at build time**, each through its own small adapter, so `web` and `mobile` draw the same product without sharing a runtime package. Nothing in this folder is imported at runtime, and nothing here knows about Tailwind, NativeWind or React.
 

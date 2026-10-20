@@ -61,6 +61,10 @@ Route entry focuses **Fila de trabalho**. Every drill-down records the queue wit
 6. **Transações do dia** — the `(account, date)` ledger with **Automática** markers.
 7. **History** *(when events exist)* — the dated review events (same treatment as Fix & resubmit, read-only).
 
+### Historical opening on the first upgraded close (canonical v55)
+
+The comparison's opening rows may omit a retired fee saved only on the prior counted close, while the unchanged calculator includes that saved amount. Apply the catalog's [transition procedure](../../docs/screens.md#daily-close-approval): label an incomplete visible sum **Subtotal da abertura exibida**, preserve the server's official figure and any mismatch, and compare it with the deployment inventory, prior close and actual ledger. A negative official number alone does not prove a physical shortage on this transition. The review DTO supplies no completeness flag or missing amount; no automatic detection, inferred zero or fabricated explanation is specified. The recorder's Notes must hold the reviewed explanation before submission; do not add an edit action to an already Submitted close. If the evidence is missing or the difference unexplained, stop approval and use the existing management/rejection path as permitted. AA/transition recovery remains with the server owner.
+
 ### Actions and dialogs
 
 - **Rejeitar** opens a [dialog](../components/modal-sheet.md): **Motivo** textarea (required; helper **O operador verá este motivo**), **Rejeitar fechamento** (solid danger) and **Voltar**; an empty reason surfaces the verbatim 400 inline.
