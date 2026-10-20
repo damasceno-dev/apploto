@@ -1,6 +1,8 @@
-# Claude — historical prototype reference
+# Claude — selected direction and historical evidence
 
-These are actual captures made on **2026-10-15**, retained as historical comparison material. **No M1 direction is selected or locked.** The owner reset the earlier selection record on **2026-10-18** and will compare visual tools using the Rascunho guide after backend and Shared completion; [`decisions.md`](../../docs/decisions.md) records that pending process. These captures do not establish a Claude Design trial or a production implementation, and their styling is not binding token input.
+**On 2026-10-20 the owner selected this Claude prototype and ended M1 visual exploration.** Start with the [current decision](../../docs/decisions.md), [implementation handoff](implementation-handoff.md) and [new 33-screen reference set](selected-2026-10-20/README.md). M2 now curates that direction into tokens, correcting the documented limitations. No prototype runtime code is vendored here.
+
+The captures directly in this folder were made on **2026-10-15** and remain historical evidence. Their original `manifest.json` records the then-pending selection status; that historical field is superseded by the owner's October 20 choice, not rewritten as though approval existed at capture time. Neither capture set proves use of Claude Design, a production implementation or native readiness.
 
 ## Provenance
 
@@ -33,6 +35,6 @@ Additional detail:
 
 The narrow Cockpit keeps a two-column grid and squeezes the next-action block into a very thin column. **Do not reproduce that layout.** M4 must stack the blocks, keep the main action usable and test long pt-BR text and scaled text. The fixed prototype state bar also obscures content in several captures; production has no such bar or its reserved bottom padding.
 
-The dashed “contrato pendente · gap W” annotation is stale: the current catalog and real `ResponseDashboardJson` already cover backlog and unlocked Draft counts. Likewise, a prototype control, source badge, state switcher, fake saved state or report link does not establish a shipped contract. Consult the live catalog's feature gates.
+The dashed “contrato pendente · gap W” annotation is stale: the current catalog and real `ResponseManagerQueueJson` already cover backlog and unlocked Draft counts. Likewise, a prototype control, source badge, state switcher, fake saved state or report link does not establish a shipped contract. Consult the live catalog's feature gates.
 
 These captures establish appearance at the listed states. They do not establish contrast compliance, complete keyboard order, screen-reader announcements, touch-target compliance, native readiness, session recovery, atomic financial behavior or complete loading/error coverage. The source contains focus and reduced-motion styles; those remain implementation and verification work in M2–M4 and the apps.

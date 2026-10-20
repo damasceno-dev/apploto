@@ -80,7 +80,7 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 
 ## M1 — Visual Direction ·  *Owner: dev-team (external tools — no AI checkboxes)*
 
-> **Status reset by the owner (2026-10-18): deferred; no direction selected or locked.** Finish the backend and Shared work before resuming M1. The owner will then use the Rascunho visual-tools guide to compare Claude Design, ChatGPT Sites and Google Stitch with current catalog entries and real API examples. The earlier Claude-only selection and binding token inputs are withdrawn. [`decisions.md`](decisions.md) records the pending decision; [existing Claude captures](../references/claude/README.md) remain historical comparison references. D03 is not complete, and M2 remains blocked until the owner makes and locks the new choice.
+> **Owner selected and closed M1 exploration (2026-10-20): the existing Claude prototype is the locked direction.** The owner judged that GPT and Google did not improve on its appearance and asked for the implementation handoff. This supersedes the October 18/19 pending-selection record; the choice is now explicit, rather than inferred from old screenshots. [`decisions.md`](decisions.md) records the choice and scope, and the [implementation handoff](../references/claude/implementation-handoff.md) provides observed style inputs, 33-screen static coverage and required adaptations. M2 may start from this direction; its criteria remain unchecked. Dashboard will inherit the direction when its actual reporting contract/catalog blueprint is ready, rather than hold the visual choice open. No Dashboard design or financial definition was invented or accepted. Other backend, Shared, per-feature and launch gates remain in force; technical review of this new extraction remains separate from the owner's taste decision.
 
 **Goal:** Decide *how it looks*. Explore directions in the generator tools against the M0 catalog, pick one, and lock the **palette tone** (inspired by Caixa blue/orange, with our own character — light **and** dark intent). This milestone feeds M2; it produces no design-system files itself.
 
@@ -107,14 +107,14 @@ For each screen the dev-team prototype, attach/paste:
 
 ### Process (the dev-team call)
 
-- After backend and Shared completion, use **Claude Design → ChatGPT Sites → Google Stitch**, time-boxed, following the owner's Rascunho guide. Supply the same current screen contracts and real API examples to each tool; refresh dated guide inputs before the comparison.
+- The visual-tools study used the owner's Rascunho guide and real API inputs for the available screens. On 2026-10-20 the owner ended exploration and chose the existing Claude prototype; do not require another tool comparison or whole-backend completion to begin M2. Preserve current contract/per-feature prerequisites for actual feature implementation.
 - Compare **operator task speed · manager info density · accessibility & legibility · web↔mobile adaptability · brand fit without copying Caixa · Tailwind/NativeWind feasibility.** Record only observations and comparisons actually made; screenshots alone do not establish accessibility or native readiness.
-- The owner chooses the direction after that comparison. An earlier preference for a prototype, saved screenshots, a committed write-up or an AI review does not select or lock M1. Until the owner explicitly locks the result, do not start M2 token authoring.
+- The owner's explicit 2026-10-20 choice locks the visual direction. Historical screenshots alone did not establish that choice; the current record names its authority. New extraction details remain technically reviewable, and app accessibility/functional acceptance still needs real implementation evidence.
 
 ### Outputs (these are M2's precondition)
 
-- **Chosen screens** — after the comparison, park the owner's selected tool outputs and their provenance under `design/references/`, with a short record of what was chosen and why. Existing `references/claude/` captures are unselected historical inputs; generated runtime code stays outside the checkout.
-- **`design/docs/decisions.md`** — after the owner's actual choice, the AI formalizes the M1→M2 handoff: light/dark palette tone, typography, density, geometry, component/navigation patterns, token inputs, observed limitations and adaptations required by real contracts. Record only assessed alternatives and real evidence. **The owner reviews and locks it before M2 starts.** The current file is a pending-decision record, not that handoff.
+- **Chosen screens** — [selected Claude reference set](../references/claude/selected-2026-10-20/README.md), with source/capture fingerprints, all 33 screen paths and additional theme/responsive/state examples. October 15 captures remain historical evidence; generated runtime code stays outside the checkout. These are fictional prototype layouts, not live API or native-device acceptance.
+- **`design/docs/decisions.md`** — records the owner's chosen direction and the [M1→M2 handoff](../references/claude/implementation-handoff.md): light/dark palette, typography/zoom distinction, density, geometry, component/navigation patterns, measured inputs, contrast findings and adaptations required by current contracts. The owner has locked the direction; independent technical review of the new extraction is not claimed. No M2 tokens or component implementation are delivered by M1.
 
 ---
 

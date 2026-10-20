@@ -1,0 +1,1687 @@
+{
+  "capturedOn": "2026-10-20",
+  "selectionAuthority": {
+    "kind": "Explicit owner choice in this chat",
+    "decision": "Existing Claude prototype selected; visual exploration ended. GPT/Google results did not improve on it in the owner's judgment.",
+    "scope": "Visual direction locked; Dashboard extends it later under actual contract/catalog gates.",
+    "independentTechnicalReview": "Not performed for this new extraction."
+  },
+  "source": {
+    "locationRelativeToCheckout": "../Prototypes/prototype-claude/",
+    "build": "2026-10-08.c9-seed-v3",
+    "fakeBusinessClock": "2026-09-24 14:32 America/Sao_Paulo; not current API data",
+    "nonHiddenSourceFileCount": 111,
+    "sha256ByFile": {
+      "README.md": "1394a96ede46abe9f5320e0ce7fada69db7b558e9981f7360cdbdd93c465a944",
+      "assets/app.js": "ca7d03b187ae58d9908ccebdd29d2faac066c4d7e5478c25afc6455f1c303241",
+      "assets/base.css": "fd76ea94f582f67a70049757659e29005c07db79b94999d3bc2e09a0d64b5d03",
+      "assets/db.js": "24587bd38ba0f207da1a4d3821ad0b026f6d0d50ee54cd25d09d63bfa9ea61cf",
+      "assets/format.js": "831fad0b44aabac02f7cf914c31c9bfd63eeb5f0fc5d2c55d149f02c30ccb8b2",
+      "assets/labels.js": "0ae746b3d0d479288d13eb1c607a1d4876ae7c3ed6a60e1810891980d2fa7a52",
+      "assets/theme.js": "be07be1d3f3a9685e516d8c33983a54cf4d11016635883c67e039b288b382702",
+      "index.css": "c211fd7d1f429dd9a3187f912c7ed4c8b7a6ffac69fc8cc19231b74b5ac1ac44",
+      "index.html": "40281819649679250d4e74ff3ab4afec78cb353e0c8b2710cc66497240c9f6af",
+      "index.js": "7181be6fcf971c171d2f4d4be22bb165ddf0e78fc76751072cc5fb16a4322e1b",
+      "screens/account-assignment.css": "56d89ca57a85d112ac337b3845dfa5760b63c9c798b8ecd31c3a68e521fbd93c",
+      "screens/account-assignment.html": "e7c1e9339c0adaa440259a3cf6c84fa8a3dac467159227ff091019562a0956e2",
+      "screens/account-assignment.js": "abc61adcb1866a87438f76699809bfcb387722542af8056b8aede74e24e9b77a",
+      "screens/accounts.css": "a8eb6fe34776dc0c1752f7eef0ee8aaa98afc1a84359eb3a14515db3a62c4668",
+      "screens/accounts.html": "02b369a1aef56c4d1f226a763d3a5085236cdff159d2ce35aa4e6eedf8e51da0",
+      "screens/accounts.js": "e7962877be9783dca7205c77dec39209a107788b1dc499d891d0e417ba167b34",
+      "screens/branch-members.css": "967e1f004a6e18403c8dd00d613632305a3e8d8fdf72e6116980037331ca36a0",
+      "screens/branch-members.html": "f6b80c71a222a85a6f4b6246c785920a6ef21a4d9e2e88cb7c210a1e391cc3f1",
+      "screens/branch-members.js": "1fcbb960f2467397446903f2dfb127f7068a1b63cb736b5dc1b1e46dfb640af8",
+      "screens/branch-picker.css": "549b469fe05c28d9ee6c4d98b0f13962d7e38df249ad522f7845e8bdff8b8a6a",
+      "screens/branch-picker.html": "dd39a63e24972c9e4002592f51c7d57a400c262862a104a777e59fe89f2b364a",
+      "screens/branch-picker.js": "2acbbc1e1c8df865c68abaaaf8c0c1c7e5f0c0e4b9b4e42b1139c78ed82a06dc",
+      "screens/cash-variance-summary.css": "bd26a2677ddd9f987f39cae379626144321974d74a835b4fa11b217f388273df",
+      "screens/cash-variance-summary.html": "96243b0623a47dcdc01f121f3c255864a1c30e0dcaa4022211e126afead57b4a",
+      "screens/cash-variance-summary.js": "6c2b74d8828826fdea50db407278fd703272c7d2df467729792218ad1c2cfb6b",
+      "screens/categories-types.css": "cc2e1905dbe17592e6976839f6cb41129ed1d53fa9a5fb9ddd6b0117f6d76839",
+      "screens/categories-types.html": "7b8a7e878c2f6f6844f3abbf0cca024a9bd3fbc702f63ff5bf87738e16bf9e88",
+      "screens/categories-types.js": "a712ed5f76a4b900174f882015a4ec5b2da717dd5ca99f6033369999c032ecf8",
+      "screens/client-statement.css": "3c12bb8ea2501e5a3de8d3b22643f4be71a075db598069bca436c5b7983a477d",
+      "screens/client-statement.html": "bb934a830f0d6f81b622c6a8a1d9f8e77757cf5ea32f10c7ab05cd8109a78e6e",
+      "screens/client-statement.js": "c7bbe5d6b648e9745fff5ed4a2e103bda1ce32fb39727b1009b1351c54cfd8f5",
+      "screens/clients.css": "302c9062a70a1da8f4937a15bc2540215b9eaea495758de64f8a9614ed71c4db",
+      "screens/clients.html": "13104499aed5c1ef060242d30e915c8e2aa659eeae55388edee464c38b319748",
+      "screens/clients.js": "7deea326f1f6b755665db737f03d78b498ce0a917ae53224e841b6d2d10acf6d",
+      "screens/clock.css": "9a66716fcbeb60aced637b58cd1eddb7fbfd2c9e89cab0d3f0e6142e107c3bbf",
+      "screens/clock.html": "bae9c8cc7c7e0d54ab3443dfddefef9fd776f1bcf4c8cfe43230a619a3e9a333",
+      "screens/clock.js": "b2f1988850218d507262992245d0777e07049981ac34aa6cba38d1c300053df3",
+      "screens/close-approval.css": "8412d48d6e38c5d84b0cf75425c644052fc72ec84553e24f08796b2f6836a1eb",
+      "screens/close-approval.html": "eabad77cb0dfebcd027bdf21551200414328f1352c512c4958a5467f997ca36f",
+      "screens/close-approval.js": "6da596901c8a63c3ce2e76c71435832192ca05776eda47845e247e9e3cf5712f",
+      "screens/close-day.css": "b300efce283377ebda1db22cbb6658056c34c347cc2f68c9f0b5c04a4ed840cf",
+      "screens/close-day.html": "4c5464e6f21a2cbf2775eb700befe848e4e667bf23689866dcbea94af7a32bf3",
+      "screens/close-day.js": "56cf5ab12ae06eb8c935fe3265d7c2a5cd2bb15062e353846e31f19952a31fdf",
+      "screens/cockpit.css": "05dde31dbad0dbae9268d1bd5b179fc18059d8e0bf061c64ed3327ef2922bf93",
+      "screens/cockpit.html": "bd4ca6e7db1d4e37e5a7b3aa1e90ca6a5450bd31df3a02e16d784c544efa2f22",
+      "screens/cockpit.js": "6fd12aff20c3af484ef5a5a1bea1c5ed2ea8f20ae636ae14ad850179013067d6",
+      "screens/daily-ledger.css": "eca416665e5d4b05e5732d58591d6e55276ffd9bf89f50b9dcb069c211afb82a",
+      "screens/daily-ledger.html": "a6219c622e3875e189649462f92f9184933e694ec2352ab27fb4cc88123adcd4",
+      "screens/daily-ledger.js": "a867c4cb03c7fe65ebc885e37a43aaa91072c19d1a76c5f447b025b8b8ed23c0",
+      "screens/fiado-aging.css": "39c341059d63044db077ebebd0cc47bc92d06ba18034a3882e6b40d8a42831f1",
+      "screens/fiado-aging.html": "44a0e0eb82ec2d87af49a95594f4fe95adfdfb128dc05d57506975c0fc18ba63",
+      "screens/fiado-aging.js": "10d8d7c7b7f3302db4f35ad897e2e614797a0c0e407238ad11dea0b68f948806",
+      "screens/fiado-balance.css": "08fb194cb04a1da0530881f6ecf022b3273e6f03708fb661717a9fb325934be4",
+      "screens/fiado-balance.html": "290ed2d93248d7f18c226e419b675d6fd76c8c05294c70d28a8f7c1760c06447",
+      "screens/fiado-balance.js": "e378f727703f9ed0f130a03d6e131087815c45a290310546907477445130eb63",
+      "screens/fix-resubmit.css": "ae61eeaa88949fd2b15ad4bc6241abd1c02996659f3689e18c1438526cf6cbb7",
+      "screens/fix-resubmit.html": "bdf729a2e41b8b242ebb7d1977e8649a69c4eaf8124be204873d38cab7a3574e",
+      "screens/fix-resubmit.js": "aa890776b545fbd9cab5cae4e6016ba03c5a8574c88a5c2b7b066cd67068095c",
+      "screens/holidays.css": "d9ba391a9bdb2ad546847ac1ae56b8c0b6ec429a3fb30be84bd8acc1a9029dca",
+      "screens/holidays.html": "5eaee13697fdd0a35dd0b1fbe8e035ac6f320e19f30abcd140fdb563bef72fe5",
+      "screens/holidays.js": "d51e687a1228f00a2aff870d935d453315a79558137ee2d57213056fcf8d7a94",
+      "screens/installment-plan.css": "a813e25cd26b97601fbdc17d7acf92158aefda2114941cb3c806f0b82470fd42",
+      "screens/installment-plan.html": "ce645026a93f32406d8b3890455800edbaccf45b4c2e30294860d94c3e737485",
+      "screens/installment-plan.js": "a9343bc0c6d951eaccde12eaa6a305d6282dcbb4069936a2edc72be3b5f3244d",
+      "screens/login.css": "dc5a0ee69f7594d4d87b3965f84f3e9a9a9f2c61b3531bc818beb727f8a3b092",
+      "screens/login.html": "88eb24621da824281aebcf69ff609979e24dc60c7c871b85d9799492dbbd684a",
+      "screens/login.js": "0682d820a83a6e2185edc8fbefdfe1ef9098380ac8dae445976bab08ed86db7c",
+      "screens/monthly-reconciliation.css": "77744a8c8e25fe4b8ec2b84efe41fba691c7c1a9a2c8fd8f4c3accc5eb3dda2e",
+      "screens/monthly-reconciliation.html": "2f189d06ff8eb1f9d0d0bd5b4c3bb5b392e039a079412b13ef282fccdf839bf2",
+      "screens/monthly-reconciliation.js": "5c14b7d9733cb64868dd0ef511e253a4d4989478005c5c8770bce6f9f3045610",
+      "screens/my-time-entry-balance.css": "6522262445478f769b2279f03b208deb20f55abc6f1cf0ba7737e3f57a89e978",
+      "screens/my-time-entry-balance.html": "9a7a286c844744079876d33bcb2bf34cd1d78324dfd0859316b2b52338713c35",
+      "screens/my-time-entry-balance.js": "a9b3c8de9ded1e090cc5bc6d2a35e7561d556c26ee15f8e7b1e1a2babb885fc3",
+      "screens/my-transaction-summary.css": "1ec83146c768e429a93d3a2b379b3d3dfb4c07bd622fad4fe6885042ed330b7a",
+      "screens/my-transaction-summary.html": "7ac5b08558c04ea732616c6b8207b5c4149e08e9585a019d33ed0375e74d2ade",
+      "screens/my-transaction-summary.js": "01c28122052fc84f28ac431f61baf31a1df90db27610fba46eae480c81f412b5",
+      "screens/open-cheque-aging.css": "f2fc63e1c5ab9975343767d9c5157b5a24668323d6fb56be864e410c841c77df",
+      "screens/open-cheque-aging.html": "316bdbea3296328bb0bf78200c8ed80b9ad559b5c361eeb791ccae0a565c8313",
+      "screens/open-cheque-aging.js": "96ba41f1d51758cc287afe675e6f55d45a6d02092e2d500b050d88063791f910",
+      "screens/open-day.css": "6a7684f55fad7579a20308d25c4770ded774f30f8b5d1e8df50f757e9bda3c30",
+      "screens/open-day.html": "fc9bb696b1a150b05b76f1cea57532bf64077031b21c27671b589517f65eec61",
+      "screens/open-day.js": "ada0aa5a24761873a421d9375c886a5e00873385fd6cc34c4a4f0930f878e5a2",
+      "screens/operators.css": "29121778e77cb3009d01e295033024b8d2fd149958cd19a8686e23c305589f63",
+      "screens/operators.html": "7435afbd444a16fa5a5577aa52f3764bca3d541c5c9d215cce140a10e433388c",
+      "screens/operators.js": "2b2ef5a63e6becdd3c12ce34ed14a14746e2886400fa7bbc41d49437368f97fb",
+      "screens/products.css": "ab7fa5636d620a6ed0dc5960532d183d835c9e39ec32e3bd0da1f15b29dc9e26",
+      "screens/products.html": "9f9c4f24d188ef142674169c09f093bcbff8e399c3a009a5b80e4dc555998cd1",
+      "screens/products.js": "dfd3659cec52400cbc3d39a3c36e364faa26c68fdc91c05cad436ee460254fb0",
+      "screens/receber-pagamento.css": "51ce64c0eddbfc3f403016af7be40c2a5a42491ee96763ec8713863322aef8a3",
+      "screens/receber-pagamento.html": "98ab6c4f63af7d695b225a1e4686684122bc881e21598ac145195e333838a794",
+      "screens/receber-pagamento.js": "c1fa32b7e71c53dbd048251df3e8042cc5e7197e1a3ffd26f1c2881c7df05375",
+      "screens/settings.css": "3bfa031620a2b150943e0269acc7e3f8ec1d779198da1a1e54f389d09e31a234",
+      "screens/settings.html": "8dea43b25914d6556d1adae70ffa5f43a16c85f632d3e09e677e9e950aef627d",
+      "screens/settings.js": "a29fa5b1303aa6976548d2d7c8bf69a67f1f1e536b4f27b9468011b3149a8628",
+      "screens/time-entry-management.css": "8f51d7343cc4fd336441fdbe4039bb1affaf44524d8984a98ff70cc29aab48a9",
+      "screens/time-entry-management.html": "2dfc9e27270af63ea9e4c93e5be5ccd945e48cef0f63be8e9b561989a2d6a09a",
+      "screens/time-entry-management.js": "088e4af0d71ef00fed845875553c97365afb8464f6d9167135fbe2d1c9c4d1f5",
+      "screens/transaction-create.css": "8b7a8889865507591ee64ade0d62a0ced5a9644f24f33b5b394518f47fe264ff",
+      "screens/transaction-create.html": "10e85865cb1353b3352d887abf16e4701cf4a9977ac4809d58c9c0ef06676d7c",
+      "screens/transaction-create.js": "34af9acfec0d9c7cf78c3352581a3cc4af2fcb33e9f61d70c08f922511135c0f",
+      "screens/transaction-edit.css": "b28b209b08f930781e87e05afe0cdb1c41d3a27987bcafd5d3450939d57e3af8",
+      "screens/transaction-edit.html": "c3a30011576c32a29a8992e98869a6400031e2990d1183a2d180b4c4f7486851",
+      "screens/transaction-edit.js": "c4fdd0ec46d46193fc1189aa3b095f21da31bb8be2b6ec7137ec45c1aa86655b",
+      "screens/transactions-list.css": "0f62ce053baeca122456ef537e5073669c80dbbbe080c568ca99fc241774aea1",
+      "screens/transactions-list.html": "42059561bb35e2be75dc559e368d2a794be7a7494b294d1665812a8f9d22cfa3",
+      "screens/transactions-list.js": "4f5697235bf8c0b83b93b293e5004f6507a7f25b69aca5bc938d87e4f6f72152",
+      "screens/work-queue.css": "04b1c6deda81364737ab226273e99a2c4f77fa507f0492e339cc5b0eddee85e4",
+      "screens/work-queue.html": "071b51d0b5b6897b44aebdf21e9dd0efd879d371bf1c7210b20508c1f60a01b7",
+      "screens/work-queue.js": "41e4b8be084aa65969982aa503a51553706700dcac61328cc9a2fdc388398d9e",
+      "screens-reading-guide.html": "f25afa89a8c2772cd160b79505e352db239ea341346eb1b8f415bc2f8cf68761",
+      "serve.py": "ba02bc23fab0c34f0fb4aec2f2f8974e2f1f50692cb53606a362635f80ca3c06"
+    },
+    "filesChangedSinceOctober15Capture": []
+  },
+  "method": {
+    "browser": "Codex in-app browser",
+    "served": "Original no-cache server module, in-memory ROOT/PORT/ENTRY adjustment for relocated folder; loopback-only localhost:4189. Source files unchanged.",
+    "capture": "Original screenshot bytes; no crop, retouching, synthesis or color correction. Per-file requested viewport and returned raster recorded.",
+    "fontScaling": "Default desktop preference 150%, zoom 1.5; narrow 375px uses zoom 1 while displaying 150%. An explicit desktop 100% comparison is labelled.",
+    "data": "Local fictional prototype database on isolated origin; no backend calls, ledger writes, reset, save, submit, approve, reject or real messaging. Workstation/theme/text preferences only.",
+    "stateCoverage": "Queue loading/empty/error simulated through UI; other state lists recorded as inventory, not full state verification.",
+    "consoleErrorsObserved": 0,
+    "limitations": "No native device/full accessibility/financial-flow certification; three full-page capture requests are labelled; all screenshots can include prototype-only chrome."
+  },
+  "coverage": [
+    {
+      "screen": "account-assignment",
+      "primaryReference": "account-assignment-desktop-light.jpg",
+      "captures": [
+        "account-assignment-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Contas dos operadores"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "accounts",
+      "primaryReference": "accounts-desktop-light.jpg",
+      "captures": [
+        "accounts-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Contas"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "branch-members",
+      "primaryReference": "branch-members-desktop-light.jpg",
+      "captures": [
+        "branch-members-desktop-light.jpg",
+        "branch-members-mobile-light.jpg"
+      ],
+      "observedHeadings": [
+        "Membros da filial"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "branch-picker",
+      "primaryReference": "branch-picker-desktop-light.jpg",
+      "captures": [
+        "branch-picker-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Escolher filial"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "cash-variance-summary",
+      "primaryReference": "cash-variance-summary-desktop-light.jpg",
+      "captures": [
+        "cash-variance-summary-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Diferenças de caixa"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "categories-types",
+      "primaryReference": "categories-types-desktop-light.jpg",
+      "captures": [
+        "categories-types-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Categorias e tipos"
+      ],
+      "stateControlsListed": 4,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "client-statement",
+      "primaryReference": "client-statement-desktop-light.jpg",
+      "captures": [
+        "client-statement-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Extrato de fiado"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "clients",
+      "primaryReference": "clients-desktop-light.jpg",
+      "captures": [
+        "clients-desktop-light.jpg",
+        "client-dialog-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Clientes"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "clock",
+      "primaryReference": "clock-desktop-light.jpg",
+      "captures": [
+        "clock-mobile-light.jpg",
+        "clock-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Ponto"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "close-approval",
+      "primaryReference": "close-approval-desktop-light.jpg",
+      "captures": [
+        "close-approval-desktop-light.jpg",
+        "approval-complete-light.jpg"
+      ],
+      "observedHeadings": [
+        "Conferência do fechamento"
+      ],
+      "stateControlsListed": 7,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "close-day",
+      "primaryReference": "close-day-member-desktop-light.jpg",
+      "captures": [
+        "close-day-desktop-light.jpg",
+        "close-day-member-mobile-light.jpg",
+        "close-day-member-desktop-light.jpg",
+        "count-focus-desktop-light.jpg",
+        "count-focus-desktop-dark.jpg",
+        "close-day-editable-mobile-dark.jpg",
+        "count-focus-mobile-light.jpg"
+      ],
+      "observedHeadings": [
+        "Fechamento do dia"
+      ],
+      "stateControlsListed": 15,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "cockpit",
+      "primaryReference": "cockpit-desktop-light.jpg",
+      "captures": [
+        "workstation-mobile-dark.jpg",
+        "cockpit-mobile-dark.jpg",
+        "cockpit-mobile-light.jpg",
+        "cockpit-desktop-light.jpg",
+        "cockpit-desktop-dark.jpg"
+      ],
+      "observedHeadings": [
+        "Hoje"
+      ],
+      "stateControlsListed": 18,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "daily-ledger",
+      "primaryReference": "daily-ledger-desktop-light.jpg",
+      "captures": [
+        "daily-ledger-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Movimento da conta"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "fiado-aging",
+      "primaryReference": "fiado-aging-desktop-light.jpg",
+      "captures": [
+        "fiado-aging-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Fiado por idade"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "fiado-balance",
+      "primaryReference": "fiado-balance-desktop-light.jpg",
+      "captures": [
+        "fiado-balance-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Saldo fiado"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "fix-resubmit",
+      "primaryReference": "fix-resubmit-desktop-light.jpg",
+      "captures": [
+        "fix-resubmit-desktop-light.jpg",
+        "correction-history-complete-light.jpg"
+      ],
+      "observedHeadings": [
+        "Corrigir fechamento"
+      ],
+      "stateControlsListed": 8,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "holidays",
+      "primaryReference": "holidays-desktop-light.jpg",
+      "captures": [
+        "holidays-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Feriados"
+      ],
+      "stateControlsListed": 7,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "installment-plan",
+      "primaryReference": "installment-plan-desktop-light.jpg",
+      "captures": [
+        "installment-plan-desktop-light.jpg",
+        "installment-existing-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Cheque pré-datado"
+      ],
+      "stateControlsListed": 11,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "login",
+      "primaryReference": "login-desktop-light.jpg",
+      "captures": [
+        "login-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Entrar"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "monthly-reconciliation",
+      "primaryReference": "monthly-reconciliation-desktop-light.jpg",
+      "captures": [
+        "monthly-reconciliation-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Fechamento mensal"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "my-time-entry-balance",
+      "primaryReference": "my-time-entry-balance-desktop-light.jpg",
+      "captures": [
+        "my-time-entry-balance-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Meu banco de horas"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "my-transaction-summary",
+      "primaryReference": "my-transaction-summary-desktop-light.jpg",
+      "captures": [
+        "my-transaction-summary-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Minhas transações"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "open-cheque-aging",
+      "primaryReference": "open-cheque-aging-desktop-light.jpg",
+      "captures": [
+        "open-cheque-aging-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Cheques em aberto"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "open-day",
+      "primaryReference": "open-day-desktop-light.jpg",
+      "captures": [
+        "open-day-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Abrir o dia"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "operators",
+      "primaryReference": "operators-desktop-light.jpg",
+      "captures": [
+        "operators-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Operadores"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "products",
+      "primaryReference": "products-desktop-light.jpg",
+      "captures": [
+        "products-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Produtos"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "receber-pagamento",
+      "primaryReference": "receber-pagamento-desktop-light.jpg",
+      "captures": [
+        "receber-pagamento-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Receber pagamento"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "settings",
+      "primaryReference": "settings-desktop-light.jpg",
+      "captures": [
+        "settings-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Configurações"
+      ],
+      "stateControlsListed": 5,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "time-entry-management",
+      "primaryReference": "time-entry-management-desktop-light.jpg",
+      "captures": [
+        "time-entry-management-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Gestão de ponto"
+      ],
+      "stateControlsListed": 6,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "transaction-create",
+      "primaryReference": "transaction-create-desktop-light.jpg",
+      "captures": [
+        "transaction-create-desktop-light.jpg",
+        "transaction-create-mobile-light.jpg",
+        "transaction-create-desktop-dark.jpg"
+      ],
+      "observedHeadings": [
+        "Nova transação"
+      ],
+      "stateControlsListed": 7,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "transaction-edit",
+      "primaryReference": "transaction-edit-desktop-light.jpg",
+      "captures": [
+        "transaction-edit-desktop-light.jpg"
+      ],
+      "observedHeadings": [
+        "Transação"
+      ],
+      "stateControlsListed": 8,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "transactions-list",
+      "primaryReference": "transactions-desktop-light.jpg",
+      "captures": [
+        "transactions-desktop-light.jpg",
+        "transactions-mobile-dark.jpg",
+        "transactions-desktop-dark.jpg"
+      ],
+      "observedHeadings": [],
+      "stateControlsListed": 0,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    },
+    {
+      "screen": "work-queue",
+      "primaryReference": "queue-desktop-light.jpg",
+      "captures": [
+        "queue-desktop-light.jpg",
+        "queue-desktop-dark.jpg",
+        "queue-loading.jpg",
+        "queue-empty.jpg",
+        "queue-error.jpg",
+        "queue-mobile-light.jpg",
+        "navigation-mobile-light.jpg",
+        "queue-mobile-dark.jpg",
+        "queue-desktop-100pct.jpg",
+        "session-menu-desktop-light.jpg"
+      ],
+      "observedHeadings": [],
+      "stateControlsListed": 0,
+      "stateNote": "Control inventory only; not a claim that each state was exercised."
+    }
+  ],
+  "captures": [
+    {
+      "file": "queue-desktop-light.jpg",
+      "note": "Manager; fresh isolated browser origin; default 150% text preference.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "04aafd81ba286e59cbdbfa6c66b9d9b8c7b99735d48b0110c57e0a5eafa1ed9b",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-desktop-dark.jpg",
+      "note": "Same queue; dark selected through theme control.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "7818e9777a960dc0dcd60c2a9e941eb1cec2b72896e1470a8a7737fc49456b25",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transactions-desktop-light.jpg",
+      "note": "Manager ledger, all statuses; filters and whole-row destination affordance.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/transactions-list.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "237bd57ae2d708901b8af9aa244cd3742b3512eeb46877d2456286110d3ba589",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transaction-edit-desktop-light.jpg",
+      "note": "Existing transaction; manager correction form.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/transaction-edit.html?id=tx-02569&from=transactions-list",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "676ccf2bfee0f9c56ca3b05a720520d2143a8eb1f4368941f8f317126faa1fcd",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transaction-create-desktop-light.jpg",
+      "note": "Manager; default seeded view; visual reference only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/transaction-create.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "a5767cd1f601bb43cc7597b0695e03a7d72886f4675e32330fa459588c3f253c",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "installment-plan-desktop-light.jpg",
+      "note": "Manager; default seeded view; visual reference only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/installment-plan.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "17b8f1c6d5ff608018646e1a8a31221d43bf57508b73c99e6d70d354e1a35df5",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "daily-ledger-desktop-light.jpg",
+      "note": "Manager; default seeded view; visual reference only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/daily-ledger.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "70c5dbb298d78303f115d63bc3aebe139444f88bbeb920570e9fa8f4c6daf401",
+      "raster": {
+        "width": 1440,
+        "height": 1000,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "fiado-balance-desktop-light.jpg",
+      "note": "Manager; default seeded view; visual reference only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/fiado-balance.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "aee8c41b03272394386d03894f2100c1b0b6e39c933887d1286e1d5dd4002272",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "fiado-aging-desktop-light.jpg",
+      "note": "Manager; default seeded view; visual reference only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/fiado-aging.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "786d39a8c68dc59de368cab6292f257b7546f54f0f593f529298fa437a76626f",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "open-cheque-aging-desktop-light.jpg",
+      "note": "Manager; default seeded view; visual reference only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/open-cheque-aging.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "60941325e7a2ca755c51f88361f5d0ca34f76d6f407f5b05f5bb920c2d42856c",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "cash-variance-summary-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/cash-variance-summary.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "d869ff8ba5440ea9d7659cb4a0e17d05eff56d4915518dfb3cc35bce623c41a9",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "monthly-reconciliation-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/monthly-reconciliation.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "1f7831ef160f6f9b8b694cbe35351161e71d84ed60eae085267ce9b6b5ec38dd",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "time-entry-management-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/time-entry-management.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "1890075589e96fb3c9756e9fc9d7c58a6cbde0d0a84136eae6f0b38bad32d6a7",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "operators-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/operators.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "b2f1188fb55a176b74bbe188b1143675e77b53657148af998cbd37e1baae219b",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "account-assignment-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/account-assignment.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "a1b3af9cd6b4b98ef8fa7d09e2db7cff5b1084b92f4277d7fb2eb95b603ffef2",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "accounts-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/accounts.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "8e32e781b31e5bd8984c494676a1cbdb4dd41d7ed5f7efa06a8a3e94e4646c6a",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "clients-desktop-light.jpg",
+      "note": "Manager; seeded default view, without writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/clients.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "585b2997a0a7930d1407a939af5a4792962dba09b908b237305be01718413f8f",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "client-dialog-desktop-light.jpg",
+      "note": "New-client dialog opened; no data entered or saved.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/clients.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "2a7615304902b11d732d1c41c81d7ce51e5e277138afa2949f5e567d399fa2d1",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "client-statement-desktop-light.jpg",
+      "note": "José branch-wide seeded statement; the app must use current server fields.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/client-statement.html?clientId=cli-jose&from=clients",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "af9f93aa52fd2f95587940ef796b07d3beae16256f5bdef30093a186e6b867b8",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "receber-pagamento-desktop-light.jpg",
+      "note": "Repayment form only; no payment recorded.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/receber-pagamento.html?clientId=cli-jose&from=client-statement&fromq=clientId%3Dcli-jose%26from%3Dclients",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "aa776c2e4c67cd540fe84461bb2bd684fe625316d4f79878c9c9b1c3455e3b1b",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "categories-types-desktop-light.jpg",
+      "note": "Manager; seeded default view, no writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/categories-types.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "a4b5f66b65a9f619c1de522abaffebd6844b47d07d9fddfa90e6ed0b464e11e7",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "products-desktop-light.jpg",
+      "note": "Manager; seeded default view, no writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/products.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "916b29dcd274d97d9067cec41ba50f2c0c5b58c8d3a3292a7f852c25a172eec6",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "holidays-desktop-light.jpg",
+      "note": "Manager; seeded default view, no writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/holidays.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "7bad6cf1fef97e54810ebef2ca7569fc929585b5a1d7645fa6059d71c47e6b95",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "settings-desktop-light.jpg",
+      "note": "Manager; seeded default view, no writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/settings.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "ddf60cced1b1774e22c964c06de4e53778eb5ef6d40211b341d84740dbe37e3c",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "branch-members-desktop-light.jpg",
+      "note": "Manager; seeded default view, no writes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/branch-members.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "ae732d6945547fcb85b5e4da0d06d030ac64e32941e35294a3af69ee392bbee4",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "my-transaction-summary-desktop-light.jpg",
+      "note": "Member Joana; personal scope, no mutations.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/my-transaction-summary.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "b42036cc542dd5ae20b5a5e6d46708ea4b01cd08c388a0308ce1dc4e96cfe477",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "my-time-entry-balance-desktop-light.jpg",
+      "note": "Member Joana; personal scope, no mutations.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/my-time-entry-balance.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "7f9f533be09770890b723a773beee146dd28bd2d9ed056a3a15cc9eab372b17a",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "close-approval-desktop-light.jpg",
+      "note": "Manager dual-mode route; view only; no close mutation.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-approval.html?closeId=dc-t3-2026-09-24&from=work-queue",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "796e2e1f4b56690b0c1e111cc664563a104dce67cbb3a8474c859acab6061306",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "close-day-desktop-light.jpg",
+      "note": "Manager dual-mode route; view only; no close mutation.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=work-queue",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "0d1192211f667df19458bfe6d4ce37663a499d73f38f153ab62a80d9125d3a01",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "fix-resubmit-desktop-light.jpg",
+      "note": "Manager dual-mode route; view only; no close mutation.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/fix-resubmit.html?closeId=dc-t2-2026-09-18&from=work-queue",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "787ca6bf5e203b5b20339bafd36d3dfcdbf37d57e2a1ba806a3b23df22d34a50",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "open-day-desktop-light.jpg",
+      "note": "Manager dual-mode route; view only; no close mutation.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/open-day.html?accountId=acc-t1&from=work-queue",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "c3dd030ae4b96a6945a61ee229989056e3b716263f5961611ced09cdbe4e8d01",
+      "raster": {
+        "width": 1440,
+        "height": 1000,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-loading.jpg",
+      "note": "Statebar simulation; visual treatment only, not a real request outcome.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html?state=loading",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "240d053dbd179ce4b5376779b594037edfd0b91f539ef0a741bac4be2ac65465",
+      "raster": {
+        "width": 1440,
+        "height": 1000,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-empty.jpg",
+      "note": "Statebar simulation; visual treatment only, not a real request outcome.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html?state=empty",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "d21b4ec5bd6ccea9773b82e7f62999a6696d18210b1c57345b65b72803831b1c",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-error.jpg",
+      "note": "Statebar simulation; visual treatment only, not a real request outcome.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html?state=error",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "9f94a9eb907de3119b85b9c1ef9b8da79eb2678722c3f835aa4f9eaf976fbddb",
+      "raster": {
+        "width": 1440,
+        "height": 1000,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-mobile-light.jpg",
+      "note": "375px viewport, settled responsive layout; zoom 1.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "14c7963ac3ec05ed3f6044d7b82f00869e7f386e64747ce5d8b2cfa2ab7e7bd3",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "navigation-mobile-light.jpg",
+      "note": "Settled open navigation drawer; original width 86vw, capped at 290 authored px.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "cc1a9cf7f8a2de0f8d4182c611cc4985870753dd022407a4fff0383a8632a31d",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-mobile-dark.jpg",
+      "note": "Settled manager queue at phone width, dark.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "1ab8e05a174f85f20d55c1c53468c031fe77455d5023e55199d54ef1569c35cd",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transactions-mobile-dark.jpg",
+      "note": "Table scrolls horizontally within its wrapper.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/transactions-list.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "017266f6697a84cc210ef292afc273d8893ffe6313cd7b3f216eb55ff8483674",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transaction-create-mobile-light.jpg",
+      "note": "Entry fields wrap at phone width.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/transaction-create.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "b922fd729c3c73bbc91e0673b9c8dcd7760af9697901463a8865b10f4db046ac",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "branch-members-mobile-light.jpg",
+      "note": "Membership controls remain within a horizontally scrolling table.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/branch-members.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "07b6d0c10883b283f2866e0e335937a2c0db0dd38666d7439112e9afcee7b57c",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "workstation-mobile-dark.jpg",
+      "note": "Member workstation choice before selecting a Terminal.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/cockpit.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "3cb6b056e20a5de9696a12cd2fb9fb6ea18ddc6ff8c58a8293026de25d55de70",
+      "raster": {
+        "width": 375,
+        "height": 812,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "cockpit-mobile-dark.jpg",
+      "note": "Member Joana, Terminal 2; demonstrates squeezed two-column defect.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/cockpit.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "3c4152ca68b41ebb0b54df03fbdf0a7db2d7356e3ad492123ac22df7799c15ae",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "cockpit-mobile-light.jpg",
+      "note": "Same next action in light theme; two-column defect must be corrected in app blueprint.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/cockpit.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "bce38b392ed8693cff24db518edbdd2df947b75637346a80c192b0d7e946abd9",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "close-day-member-mobile-light.jpg",
+      "note": "Member non-recorder view on shared Terminal; count read-only.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "3c99730429441a5bf64b30dca6af11c62f0bbc3eb1b94fa3fdea0819aed4d683",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "clock-mobile-light.jpg",
+      "note": "Member time tracking; no clock mutation.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/clock.html",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "5d1acb943f24e9af2988bfea8788dfc20540a3b2c3f0e110123522f46bb7e2b3",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "cockpit-desktop-light.jpg",
+      "note": "Member Joana on Terminal 2, mixed Draft blockers.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/cockpit.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "9ad57df1d9462eac385fd2074aea6cfff258a306032cbaa98ed93abbce216fd5",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "cockpit-desktop-dark.jpg",
+      "note": "Same operator next action in dark.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/cockpit.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "e0c8e524ddbf40f50cb589c11e1223606833ef7480f9947553cff090baded2cb",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "clock-desktop-light.jpg",
+      "note": "Member Joana; personal scope, no mutations.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/clock.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "3f1e7dafa45b1cb6ca57c5b40530db37eb1ce887c072555881042bae23da6231",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "close-day-member-desktop-light.jpg",
+      "note": "Lucas, recording Member, uncounted Draft with editable count; no changes.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "dcb1316186c9fd11a4e13395e5726961fbaf023a2648fae41f348a0963881c34",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "count-focus-desktop-light.jpg",
+      "note": "Keyboard Tab from Dinheiro input to repeat action; no count changed.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "de8f4cc30fa30087f2fb0d6eceba18b30deb79749f4eab0ad383a1c4e161f75a",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "count-focus-desktop-dark.jpg",
+      "note": "Dark count table and keyboard focus.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "d39a48a5ef20201ba16f70f633b7d158f19ed53762770aee3984208f6c0a088d",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "close-day-editable-mobile-dark.jpg",
+      "note": "Recording Member at phone width; no values saved.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "9ac7f1d72dcee9eb6fe9eaa33ec0e0e0a5e58ac2f3e2da110440a72ef65a42b4",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "count-focus-mobile-light.jpg",
+      "note": "Narrow count table with keyboard focus; internal horizontal scroll.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-day.html?closeId=dc-t2-2026-09-24&from=cockpit",
+      "viewport": {
+        "height": 812,
+        "width": 375
+      },
+      "zoom": "1",
+      "sha256": "1a0a431a8dc819669821e0e57852869c40d7f20a3d0a9afe90d3a1b077e3a25d",
+      "raster": {
+        "width": 360,
+        "height": 780,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "login-desktop-light.jpg",
+      "note": "Demo login styling only; public identity flows must use current M8 contracts.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/login.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "5b93a14e7448dad8c3098df6e66e1824590cd2a6478aa114abd67e0a56668de7",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "branch-picker-desktop-light.jpg",
+      "note": "Manager identity, two branches; identity-tier selection.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/branch-picker.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "e8e313fce98cc26c247e19ebf9a7d4139d385ff3b3548e575fff0e2572bc40ef",
+      "raster": {
+        "width": 1440,
+        "height": 1000,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "queue-desktop-100pct.jpg",
+      "note": "Authored 100% size comparison; selected reference otherwise uses default 150%.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1",
+      "sha256": "7ae0e03d1b7ffbcb0b977273db0eded1cda9080a17a576d83dfefdf1b38cdfdd",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "session-menu-desktop-light.jpg",
+      "note": "Unlinked Manager menu explains preparing Meu turno; permissions remain role-based.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/work-queue.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "93487b5f0c68a39b276e2d01f18921903c52642c6a0ab1cb75b36fc5d4d9984f",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transactions-desktop-dark.jpg",
+      "note": "Dark ledger/filter treatment.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/transactions-list.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "fb61423b99e2ce2f246e50b56900da3c05017e6c7f2cb29ce2b0edcddfb92725",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "transaction-create-desktop-dark.jpg",
+      "note": "Dark form, no submission.",
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "dark",
+      "url": "/prototype-claude/screens/transaction-create.html",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "8e09f1c1cbb52dd043db53b2a2142ae527322463530c09478563409fdf9b4d16",
+      "raster": {
+        "width": 1425,
+        "height": 990,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "approval-complete-light.jpg",
+      "note": "Full-page request captures audit and decision sections; no approval/rejection.",
+      "requestedFullPage": true,
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/close-approval.html?closeId=dc-t3-2026-09-24&from=work-queue",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "0b5f2531e2fced529e448bd66e6674970e457bb8baf48cc1eac80267564598fc",
+      "raster": {
+        "width": 1425,
+        "height": 3557,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "installment-existing-desktop-light.jpg",
+      "note": "Existing wholly Draft plan; grouped editor and finalization action, no save/finalize.",
+      "requestedFullPage": true,
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/installment-plan.html?originId=tx-02557&focus=tx-02559&from=transactions-list",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "b787b2c35650518b80809a9169226f59a7040b11591456de60707ac5a51ba6f3",
+      "raster": {
+        "width": 1425,
+        "height": 1677,
+        "mimeType": "image/jpeg"
+      }
+    },
+    {
+      "file": "correction-history-complete-light.jpg",
+      "note": "Opening-correction event and count/audit layout, read only.",
+      "requestedFullPage": true,
+      "bodyFont": "14px / 21px -apple-system, \"system-ui\", \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "theme": "light",
+      "url": "/prototype-claude/screens/fix-resubmit.html?closeId=dc-t3-2026-09-21&from=work-queue",
+      "viewport": {
+        "height": 1000,
+        "width": 1440
+      },
+      "zoom": "1.5",
+      "sha256": "8fcf5caa6ec2a35ec85e476f16faa5ae1a1418299dfbbe75b4c644fc82845424",
+      "raster": {
+        "width": 1425,
+        "height": 4819,
+        "mimeType": "image/jpeg"
+      }
+    }
+  ],
+  "supportingArtifacts": {
+    "browser-observations.json": "0002babaf88edb5a93b8e7baad07d77dc9e116aba9fc9349c463c320ba9e03a4",
+    "style-inventory.json": "9462ec2164965c6f884ea727c810899a37a7326ec8596aa97c8468f47b2743fb"
+  }
+}
