@@ -23,7 +23,7 @@ Default, hover, focus, open, invalid, disabled (with reason), read-only (plain t
 
 - Options come from the lookup the catalog names, already scoped by role (Member accounts from self-context; Manager accounts from `GET /account`). The component never widens scope.
 - Excluded values are absent, not disabled, when the catalog says they are never offered (fiado repayment types on Create; system types). Retired values present on a historical record still display as the record's text.
-- A carried-over filter value that is no longer an option (retired type) stays selected and visible with **(inativo)**.
+- A carried-over filter value missing from the current options stays selected and visible with **(fora das opções atuais)**. Use **(inativo)** only when an explicit server activity field confirms inactivity; absence alone proves no activity state.
 - Changing a value that drives other fields (type → required fields) keeps the other entered values where they remain valid and announces newly required fields.
 
 ## Accessibility

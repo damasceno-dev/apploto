@@ -48,7 +48,7 @@ const REQUIRED_VALUE_DOMAINS = {
 };
 const DOMAIN_VALUE_KEYS = new Set(['fg', 'bg', 'border']);
 // Every domain value is checked on each of these surfaces (labels as written in $contrast.domainSurfaces).
-const REQUIRED_DOMAIN_SURFACES = ['background', 'surface.default', 'surface.subtle', 'surface.raised', 'surface.hover', 'surface.default + surface.selected'];
+const REQUIRED_DOMAIN_SURFACES = ['background', 'surface.default', 'surface.subtle', 'surface.raised', 'surface.hover', 'surface.default + surface.selected', 'surface.hover + surface.selected'];
 // Every action variant must define these states; the checker generates their label checks itself.
 const REQUIRED_ACTION_STATES = ['bg', 'bg-hover', 'bg-active', 'fg'];
 const REQUIRED_DISABLED_STATES = ['bg', 'fg', 'border'];

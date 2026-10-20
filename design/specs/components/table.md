@@ -26,7 +26,7 @@ Region heading or caption (what, which scope, which period) · optional toolbar 
 
 ## States
 
-Loading (header kept, Skeleton rows matching expected density), empty (an [EmptyState](empty-state.md) inside the table region — scoped: **Nenhuma transação neste filtro**), error (a [Notice](notice.md) in place of the body with retry; the filters stay), updating (previous rows dimmed with a polite **Atualizando…**, never relabeled with the new filter), row-level status (Draft rows `dom.transaction-status.Draft` badge and secondary text; Cancelled rows muted with their badge), selected (`sem.surface.selected`), focus within a row (the row shows `sem.surface.hover` while its link has focus).
+Loading (header kept, Skeleton rows matching expected density), empty (an [EmptyState](empty-state.md) inside the table region — scoped: **Nenhuma transação neste filtro**), error (a [Notice](notice.md) in place of the body with retry; the filters stay), updating (previous rows dimmed with a polite **Atualizando…**, never relabeled with the new filter), row-level status (Draft rows `dom.transaction-status.Draft` badge and secondary text; Cancelled rows muted with their badge), selected (`sem.surface.selected`), focus within a row (the row shows `sem.surface.hover` while its link has focus; a selected focused or hovered row layers `sem.surface.selected` over `sem.surface.hover`, covered for body, feedback and badge text by the contrast gate).
 
 ## Behavior
 

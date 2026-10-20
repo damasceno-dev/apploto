@@ -193,6 +193,18 @@ try {
       d.$contrast.domainSurfaces = d.$contrast.domainSurfaces.filter((surface) => !Array.isArray(surface));
     }),
   );
+  expectFailure('focused selected-row surface dropped from domain checks', 'missing required surface "surface.hover + surface.selected"', (dir) =>
+    editColors(dir, (d) => {
+      d.$contrast.domainSurfaces = d.$contrast.domainSurfaces.filter((surface) => JSON.stringify(surface) !== JSON.stringify(['surface.hover', 'surface.selected']));
+    }),
+  );
+  for (const token of ['muted', 'placeholder']) {
+    expectFailure(`dark ${token} text on focused selected rows regresses`, 'Contrast (dark) "body text on every surface"', (dir) =>
+      editColors(dir, (d) => {
+        d.color.semantic.dark.text[token] = '{color.primitive.night.300}';
+      }),
+    );
+  }
   expectFailure('white text on the light Submitted badge', 'Contrast (light) "domain daily-close-status.Submitted"', (dir) =>
     editColors(dir, (d) => {
       d.color.domain.light['daily-close-status'].Submitted.fg = '{color.primitive.neutral.0}';

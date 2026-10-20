@@ -54,7 +54,7 @@ A button never shows success itself; confirmation appears in the Notice, SaveSta
 
 ## Accessibility
 
-Native `<button>`/`<a>` on web; `accessibilityRole="button"`/`"link"` on native. The accessible name is the visible label, plus row context when several identical labels repeat (**Abrir transação 24/09/2026 R$ 943,10 Terminal 2**). Disabled state exposes `aria-disabled` with the reason linked through `aria-describedby`; loading exposes `aria-busy`. Icon-only buttons have an explicit name (**Tema escuro**, **Abrir menu da conta**).
+Native `<button>`/`<a>` on web; `accessibilityRole="button"`/`"link"` on native. The accessible name is the visible label, plus row context when several identical labels repeat (**Abrir transação 24/09/2026 R$ 943,10 Terminal 2**). Disabled buttons remain focusable, expose `aria-disabled="true"` with the reason linked through `aria-describedby`, and suppress pointer and keyboard activation; loading exposes `aria-busy`. Icon-only buttons have an explicit name (**Tema escuro**, **Abrir menu da conta**).
 
 ## Touch and scale
 

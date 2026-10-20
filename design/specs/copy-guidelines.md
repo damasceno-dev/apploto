@@ -141,7 +141,7 @@ The backend is the single source of error-message truth. Every API error is `Res
 ### 7.1 Cash-variance explanation
 
 - Live count label: "Prévia da diferença · ainda não enviada" — kept distinct from the official variance row.
-- The main area shows the worked equation with real values, e.g. "R$ 2.437,00 − R$ 2.199,00 − (R$ 400,00 − R$ 150,00) = −R$ 12,00". If the visible opening rows omit a historical amount included by the server, label their sum "Subtotal da abertura exibida" and keep the authoritative preview/official difference separate; never present an incomplete equation as proof of the result. The catalog's M9.5 transition procedure owns this limitation, with no invented completeness flag or missing amount.
+- The main area shows the worked equation with real values, e.g. "R$ 2.437,00 − R$ 2.199,00 − (R$ 400,00 − R$ 150,00) = −R$ 12,00". When the derived equation differs from the server preview/official value for matching inputs and complete ledger reads (the catalog’s **explanation differs from server** state), label the opening sum "Subtotal da abertura exibida" and keep the authoritative signed figure separate under "Diferença calculada pelo servidor" / "Diferença oficial", in neutral text without Falta/Sobra wording or sign-based shortage/surplus colors; never present the equation as proof of the server result. The catalog's M9.5 transition procedure owns this limitation, with no invented completeness flag or missing amount.
 - Collapsed help, titled "Ajuda sobre diferença de caixa", shown only when expanded:
   > **Como a diferença é calculada**
   >
@@ -151,7 +151,7 @@ The backend is the single source of error-message truth. Every API error is `Res
   >
   > A abertura e o fechamento somam todos os produtos, sem a própria Diferença Caixa. Entram apenas as transações ativas deste terminal nesta data; rascunhos e canceladas ficam fora.
 
-- When the opening is known to include an omitted historical amount, replace the simple sign sentence above with "A abertura inclui valores históricos não exibidos aqui. Confira o fechamento anterior com a gerência." Do not infer that condition from current rows alone.
+- In the **explanation differs from server** state, replace the simple sign sentence above and show this same warning persistently outside collapsed help: "A conta exibida não confere com a diferença do servidor. Confira a abertura e o fechamento anterior com a gerência antes de enviar ou aprovar." The numerical comparison triggers the state; it does not prove a historical omission. Preserve input and ordinary controls, refresh stale data, and clear the warning only after matching values agree. No new DTO flag, acknowledgement or forced lock is implied.
 - First post-upgrade close: a prior-only retired fee may affect the opening without appearing in the current rows. Its negative result alone does not establish a physical shortage; use the catalog's prior-close/inventory review procedure. Do not promise migration has reconciled that transition. Actual fee/Operador amounts are ordinary configured Terminal In transactions; no calculated fee, mandatory daily amount or hard-coded type identity is implied.
 
 ### 7.2 Close review events and recorder identity

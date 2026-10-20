@@ -124,16 +124,16 @@ Each row resolves to the hex shown; the primitive it references follows in paren
 | `border.subtle` | `#e4ecef` (neutral.150) | `#1a2e3e` (night.650) |
 | `feedback.danger.bg` | `#b3322517` (alpha.red-09) | `#ff897c21` (alpha.red-light-13) |
 | `feedback.danger.border` | `#b33225` (red.600) | `#ff897c` (red.300) |
-| `feedback.danger.fg` | `#b33225` (red.600) | `#ff897c` (red.300) |
+| `feedback.danger.fg` | `#b33225` (red.600) | `#ffb1a8` (red.200) |
 | `feedback.info.bg` | `#0067ad17` (alpha.sky-09) | `#63b8f021` (alpha.sky-light-13) |
 | `feedback.info.border` | `#0067ad` (sky.600) | `#63b8f0` (sky.300) |
-| `feedback.info.fg` | `#0067ad` (sky.600) | `#63b8f0` (sky.300) |
+| `feedback.info.fg` | `#005592` (sky.700) | `#9fd5f5` (sky.200) |
 | `feedback.neutral.bg` | `#ebf1f3` (neutral.100) | `#1a2d3d` (night.675) |
 | `feedback.neutral.border` | `#bfd0d6` (neutral.300) | `#2c4458` (night.500) |
 | `feedback.neutral.fg` | `#33495a` (neutral.700) | `#b6c6d0` (night.200) |
 | `feedback.success.bg` | `#146b451a` (alpha.green-10) | `#52c48d24` (alpha.green-light-14) |
 | `feedback.success.border` | `#146b45` (green.600) | `#52c48d` (green.300) |
-| `feedback.success.fg` | `#146b45` (green.600) | `#52c48d` (green.300) |
+| `feedback.success.fg` | `#146b45` (green.600) | `#9fd8bb` (green.200) |
 | `feedback.warning.bg` | `#f3920024` (alpha.orange-14) | `#f3920029` (alpha.orange-16) |
 | `feedback.warning.border` | `#f39200` (orange.500) | `#f39200` (orange.500) |
 | `feedback.warning.fg` | `#8f5300` (amber.700) | `#f2b347` (amber.300) |
@@ -164,8 +164,8 @@ Each row resolves to the hex shown; the primitive it references follows in paren
 | `text.disabled` | `#6e8391` (neutral.450) | `#6a7f91` (night.450) |
 | `text.link` | `#005ca9` (blue.600) | `#5fb0ea` (blue.300) |
 | `text.link-hover` | `#004b8b` (blue.700) | `#b0d2ee` (blue.200) |
-| `text.muted` | `#546978` (neutral.500) | `#8699a7` (night.300) |
-| `text.placeholder` | `#546978` (neutral.500) | `#8699a7` (night.300) |
+| `text.muted` | `#546978` (neutral.500) | `#93a8b8` (night.250) |
+| `text.placeholder` | `#546978` (neutral.500) | `#93a8b8` (night.250) |
 | `text.primary` | `#0f2230` (neutral.900) | `#e4edf2` (night.100) |
 | `text.secondary` | `#33495a` (neutral.700) | `#b6c6d0` (night.200) |
 | `topbar.bg` | `#ffffff` (neutral.0) | `#0c1924` (night.900) |
@@ -197,51 +197,51 @@ Status is always named in text; color is a second signal, never the only one. Ba
 | Domain group (`$enum`) | Value | Label (copy §5) | Light fg / bg | Dark fg / bg | Lowest ratio L / D |
 |---|---|---|---|---|---|
 | transaction-status (TransactionStatus) | `Draft` | Rascunho | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
-| transaction-status (TransactionStatus) | `Active` | Ativa | `#146b45` / `#146b451a` | `#52c48d` / `#52c48d24` | 5.01 / 4.76 |
-| transaction-status (TransactionStatus) | `Cancelled` | Cancelada | `#546978` / `#e9f0f2` | `#8699a7` / `#182a3a` | 4.96 / 4.98 |
+| transaction-status (TransactionStatus) | `Active` | Ativa | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
+| transaction-status (TransactionStatus) | `Cancelled` | Cancelada | `#546978` / `#e9f0f2` | `#93a8b8` / `#182a3a` | 4.96 / 5.96 |
 | daily-close-status (DailyCloseStatus) | `Draft` | Rascunho | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
-| daily-close-status (DailyCloseStatus) | `Submitted` | Enviado | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.90 / 5.71 |
-| daily-close-status (DailyCloseStatus) | `Approved` | Aprovado | `#146b45` / `#146b451a` | `#52c48d` / `#52c48d24` | 5.01 / 4.76 |
-| daily-close-status (DailyCloseStatus) | `Rejected` | Rejeitado | `#b33225` / `#b3322517` | `#ff897c` / `#ff897c21` | 4.78 / 4.80 |
-| direction (Direction) | `In` | Entrada | `#0f2230` / `surface` | `#e4edf2` / `surface` | 14.41 / 11.44 |
-| direction (Direction) | `Out` | Saída | `#0f2230` / `surface` | `#e4edf2` / `surface` | 14.41 / 11.44 |
+| daily-close-status (DailyCloseStatus) | `Submitted` | Enviado | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
+| daily-close-status (DailyCloseStatus) | `Approved` | Aprovado | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
+| daily-close-status (DailyCloseStatus) | `Rejected` | Rejeitado | `#b33225` / `#b3322517` | `#ffb1a8` / `#ff897c21` | 4.57 / 5.76 |
+| direction (Direction) | `In` | Entrada | `#0f2230` / `surface` | `#e4edf2` / `surface` | 13.74 / 10.24 |
+| direction (Direction) | `Out` | Saída | `#0f2230` / `surface` | `#e4edf2` / `surface` | 13.74 / 10.24 |
 | aging-bucket (AgingBucket) | `Current` | Em dia | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
-| aging-bucket (AgingBucket) | `Days0To30` | 0–30 dias | `#8f5300` / `#fff7e6` | `#f2b347` / `#f3920029` | 5.78 / 5.71 |
-| aging-bucket (AgingBucket) | `Days31To60` | 31–60 dias | `#6f4100` / `#fdebc8` | `#f9d48f` / `#f392003d` | 7.36 / 6.51 |
-| aging-bucket (AgingBucket) | `Days61To90` | 61–90 dias | `#992a20` / `#fdeeec` | `#ff897c` / `#ff897c21` | 6.88 / 4.80 |
+| aging-bucket (AgingBucket) | `Days0To30` | 0–30 dias | `#8f5300` / `#fff7e6` | `#f2b347` / `#f3920029` | 5.78 / 5.19 |
+| aging-bucket (AgingBucket) | `Days31To60` | 31–60 dias | `#6f4100` / `#fdebc8` | `#f9d48f` / `#f392003d` | 7.36 / 5.97 |
+| aging-bucket (AgingBucket) | `Days61To90` | 61–90 dias | `#992a20` / `#fdeeec` | `#ffb1a8` / `#ff897c21` | 6.88 / 5.76 |
 | aging-bucket (AgingBucket) | `Days91Plus` | Mais de 90 dias | `#ffffff` / `#b33225` | `#0a1520` / `#ff897c` | 6.18 / 7.99 |
-| time-entry-status (TimeEntryStatus) | `Present` | Presente | `#146b45` / `#146b451a` | `#52c48d` / `#52c48d24` | 5.01 / 4.76 |
-| time-entry-status (TimeEntryStatus) | `DayOff` | Folga | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.90 / 5.71 |
-| time-entry-status (TimeEntryStatus) | `Sunday` | Domingo | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| time-entry-status (TimeEntryStatus) | `Holiday` | Feriado | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| time-entry-status (TimeEntryStatus) | `Vacation` | Férias | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| time-entry-status (TimeEntryStatus) | `JustifiedAbsence` | Falta justificada | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| time-entry-status (TimeEntryStatus) | `UnjustifiedAbsence` | Falta injustificada | `#b33225` / `#b3322517` | `#ff897c` / `#ff897c21` | 4.78 / 4.80 |
+| time-entry-status (TimeEntryStatus) | `Present` | Presente | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
+| time-entry-status (TimeEntryStatus) | `DayOff` | Folga | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
+| time-entry-status (TimeEntryStatus) | `Sunday` | Domingo | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| time-entry-status (TimeEntryStatus) | `Holiday` | Feriado | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| time-entry-status (TimeEntryStatus) | `Vacation` | Férias | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| time-entry-status (TimeEntryStatus) | `JustifiedAbsence` | Falta justificada | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| time-entry-status (TimeEntryStatus) | `UnjustifiedAbsence` | Falta injustificada | `#b33225` / `#b3322517` | `#ffb1a8` / `#ff897c21` | 4.57 / 5.76 |
 | installment-plan-status (InstallmentPlanStatus) | `Draft` | Rascunho | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
-| installment-plan-status (InstallmentPlanStatus) | `Active` | Ativo | `#146b45` / `#146b451a` | `#52c48d` / `#52c48d24` | 5.01 / 4.76 |
-| installment-plan-status (InstallmentPlanStatus) | `Mixed` | Misto | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.90 / 5.71 |
-| installment-plan-status (InstallmentPlanStatus) | `Cancelled` | Cancelado | `#546978` / `#e9f0f2` | `#8699a7` / `#182a3a` | 4.96 / 4.98 |
-| invitation-status (InvitationStatus) | `Pending` | Pendente | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| invitation-status (InvitationStatus) | `Accepted` | Aceito | `#146b45` / `#146b451a` | `#52c48d` / `#52c48d24` | 5.01 / 4.76 |
+| installment-plan-status (InstallmentPlanStatus) | `Active` | Ativo | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
+| installment-plan-status (InstallmentPlanStatus) | `Mixed` | Misto | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
+| installment-plan-status (InstallmentPlanStatus) | `Cancelled` | Cancelado | `#546978` / `#e9f0f2` | `#93a8b8` / `#182a3a` | 4.96 / 5.96 |
+| invitation-status (InvitationStatus) | `Pending` | Pendente | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| invitation-status (InvitationStatus) | `Accepted` | Aceito | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
 | invitation-status (InvitationStatus) | `Declined` | Recusado | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
-| invitation-status (InvitationStatus) | `Expired` | Expirado | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.90 / 5.71 |
+| invitation-status (InvitationStatus) | `Expired` | Expirado | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
 | mail-delivery-status (MailDeliveryStatus) | `Pending` | Envio pendente | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
-| mail-delivery-status (MailDeliveryStatus) | `Sent` | Enviado ao servidor de e-mail | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| mail-delivery-status (MailDeliveryStatus) | `Failed` | Falha no envio | `#b33225` / `#b3322517` | `#ff897c` / `#ff897c21` | 4.78 / 4.80 |
-| operator-link-request-status (OperatorLinkRequestStatus) | `Pending` | Pendente | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.90 / 5.71 |
-| operator-link-request-status (OperatorLinkRequestStatus) | `Resolved` | Resolvida | `#146b45` / `#146b451a` | `#52c48d` / `#52c48d24` | 5.01 / 4.76 |
-| review-event-type (DailyCloseReviewEventType) | `Rejected` | Rejeitado na conferência | `#b33225` / `#b3322517` | `#ff897c` / `#ff897c21` | 4.78 / 4.80 |
-| review-event-type (DailyCloseReviewEventType) | `OpeningChanged` | Abertura alterada | `#0067ad` / `#0067ad17` | `#63b8f0` / `#63b8f021` | 4.63 / 4.85 |
-| cash-variance (—) | `shortage` | −R$ … · falta | `#b33225` / `surface` | `#ff897c` / `surface` | 5.48 / 5.90 |
-| cash-variance (—) | `surplus` | +R$ … · sobra | `#146b45` / `surface` | `#52c48d` / `surface` | 5.78 / 6.23 |
-| cash-variance (—) | `zero` | R$ 0,00 | `#0f2230` / `surface` | `#e4edf2` / `surface` | 14.41 / 11.44 |
-| fiado-balance (—) | `debt` | R$ … · em aberto | `#0f2230` / `surface` | `#e4edf2` / `surface` | 14.41 / 11.44 |
-| fiado-balance (—) | `settled` | quitado | `#33495a` / `surface` | `#b6c6d0` / `surface` | 8.31 / 7.75 |
-| fiado-balance (—) | `credit` | +R$ … · crédito do cliente | `#146b45` / `surface` | `#52c48d` / `surface` | 5.78 / 6.23 |
-| hour-balance (—) | `positive` | +2h 15min | `#146b45` / `surface` | `#52c48d` / `surface` | 5.78 / 6.23 |
-| hour-balance (—) | `negative` | −2h 15min | `#b33225` / `surface` | `#ff897c` / `surface` | 5.48 / 5.90 |
-| hour-balance (—) | `zero` | 0h 00min | `#0f2230` / `surface` | `#e4edf2` / `surface` | 14.41 / 11.44 |
-| generated-movement (—) | `automatic` | Automática | `#33495a` / `border #bfd0d6` | `#b6c6d0` / `border #2c4458` | 8.31 / 7.75 |
+| mail-delivery-status (MailDeliveryStatus) | `Sent` | Enviado ao servidor de e-mail | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| mail-delivery-status (MailDeliveryStatus) | `Failed` | Falha no envio | `#b33225` / `#b3322517` | `#ffb1a8` / `#ff897c21` | 4.57 / 5.76 |
+| operator-link-request-status (OperatorLinkRequestStatus) | `Pending` | Pendente | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
+| operator-link-request-status (OperatorLinkRequestStatus) | `Resolved` | Resolvida | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
+| review-event-type (DailyCloseReviewEventType) | `Rejected` | Rejeitado na conferência | `#b33225` / `#b3322517` | `#ffb1a8` / `#ff897c21` | 4.57 / 5.76 |
+| review-event-type (DailyCloseReviewEventType) | `OpeningChanged` | Abertura alterada | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| cash-variance (—) | `shortage` | −R$ … · falta | `#b33225` / `surface` | `#ffb1a8` / `surface` | 5.22 / 7.01 |
+| cash-variance (—) | `surplus` | +R$ … · sobra | `#146b45` / `surface` | `#9fd8bb` / `surface` | 5.52 / 7.53 |
+| cash-variance (—) | `zero` | R$ 0,00 | `#0f2230` / `surface` | `#e4edf2` / `surface` | 13.74 / 10.24 |
+| fiado-balance (—) | `debt` | R$ … · em aberto | `#0f2230` / `surface` | `#e4edf2` / `surface` | 13.74 / 10.24 |
+| fiado-balance (—) | `settled` | quitado | `#33495a` / `surface` | `#b6c6d0` / `surface` | 7.92 / 6.93 |
+| fiado-balance (—) | `credit` | +R$ … · crédito do cliente | `#146b45` / `surface` | `#9fd8bb` / `surface` | 5.52 / 7.53 |
+| hour-balance (—) | `positive` | +2h 15min | `#146b45` / `surface` | `#9fd8bb` / `surface` | 5.52 / 7.53 |
+| hour-balance (—) | `negative` | −2h 15min | `#b33225` / `surface` | `#ffb1a8` / `surface` | 5.22 / 7.01 |
+| hour-balance (—) | `zero` | 0h 00min | `#0f2230` / `surface` | `#e4edf2` / `surface` | 13.74 / 10.24 |
+| generated-movement (—) | `automatic` | Automática | `#33495a` / `border #bfd0d6` | `#b6c6d0` / `border #2c4458` | 7.92 / 6.93 |
 
 A few choices deserve their reasons:
 
@@ -260,35 +260,37 @@ The checker is a zero-dependency Node script. It loads the eight files, refuses 
 
 - **Every action state**, generated structurally: each `action.<variant>` must define `bg`, `bg-hover`, `bg-active` and `fg` (disabled: `bg`, `fg`, `border`), and the checker tests the label on each fill — translucent fills composited over the variant's own opaque default or, for the clear text/link fill, over the default, subtle and page surfaces — plus `fg-hover` on the hover fill. A missing state or a failing fill fails the gate.
 - **Declared pairs** in `colors.json` → `$contrast.pairs`: each pair is a list of foregrounds crossed with a list of backgrounds. A background is either one opaque token or a bottom-to-top stack, so translucent tokens are always composited onto the surface they actually sit on; a translucent layer without an opaque base is an error.
-- **Every domain value** on every surface in `$contrast.domainSurfaces`, generated structurally — badge text on its tint over the page background, surfaces, hover and selected rows. The list must contain the six required surfaces, and every value must have a passing result on each, so emptying or trimming the list fails instead of silently skipping statuses.
+- **Every domain value** on every surface in `$contrast.domainSurfaces`, generated structurally — badge text on its tint over the page background, surfaces, hover and selected rows. The list must contain the seven required surfaces, including selected rows with hover/focus, and every value must have a passing result on each, so emptying or trimming the list fails instead of silently skipping statuses.
 - **Coverage rules**: every semantic text token, every `fg`/`fg-hover`, the navigation text tokens and the secondary accent must appear in at least one text check, and every control boundary, focus ring and selection token in at least one non-text check. A pair list that leaves a token out fails, which is what keeps the gate from sampling only convenient colors.
 - **Thresholds**: 4.5:1 for text; 3:1 for essential non-text indicators (control boundaries, focus rings, the selection indicator and its check mark). A `large-text` pair (3:1) is accepted only with a written justification naming the actual size and weight — none is used today. Disabled labels are exempt under WCAG; the project still holds them to a 3:1 floor so a faded **Salvar** stays legible. Thresholds below WCAG AA are rejected.
 
-`node scripts/check-contrast.mjs --report` prints every checked combination. `node scripts/test-check-contrast.mjs` runs the disposable regression suite: the true source passes, and broken, cyclic and malformed references, missing themes, missing or invented domain values, a renamed contract enum, failing text, boundary and badge pairs, emptied or trimmed domain surfaces, missing or failing action states, a selection indicator failing on a selected row, an unjustified large-text exemption, relaxed thresholds, coverage holes, missing files and invalid JSON or easings all fail (34 scenarios) — on temporary copies, with the source files hashed before and after.
+`node scripts/check-contrast.mjs --report` prints every checked combination. `node scripts/test-check-contrast.mjs` runs the disposable regression suite: the true source passes, and broken, cyclic and malformed references, missing themes, missing or invented domain values, a renamed contract enum, failing text, boundary and badge pairs, emptied or trimmed domain surfaces, missing or failing action states, a selection indicator failing on a selected row, an unjustified large-text exemption, relaxed thresholds, coverage holes, missing files and invalid JSON or easings all fail (37 scenarios) — on temporary copies, with the source files hashed before and after.
 
 ### Results (2026-10-20)
 
-All 912 combinations pass — 456 per theme. The lowest text ratios are 4.63:1 (light) and 4.61:1 (dark); the lowest essential boundary is 3.04:1 (light control border on the page background).
+The selected hover/focus surface is now checked for body text, feedback text and every domain badge. Dark muted/placeholder text uses night.250; feedback and the 61–90 day badge foregrounds were retuned to preserve the 4.5:1 floor on that stack. Thresholds and existing pairs remain in force.
+
+All 1024 combinations pass — 512 per theme. The lowest text ratios are 4.57:1 (light) and 4.76:1 (dark); the lowest essential boundary is 3.04:1 (light control border on the page background).
 
 | Check | Kind | Combinations per theme | Lowest light | Lowest dark |
 |---|---|---|---|---|
-| body text on every surface | text | 42 | 4.96 | 4.61 |
+| body text on every surface | text | 48 | 4.84 | 4.94 |
 | disabled label (WCAG-exempt; project floor) | disabled | 6 | 3.42 | 3.40 |
 | secondary accent (Meu turno) text | text | 3 | 5.25 | 6.48 |
 | navigation text | text | 6 | 5.63 | 9.82 |
 | navigation group labels | text | 1 | 5.59 | 6.38 |
-| top bar text | text | 4 | 5.72 | 6.04 |
+| top bar text | text | 4 | 5.72 | 7.23 |
 | essential control boundary | non-text | 20 | 3.04 | 3.18 |
 | focus indicator | non-text | 6 | 5.87 | 6.21 |
 | focus indicator in navigation | non-text | 2 | 6.20 | 11.65 |
 | selection indicator (checkbox, radio, switch, selected tab) | non-text | 7 | 5.72 | 5.14 |
 | check mark on the selection indicator | non-text | 1 | 6.77 | 7.79 |
-| success feedback text on its own tint | text | 6 | 5.01 | 4.76 |
-| danger feedback text on its own tint | text | 6 | 4.78 | 4.80 |
+| success feedback text on its own tint | text | 6 | 5.01 | 6.43 |
+| danger feedback text on its own tint | text | 6 | 4.78 | 6.37 |
 | warning feedback text on its own tint | text | 6 | 4.90 | 5.71 |
-| info feedback text on its own tint | text | 6 | 4.63 | 4.85 |
+| info feedback text on its own tint | text | 6 | 6.05 | 6.70 |
 | neutral feedback text on its own tint | text | 6 | 8.21 | 8.06 |
-| feedback text directly on surfaces | text | 24 | 5.25 | 5.90 |
+| feedback text directly on surfaces | text | 28 | 5.21 | 6.55 |
 | action cta bg (structural) | text | 1 | 7.75 | 7.75 |
 | action cta bg-active (structural) | text | 1 | 6.07 | 6.07 |
 | action cta bg-hover (structural) | text | 1 | 9.07 | 9.07 |

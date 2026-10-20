@@ -21,7 +21,7 @@ Default, dirty (staged changes not yet applied — the apply button is primary a
 - Uses only the endpoint's real query fields (catalog entry); no invented search or sort.
 - A changed filter or page size resets to page 1. Applied values, page and page size survive opening a row and returning, refresh, and navigation back; a fresh entry uses the catalog default; a validated origin restores its own.
 - Role-shaped: fields a role cannot use are absent (a Member never sees the operator filter), not disabled.
-- A carried-over value that is no longer an option stays visible as such (retired type **(inativo)**); an unknown id yields the endpoint's empty page.
+- A carried-over value missing from the current options stays visible with **(fora das opções atuais)**; use **(inativo)** only when explicit server activity data confirms it. Absence alone proves no activity state; an unknown id yields the endpoint's empty page.
 
 ## Accessibility
 

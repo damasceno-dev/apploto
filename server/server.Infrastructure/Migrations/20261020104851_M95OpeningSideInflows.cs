@@ -77,7 +77,8 @@ public partial class M95OpeningSideInflows : Migration
                             OR EXISTS (SELECT 1 FROM "TransactionTypes" WHERE "CategoryId" = category_id AND "SystemRole" IS NOT NULL) THEN
                             RAISE EXCEPTION 'M95_PREFLIGHT: target category must be active, ordinary, In and in branch %', branch_id;
                         END IF;
-                        IF EXISTS (SELECT 1 FROM "TransactionTypes" WHERE "CategoryId" = category_id AND "Name" = type_name) THEN
+                        IF EXISTS (SELECT 1 FROM "TransactionTypes" t JOIN "Categories" c ON c."Id" = t."CategoryId"
+                            WHERE c."BranchId" = branch_id AND t."Name" = type_name) THEN
                             RAISE EXCEPTION 'M95_PREFLIGHT: existing type is not adopted; choose an unused reviewed label for branch %', branch_id;
                         END IF;
                         INSERT INTO "TransactionTypes" ("Id", "Name", "CategoryId", "SettlementRule", "RequiresTabAccountAndClient", "CreatedAt", "Active")

@@ -56,7 +56,7 @@ Five states are easy to confuse and must look and behave differently everywhere:
 
 | State | Meaning | Presentation | Interaction |
 |---|---|---|---|
-| **Disabled** | The action exists but cannot run now (clean form, missing prerequisite, permission withheld) | `sem.action.disabled.*`; label stays readable; the **reason** is adjacent visible text, not a tooltip | Not focusable as an action on web when truly inert; native announces "indisponível" with the reason as hint |
+| **Disabled** | The action exists but cannot run now (clean form, missing prerequisite, permission withheld) | `sem.action.disabled.*`; label stays readable; the **reason** is adjacent visible text, not a tooltip | Buttons remain focusable on web with `aria-disabled="true"`, the reason linked by `aria-describedby`, and all pointer/keyboard activation suppressed; native announces "indisponível" with the reason as hint |
 | **Read-only** | The value is real and final for this caller (locked period, cancelled row, generated movement, other operator's row) | Value as plain selectable text on `sem.surface.muted` (fields) or as a DetailList; no control chrome; a reason line names why | Text selection and copy work; focusable only as text; never looks like a disabled input |
 | **Loading** | A read or write is in flight | Skeleton for first load; inline spinner + "…ndo" label for a write (**Salvando…**); region `aria-busy` | Duplicate activation blocked; previously entered input kept |
 | **Error** | A confirmed failure | `sem.feedback.danger.*` with the verbatim `ErrorMessages` list | Input kept; recovery action offered; focus moves to the summary on submit |

@@ -80,6 +80,8 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
     [InlineData("retired-category")]
     [InlineData("custom-type")]
     [InlineData("retired-type")]
+    [InlineData("other-category-type")]
+    [InlineData("retired-other-category-type")]
     public async Task AmbiguousOrInvalidMap_ShouldFailAtomically_WithoutHijackingCustomObjects(string scenario)
     {
         await using var db = Context();
@@ -99,10 +101,16 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
         if (scenario == "system-category")
             db.Add(new TransactionType { CategoryId = category.Id, Name = "System counterpart",
                 SystemRole = TransactionTypeSystemRole.FiadoCashRepaymentCounterpart });
-        if (scenario is "custom-type" or "retired-type")
-            db.Add(new TransactionType { CategoryId = category.Id, Name = "Tarifa Bolão",
+        var otherCategoryCollision = scenario is "other-category-type" or "retired-other-category-type";
+        var collisionCategory = otherCategoryCollision
+            ? new Category { BranchId = branch.Id, Name = "Custom income", DefaultDirection = Direction.In,
+                Active = scenario != "retired-other-category-type" }
+            : category;
+        if (otherCategoryCollision) db.Add(collisionCategory);
+        if (scenario is "custom-type" or "retired-type" || otherCategoryCollision)
+            db.Add(new TransactionType { CategoryId = collisionCategory.Id, Name = "Tarifa Bolão",
                 SettlementRule = SettlementRule.TwoBusinessDays, RequiresTabAccountAndClient = true,
-                Active = scenario != "retired-type" });
+                Active = scenario is not ("retired-type" or "retired-other-category-type") });
         await db.SaveChangesAsync();
         var beforeVersion = await ProductVersion(db, product.Id);
         if (scenario != "missing")
@@ -112,8 +120,8 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
         db.ChangeTracker.Clear();
         (await db.Products.SingleAsync(p => p.Id == product.Id)).Active.ShouldBeTrue();
         (await ProductVersion(db, product.Id)).ShouldBe(beforeVersion);
-        (await db.TransactionTypes.CountAsync()).ShouldBe(scenario is "custom-type" or "retired-type" or "system-category" ? 1 : 0);
-        if (scenario is "custom-type" or "retired-type")
+        (await db.TransactionTypes.CountAsync()).ShouldBe(scenario is "custom-type" or "retired-type" or "system-category" || otherCategoryCollision ? 1 : 0);
+        if (scenario is "custom-type" or "retired-type" || otherCategoryCollision)
         {
             // Executable remediation: preserve the colliding object's identity and metadata,
             // and create the new inflow under an explicitly reviewed unused label.
@@ -129,7 +137,8 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
             var custom = await db.TransactionTypes.SingleAsync(t => t.Id == customId);
             custom.SettlementRule.ShouldBe(SettlementRule.TwoBusinessDays);
             custom.RequiresTabAccountAndClient.ShouldBeTrue();
-            custom.Active.ShouldBe(scenario == "custom-type");
+            custom.Active.ShouldBe(scenario is "custom-type" or "other-category-type");
+            custom.CategoryId.ShouldBe(collisionCategory.Id);
             (await db.TransactionTypes.SingleAsync(t => t.Name == "Taxa diária revisada"))
                 .SettlementRule.ShouldBe(SettlementRule.SameDay);
         }

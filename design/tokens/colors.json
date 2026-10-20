@@ -262,7 +262,7 @@
             "border": "{color.primitive.orange.500}"
           },
           "info": {
-            "fg": "{color.primitive.sky.600}",
+            "fg": "{color.primitive.sky.700}",
             "bg": "{color.primitive.alpha.sky-09}",
             "border": "{color.primitive.sky.600}"
           },
@@ -311,8 +311,8 @@
         "text": {
           "primary": "{color.primitive.night.100}",
           "secondary": "{color.primitive.night.200}",
-          "muted": "{color.primitive.night.300}",
-          "placeholder": "{color.primitive.night.300}",
+          "muted": "{color.primitive.night.250}",
+          "placeholder": "{color.primitive.night.250}",
           "disabled": "{color.primitive.night.450}",
           "link": "{color.primitive.blue.300}",
           "link-hover": "{color.primitive.blue.200}"
@@ -386,12 +386,12 @@
         },
         "feedback": {
           "success": {
-            "fg": "{color.primitive.green.300}",
+            "fg": "{color.primitive.green.200}",
             "bg": "{color.primitive.alpha.green-light-14}",
             "border": "{color.primitive.green.300}"
           },
           "danger": {
-            "fg": "{color.primitive.red.300}",
+            "fg": "{color.primitive.red.200}",
             "bg": "{color.primitive.alpha.red-light-13}",
             "border": "{color.primitive.red.300}"
           },
@@ -401,7 +401,7 @@
             "border": "{color.primitive.orange.500}"
           },
           "info": {
-            "fg": "{color.primitive.sky.300}",
+            "fg": "{color.primitive.sky.200}",
             "bg": "{color.primitive.alpha.sky-light-13}",
             "border": "{color.primitive.sky.300}"
           },
@@ -711,7 +711,7 @@
             "bg": "{color.primitive.alpha.orange-24}"
           },
           "Days61To90": {
-            "fg": "{color.primitive.red.300}",
+            "fg": "{color.primitive.red.200}",
             "bg": "{color.primitive.alpha.red-light-13}"
           },
           "Days91Plus": {
@@ -884,6 +884,10 @@
       [
         "surface.default",
         "surface.selected"
+      ],
+      [
+        "surface.hover",
+        "surface.selected"
       ]
     ],
     "pairs": [
@@ -908,7 +912,11 @@
             "surface.default",
             "surface.selected"
           ],
-          "surface.muted"
+          "surface.muted",
+          [
+            "surface.hover",
+            "surface.selected"
+          ]
         ]
       },
       {
@@ -1249,6 +1257,10 @@
           "surface.hover",
           [
             "surface.default",
+            "surface.selected"
+          ],
+          [
+            "surface.hover",
             "surface.selected"
           ]
         ]
