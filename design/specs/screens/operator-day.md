@@ -99,7 +99,7 @@ From the Cockpit (including **Ver fechamento de hoje**), from a Work Queue or Mo
 
 ## AA remainder: retired-product rows
 
-The catalog keeps historical reads available and gates editing (gap AA). Ready now: a retained retired-product row renders in the grid as read-only text — product name with an **Inativo** marker (`sem.feedback.neutral.*` badge), its opening and saved closing values, and no input or row action. **Not blueprinted until the owner's contract decision:** whether and how a close that holds such a row can be edited, previewed or saved, the operator-facing explanation, and any recovery path. Apps must not ship a save or preview for such a close that drops or resends the retired row.
+The catalog keeps historical reads available and gates editing (gap AA). Ready now: historical values remain readable by product name with their returned opening and closing values. `ResponseDailyCloseReviewItemJson` has no product-active flag, so the review response alone cannot identify a retired row or justify an **Inativo** marker. Do not infer retirement from a name, display order or saved value. Identifying unsupported candidates, assigning per-row editability and presenting a retirement marker belong to the AA contract reconciliation; a read-only view may show all returned values without classifying product activity. **Not blueprinted until the owner's contract decision:** whether and how a close that holds such a row can be edited, previewed or saved, the operator-facing explanation, and any recovery path. Apps must not ship a save or preview for such a close that drops or resends the retired row.
 
 ## Verification boundary
 

@@ -76,7 +76,7 @@ Detailed phases with checkboxes are written just-in-time when a milestone starts
 
 > **D02 baseline handoff (2026-10-15):** 0.4.3 is the only item checked by this slice. D01 is integrated; the current product/catalog are the reviewed baseline against v43, with their authoritative feature gates intact. 0.4.6 remains deferred under its named server prerequisites, so M0 is not declared fully complete. Reviewer acceptance of this D02 delivery remains pending; after acceptance, M1 may start from this brief. Server phases retain their own order/ownership; gap AA requires server triage before its affected feature can be built.
 
-> **D04 addendum (2026-10-20):** 0.4.6 is authored against the shipped M8 contracts and checked by this slice; independent review is pending, so M0 is not yet declared complete. No spec bump was needed: design was reconciled to shipped facts at v54.
+> **D04 acceptance boundary:** 0.4.6 was authored against the shipped M8 contracts in the same commit as M2/M3 and M4, but has its own semantic acceptance. Its follow-up corrections clarify non-secret input retention, uncertain recovery requests and membership-first offboarding. Independent acceptance of those corrections remains open, so M0 is not declared complete. The current integration baseline is v54; candidate v55 financial guidance is not part of this accepted server baseline.
 
 ---
 
@@ -157,7 +157,8 @@ For each screen the dev-team prototype, attach/paste:
 
 ### Phase 4 — Close-out
 
-- [x] **2.4.1** README tables complete for every category; contrast green in both themes; update `design/AGENTS.md` with the token model + consumption rules. *(D04: README complete, contrast green in both themes, `design/AGENTS.md` records the model and consumption rules. Independent review pending; app adapters and real-UI verification belong to Web/Mobile M3.)*
+- [x] **2.4.1** README tables complete for every category; contrast green in both themes; update `design/AGENTS.md` with the token model + consumption rules. *(D04: README complete, contrast green in both themes, `design/AGENTS.md` records the model and consumption rules. The token architecture and review fixes passed independent repeat verification against v54; app adapters and real-UI verification belong to Web/Mobile M3.)*
+- [ ] **2.4.2** Final integration check after the accepted server M9.5 revision is available in this checkout: reconcile product/catalog/copy and affected blueprints against the actual seed, migration and unchanged DTOs, review the prior-only retired-fee opening limitation, obtain independent semantic acceptance, then align the two design markers and run both doc-sync scripts. The current checkout remains at canonical v54; candidate v55 in the server worktree still has open 3.7/3.8 and repeat-review gates. Do not copy an unaccepted working tree or advance markers ahead of that integration.
 
 ---
 
@@ -197,7 +198,8 @@ For each screen the dev-team prototype, attach/paste:
 ### Phase 5 — Close-out
 
 - [x] **3.5.1** `scripts/check-design-docs.mjs` verifies every token named by the component and screen specs exists in both themes, that no spec names a primitive or raw color, local links and anchors under `design/`, screen-to-blueprint coverage and copy labels for every contract enum; it passes, and `node scripts/test-check-design-docs.mjs` proves each rule fails on a disposable copy (14 scenarios, `design/` hashed unchanged). `--scope components` validates M2/M3 alone — links and token references in tokens and component specs, without the catalog, blueprints or copy coverage — and is proven on a tree with only the committed M0 docs.
-- [ ] **3.5.2** Independent review of the component contract; Web M3 and Mobile M3 then prove it in running code (`/styleguide`, in-app gallery) — real keyboard, screen-reader, touch and text-scaling evidence is theirs.
+- [ ] **3.5.2** Independent acceptance of the current component contract after the follow-up credential-retention clarification. The earlier button-state/token-mapping fixes passed independent repeat verification; implementation self-checks do not accept the new clarification.
+- [ ] **3.5.3** Web M3 and Mobile M3 prove the accepted contract in running code (`/styleguide`, in-app gallery) — real keyboard, screen-reader, touch and text-scaling evidence is theirs.
 
 ---
 
@@ -209,7 +211,7 @@ For each screen the dev-team prototype, attach/paste:
 
 **Precondition:** M3 + M0's baselined `screens.md` + M1's direction. **Per-screen gate:** a blueprint for any screen named in the catalog's **gap → screen map** (the authoritative table in `screens.md`'s gaps section — inline pointers are convenience mirrors) requires that gap's implementation has landed and the entry has been re-synced. A parenthetical feature qualifier on a map row limits the gate to that feature; the rest of that screen's blueprint proceeds. At D04 (2026-10-20) the map holds only Q (uncataloged M11 reports), AA (retained retired-product edit/preview/save and the Products deactivation warning), AB (Plataforma onboarding list) and AC (withdrawing a pending invitation). Every server dependency through M7.7 and M8 Phases 1–7 is shipped; M8 Phase 8 provider and launch acceptance is a release gate, not a blueprint gate.
 
-> **D04 plan and delivery (2026-10-20):** the plan and inventory below were written and executed in the same authorized batch; every currently unblocked blueprint is authored, review is pending, and M4 stays open for its gated remainders and for the updates real app milestones bring.
+> **D04 delivery and acceptance boundary:** the plan, inventory and currently unblocked blueprints were authored alongside M2/M3 in commit `50990d8`. M4 is a separate acceptance scope. Follow-up corrections remove unsupported retired-product identification, allow offboarding a member without an operator, preserve operator-specific drill-down filters and qualify statement access and generated-movement copy against the actual contracts. Independent acceptance of the corrected blueprints remains open, together with the gated remainders and real-app verification below.
 
 ### Phase 1 — Plan and coverage
 
@@ -253,7 +255,7 @@ For each screen the dev-team prototype, attach/paste:
 - [ ] **4.8.2** AA remainder blueprints after the server DailyClose/Product contract decision and catalog re-sync.
 - [ ] **4.8.3** AB and AC remainders after their owner decisions/contracts.
 - [ ] **4.8.4** Dashboard, Upcoming settlements and Monthly financial report blueprints after server M11 contracts and their catalog entries (gap Q).
-- [ ] **4.8.5** Independent review of the D04 blueprints.
+- [ ] **4.8.5** Independent acceptance of the corrected D04 blueprints, including membership-first offboarding, non-inferred product activity, operator-specific drill-downs and the final integrated canonical references. Local validation of corrections does not close this review gate.
 - [ ] **4.8.6** Blueprint updates from real Web/Mobile feature milestones (keyboard, screen reader, touch, 375px, enlarged text and native verification against the API).
 
 ### Blueprint inventory

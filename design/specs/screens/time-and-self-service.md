@@ -9,7 +9,7 @@ Time screens answer one of two questions: *am I on the clock?* or *am I ahead or
 - **Regions:** PageHeader **Ponto**; context: today (branch-local) · operator name · **Overnight choice** *(when yesterday has an open segment)* — a warning Card **Seu turno de ontem ainda está aberto.** with two explicit actions: **Encerrar o turno de ontem** (closes yesterday's entry) and **Começar o dia de hoje** (opens today) · **Estado de hoje** — large status line (`typography.role.next-action`): **Em andamento desde {HH:mm}** with a live running duration, or **Fora do ponto**, or **Dia encerrado** · the single tap button — **Entrada** or **Saída** (CTA, full width on compact, at least `spacing.size.touch-target-comfortable` tall) · **Registros de hoje** — segments (Entrada / Saída wall-clock times as returned), total hours and balance for the day · link **Meu banco de horas**.
 - **Behavior:** repeated taps are idempotent no-ops on the server; the button shows **Registrando…** and then the new state from the response. The running duration updates once a minute, is never announced per tick, and is derived only for display.
 - **States:** setup needed (no operator link: EmptyState with the verbatim 403 and guidance); loading; not clocked in; running; closed for today; overnight choice; error (verbatim); lock-blocked (verbatim, rare).
-- **Layout:** one column at every width; the tap button stays in the first screen height on a 375px phone even at enlarged text (the segments list goes below it).
+- **Layout:** one column at every width; place the tap button before the segments list so it remains early in reading and focus order. At 375px and enlarged text, let context and controls grow and the page scroll; never clip content to force the button into one viewport.
 - **Return:** Cockpit.
 
 ## Time-entry management
@@ -23,7 +23,7 @@ Time screens answer one of two questions: *am I on the clock?* or *am I ahead or
 
 ## My transaction summary
 
-- **Regions:** PageHeader **Minhas transações** (own context) or **Transações de {operador}** (manager-selected, **Inativo** badge when deactivated); FilterBar De / Até (default current month) · SummaryStrip: Transações (**{n} transações, {m} delas automáticas**) · Entradas · Saídas · Líquido, each with the automatic share beside it (**R$ … automáticas**) · Table by category: Categoria · Quantidade (and automatic) · Entradas · Saídas · link **Ver transações** (Transactions list with `Mine` and the window).
+- **Regions:** PageHeader **Minhas transações** (own context) or **Transações de {operador}** (manager-selected, **Inativo** badge when deactivated); FilterBar De / Até (default current month) · SummaryStrip: Transações (**{n} transações, {m} delas automáticas**) · Entradas · Saídas · Líquido, each with the automatic share beside it (**R$ … automáticas**) · Table by category: Categoria · Quantidade (and automatic) · Entradas · Saídas · link **Ver transações** (Transactions list with `Mine=true` for own context, or the explicit `OperatorId` for a manager-selected operator, plus the window; never send both filters).
 - **States:** loading; empty (no transactions or unlinked Member — **Nenhuma transação no período.**); error; success.
 - **Notes:** these are recorded volumes, not revenue; no profit/loss color. The automatic share is stated so a fiado repayment's drawer entrada is not read as a second receipt.
 - **Return:** Cockpit (own) or Operators (manager-selected).

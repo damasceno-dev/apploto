@@ -24,7 +24,7 @@ Default, hover (`sem.border.control-hover`), focus (`sem.focus.ring`), invalid (
 ## Behavior
 
 - Values are kept exactly as typed, including leading/trailing spaces in Notes; trimming happens only where the contract trims (names, e-mail).
-- Input is retained across validation errors, coordination-busy retries, session recovery and navigation, per the durable-input pattern; the component never clears itself on error.
+- Non-secret input is retained across validation errors, coordination-busy retries, session recovery and navigation, per the catalog's durable-input pattern. Password fields never enter that store: they remain in memory only during the active journey, clear on its completion/cancellation/session end, and follow the owning authentication screen's explicit clearing rule on failure.
 - The clear button empties only that field and returns focus to it.
 
 ## Accessibility

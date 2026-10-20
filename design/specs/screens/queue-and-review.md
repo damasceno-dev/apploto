@@ -77,7 +77,7 @@ Route entry focuses **Fila de trabalho**. Every drill-down records the queue wit
 
 ### States
 
-Loading (Skeleton table with header kept); not found/cross-branch (EmptyState **Fechamento não encontrado** + **Voltar para a fila**); already finalized (read-only with the outcome badge, only **Voltar** and, when permitted, **Reabrir para correção**); self-recorded (marker, actions unchanged); lock-blocked (actions absent; reason **Período bloqueado** in the header context); error (verbatim Notice); action in flight (buttons disabled except the running one); uncertain (warning Notice with **Recarregar e conferir** — approval state is re-read, never assumed).
+Loading (Skeleton table with header kept); not found/cross-branch (EmptyState **Fechamento não encontrado** + **Voltar para a fila**); already finalized (read-only with the outcome badge, only **Voltar** and, when permitted, **Reabrir para correção**); self-recorded (marker, actions unchanged); lock-blocked (actions absent; reason **Período bloqueado** in the header context); error (verbatim Notice); action in flight (every mutation button disabled against duplicate activation; the running one keeps its progress label); uncertain (warning Notice with **Recarregar e conferir** — approval state is re-read, never assumed).
 
 ### Origin and return
 

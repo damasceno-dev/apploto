@@ -24,7 +24,7 @@ These journeys stitch several committed steps together. The layouts therefore al
 ## Add employee (guided)
 
 - **Frame:** PageHeader **Adicionar funcionário** (breadcrumb from origin) · [Stepper](../components/stepper.md) in committed mode — each step writes when the manager presses **Continuar**: **1 Funcionário** · **2 Terminais e contas** · **3 Acesso ao sistema** (optional) · **4 Resumo**.
-- **Step 1:** choice **Novo operador** (Nome) or **Operador existente sem login** (Select); **Continuar** creates or selects, then the step shows **Operador criado: {nome}**.
+- **Step 1:** choice **Novo operador** (Nome) or **Operador existente sem login** (Select); **Continuar** creates or selects, then the step shows **Operador criado: {nome}** or **Operador selecionado: {nome}**, according to the confirmed outcome.
 - **Step 2:** checklist of accounts (Terminals first, then contas fiado with the separate-grant explanation, then bank accounts); each toggle performs its assignment and reports per account (**Atribuída** / the verbatim error); **Principal** radio among the assigned accounts.
 - **Step 3:** E-mail, Função (role matrix); for **Membro**, a line **O convite já vincula o login ao operador {nome}.**; for Gerente/Administrador, **Depois que a pessoa aceitar, vincule o login em Operadores.** → **Enviar convite**; membership-exists → **Vincular a {membro}** instead.
 - **Step 4 — Resumo:** confirmed facts and remaining items with links (**Sem terminal atribuído** → step 2; **Convite pendente até {data/hora}**; **Vincular login depois**; **Envio do convite falhou** → **Reenviar convite**).
@@ -33,7 +33,7 @@ These journeys stitch several committed steps together. The layouts therefore al
 
 ## Offboard employee (guided)
 
-- **Frame:** PageHeader **Desligar funcionário — {nome}** · committed-mode Stepper: **1 Acesso** · **2 Convites pendentes** · **3 Contas atribuídas** · **4 Operador** · **5 Resumo**.
+- **Frame:** PageHeader **Desligar funcionário — {nome}** · entry from an operator or a membership row, including a member without an operator. Resolve the membership and linked operator ids before removing access, then retain those ids within this journey while every subsequent step re-reads its own resource. If no operator exists, skip accounts/deactivation with **Sem operador associado**; with no membership/e-mail, skip invitation lookup with **Sem e-mail de acesso para consultar convites**. Never infer a link from a name. Committed-mode Stepper: **1 Acesso** · **2 Convites pendentes** · **3 Contas atribuídas** · **4 Operador** · **5 Resumo**.
 - **Step 1:** DetailList of the membership and **Remover acesso** (danger outline → confirmation **A pessoa deixará de acessar esta lotérica. O histórico registrado continua disponível.**); unavailable with the reason for the caller's own membership, the last active Admin, or a Manager facing an Admin; skipped with **Sem login nesta lotérica** for an operator without a membership.
 - **Step 2:** pending invitations to the same e-mail with **Válido até**; no action (gap AC) and the line **Convites pendentes não podem ser cancelados; eles expiram na data indicada.**
 - **Step 3:** assigned accounts with **Remover** each (optional; **Manter contas** skips).

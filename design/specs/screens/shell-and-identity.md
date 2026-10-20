@@ -62,7 +62,7 @@ Paths are shareable addresses of a destination and its **filters only**. The ret
 | Self-service | `/turno/ponto`, `/turno/minhas-transacoes`, `/turno/banco-de-horas` (manager-selected: `/gestao/operadores/{id}/transacoes`, `/gestao/ponto/banco-de-horas`) |
 | Time-entry management | `/gestao/ponto` |
 | Administration | `/gestao/operadores`, `/gestao/contas-dos-operadores`, `/gestao/contas`, `/gestao/categorias`, `/gestao/produtos`, `/gestao/feriados`, `/gestao/configuracoes`, `/gestao/membros` |
-| Guided employee journeys | `/gestao/funcionarios/novo`, `/gestao/funcionarios/{operatorId}/desligar` |
+| Guided employee journeys | `/gestao/funcionarios/novo`; operator entry: `/gestao/funcionarios/{operatorId}/desligar`; membership entry (including a person without an operator): `/gestao/membros/{branchUserId}/desligar` |
 
 Every path passes the session gate first; a branch-scoped path opened without a branch session is kept as intent until Branch picker resolves a session for the right branch and permission.
 

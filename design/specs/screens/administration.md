@@ -30,7 +30,7 @@ PageHeader (title + primary **Adicionar …** action) · optional search over a 
 
 - **List:** Nome · Telefone · CPF (masked) · actions **Ver extrato** (Client statement), **Editar**, **Desativar** (Manager/Admin only). Local search over the complete list (**Buscar por nome**), with the result count announced.
 - **Editor dialog:** Nome, Telefone, CPF (normalized to digits on submit), CEP, Endereço, Telefone 2, E-mail, Observações. CPF conflicts verbatim. Opened inline from Transaction — Create, it returns the created client to that form.
-- **Access:** any branch role in either mode, except deactivation.
+- **Access:** client CRUD is available to any branch role in either mode, except deactivation. **Ver extrato** follows the Client statement gate: Manager/Admin, or a Member holding an active Tab grant; otherwise show the catalog's permission/setup explanation without fetching the statement.
 
 ## Categories & Transaction Types (admin)
 
