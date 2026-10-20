@@ -14,7 +14,8 @@ namespace UseCases.Test.Services.DailyCloses;
 /// day with an opening of cash R$ 1,000 and counted stock R$ 1,000, and a value V = R$ 5 that changes hands.
 /// <list type="bullet">
 /// <item>1.1 and 1.2 pin the two representations that are each internally consistent (count-only versus
-/// product-transaction-explained). Neither is canonized here: which one the shop practiced is M9.5 Phase 2.</item>
+/// product-transaction-explained). Count-only is canonical under working answer Q5, pending the shop answer to question 5.
+/// The second remains a consistent alternative, not the adopted workflow.</item>
 /// <item>1.3 pins the double-count failure mode, wrong under either representation.</item>
 /// <item>1.4 pins the fiado divergence for rows with no Terminal counterpart. The M7.7 Phase 5.6 commands now write
 /// the counterpart for a counted-stock sale and a counted-cash repayment (see
@@ -80,11 +81,49 @@ public class CashVarianceRepresentationCharacterizationTest
         (await Calculate(stockClosing: Opening - V, cashClosing: Opening, terminalOut: V)).ShouldBe(0m);
     }
 
+    [Theory]
+    [InlineData(120, 100, 0, 140)]
+    [InlineData(0, 0, 350, 350)]
+    [InlineData(120, 100, 350, 490)]
+    public async Task OpeningSideInflows_OldRepresentationDiverges_CorrectedRepresentationReconciles(
+        decimal feeToday, decimal feePrevious, decimal operatorToday, decimal oldVariance)
+    {
+        // Explicit model: opening physical assets = 2,000, only ordinary Out rows = 40.
+        // Today's actual fee and Operador enter physical cash. Yesterday's fee is already
+        // inside opening cash: it is not an additional carried asset. Q3/Q9 are assumptions.
+        // Access DSum ignored sign; positive/misclassified/test-like export rows mean this
+        // example cannot establish parity for all historical Access days.
+        const decimal ordinaryOut = 40m;
+        var cashClosing = Opening + feeToday + operatorToday - ordinaryOut;
+        var physicalClosing = Opening + cashClosing;
+        var modeledAccess = physicalClosing + ordinaryOut - (2 * Opening + feeToday + operatorToday);
+        modeledAccess.ShouldBe(0m);
+
+        (await Calculate(Opening, cashClosing, terminalOut: ordinaryOut,
+            countedFeeToday: feeToday, countedFeePrevious: feePrevious)).ShouldBe(oldVariance);
+        (await Calculate(Opening, cashClosing, terminalIn: feeToday + operatorToday,
+            terminalOut: ordinaryOut)).ShouldBe(0m);
+
+        // The preceding day also records its own fee as In, never as a count slot.
+        (await Calculate(Opening, Opening + feePrevious, terminalIn: feePrevious)).ShouldBe(0m);
+    }
+
+    [Fact]
+    public async Task FirstCorrectedDay_WithRetainedHistoricalFeeOpening_ShouldExposeTransitionDifference()
+    {
+        // Retirement does not rewrite prior DailyCloseItems. A prior extra fee slot of 100
+        // still contributes to opening, so migration alone cannot certify this transition zero.
+        (await Calculate(Opening, Opening + 120m, terminalIn: 120m,
+            countedFeePrevious: 100m)).ShouldBe(-100m);
+    }
+
     private static async Task<decimal> Calculate(
         decimal stockClosing,
         decimal cashClosing,
         decimal terminalIn = 0m,
-        decimal terminalOut = 0m)
+        decimal terminalOut = 0m,
+        decimal countedFeeToday = 0m,
+        decimal countedFeePrevious = 0m)
     {
         var branchId = Guid.NewGuid();
         var accountId = Guid.NewGuid();
@@ -92,19 +131,20 @@ public class CashVarianceRepresentationCharacterizationTest
         var currentCloseId = Guid.NewGuid();
         var stockProductId = Guid.NewGuid();
         var cashProductId = Guid.NewGuid();
+        var feeProductId = Guid.NewGuid();
         var cashVarianceProductId = Guid.NewGuid();
 
         var opening = new DailyCloseBuilder()
             .WithBranchId(branchId)
             .WithAccountId(accountId)
             .WithDate(date.AddDays(-1))
-            .WithItems([Item(stockProductId, Opening), Item(cashProductId, Opening)])
+            .WithItems([Item(stockProductId, Opening), Item(cashProductId, Opening), Item(feeProductId, countedFeePrevious)])
             .Build();
         var calculator = new CashVarianceCalculator(
             new DailyCloseItemsRepositoryBuilder()
                 .ListActiveByDailyCloseIdAsNoTrackingReturns(
                     currentCloseId,
-                    [Item(stockProductId, stockClosing), Item(cashProductId, cashClosing)])
+                    [Item(stockProductId, stockClosing), Item(cashProductId, cashClosing), Item(feeProductId, countedFeeToday)])
                 .Build(),
             new DailyClosesRepositoryBuilder().Build(),
             new TransactionsRepositoryBuilder()

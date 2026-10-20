@@ -96,11 +96,11 @@ public class TimeEntryPolicyBackfillPersistenceTest : IAsyncLifetime
                 """);
         }
 
-        // 2. Upgrade: apply the remaining migrations (Phase 7 included) on top of the data.
+        // 2. Upgrade through M8; M95 requires a separately reviewed catalog identity map.
         await using (var dbContext = new ServerDbContext(options))
         {
-            await dbContext.Database.MigrateAsync();
-            (await dbContext.Database.GetPendingMigrationsAsync()).ShouldBeEmpty();
+            await dbContext.GetService<IMigrator>().MigrateAsync("20261018165353_M8OperatedOnboardingAndGoogleIdentity");
+            (await dbContext.Database.GetAppliedMigrationsAsync()).ShouldContain("20261018165353_M8OperatedOnboardingAndGoogleIdentity");
 
             // Deterministic backfill: exactly one MinValue-dated row per branch, each
             // mirroring its OWN branch's constants.

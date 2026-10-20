@@ -104,7 +104,7 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
 
         await using (var dbContext = new ServerDbContext(options))
         {
-            await dbContext.Database.MigrateAsync();
+            await dbContext.GetService<IMigrator>().MigrateAsync("20261017031934_M7_7Phase5FiadoLinkedMovements");
         }
 
         await using (var dbContext = new ServerDbContext(options))
@@ -173,7 +173,7 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
         // Upgrading again re-seeds exactly one pair per branch.
         await using (var dbContext = new ServerDbContext(options))
         {
-            await dbContext.Database.MigrateAsync();
+            await dbContext.GetService<IMigrator>().MigrateAsync("20261017031934_M7_7Phase5FiadoLinkedMovements");
             (await dbContext.TransactionTypes.CountAsync(type => type.SystemRole != null)).ShouldBe(4);
         }
     }

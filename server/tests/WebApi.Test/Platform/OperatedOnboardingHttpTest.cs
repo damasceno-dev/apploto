@@ -53,7 +53,13 @@ public sealed class OperatedOnboardingHttpTest(ServerWebApplicationFactory facto
         conflict.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await factory.ReadDb(db => db.OperatedOnboardings.CountAsync(x => x.RequestId == request.RequestId))).ShouldBe(1);
         (await factory.ReadDb(db => db.BranchUsers.CountAsync(x => x.BranchId == response.BranchId))).ShouldBe(0);
-        (await factory.ReadDb(db => db.Products.CountAsync(x => x.BranchId == response.BranchId))).ShouldBe(9);
+        (await factory.ReadDb(db => db.Products.CountAsync(x => x.BranchId == response.BranchId))).ShouldBe(8);
+        var persistedProducts = await factory.ReadDb(db => db.Products
+            .Where(x => x.BranchId == response.BranchId).ToListAsync());
+        var additionalProduct = persistedProducts.Single(x => x.Name == request.AdditionalProducts.Single());
+        additionalProduct.DisplayOrder.ShouldBe(persistedProducts.Where(x => x.Id != additionalProduct.Id)
+            .Max(x => x.DisplayOrder) + 1);
+        persistedProducts.Select(x => x.DisplayOrder).Distinct().Count().ShouldBe(persistedProducts.Count);
         (await factory.ReadDb(db => db.Accounts.CountAsync(x => x.BranchId == response.BranchId))).ShouldBe(2);
         (await factory.ReadDb(db => db.Operators.CountAsync(x => x.BranchId == response.BranchId))).ShouldBe(1);
         (await factory.ReadDb(db => db.OperatorAccounts.CountAsync(x => x.Operator.BranchId == response.BranchId))).ShouldBe(2);
@@ -168,7 +174,7 @@ public sealed class OperatedOnboardingHttpTest(ServerWebApplicationFactory facto
             var record = await factory.ReadDb(db => db.OperatedOnboardings.SingleAsync(x => x.RequestId == request.RequestId));
             (await factory.ReadDb(db => db.Accounts.CountAsync(x => x.BranchId == record.BranchId))).ShouldBe(2);
             (await factory.ReadDb(db => db.Operators.CountAsync(x => x.BranchId == record.BranchId))).ShouldBe(1);
-            (await factory.ReadDb(db => db.Products.CountAsync(x => x.BranchId == record.BranchId))).ShouldBe(9);
+            (await factory.ReadDb(db => db.Products.CountAsync(x => x.BranchId == record.BranchId))).ShouldBe(8);
         }
         finally { File.Delete(path); }
     }

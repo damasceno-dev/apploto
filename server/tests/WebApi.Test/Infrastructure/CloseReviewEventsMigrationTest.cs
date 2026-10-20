@@ -74,7 +74,7 @@ public class CloseReviewEventsMigrationTest : IAsyncLifetime
 
         await using (var dbContext = new ServerDbContext(options))
         {
-            await dbContext.Database.MigrateAsync();
+            await dbContext.GetService<IMigrator>().MigrateAsync("20261016225322_M7_7Phase76CloseReviewEvents");
         }
 
         await using (var dbContext = new ServerDbContext(options))

@@ -83,7 +83,7 @@ public class AccountPairingCleanupMigrationTest : IAsyncLifetime
 
         await using (var dbContext = new ServerDbContext(options))
         {
-            await dbContext.Database.MigrateAsync();
+            await dbContext.GetService<IMigrator>().MigrateAsync("20261016222112_M7_7Phase5StalePairingCleanup");
         }
 
         await using (var dbContext = new ServerDbContext(options))
