@@ -2400,7 +2400,7 @@ The `shared/` named-enum codegen gate asserts the generated TS exposes enum *nam
 
 ### M8 executable phase map — SV10 + SV11 (2026-10-18)
 
-The signed 2026-09-11 decisions above remain authoritative. This batch selects **1.1–1.4, 2.1–2.5, 3.1–3.5, 4.1–4.4 and 5.1–5.5**. Prompt labels do not renumber milestones. Implementation owner: this server delivery, including canonical three-file docs, semantic product/screens reconciliation, infra local capture and regenerated Shared input/clients. No UI, tokens, Shared M3, AA decision or future reporting is included. Initial checkout `Project`, branch `main`, HEAD `d095262488523d949032011ec67e6638013acf5f`, clean tracked/untracked status. No stage/commit/branch/worktree mutation is authorized. Detailed contracts, rationale, acceptance journey and evidence live in [m8-delivery.md](m8-delivery.md).
+The signed 2026-09-11 decisions above remain authoritative. SV10/SV11 delivered the backend contracts, migrations, tests, canonical/design reconciliation and regenerated Shared clients in Phases 1–7. Prompt labels do not renumber milestones. UI, Shared M3, financial reporting and production-provider acceptance are separate work; the acceptance scope and essential operational guidance are recorded below.
 
 #### Phase 1 — Technical plan, contracts and ownership
 - [x] **1.1** Record exact contracts, statuses, auth tiers, filters, error resources and UTC/default/security boundaries for Phases 2–5.
@@ -2439,7 +2439,7 @@ The signed 2026-09-11 decisions above remain authoritative. This batch selects *
   - [x] All 34 checker regression scenarios pass in a disposable fixture against the actual v54 source markers.
   - [x] Actual repository `bash docs/check-loto-doc-sync.sh` exits 0 at canonical/design v54, and `bash docs/test-loto-doc-sync.sh` passes its baseline plus all 34 scenarios after independent semantic acceptance under 1.4.
 
-Implementation evidence, complete inventory, current hashes, exact commands and repeat-review close-out: [m8-delivery.md](m8-delivery.md). Independent technical/semantic acceptance covers Phases 1–7 only; whole-M8/provider/launch completion is not claimed.
+Independent technical/semantic acceptance covers the delivered Phases 1–7 backend work only; the [accepted-delivery summary](#m8-accepted-delivery-and-essential-operations) records its scope. Whole-M8/provider/launch completion is not claimed.
 
 #### Phase 6 — Platform authorization, operated onboarding/shared CLI and public bootstrap cutover
 - [x] **6.1** Non-API-grantable platform flag; one operated onboarding use case serving platform endpoint and dev/staging CLI, owner Admin invitation and optional setup/demo data. A gated first-operator CLI command can initialize an empty migrated database through a passwordless User and hashed emailed setup capability; a failed delivery can reissue only for that still-passwordless sole account. Production requires a separate explicit bootstrap flag plus HTTPS/TLS and its Phase 8 rollout runbook. Upgrade backfills false; real HTTP/CLI/PostgreSQL/local-mail tests cover empty-database activation, failed-delivery retry, dry-run, explicit fake demo setup, idempotency, concurrency and rollback.
@@ -2452,13 +2452,29 @@ Implementation evidence, complete inventory, current hashes, exact commands and 
   - [x] **7.2.1** Real HTTP/PostgreSQL tests with an explicitly injected test verifier: password proof, stable subject, invitation-only creation, replay, wrong state/nonce/email, racing subjects, inactive/removed-account and refresh/session behavior; production adapter rejects malformed/unsigned assertions and missing audience locally.
   - [ ] **7.2.2** Later authorized live Google project/consent/client audience, rotating-certificate and actual-device sign-in acceptance; cannot be inferred from isolated verifier tests or fabricated credentials.
 
-> **Phase 6–7 candidate evidence (2026-10-18).** Source baseline `9ea777c`; the later `a326b4d` Design M1 commit touches only separate design files. The server migration, shared onboarding/CLI, closed public POST routes and Google verifier/link path are implemented with disposable PostgreSQL/HTTP/local-capture scenarios, including CLI grant/revoke/dry-run/demo, rollback, concurrency, invitation acceptance and Google challenge/link denial cases. Both M8 batches received independent technical and semantic acceptance in the 2026-10-18 repeat review; canonical and design markers now align at v54 and 1.4/5.5 are checked on the actual doc-sync results. Full commands, hashes, inventory, local journey and Phase 8 acceptance list are in `m8-delivery.md`. Item 7.2 stays unchecked for genuine provider acceptance. No whole-M8 or launch completion is claimed.
-
-> **Repeat-review correction (accepted 2026-10-18):** an empty migrated database now has an explicit first-operator path, and password login returns the same 401 resource for missing, inactive, wrong-password and passwordless accounts. CLI dry-run validates payload and stored authority, the API/CLI share bounded security options, retired self-service handlers are removed, and expired Google challenges are purged. The first-operator journey and focused contract tests use disposable PostgreSQL and local mail only. The independent repeat review passed and the v54 marker/doc-sync close-out is recorded; Phase 8 still owns distributed login throttling, genuine sender and live Google acceptance.
-
 #### Phase 8 — Full M8 security/provider/operational close-out and handoff
 - [ ] **8.1** Production sender/domain/DNS/credentials and delivery acceptance, **login throttling** and other abuse controls, and operational runbook (including the first-operator Production bootstrap) under later authorization; no real messages in this batch.
 - [ ] **8.2** Complete M8 security/provider regression and independent acceptance of every phase, design 0.4.6 contract handoff, operated onboarding/Google launch gates. **M8 and launch readiness remain open.**
+
+#### M8 accepted delivery and essential operations
+
+**Accepted backend delivery (2026-10-18):** Phases 1–5 landed in `9ea777c`; operated onboarding, Google sign-in and the repeat-review corrections landed in `b96c5d3`. Independent technical/semantic review accepted both batches. Canonical docs and both design markers aligned at v54; item 5.5 records the final test/export/doc-sync evidence. This is historical acceptance, not a new test run or full-M8 launch approval. Exact API contracts remain in the canonical spec and server OpenAPI, rather than a second delivery document.
+
+**First platform operator, local setup:** migrate an owned Development/Staging database and configure `LOTO_CLI_AccountSecurity__ApplicationUrl` plus `LOTO_CLI_SecurityMail__*` for local SMTP capture. Supply the connection through `LOTO_M8_CONNECTION`, not a literal credential in command history. From the repository root, preview eligibility with:
+
+```bash
+dotnet run --project server/server.Cli/server.Cli.csproj -- bootstrap-platform \
+  --environment Development --connection-env LOTO_M8_CONNECTION \
+  --name "Operador de exemplo" --email operador@example.invalid
+```
+
+Add `--execute` only to create the first passwordless platform account and attempt delivery. Activate it through the normal `/user/reset-password` flow using the locally captured setup link, then log in and use operated onboarding. The CLI never accepts or prints the password/capability. Delivery retry is restricted to its same, still-unactivated sole account; it is not a general grant command. `FirstPlatformOperatorCliTest`, `M8LocalAcceptanceJourneyTest` and `OperatedOnboardingHttpTest` reproduce the CLI/API/PostgreSQL/local-mail journeys with disposable resources. Never reset a shared database or use the removed public register/create/add-member POST routes.
+
+**Delivery and authority boundaries:** capabilities are hashed at rest; failed commits send nothing. SMTP `Sent` means server acceptance, not inbox arrival. Recovery's bounded volatile queue can lose delivery on crash/overflow; there is no automatic retry or durable plaintext outbox. A later recovery request or invitation reissue replaces the capability. Login failures use the same 401 for missing, inactive, wrong-password and passwordless accounts. Platform authority creates no branch membership; owner access begins only through invitation acceptance. Local mail and injected Google-verifier tests do not prove a real provider integration.
+
+**Migration cautions:** `20261018040013_M8AccountSecurityAndInvitations` aborts on normalized-email collisions rather than choosing an account; email normalization cannot be undone by `Down`, so preserve the owning PostgreSQL locale/collation. `20261018165353_M8OperatedOnboardingAndGoogleIdentity` backfills no platform authority or mailbox proof; downgrading removes newly recorded Google/onboarding/proof state. Treat both downgrades as data-impacting operations, not lossless rollback.
+
+**Remaining acceptance:** 7.2.2 and Phase 8 still require authorized live Google/actual-device sign-in, production sender/domain/DNS/TLS and received-link checks, distributed login throttling, session/key rotation and retention/monitoring review, design 0.4.6 UI handoff and real-app acceptance. Production first-operator setup additionally requires the explicit `--allow-production-bootstrap --execute` gate, `--connection-env`, trusted HTTPS app URL and enabled TLS SMTP under that future runbook. These instructions record the implementation boundary; they do not authorize or certify production setup.
 
 ---
 
