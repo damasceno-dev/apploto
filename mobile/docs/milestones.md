@@ -56,7 +56,7 @@ Feature scope, catalog gates, and screen behavior for M4–M11 are defined once,
 
 **Scope boundary:** Tooling, configuration, and an app skeleton only. No auth, no API calls, no tokens (Mobile M3), no screens. Touches nothing under `server/`, `design/`, `shared/`, or `infra/`; root files change only where a phase names them.
 
-**Precondition:** **Shared M1 complete** — base tsconfig, root lint/format, and the `@loto/api` / `@loto/core` skeletons. As of this draft only Shared M1 Phase 1 has landed.
+**Precondition:** **Shared M1 complete** — base tsconfig, root lint/format, and the `@loto/api` / `@loto/core` skeletons. At baseline `f424deb`, Shared M1 and Shared M2 source packages are delivered; core remains `export {}` pending Shared M3.
 
 **Key behaviors:**
 
@@ -66,26 +66,41 @@ Feature scope, catalog gates, and screen behavior for M4–M11 are defined once,
 - **The subpath export must resolve.** Metro must honor the `exports` map, so `@loto/api/queries` resolves as its own entry exactly as on web.
 - **Configuration is injected by the app.** `EXPO_PUBLIC_API_BASE_URL` is read in one mobile config module; `shared/` never reads `EXPO_PUBLIC_*`.
 
+### M1 criterion coverage and verification plan (2026-10-21)
+
+Implementation checkboxes are implementer checks, not independent acceptance. Baseline: clean `f424deb`, Node 26.6.0 / pnpm 10.34.6.
+
+| Criteria | Intended artifacts / behavior | Meaningful verification |
+|---|---|---|
+| 1.1–1.3 | SDK-compatible package/config, strict multi-base tsconfig, scheme and temporary IDs | Frozen install, Expo config/install check, typecheck |
+| 1.4–1.5 | Router shell + not-found, environment example, CNG ignores | Both native bundles, route/runtime inspection when native SDKs permit |
+| 2.1–2.2 | Expo Metro source resolution of all three entries + app-owned React instance | Both bundles, resolver negative tests and module identity checks; native runtime remains separate |
+| 2.3 | iOS simulator and Android emulator | Actual launch + logs, never inferred from a bundle |
+| 3.1–3.2 | Expo/hooks lint, export exceptions, raw-color gate | Positive/negative TSX/native-style/CSS fixtures, actual lint CLI |
+| 3.3–3.4 | NativeWind, cleared palette, cn + CVA, root format | Metro CSS transform, bundle/typecheck, root fan-out |
+| 4.1–4.2 | Reversible Hermes-only Intl probe, code points and spec comparisons | Actual Hermes execution on each OS + measured notes; blocked platforms stay unchecked |
+| 5.1–5.2 | App instructions and exact evidence/limits | Final isolated install, workspace checks, native evidence audit |
+
 ### Phase 1 — App scaffold
 
-- [ ] **1.1** Add `mobile/package.json`: name `@loto/mobile`, `"private": true`, `"type": "module"` if the verified Expo toolchain supports it (otherwise record why not), `"main": "expo-router/entry"`, scripts `start`, `ios`, `android`, `typecheck` (`tsc --noEmit`), `lint`, `format`, `format:check`; Expo, React Native, and Expo Router at the verified versions; `@loto/api` and `@loto/core` as `workspace:*` dependencies.
-- [ ] **1.2** Add `mobile/tsconfig.json` extending `../tsconfig.base.json` and Expo's base, with the `@/*` → `src/*` alias. Override base settings only where Expo requires it and record each override.
-- [ ] **1.3** Add `mobile/app.config.ts`: app name Lotero, slug, URL scheme for deep links, `userInterfaceStyle: "automatic"` (both themes), typed routes, and placeholder iOS bundle / Android package identifiers (final values decided with Mobile M12).
-- [ ] **1.4** Add the Expo Router skeleton under `mobile/src/app/`: root `_layout.tsx`, a placeholder `index.tsx`, and `+not-found.tsx`. Route groups are created by the milestones that fill them — no empty scaffolding.
-- [ ] **1.5** Extend the root `.gitignore` with the Expo block (`.expo/`, `ios/` and `android/` while the project stays on prebuild/continuous native generation, `*.jks`, `*.p8`, `*.p12`, `*.mobileprovision`, `.env*.local`) and add `mobile/.env.example`.
+- [x] **1.1** Add `mobile/package.json`: name `@loto/mobile`, `"private": true`, `"type": "module"` if the verified Expo toolchain supports it (otherwise record why not), `"main": "expo-router/entry"`, scripts `start`, `ios`, `android`, `typecheck` (`tsc --noEmit`), `lint`, `format`, `format:check`; Expo, React Native, and Expo Router at the verified versions; `@loto/api` and `@loto/core` as `workspace:*` dependencies.
+- [x] **1.2** Add `mobile/tsconfig.json` extending `../tsconfig.base.json` and Expo's base, with the `@/*` → `src/*` alias. Override base settings only where Expo requires it and record each override.
+- [x] **1.3** Add `mobile/app.config.ts`: app name Lotero, slug, URL scheme for deep links, `userInterfaceStyle: "automatic"` (both themes), typed routes, and placeholder iOS bundle / Android package identifiers (final values decided with Mobile M12).
+- [x] **1.4** Add the Expo Router skeleton under `mobile/src/app/`: root `_layout.tsx`, a placeholder `index.tsx`, and `+not-found.tsx`. Route groups are created by the milestones that fill them — no empty scaffolding.
+- [x] **1.5** Extend the root `.gitignore` with the Expo block (`.expo/`, `ios/` and `android/` while the project stays on prebuild/continuous native generation, `*.jks`, `*.p8`, `*.p12`, `*.mobileprovision`, `.env*.local`) and add `mobile/.env.example`.
 
 ### Phase 2 — Metro and workspace resolution
 
-- [ ] **2.1** Configure `mobile/metro.config.js` from Expo's default config and confirm it resolves workspace packages through pnpm symlinks; record any watch-folder or resolver setting that was required and why.
+- [x] **2.1** Configure `mobile/metro.config.js` from Expo's default config and confirm it resolves workspace packages through pnpm symlinks; record any watch-folder or resolver setting that was required and why.
 - [ ] **2.2** Prove the export split: a placeholder screen imports from `@loto/api`, `@loto/api/queries`, and `@loto/core` and renders through them; a deliberately wrong subpath fails to resolve.
 - [ ] **2.3** Run the app on an iOS simulator and an Android emulator from the repo root workflow; record the local API address each platform will use (the iOS simulator reaches `localhost`; the Android emulator needs the host alias) in `mobile/.env.example`.
 
 ### Phase 3 — Lint, format, and styling baseline
 
-- [ ] **3.1** Add `mobile/eslint.config.mjs` layering Expo's flat config and the React Hooks rules over the root config, plus the named-exports rule with Expo Router's default-export exemptions.
-- [ ] **3.2** Add the **raw-color gate** with the same rule set as Web M1 2.2 (hex, `rgb()`, `hsl()`, named colors, and arbitrary color classes), with a single exemption path for the future token-adapter module. Prove it with a throwaway violation.
-- [ ] **3.3** Install NativeWind at the verified version with its Tailwind config, default color palette cleared, plus `tailwind-merge` and the same variant helper web chose, so class composition reads the same on both platforms. Add the `cn()` helper in `src/lib/`.
-- [ ] **3.4** Confirm the root Prettier config applies unchanged to `mobile/`.
+- [x] **3.1** Add `mobile/eslint.config.mjs` layering Expo's flat config and the React Hooks rules over the root config, plus the named-exports rule with Expo Router's default-export exemptions.
+- [x] **3.2** Add the **raw-color gate** with the same rule set as Web M1 2.2 (hex, `rgb()`, `hsl()`, named colors, and arbitrary color classes), with a single exemption path for the future token-adapter module. Prove it with a throwaway violation.
+- [x] **3.3** Install NativeWind at the verified version with its Tailwind config, default color palette cleared, plus `tailwind-merge` and the same variant helper web chose, so class composition reads the same on both platforms. Add the `cn()` helper in `src/lib/`.
+- [x] **3.4** Confirm the root Prettier config applies unchanged to `mobile/`.
 
 ### Phase 4 — Hermes `Intl` probe (input to Shared M3)
 
@@ -94,8 +109,61 @@ Feature scope, catalog gates, and screen behavior for M4–M11 are defined once,
 
 ### Phase 5 — Docs sync + close-out
 
-- [ ] **5.1** Update `mobile/AGENTS.md` with the verified version pins, the development-build decision, the Metro/pnpm resolution notes, and any tsconfig overrides.
+- [x] **5.1** Update `mobile/AGENTS.md` with the verified version pins, the development-build decision, the Metro/pnpm resolution notes, and any tsconfig overrides.
 - [ ] **5.2** Done criteria: fresh clone → install, typecheck, lint, and format check green; the placeholder screen runs on iOS and Android and renders through all three package entries; a raw color literal fails lint; the Hermes findings are recorded; no token, API call, or auth code exists yet.
+
+
+### M1 execution evidence and exact remaining prerequisites (2026-10-21)
+
+**Mobile M1 is incomplete.** Eleven selected implementation criteria are checked; 2.2, 2.3, 4.1, 4.2 and 5.2 remain unchecked because native execution/measurement is still missing. Independent review round 3 accepted 1.1–1.5, 2.1, 3.1–3.4 and 5.1 and confirmed every finding fixed. All ready non-native criteria pass; the five native criteria remain blocked. No Node/browser output is presented as Hermes evidence.
+
+| Criteria | Implemented and checked | Missing evidence / exact prerequisite |
+|---|---|---|
+| 1.1–1.5 | ESM Expo/Router scaffold, strict multi-base TS, scheme/temporary IDs, automatic appearance, typed routes, native-only platforms, ignored CNG output, environment example | Independent review; no store identifiers/signing claimed |
+| 2.1 | Expo default monorepo resolution + narrowly scoped app peer resolver and export guard | Native runtime confirmation follows 2.3 |
+| 2.2 | iOS/Android production and development bundles compile all public imports; Node resolves all three entries to committed TS; real Metro rejects private iOS and nonexistent Android subpaths | Placeholder rendering and disabled-query context must still execute on both native platforms |
+| 2.3 | Actual native prebuild/build/launch workflows attempted locally | iOS: missing Pods plus outdated Xcode; Android: missing SDK/adb/JDK/emulator, detailed below |
+| 3.1–3.4 | Expo/hooks/root lint; exact Router export exceptions; CSS/TS/native raw-color tests; NativeWind and empty resolved palette; CVA/cn; root formatting | Independent review; visual/native styling execution not inferred from bundles |
+| 4.1–4.2 | Dev-only, user-triggered, Hermes-guarded Intl probe compiles for both targets; rerun procedure below | **No measured iOS or Android output yet.** Record real engine/OS/output/spec comparisons after native toolchains are available |
+| 5.1 | Guide updated with exact pins, official sources, config exceptions, build mode/resolution and limitations | Independent review |
+| 5.2 | Frozen clean installation and workspace checks passed; all ready artifacts delivered | Native runtime + Hermes evidence and acceptance of those native criteria remain outstanding |
+
+**Bundle and peer evidence.** The initial Android map reproduced two QueryClientProvider modules, from Shared's React 19.3.0 tool peer and the app's React 19.2.3 peer. The local resolver fixes origins only for React/JSX, React DOM and TanStack Query. Final maps in both targets contain **one React 19.2.3 runtime and one app-owned QueryClientProvider**; `tooling/check-bundles.mjs` checks those facts and both API source entries. No blanket hoist/override or Shared package edit was used. Core is an empty runtime namespace, not a fabricated export; optimization can omit its empty source mapping. The technical QueryProof puts the generated hook under the app-owned provider with `enabled: false` and retries disabled; no configuration/request is made. Its actual native context execution remains unverified.
+
+**Actual native attempts.** `expo run:ios --no-install --no-bundler --device generic` generated ignored CNG sources, then xcodebuild exited **65** at `[CP] Check Pods Manifest.lock` (Pods not installed). Installed Xcode is **15.2**, with iOS/simulator SDK **17.2**; React Native 0.86.3's installed `scripts/cocoapods/helpers.rb` declares minimum Xcode **16.1**. CocoaPods is not on PATH. Available simulator devices include iPhone 15/iOS 17.2, all discovered shutdown; no simulator data was reset. `expo run:android --no-install --no-bundler` generated ignored Android sources, then failed with **`spawn adb ENOENT`** and missing default Android SDK. SDK/emulator/adb were absent from the checked locations; `java -version` reported no Java runtime. These are native build/runtime blockers, not bundle failures.
+
+Remaining setup: install/select SDK-compatible Xcode (at least the package's minimum) and CocoaPods, install Pods and run the iOS simulator build; install a compatible JDK plus Android SDK/platform/build tools and emulator system image, configure `ANDROID_HOME`, then launch Android. No licenses, SDK installation, cloud account/build, signing identity or device reset was performed in this assignment. Once setup is available, run `pnpm --filter @loto/mobile ios` and `pnpm --filter @loto/mobile android`, inspect placeholder/idle query proof/Metro logs, then measure below.
+
+**Hermes Intl input for Shared M3 — pending measurements, not findings.** In each local development build, press **Medir Intl no Hermes**. `src/probes/intl-probe.tsx` refuses web/non-Hermes execution; capture its selectable JSON outside the repository. Record platform/OS, Hermes runtime properties, runtime Expo SDK (null if unavailable), bundled Expo dependency-version metadata, default device Intl locale/timeZone, and explicitly configured test Intl options, then put concise actual readings in this section. The fixed instant is `2026-07-08T17:30:00.000Z`, locale `pt-BR`, zone `America/Sao_Paulo`. The probe checks positive/negative/zero BRL, grouping/decimal comma, explicit signed values, date/time/datetime, and both actual/expected Unicode code points. It compares without normalization to formatting-ptbr's NBSP U+00A0, minus U+2212 and exact date/time strings. **Neither platform has been measured**; Shared M3 must not infer a formatter strategy from these expected values or from a compiled Hermes bytecode file. Probe/technical UI are app-local and removable; no formatter/business logic was added.
+
+**Commands/results.** `pnpm install` and isolated-copy `pnpm install --frozen-lockfile` passed without peer/engine relaxation. `pnpm --filter @loto/mobile exec expo install --check` passed online. Root `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check` and `pnpm -r test` passed with both apps included (103 Shared + 6 Web + 7 Mobile tests). `expo config --type public` validated SDK/config. `expo export --platform all --source-maps --output-dir dist/proof` passed for iOS/Android here and in the clean copy; `node tooling/check-bundles.mjs dist/proof` passed there. `expo export --platform all --dev --output-dir dist/dev-proof` also passed, compiling the development-only Intl probe. These are **bundle-only** results, not native builds/runtime/engine evidence.
+
+Actual lint CLI fixtures rejected native StyleSheet colors, Text arbitrary color classes, JS config palettes, CSS variable fallback colors and default re-exports; ordinary copy/URLs/fragments passed. Node's exports map and real Metro negatives rejected private/nonexistent Shared imports. Disposable fixtures were removed. NativeWind's resolved `theme.colors` is `{}`. Root format config is unchanged; explicit root ignore paths skip generated native/build output. Install retains root-pinned ESLint deprecation and pnpm's ignored esbuild/unrs-resolver scripts; checks passed without enabling them. Metro inherited NO_COLOR/FORCE_COLOR warnings; the dev export exited 0 after Expo stopped its own NativeWind watcher children. These warnings were not suppressed with root policy changes.
+
+`generate:check` passed for 287 committed generated files; Shared stayed unchanged. `git diff --check` passed. Doc-sync still fails at the inherited canonical **v56** / design **v55** semantic-review mismatch; this task did not edit markers or the canonical group. Combined integration cannot be accepted while that gate is red. App-owned files/guides/milestones plus root ignore additions and lockfile are the only changed areas; no server/security checkout, Shared implementation, design token or future M2/M3 scope was changed. No staging/commit/push was performed. Lockfile impact: new Web/Mobile importers and framework graphs; the existing Shared API Vite/Vitest resolution also gains the optional Terser peer (`5.51.2`) now present through app tooling. Shared direct dependency specs/pins and source are unchanged; its 103 tests and generation drift check passed with this graph.
+
+### Independent review round 1 — corrections independently confirmed
+
+| Finding | Implementer correction and meaningful verification | Acceptance |
+|---|---|---|
+| P2-2 | Same explicit-color and CSS at-rule gate fix as Web. Exported palette literals, imported style/class consumers and `@apply` now fail actual CLI checks, including TS/CSS outside src; only the exact token-adapter file is exempt, not its folder; ordinary labels/URLs/fragments and dimensions pass after the round-2 refinement below. | Independently confirmed fixed in re-review |
+| P3-1 | Official `expo customize tsconfig.json` runs before `tsc` without starting Metro. A fresh copy had no generated route file: direct tsc failed the compile-time Href sentinel; normal typecheck generated routes and passed; a real nonexistent Link href then failed TS2322. Generated declarations stay ignored and no application route was invented for the test. | Independently confirmed fixed in re-review |
+| P3-2 | Removed hard-coded SDK/package fallback values. Runtime Constants supplies SDK or null; `expo/package.json` supplies labelled dependency metadata; `Intl.DateTimeFormat().resolvedOptions()` records the device's own locale/timeZone separately from test configuration. Both target bundles compile; no native measurement is claimed. | Independently confirmed fixed in re-review |
+| P4 | Duplicate diagnostics suppressed, dependency keys sorted, tablet-support flag deferred to M12. | Independently confirmed fixed in re-review |
+
+These are code/tooling corrections, not replacement native evidence. Criteria 2.2 render/context, 2.3, 4.1, 4.2 and 5.2 remain unchecked until both native toolchains are available and the actual launches/Intl readings are independently verified. SDK/JDK/emulator/Pods/Xcode prerequisites and inherited doc-sync v56/v55 remain exactly as recorded above. The round uses the same assignment and owning files, without a new delivery report, staging or commits.
+
+### Independent re-review — round-2 P3 accepted in round 3
+
+The reviewer confirmed all round-1 findings fixed, then found hex-like reference numbers rejected inside ordinary copy. Outside styles/arbitrary classes, the gate now requires the entire trimmed string to be one explicit hex color or one color function. Style contexts and CSS retain substring detection. Both app suites include passing `Bolão #123 confirmado` and `aria-label="Excluir lançamento #abc"` fixtures, plus template/function-copy cases; standalone/trimmed palettes and composite style colors still fail. Named colors outside styles and imported values retain the documented trade-off: forbidden explicit palette literals fail at their definitions without import evaluation.
+
+Round-2 validation: root `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and `pnpm test` passed (103 Shared + 6 Web + 7 Mobile tests). Actual ESLint CLI checks using app configuration accepted both copy examples and rejected standalone/trimmed hex, color functions, composite style values and arbitrary color classes in both apps. `git diff --check` passed. Runtime/build evidence above was independently rechecked before this tooling-only correction; unchanged browser/native bundles were not rerun. The same reviewer independently confirmed this correction in round 3. No native evidence, dependency pins, lockfile or inherited doc-sync markers changed in this round.
+
+### Round-3 acceptance and commit readiness
+
+The same reviewer verified the correction in a fresh isolated copy: frozen install without unmet peers; root typecheck/lint/format and all 116 tests; Web production build with app-owned bundle identity and missing-URL failure; iOS/Android exports with bundle assertions; Shared generation matching all 287 files; clean diff checks and no personal paths. No native execution or Hermes readings were substituted by these checks.
+
+All findings are fixed. The suggested broader detection of mixed values under custom style-key names is optional and non-blocking; whole-value detection outside recognized styles is the accepted trade-off. This app foundation is ready to commit with native criteria explicitly open. Combined integration remains blocked by inherited spec v56/design v55 doc-sync reconciliation; it is not implied by app acceptance. No staging or commit was performed.
 
 ---
 

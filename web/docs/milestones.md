@@ -29,7 +29,7 @@ This file is the general milestone list for the `web/` area. Detailed phases wit
 - **Design M2** (tokens) → Web M3 Phase 1; **Design M3** (component contract) → the rest of Web M3.
 - **Design M4** (per-feature screen blueprints, written just-in-time) → each feature milestone, Web M4–M11.
 - **Server gates per feature:** M7.7 Phase 5 (gaps A, H, L, S) gates the fiado and pairing features; server M8 (gaps C, N, U, V) gates Web M11 and the U/V qualified features elsewhere; server M9 aligns with Web M12.
-- **Server M11 tripwire.** `screens.md` gap Q and server M11 say that if the web build starts before M11 is scheduled, the `GET /report/dashboard` → `GET /report/manager-queue` rename moves into the server milestone that precedes the first generated TypeScript client (Shared M2). Starting Web M1 trips it; the server track owns the rename, and this line exists so the trip is not missed.
+- **Server M11 tripwire delivered.** The manager-queue rename already landed before Shared M2; baseline `f424deb` includes M11 `18012d5`. Web M1 consumes the committed source packages without regeneration.
 - **Mobile:** Mobile M1 may run in parallel with Web M1. Mobile M2 and M3 follow the patterns Web M2 and M3 lock. From M4 on, Web MN ∥ Mobile MN.
 
 ### Milestone overview
@@ -59,7 +59,7 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 
 **Scope boundary:** Tooling, configuration, and an app skeleton only. No auth, no API calls, no tokens (Web M3), no screens. Touches nothing under `server/`, `design/`, `shared/`, or `infra/`; root files change only where a phase names them.
 
-**Precondition:** **Shared M1 complete** — `tsconfig.base.json`, the root ESLint and Prettier configs, and the `@loto/api` / `@loto/core` skeletons with their two-entry export map. As of this draft only Shared M1 Phase 1 has landed.
+**Precondition:** **Shared M1 complete** — `tsconfig.base.json`, the root ESLint and Prettier configs, and the `@loto/api` / `@loto/core` skeletons with their two-entry export map. At the selected baseline `f424deb`, Shared M1 and the Shared M2 source client are delivered; core remains `export {}` until Shared M3. Shared acceptance status remains owned by Shared.
 
 **Key behaviors:**
 
@@ -69,32 +69,98 @@ Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly re
 - **Configuration is injected by the app.** Web reads its environment in one server-only module; `shared/` never reads `NEXT_PUBLIC_*`. Because browser calls go through the route-handler BFF (Web M2), the API base URL is a server-side variable and never needs a `NEXT_PUBLIC_` copy.
 - **No color can drift before the tokens exist.** Tailwind's default palette is cleared and raw color literals fail lint from this milestone on; Web M3 adds the token preset and the primitive-reference ban.
 
+### M1 criterion coverage and verification plan (2026-10-21)
+
+Baseline: coordinator-selected worktree, clean at `f424deb`; Node 26.6.0 / pnpm 10.34.6. Implementation checkboxes denote implementer verification; round 3 independently accepted all 15 Web M1 criteria.
+
+| Criteria | Artifact / behavior | Meaningful verification |
+|---|---|---|
+| 1.1–1.3 | Package, strict tsconfig, Next source transpilation and typed routes | Install, route type generation, typecheck, production build |
+| 1.4–1.5 | pt-BR conventions, boundaries, private environment example, ignores | Real browser home/404, inspect boundary modules, missing/invalid env checks |
+| 2.1–2.2 | Next/hooks lint plus named exports and raw-color gates | Positive/negative AST and CSS fixtures, lint CLI negative checks |
+| 2.3–2.4 | Empty default palette, cn, CVA dependency, root format contract | CSS build, cn resolution, workspace format check |
+| 3.1–3.2 | Server API runtime/type imports, core namespace, client hook/key entry | Production build and browser render; disabled hook/provider context proof without requests |
+| 3.3 | Server-only validated URL | Validation tests, build failures, browser asset inspection |
+| 3.4, 4.2 | Reproducible source install/build and browser | Frozen clean copy, workspace checks, production browser smoke, Shared drift check |
+| 4.1 | App guide + owning milestone evidence | Exact pins, official links, overrides and limitations below |
+
 ### Phase 1 — App scaffold
 
-- [ ] **1.1** Add `web/package.json`: name `@loto/web`, `"private": true`, `"type": "module"`, scripts `dev`, `build`, `start`, `typecheck` (`tsc --noEmit`), `lint`, `format`, `format:check` matching the root fan-out names; dependencies on Next.js, React, and React DOM at the verified versions; `@loto/api` and `@loto/core` as `workspace:*` dependencies.
-- [ ] **1.2** Add `web/tsconfig.json` extending `../tsconfig.base.json`, with the Next.js plugin, `jsx: "preserve"`, and the `@/*` → `src/*` alias. Override base module settings only where Next requires it, and record each override with its reason in a comment.
-- [ ] **1.3** Add `web/next.config.ts`: `transpilePackages: ["@loto/api", "@loto/core"]` and `reactStrictMode`; adopt typed routes if stable in the verified version. No rewrites, middleware, or route handlers yet.
-- [ ] **1.4** Add the App Router skeleton under `web/src/app/`: root `layout.tsx` with `<html lang="pt-BR">` and Lotero metadata, a placeholder `page.tsx`, `loading.tsx`, `error.tsx`, `global-error.tsx`, and `not-found.tsx`. Route groups (`(auth)`, `(branch)`) are created by the milestones that fill them — no empty scaffolding.
-- [ ] **1.5** Extend the root `.gitignore` with the Next.js block (`.next/`, `next-env.d.ts`, `.env*.local`, `out/`) and add `web/.env.example` documenting every variable the app reads.
+- [x] **1.1** Add `web/package.json`: name `@loto/web`, `"private": true`, `"type": "module"`, scripts `dev`, `build`, `start`, `typecheck` (`tsc --noEmit`), `lint`, `format`, `format:check` matching the root fan-out names; dependencies on Next.js, React, and React DOM at the verified versions; `@loto/api` and `@loto/core` as `workspace:*` dependencies.
+- [x] **1.2** Add `web/tsconfig.json` extending `../tsconfig.base.json`, with the Next.js plugin, `jsx: "preserve"`, and the `@/*` → `src/*` alias. Override base module settings only where Next requires it, and record each override with its reason in a comment.
+- [x] **1.3** Add `web/next.config.ts`: `transpilePackages: ["@loto/api", "@loto/core"]` and `reactStrictMode`; adopt typed routes if stable in the verified version. No rewrites, middleware, or route handlers yet.
+- [x] **1.4** Add the App Router skeleton under `web/src/app/`: root `layout.tsx` with `<html lang="pt-BR">` and Lotero metadata, a placeholder `page.tsx`, `loading.tsx`, `error.tsx`, `global-error.tsx`, and `not-found.tsx`. Route groups (`(auth)`, `(branch)`) are created by the milestones that fill them — no empty scaffolding.
+- [x] **1.5** Extend the root `.gitignore` with the Next.js block (`.next/`, `next-env.d.ts`, `.env*.local`, `out/`) and add `web/.env.example` documenting every variable the app reads.
 
 ### Phase 2 — Lint, format, and styling baseline
 
-- [ ] **2.1** Add `web/eslint.config.mjs` layering Next's flat config (core web vitals) and the React Hooks rules over the root config, plus a named-exports rule with the Next file-convention exemptions.
-- [ ] **2.2** Add the **raw-color gate**: a lint rule that rejects hex, `rgb()`, `hsl()`, and named-color literals in TS/TSX and Tailwind arbitrary color values (`bg-[#…]`, `text-[rgb(…)]`), with a single exemption path for the future token-adapter module. Prove it with a throwaway violation that fails, then remove it.
-- [ ] **2.3** Install Tailwind at the verified version with its default color palette cleared, `tailwind-merge`, and one variant helper (choose `class-variance-authority` or `tailwind-variants` in-phase and record why). Add the `cn()` helper in `src/lib/`.
-- [ ] **2.4** Confirm the root Prettier config applies unchanged to `web/`; adopt Tailwind class sorting only if it fits the root config without per-area divergence, and record the outcome.
+- [x] **2.1** Add `web/eslint.config.mjs` layering Next's flat config (core web vitals) and the React Hooks rules over the root config, plus a named-exports rule with the Next file-convention exemptions.
+- [x] **2.2** Add the **raw-color gate**: a lint rule that rejects hex, `rgb()`, `hsl()`, and named-color literals in TS/TSX and Tailwind arbitrary color values (`bg-[#…]`, `text-[rgb(…)]`), with a single exemption path for the future token-adapter module. Prove it with a throwaway violation that fails, then remove it.
+- [x] **2.3** Install Tailwind at the verified version with its default color palette cleared, `tailwind-merge`, and one variant helper (choose `class-variance-authority` or `tailwind-variants` in-phase and record why). Add the `cn()` helper in `src/lib/`.
+- [x] **2.4** Confirm the root Prettier config applies unchanged to `web/`; adopt Tailwind class sorting only if it fits the root config without per-area divergence, and record the outcome.
 
 ### Phase 3 — Workspace integration proof
 
-- [ ] **3.1** The placeholder page (a Server Component) imports a type and a placeholder export from `@loto/api` and from `@loto/core` and renders through them — proving server-side source-package compilation.
-- [ ] **3.2** A small `"use client"` component imports from `@loto/api/queries` and renders inside the page — proving the client entry compiles and stays separate from the server-safe root entry.
-- [ ] **3.3** Add `src/config/server-env.ts` (`server-only`): reads and validates `LOTO_API_BASE_URL` at startup with a clear failure message; documented in `.env.example`.
-- [ ] **3.4** From the repo root: `pnpm install`, `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check`, and `pnpm --filter @loto/web build` all green; `pnpm --filter @loto/web dev` serves the placeholder page.
+- [x] **3.1** The placeholder page (a Server Component) imports actual API types/runtime values and the empty runtime namespace from `@loto/core` and renders technical evidence through them — proving server-side source-package compilation.
+- [x] **3.2** A small `"use client"` component imports from `@loto/api/queries` and renders inside the page — proving the client entry compiles and stays separate from the server-safe root entry.
+- [x] **3.3** Add `src/config/server-env.ts` (`server-only`): reads and validates `LOTO_API_BASE_URL` at startup with a clear failure message; documented in `.env.example`.
+- [x] **3.4** From the repo root: `pnpm install`, `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check`, and `pnpm --filter @loto/web build` all green; `pnpm --filter @loto/web dev` serves the placeholder page.
 
 ### Phase 4 — Docs sync + close-out
 
-- [ ] **4.1** Update `web/AGENTS.md` with the verified version pins, the variant-helper choice, and any tsconfig overrides from 1.2. *(The BFF amendment, token rules, and Impeccable note landed with this milestones file on 2026-10-14.)*
-- [ ] **4.2** Done criteria: fresh clone → install, typecheck, lint, format check, and build green; the placeholder page renders in pt-BR; a raw color literal fails lint; no token, API call, cookie, or auth code exists yet; nothing under `shared/` gained a build artifact.
+- [x] **4.1** Update `web/AGENTS.md` with the verified version pins, the variant-helper choice, and any tsconfig overrides from 1.2. *(The BFF amendment, token rules, and Impeccable note landed with this milestones file on 2026-10-14.)*
+- [x] **4.2** Done criteria: fresh clone → install, typecheck, lint, format check, and build green; the placeholder page renders in pt-BR; a raw color literal fails lint; no token, API call, cookie, or auth code exists yet; nothing under `shared/` gained a build artifact.
+
+
+### M1 implementation evidence (2026-10-21; independently accepted)
+
+All 15 selected Web M1 criteria (1.1–1.5, 2.1–2.4, 3.1–3.4 and 4.1–4.2) are independently accepted by the same reviewer in round 3. All findings are confirmed fixed. **Web M1 passes; combined integration still requires the inherited doc-sync gate to be reconciled by its owners.**
+
+- Versions/compatibility sources and configuration choices are recorded in `../AGENTS.md`; exhaustive exact pins live in `../package.json` and `../../pnpm-lock.yaml`. Next/React `16.4.2` / `19.3.1`, Tailwind `4.3.3`, CVA `0.7.1`; root Node/pnpm/TS pins and package boundaries are unchanged.
+- `@loto/api` supplies real runtime values (`Role`, `createApiClient`) and actual `ApiClient` typing in a Server Component. Core is an imported **runtime namespace**, rendered with `Object.keys(core)`, with zero exports as committed. This proves source-module consumption, not a formatter/helper implementation; the empty module can disappear from optimized source maps. The client entry executes a generated hook with `enabled: false` under an app-owned provider and its pure query-key builder. This now verifies query-context identity in SSR and the browser without invoking a request.
+- Tailwind's color namespace is reset with `--color-*: initial`. Final client assets contain neither the private environment variable name/test URL nor the default red palette variable. The native Tailwind 3 helper major differs intentionally from Web's Tailwind 4 helper major.
+- The launcher uses Next's official `@next/env` to load environment files, then imports the same server-only TS module under Node's server condition **before** spawning Next. Missing and invalid configuration both exit 1 for dev/build/start before binding a port. The controlled valid URL was `http://127.0.0.1:59999`; no backend was started/contacted. `allowImportingTsExtensions` is required by that Node source import; base strictness/module settings stay intact. Automatic framework edits to the canonical guide are disabled with `agentRules: false`.
+- Actual browser smoke: root placeholder, metadata/title, `lang="pt-BR"`, missing route and return-to-home passed on production, including the clean copy; dev placeholder also passed. Browser warn/error logs were empty. Loading/error/global-error conventions compile in the production build; they were not fault-injected in a browser and are not claimed as fault-injection evidence.
+- Raw-color tests reject hex, RGB/HSL, named colors, arbitrary classes, aliased style values, CSS variable fallback colors and configuration palettes. Ordinary text, labels (including color-label field names), fragments, URLs and dimensions pass. Actual ESLint/CSS CLI negatives and a default re-export negative failed as expected in disposable fixtures; fixtures were removed. The future token-adapter exemption is exactly `src/theme/token-adapter.ts`.
+
+| Check (from workspace root unless stated) | Result |
+|---|---|
+| `pnpm install`; isolated source copy → `pnpm install --frozen-lockfile` | Passed; no pre-existing node_modules/build/native output used in the initial clean copy |
+| `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check` | Passed; both apps and both Shared packages participated |
+| `pnpm -r test` | Passed: 103 Shared API tests, 6 Web tooling tests, 7 Mobile tooling tests; no fake empty test runner |
+| `LOTO_API_BASE_URL=http://127.0.0.1:59999 pnpm --filter @loto/web build` | Passed here and in isolated installation |
+| `pnpm --filter @loto/web dev/start --hostname 127.0.0.1 --port <unused-port>` with explicit URL | Real browser checks passed; only task-owned servers were stopped |
+| `pnpm --filter @loto/api generate:check` | Passed: 287 generated files match; no generation/source mutation in Shared |
+| Shared root import boundary | Existing gate passed: 274 reachable modules, no React/TanStack imports |
+| Node public/private export resolution; raw-color/export-convention negatives | Public entries resolve to TS source; private entries rejected; negative fixtures removed |
+| `git diff --check` | Passed |
+| `bash docs/check-loto-doc-sync.sh` | **Inherited failure:** canonical v56 versus design v55; no marker/docs edits by this assignment |
+
+Install warnings retained: root-pinned ESLint 9 is deprecated; pnpm blocks esbuild/unrs-resolver install scripts by default. Actual builds/lint/tests succeeded without enabling those scripts or relaxing engine/peer policies. Final installation has no app-induced unmet peer warnings. No server test suite or OpenAPI export was required/run; generation drift was checked against committed input only.
+
+Changed ownership: `web/`, `mobile/`, root app-output ignore additions and the dependency lockfile. No edits under Shared/server/design/infra/canonical docs, no root package/config/toolchain changes, no staged files or commits. Independent review and the server/design-owned semantic reconciliation remain separate from the implemented Web M1 criteria. Lockfile impact: new Web/Mobile importers and framework graphs; the existing Shared API Vite/Vitest resolution also gains the optional Terser peer (`5.51.2`) now present through app tooling. Shared direct dependency specs/pins and source are unchanged; its 103 tests and generation drift check passed with this graph.
+
+### Independent review round 1 — corrections independently confirmed
+
+| Finding | Implementer correction and evidence | Acceptance |
+|---|---|---|
+| P2-1 | App-relative Turbopack alias selects `_react@19.3.1`. `build` now asserts exactly one app-owned query path in SSR maps and rejects foreign executable React in maps/page trace. A permanently disabled generated hook under Web's own provider passes prerender and real browser hydration in production and development. Metadata-only package traces are distinguished from runtime files; Next's framework React aliases remain intact. | Independently confirmed fixed in re-review |
+| P2-2 | Standalone exported hex/function palettes fail; the round-2 refinement below limits ordinary strings/templates to an entire trimmed color value. Named colors stay context-dependent, URLs/fragments remain valid, CSS at-rule params (`@apply`, `@supports`) are checked. The TS gate includes app TS/TSX outside src; CSS scanning covers the app root while skipping only generated/dependency root directories. New negative fixtures pass; actual two-file imported-palette/class/style CLI cases fail at the literal definition. | Independently confirmed fixed in re-review |
+| P4 | Duplicate diagnostics removed with range containment; dependency keys sorted. | Independently confirmed fixed in re-review |
+
+A new disposable source copy installed with the frozen lockfile. Root gates pass with 103 Shared + 6 Web + 7 Mobile tests. Fresh Web production build passes its output assertion; browser shows `sem requisição`, `lang="pt-BR"`, and empty warning/error logs. Explicit colors in standalone palettes and CSS `@apply` now fail real CLI checks in both apps. No requests/backend configuration beyond the inert URL are used. No dependency pins or lockfile changes were needed in this correction round. Native blockers and the inherited doc-sync v56/v55 failure remain unresolved external prerequisites; the app correction patch was independently accepted in round 3.
+
+### Independent re-review — round-2 P3 accepted in round 3
+
+The reviewer confirmed all round-1 findings fixed, then found hex-like reference numbers rejected inside ordinary copy. Outside styles/arbitrary classes, the gate now requires the entire trimmed string to be one explicit hex color or one color function. Style contexts and CSS retain substring detection. Both app suites include passing `Bolão #123 confirmado` and `aria-label="Excluir lançamento #abc"` fixtures, plus template/function-copy cases; standalone/trimmed palettes and composite style colors still fail. Named colors outside styles and imported values retain the documented trade-off: forbidden explicit palette literals fail at their definitions without import evaluation.
+
+Round-2 validation: root `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and `pnpm test` passed (103 Shared + 6 Web + 7 Mobile tests). Actual ESLint CLI checks using app configuration accepted both copy examples and rejected standalone/trimmed hex, color functions, composite style values and arbitrary color classes in both apps. `git diff --check` passed. Runtime/build evidence above was independently rechecked before this tooling-only correction; unchanged browser/native bundles were not rerun. The same reviewer independently confirmed this correction in round 3. No native evidence, dependency pins, lockfile or inherited doc-sync markers changed in this round.
+
+### Round-3 acceptance and commit readiness
+
+The same reviewer verified the correction in a fresh isolated copy: frozen install without unmet peers; root typecheck/lint/format and all 116 tests; Web production build with app-owned bundle identity and missing-URL failure; iOS/Android exports with bundle assertions; Shared generation matching all 287 files; clean diff checks and no personal paths. No native execution or Hermes readings were substituted by these checks.
+
+All findings are fixed. The suggested broader detection of mixed values under custom style-key names is optional and non-blocking; whole-value detection outside recognized styles is the accepted trade-off. This app foundation is ready to commit with native criteria explicitly open. Combined integration remains blocked by inherited spec v56/design v55 doc-sync reconciliation; it is not implied by app acceptance. No staging or commit was performed.
 
 ---
 

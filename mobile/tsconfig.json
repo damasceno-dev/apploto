@@ -1,0 +1,19 @@
+{
+  // Later base wins: retain the workspace's strictness/module/target contract.
+  "extends": ["expo/tsconfig.base", "../tsconfig.base.json"],
+  "compilerOptions": {
+    // Inherit Expo JSX/DOM types for native fetch/Headers/AbortSignal; root keeps ES2022 and strictness.
+    "allowJs": false,
+    "types": ["react", "react-native", "nativewind/types"],
+    "paths": { "@/*": ["./src/*"] }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "app.config.ts",
+    "nativewind-env.d.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "ios", "android"]
+}

@@ -1,0 +1,2 @@
+# Expo's one-shot typed-route generator expects this app-local entry.
+expo-env.d.ts

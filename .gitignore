@@ -497,3 +497,21 @@ server/tests/WebApi.Test/OpenApi/Snapshots/*.received.txt
 *.tsbuildinfo
 .eslintcache
 pnpm-debug.log*
+
+# Web M1 — Next output and local configuration
+/web/.next/
+/web/next-env.d.ts
+/web/out/
+/web/.env*.local
+
+# Mobile M1 — Expo CNG output, credentials and local configuration
+/mobile/.expo/
+/mobile/expo-env.d.ts
+/mobile/dist/
+/mobile/ios/
+/mobile/android/
+/mobile/.env*.local
+/mobile/**/*.jks
+/mobile/**/*.p8
+/mobile/**/*.p12
+/mobile/**/*.mobileprovision
