@@ -12,12 +12,16 @@ builder.Services.AddMvc(f => f.Filters.Add(typeof(ExceptionFilter)));
 
 builder.Services.AddApi();
 builder.Services.AddSecurityRateLimits();
+builder.Services.AddTrustedProxies(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddAccountSecurityConfiguration(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 var app = builder.Build();
+
+// First, so every later reader of the client address (rate limits, login budgets) sees the trusted one.
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.Services;
 using server.Application.Services.Security;
@@ -110,7 +111,7 @@ public sealed class M8PlatformAndGoogleUseCaseTest
         var request = new RequestGoogleSignInJson { ChallengeId = Guid.NewGuid(), State = "state", IdToken = "signed" };
         var useCase = new GoogleSignInUseCase(verifier, identities, users, Substitute.For<IRefreshTokenRepository>(),
             Substitute.For<ITokenServices>(), coordination, work, null!, Substitute.For<IAccountSecurityRepository>(),
-            new PasswordEncryption(), TimeProvider.System);
+            new PasswordEncryption(), TimeProvider.System, new LoginAttemptGuardBuilder().Build());
         await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
         await identities.Received(1).GetBySubject("https://accounts.google.com", "subject");
         await identities.Received(1).GetChallenge(request.ChallengeId);

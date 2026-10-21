@@ -4,6 +4,7 @@ using server.Communication.Responses;
 using server.Domain.Interfaces;
 using server.ExceptionHandling;
 using server.Exceptions;
+using server.Network;
 using server.OpenApi;
 using server.Serialization;
 using server.Token;
@@ -16,6 +17,7 @@ public static class ApiDependencyInjection
     {
         services.AddSingleton<IApiExceptionHandler, ApiExceptionHandler>();
         services.AddScoped<ITokenProvider, HttpContextTokenProvider>();
+        services.AddScoped<IClientNetworkProvider, HttpContextClientNetworkProvider>();
         services.AddHttpContextAccessor();
         services.Configure<JsonOptions>(options =>
         {
@@ -34,6 +36,7 @@ public static class ApiDependencyInjection
             options.AddOperationTransformer<NamedEnumOpenApiOperationTransformer>();
             options.AddOperationTransformer<RequiredQueryParametersOpenApiOperationTransformer>();
             options.AddOperationTransformer<FinancialHeadersOpenApiOperationTransformer>();
+            options.AddOperationTransformer<RetryAfterOpenApiOperationTransformer>();
             options.AddOperationTransformer<ResponseNumericFidelityOpenApiDocumentTransformer>();
             options.AddDocumentTransformer<ResponseNumericFidelityOpenApiDocumentTransformer>();
             options.AddOperationTransformer<OperationSecurityOpenApiOperationTransformer>();

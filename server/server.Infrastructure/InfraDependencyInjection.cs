@@ -20,6 +20,8 @@ public static class InfraDependencyInjection
     private const int DefaultIdempotencyRequestCoordinationLockTimeoutSeconds = 5;
     private const int DefaultIdempotencyRequestCleanupIntervalHours = 24;
     private const int DefaultIdempotencyRequestCleanupBatchSize = 500;
+    private const int DefaultSecurityThrottleCleanupIntervalMinutes = 15;
+    private const int DefaultSecurityThrottleCleanupBatchSize = 500;
 
     public static void AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
@@ -34,6 +36,7 @@ public static class InfraDependencyInjection
         services.AddHostedService(provider => provider.GetRequiredService<RecoveryMailQueue>());
         AddRepositories(services, configuration);
         AddIdempotencyRequestCleanup(services, configuration);
+        AddSecurityThrottleCleanup(services, configuration);
         AddExternalHolidayProviders(services, configuration);
     }
 
@@ -64,6 +67,23 @@ public static class InfraDependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IdempotencyRequestCleanup>();
         services.AddHostedService<IdempotencyRequestCleanupHostedService>();
+    }
+
+    private static void AddSecurityThrottleCleanup(IServiceCollection services, IConfiguration configuration)
+    {
+        var intervalMinutes = configuration.GetValue<int?>("SecurityThrottleCleanup:SweepIntervalMinutes")
+            ?? DefaultSecurityThrottleCleanupIntervalMinutes;
+        if (intervalMinutes <= 0)
+            throw new InvalidOperationException("SecurityThrottleCleanup:SweepIntervalMinutes must be greater than zero.");
+
+        var batchSize = configuration.GetValue<int?>("SecurityThrottleCleanup:BatchSize")
+            ?? DefaultSecurityThrottleCleanupBatchSize;
+        if (batchSize <= 0)
+            throw new InvalidOperationException("SecurityThrottleCleanup:BatchSize must be greater than zero.");
+
+        services.AddSingleton(new SecurityThrottleCleanupOptions(TimeSpan.FromMinutes(intervalMinutes), batchSize));
+        services.AddScoped<SecurityThrottleCleanup>();
+        services.AddHostedService<SecurityThrottleCleanupHostedService>();
     }
 
     private static void AddExternalHolidayProviders(IServiceCollection services, IConfiguration configuration)
@@ -167,6 +187,7 @@ public static class InfraDependencyInjection
             TimeSpan.FromSeconds(accountPairingLockTimeoutSeconds)));
         services.AddScoped<ISecurityCoordination, SecurityCoordination>();
         services.AddScoped<IAccountSecurityRepository, AccountSecurityRepository>();
+        services.AddScoped<ILoginThrottleRepository, LoginThrottleRepository>();
         services.AddScoped<IOnboardingRepository, OnboardingRepository>();
         services.AddScoped<IOperatedOnboardingRepository, OperatedOnboardingRepository>();
         services.AddScoped<IGoogleIdentityRepository, GoogleIdentityRepository>();

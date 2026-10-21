@@ -91,6 +91,21 @@ export type postUserLoginResponse409TextJson = {
   status: 409;
 };
 
+export type postUserLoginResponse429TextPlain = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserLoginResponse429ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
+export type postUserLoginResponse429TextJson = {
+  data: ResponseErrorJson;
+  status: 429;
+};
+
 export type postUserLoginResponseSuccess = (
   | postUserLoginResponse200TextPlain
   | postUserLoginResponse200ApplicationJson
@@ -108,6 +123,9 @@ export type postUserLoginResponseError = (
   | postUserLoginResponse409TextPlain
   | postUserLoginResponse409ApplicationJson
   | postUserLoginResponse409TextJson
+  | postUserLoginResponse429TextPlain
+  | postUserLoginResponse429ApplicationJson
+  | postUserLoginResponse429TextJson
 ) & {
   headers: Headers;
 };

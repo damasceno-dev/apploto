@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using server.Application.Services.Security;
 using server.Application.Services.Transactions;
 using server.Domain.Interfaces.Holidays;
 using server.Domain.Interfaces;
@@ -103,6 +104,13 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.AddSingleton<ArmableCommandInterceptor>();
             services.ConfigureDbContext<ServerDbContext>((provider, options) =>
                 options.AddInterceptors(provider.GetRequiredService<ArmableCommandInterceptor>()));
+            // M8 Phase 8: a test may choose the connection's peer address (TestServer has none).
+            services.AddTransient<IStartupFilter, TestPeerStartupFilter>();
+            // Every shared-host request comes from one peer, so the per-network request limiter would throttle the
+            // whole suite. Only that process-local limit is raised; the persistent login budgets keep their defaults.
+            services.RemoveAll<LoginProtectionOptions>();
+            services.AddSingleton(LoginProtectionOptionsFactory.Create(
+                LoginProtectionOptionsFactory.MaxRequestsPerMinute.ToString(), null, null, null, null));
         });
     }
 }

@@ -12,5 +12,6 @@ internal sealed class RecoveryThrottleConfiguration : IEntityTypeConfiguration<R
         b.HasKey(x => x.Id);
         b.Property(x => x.KeyHash).HasMaxLength(64);
         b.HasIndex(x => x.KeyHash).IsUnique();
+        b.HasIndex(x => x.NextAllowedAt);
     }
 }

@@ -50,5 +50,27 @@ public sealed class M8AccountSecurityOpenApiContractTest(ServerWebApplicationFac
             .TryGetProperty("IdentityBearer", out _).ShouldBeTrue();
     }
 
+    [Fact]
+    public async Task EveryRateLimitRefusal_ShouldPublishARequiredIntegerRetryAfter_AndLoginShouldDeclareOne()
+    {
+        using var document = await Load();
+        var refusals = new List<string>();
+        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
+        foreach (var operation in path.Value.EnumerateObject())
+        {
+            if (!operation.Value.GetProperty("responses").TryGetProperty("429", out var refusal)) continue;
+            refusals.Add($"{operation.Name.ToUpperInvariant()} {path.Name}");
+            var header = refusal.GetProperty("headers").GetProperty("Retry-After");
+            header.GetProperty("required").GetBoolean().ShouldBeTrue();
+            header.GetProperty("schema").GetProperty("type").GetString().ShouldBe("integer");
+            header.GetProperty("schema").GetProperty("minimum").GetDecimal().ShouldBe(1);
+        }
+
+        // Forgot-password never answers 429: its suppressed request is the same empty 202.
+        refusals.Order(StringComparer.Ordinal).ShouldBe(["POST /invitation/decline", "POST /invitation/preview",
+            "POST /invitation/register", "POST /user/google/challenge", "POST /user/google/sign-in", "POST /user/login",
+            "POST /user/reset-password"]);
+    }
+
     private async Task<JsonDocument> Load() => JsonDocument.Parse(await factory.CreateClient().GetStringAsync("/openapi/v1.json"));
 }

@@ -7,6 +7,7 @@ using server.Application.UseCases.Users.Google;
 using server.Application.UseCases.Users.RenewToken;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Configuration;
 
 namespace server.Controllers
 {
@@ -16,11 +17,13 @@ namespace server.Controllers
     {
         [HttpPost]
         [Route("login")]
+        [EnableRateLimiting(SecurityRateLimits.Login)]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ResponseUserLoginJson), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status429TooManyRequests)]
         public async Task<IActionResult> Login([FromServices] UserLoginUseCase userLoginUseCase, [FromBody] RequestUserLoginJson request)
         {
             var response = await userLoginUseCase.Execute(request);
@@ -29,7 +32,7 @@ namespace server.Controllers
 
         [HttpPost]
         [Route("google/challenge")]
-        [EnableRateLimiting("capability")]
+        [EnableRateLimiting(SecurityRateLimits.Capability)]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ResponseGoogleChallengeJson), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status429TooManyRequests)]
@@ -39,7 +42,7 @@ namespace server.Controllers
 
         [HttpPost]
         [Route("google/sign-in")]
-        [EnableRateLimiting("capability")]
+        [EnableRateLimiting(SecurityRateLimits.Capability)]
         [AllowAnonymous]
         [ProducesResponseType(typeof(ResponseUserLoginJson), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]

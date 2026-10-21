@@ -8,6 +8,7 @@ public class ServerDbContext(DbContextOptions<ServerDbContext> options)
 {
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 public DbSet<RecoveryThrottle> RecoveryThrottles => Set<RecoveryThrottle>();
+    public DbSet<LoginThrottle> LoginThrottles => Set<LoginThrottle>();
 public DbSet<OperatorLinkRequest> OperatorLinkRequests => Set<OperatorLinkRequest>();
 public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<OperatedOnboarding> OperatedOnboardings => Set<OperatedOnboarding>();

@@ -728,6 +728,55 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("Invitations", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.LoginThrottle", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountKeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("BlockedUntil")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FailureCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("KeyHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("WindowStartedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountKeyHash");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.ToTable("LoginThrottles", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LoginThrottles_FailureCount_Positive", "\"FailureCount\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.OperatedOnboarding", b =>
                 {
                     b.Property<Guid>("Id")
@@ -977,6 +1026,8 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("KeyHash")
                         .IsUnique();
+
+                    b.HasIndex("NextAllowedAt");
 
                     b.ToTable("RecoveryThrottles", (string)null);
                 });

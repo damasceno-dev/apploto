@@ -2059,7 +2059,7 @@ operation POST /invitation/decline
   response 204 (no content)
   response 400 ResponseErrorJson
   response 409 ResponseErrorJson
-  response 429 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
 
 operation POST /invitation/preview
   security none
@@ -2067,7 +2067,7 @@ operation POST /invitation/preview
   response 200 ResponseInvitationPreviewJson
   response 400 ResponseErrorJson
   response 409 ResponseErrorJson
-  response 429 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
 
 operation POST /invitation/register
   security none
@@ -2075,7 +2075,7 @@ operation POST /invitation/register
   response 201 ResponseUserLoginJson
   response 400 ResponseErrorJson
   response 409 ResponseErrorJson
-  response 429 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
 
 operation POST /invitation/{id}/reissue
   security BranchBearer[Admin,Manager]
@@ -2726,7 +2726,7 @@ operation POST /user/forgot-password
 operation POST /user/google/challenge
   security none
   response 200 ResponseGoogleChallengeJson
-  response 429 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
   response 503 ResponseErrorJson
 
 operation POST /user/google/sign-in
@@ -2737,7 +2737,7 @@ operation POST /user/google/sign-in
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 409 ResponseErrorJson
-  response 429 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
   response 503 ResponseErrorJson
 
 operation POST /user/login
@@ -2747,6 +2747,7 @@ operation POST /user/login
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 409 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
 
 operation POST /user/logout
   security IdentityBearer[]
@@ -2786,4 +2787,4 @@ operation POST /user/reset-password
   response 204 (no content)
   response 400 ResponseErrorJson
   response 409 ResponseErrorJson
-  response 429 ResponseErrorJson
+  response 429 ResponseErrorJson headers=Retry-After
