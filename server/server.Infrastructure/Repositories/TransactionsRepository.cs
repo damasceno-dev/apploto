@@ -306,13 +306,10 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         var rows = await FiadoNettingSql
             .Query<FiadoBalanceSqlRow>(
                 dbContext,
-                """
-                SELECT f."ClientId", c."Name" AS "ClientName", SUM(f."Signed") AS "OutstandingTotal"
-                FROM fiado f
-                INNER JOIN "Clients" c ON c."Id" = f."ClientId"
-                GROUP BY f."ClientId", c."Name"
-                HAVING SUM(f."Signed") <> 0
-                ORDER BY c."Name", f."ClientId"
+                FiadoBalancesCte + """
+                SELECT b."ClientId", b."ClientName", b."OutstandingTotal"
+                FROM balances b
+                ORDER BY b."ClientName", b."ClientId"
                 """,
                 branchId,
                 asOfDate,
@@ -323,6 +320,65 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .Select(row => new FiadoClientBalanceRow(row.ClientId, row.ClientName, row.OutstandingTotal))
             .ToList();
     }
+
+    public async Task<FiadoBalanceSummary> GetFiadoBalanceSummaryByBranchIdAsNoTracking(
+        Guid branchId, DateTime asOfDate, CancellationToken ct = default)
+    {
+        var rows = await FiadoNettingSql
+            .Query<FiadoBalanceSummarySqlRow>(
+                dbContext,
+                FiadoBalancesCte + """
+                SELECT COUNT(*) FILTER (WHERE b."OutstandingTotal" > 0)::int AS "DebtorCount",
+                       COALESCE(SUM(b."OutstandingTotal") FILTER (WHERE b."OutstandingTotal" > 0), 0) AS "TotalDebt",
+                       COUNT(*) FILTER (WHERE b."OutstandingTotal" < 0)::int AS "CreditorCount",
+                       COALESCE(-SUM(b."OutstandingTotal") FILTER (WHERE b."OutstandingTotal" < 0), 0) AS "TotalCredit"
+                FROM balances b
+                """,
+                branchId,
+                asOfDate,
+                null)
+            .ToListAsync(ct);
+
+        var row = rows.Single();
+        return new FiadoBalanceSummary(row.DebtorCount, row.TotalDebt, row.CreditorCount, row.TotalCredit);
+    }
+
+    public async Task<IReadOnlyList<FiadoClientBalanceRow>> ListTopFiadoDebtorsByBranchIdAsNoTracking(
+        Guid branchId, DateTime asOfDate, int take, CancellationToken ct = default)
+    {
+        var rows = await FiadoNettingSql
+            .Query<FiadoBalanceSqlRow>(
+                dbContext,
+                FiadoBalancesCte + """
+                SELECT b."ClientId", b."ClientName", b."OutstandingTotal"
+                FROM balances b
+                WHERE b."OutstandingTotal" > 0
+                ORDER BY b."OutstandingTotal" DESC, b."ClientName", b."ClientId"
+                LIMIT {3}
+                """,
+                branchId,
+                asOfDate,
+                null,
+                take)
+            .ToListAsync(ct);
+
+        return rows
+            .Select(row => new FiadoClientBalanceRow(row.ClientId, row.ClientName, row.OutstandingTotal))
+            .ToList();
+    }
+
+    // Per-client branch-wide balances over the shared netting projection; zero balances are omitted. The balance
+    // report, the debt/credit split and the top debtors all compose this one CTE.
+    private const string FiadoBalancesCte = """
+        , balances AS (
+            SELECT f."ClientId", c."Name" AS "ClientName", SUM(f."Signed") AS "OutstandingTotal"
+            FROM fiado f
+            INNER JOIN "Clients" c ON c."Id" = f."ClientId"
+            GROUP BY f."ClientId", c."Name"
+            HAVING SUM(f."Signed") <> 0
+        )
+
+        """;
 
     public async Task<IReadOnlyList<FiadoOpenSaleRow>> ListFiadoOpenSalesByBranchIdAsNoTracking(
         Guid branchId,
@@ -591,32 +647,42 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     }
 
     public async Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize)
+        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize, CancellationToken ct = default)
     {
+        if (PageOffset.TryGet(page, pageSize, out var offset) is false)
+            return [];
+
         var baseQuery = BuildOpenChequeBaseQuery(branchId, accountId, clientId);
 
+        // Group key: the plan's origin id, or a standalone cheque row's own id (M11 Phase 4.2). Both are transaction
+        // ids and never collide, so ordering by the key keeps the shipped plan order and stays deterministic.
         var rawGroups = await baseQuery
-            .GroupBy(t => t.OriginTransactionId!.Value)
+            .GroupBy(t => t.OriginTransactionId ?? t.Id)
             .Where(g => g.Any(t => t.PaidAt == null))
             .Select(g => new
             {
-                OriginTransactionId = g.Key,
+                GroupKey = g.Key,
+                PlanRowCount = g.Count(t => t.OriginTransactionId != null),
                 OutstandingTotal = g.Where(t => t.PaidAt == null).Select(t => (decimal?)t.Value).Sum() ?? 0m,
                 OldestOpenDueDate = g.Where(t => t.PaidAt == null).Min(t => t.DueDate),
                 OpenRowCount = g.Count(t => t.PaidAt == null),
                 TotalRowCount = g.Count()
             })
             .OrderBy(g => g.OldestOpenDueDate)
-            .ThenBy(g => g.OriginTransactionId)
-            .Skip((page - 1) * pageSize)
+            .ThenBy(g => g.GroupKey)
+            .Skip(offset)
             .Take(pageSize)
-            .ToListAsync();
+            .ToListAsync(ct);
 
         if (rawGroups.Count == 0)
             return [];
 
-        var originIds = rawGroups.Select(g => g.OriginTransactionId).ToList();
-        var originRows = await dbContext.Transactions
+        var planKeys = rawGroups.Where(g => g.PlanRowCount > 0).Select(g => g.GroupKey).ToList();
+        var standaloneKeys = rawGroups.Where(g => g.PlanRowCount == 0).Select(g => g.GroupKey).ToList();
+        var groupKeys = rawGroups.Select(g => g.GroupKey).ToList();
+
+        // A plan group's identity comes from its origin row; a standalone group's from the row itself.
+        var headRows = await dbContext.Transactions
             .AsNoTracking()
             .Include(t => t.Account)
             .Include(t => t.Client)
@@ -624,32 +690,53 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 t.BranchId == branchId &&
                 t.Active &&
                 t.Status == TransactionStatus.Active &&
-                originIds.Contains(t.Id))
-            .ToListAsync();
+                groupKeys.Contains(t.Id))
+            .ToListAsync(ct);
 
-        var originDict = originRows.ToDictionary(t => t.Id);
+        var headById = headRows.ToDictionary(t => t.Id);
+
+        // One batched read of the page's unpaid rows (replaces the former per-group sibling reads).
+        var openRows = await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.PaidAt == null &&
+                ((t.OriginTransactionId != null && planKeys.Contains(t.OriginTransactionId.Value)) ||
+                 (t.OriginTransactionId == null && standaloneKeys.Contains(t.Id))))
+            .OrderBy(t => t.DueDate)
+            .ThenBy(t => t.Id)
+            .Select(t => new { Key = t.OriginTransactionId ?? t.Id, Row = new OpenChequeOpenRow(t.Id, t.DueDate, t.Value) })
+            .ToListAsync(ct);
+
+        var openRowsByKey = openRows
+            .GroupBy(r => r.Key)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<OpenChequeOpenRow>)g.Select(r => r.Row).ToList());
 
         return rawGroups.Select(g =>
         {
-            var origin = originDict.GetValueOrDefault(g.OriginTransactionId);
+            var head = headById.GetValueOrDefault(g.GroupKey);
             return new OpenChequeGroupRow(
-                g.OriginTransactionId,
+                g.GroupKey,
+                g.PlanRowCount > 0 ? g.GroupKey : null,
                 g.OutstandingTotal,
                 g.OldestOpenDueDate,
                 g.OpenRowCount,
                 g.TotalRowCount,
-                origin?.AccountId ?? Guid.Empty,
-                origin?.Account?.Name ?? string.Empty,
-                origin?.ClientId,
-                origin?.Client?.Name,
-                origin?.Description);
+                head?.AccountId ?? Guid.Empty,
+                head?.Account?.Name ?? string.Empty,
+                head?.ClientId,
+                head?.Client?.Name,
+                head?.Description,
+                openRowsByKey.GetValueOrDefault(g.GroupKey, []));
         }).ToList();
     }
 
     public async Task<IReadOnlyList<AgingDueDateTotalRow>> ListOpenChequeTotalsByDueDateAsNoTracking(
         Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default)
     {
-        // An unpaid plan row always belongs to an open plan, so the open rows are exactly the base query's unpaid rows.
+        // An unpaid row always belongs to an open group, so the open rows are exactly the base query's unpaid rows.
         var rows = await BuildOpenChequeBaseQuery(branchId, accountId, clientId)
             .Where(t => t.PaidAt == null)
             .GroupBy(t => t.DueDate)
@@ -660,27 +747,263 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     }
 
     public async Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId)
+        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default)
     {
         return await BuildOpenChequeBaseQuery(branchId, accountId, clientId)
-            .GroupBy(t => t.OriginTransactionId!.Value)
+            .GroupBy(t => t.OriginTransactionId ?? t.Id)
             .Where(g => g.Any(t => t.PaidAt == null))
-            .CountAsync();
+            .CountAsync(ct);
     }
 
-    public async Task<IReadOnlyList<Transaction>> ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
-        Guid originId, Guid branchId)
+    public async Task<IReadOnlyList<UpcomingSettlementRow>> ListUpcomingSettlementsByBranchIdAsNoTracking(
+        Guid branchId, UpcomingSettlementFilter filter, int page, int pageSize, CancellationToken ct = default)
     {
-        return await dbContext.Transactions
+        if (PageOffset.TryGet(page, pageSize, out var offset) is false)
+            return [];
+
+        return await BuildUpcomingSettlementQuery(branchId, filter)
+            .OrderBy(t => t.DueDate)
+            .ThenBy(t => t.Date)
+            .ThenBy(t => t.Id)
+            .Skip(offset)
+            .Take(pageSize)
+            .Select(t => new UpcomingSettlementRow(
+                t.Id,
+                t.OriginTransactionId,
+                t.Date,
+                t.DueDate,
+                t.Value,
+                t.TransactionType.SettlementInstrument,
+                t.TransactionTypeId,
+                t.TransactionType.Name,
+                t.AccountId,
+                t.Account.Name,
+                t.ClientId,
+                t.Client != null ? t.Client.Name : null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<UpcomingSettlementInstrumentTotalRow>> ListUpcomingSettlementTotalsByBranchIdAsNoTracking(
+        Guid branchId, UpcomingSettlementFilter filter, CancellationToken ct = default)
+    {
+        var rows = await BuildUpcomingSettlementQuery(branchId, filter)
+            .GroupBy(t => t.TransactionType.SettlementInstrument)
+            .Select(g => new { Instrument = g.Key, Count = g.Count(), Value = g.Sum(t => t.Value) })
+            .ToListAsync(ct);
+
+        return rows.Select(r => new UpcomingSettlementInstrumentTotalRow(r.Instrument, r.Count, r.Value)).ToList();
+    }
+
+    public async Task<IReadOnlyList<MonthlyFinancialRoleRow>> ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
+        Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default)
+    {
+        var rows = await BuildMonthlyFinancialRoleQuery(branchId, role, dateFrom, dateTo)
+            .GroupBy(t => new
+            {
+                t.Date,
+                t.AccountId,
+                AccountName = t.Account.Name,
+                AccountActive = t.Account.Active,
+                t.RecordedByOperatorId,
+                OperatorName = t.RecordedByOperator.Name,
+                OperatorActive = t.RecordedByOperator.Active,
+                t.TransactionTypeId,
+                TypeName = t.TransactionType.Name,
+                TypeActive = t.TransactionType.Active
+            })
+            .Select(g => new
+            {
+                g.Key,
+                InTotal = g.Where(t => t.Direction == Direction.In).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                OutTotal = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                RowCount = g.Count()
+            })
+            .ToListAsync(ct);
+
+        return rows
+            .Select(r => new MonthlyFinancialRoleRow(
+                r.Key.Date,
+                r.Key.AccountId,
+                r.Key.AccountName,
+                r.Key.AccountActive,
+                r.Key.RecordedByOperatorId,
+                r.Key.OperatorName,
+                r.Key.OperatorActive,
+                r.Key.TransactionTypeId,
+                r.Key.TypeName,
+                r.Key.TypeActive,
+                r.InTotal,
+                r.OutTotal,
+                r.RowCount))
+            .ToList();
+    }
+
+    public async Task<ActivityPage<AccountActivityRow>> GetAccountActivityPageByBranchIdAndDateAsNoTracking(
+        Guid branchId, DateTime date, int take, CancellationToken ct = default)
+    {
+        var listed = dbContext.Accounts
+            .AsNoTracking()
+            .Where(account =>
+                account.BranchId == branchId &&
+                ((account.Active && account.Type == AccountType.Terminal) ||
+                 dbContext.Transactions.Any(t =>
+                     t.AccountId == account.Id &&
+                     t.BranchId == branchId &&
+                     t.Active &&
+                     t.Date == date &&
+                     (t.Status == TransactionStatus.Active || t.Status == TransactionStatus.Draft))));
+
+        var totalCount = await listed.CountAsync(ct);
+        var accounts = await listed
+            .OrderBy(account => account.Name)
+            .ThenBy(account => account.Id)
+            .Take(take)
+            .Select(account => new { account.Id, account.Name, account.Type, account.Active })
+            .ToListAsync(ct);
+        var ids = accounts.Select(account => account.Id).ToList();
+
+        var sums = await dbContext.Transactions
             .AsNoTracking()
             .Where(t =>
-                t.OriginTransactionId == originId &&
                 t.BranchId == branchId &&
                 t.Active &&
-                t.Status == TransactionStatus.Active)
-            .OrderBy(t => t.DueDate)
-            .ThenBy(t => t.Id)
-            .ToListAsync();
+                t.Date == date &&
+                (t.Status == TransactionStatus.Active || t.Status == TransactionStatus.Draft) &&
+                ids.Contains(t.AccountId))
+            .GroupBy(t => t.AccountId)
+            .Select(g => new
+            {
+                AccountId = g.Key,
+                TotalIn = g.Where(t => t.Status == TransactionStatus.Active && t.Direction == Direction.In)
+                    .Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                TotalOut = g.Where(t => t.Status == TransactionStatus.Active && t.Direction == Direction.Out)
+                    .Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                ActiveCount = g.Count(t => t.Status == TransactionStatus.Active),
+                DraftCount = g.Count(t => t.Status == TransactionStatus.Draft)
+            })
+            .ToDictionaryAsync(row => row.AccountId, ct);
+
+        return new ActivityPage<AccountActivityRow>(
+            totalCount,
+            accounts
+                .Select(account =>
+                {
+                    var sum = sums.GetValueOrDefault(account.Id);
+                    return new AccountActivityRow(
+                        account.Id, account.Name, account.Type, account.Active,
+                        sum?.TotalIn ?? 0m, sum?.TotalOut ?? 0m, sum?.ActiveCount ?? 0, sum?.DraftCount ?? 0);
+                })
+                .ToList());
+    }
+
+    public async Task<IReadOnlyList<AccountLastActivityRow>> ListLastActivityDatesByBranchIdAsNoTracking(
+        Guid branchId, IReadOnlyCollection<Guid> accountIds, DateTime throughDate, CancellationToken ct = default)
+    {
+        if (accountIds.Count == 0)
+            return [];
+
+        var rows = await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.Date <= throughDate &&
+                accountIds.Contains(t.AccountId))
+            .GroupBy(t => t.AccountId)
+            .Select(g => new { AccountId = g.Key, LastActivityDate = g.Max(t => t.Date) })
+            .ToListAsync(ct);
+
+        return rows.Select(r => new AccountLastActivityRow(r.AccountId, r.LastActivityDate)).ToList();
+    }
+
+    public async Task<ActivityPage<OperatorActivityRow>> GetOperatorActivityPageByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, int take, CancellationToken ct = default)
+    {
+        // Operator-summary predicates: Active rows recorded by the operator in the window.
+        var recorded = dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Date >= dateFrom &&
+                t.Date <= dateTo &&
+                t.Active &&
+                t.Status == TransactionStatus.Active);
+
+        var listed = dbContext.Operators
+            .AsNoTracking()
+            .Where(op => op.BranchId == branchId && (op.Active || recorded.Any(t => t.RecordedByOperatorId == op.Id)));
+
+        var totalCount = await listed.CountAsync(ct);
+        var operators = await listed
+            .Select(op => new { op.Id, op.Name, op.Active, Count = recorded.Count(t => t.RecordedByOperatorId == op.Id) })
+            .OrderByDescending(op => op.Count)
+            .ThenBy(op => op.Name)
+            .ThenBy(op => op.Id)
+            .Take(take)
+            .ToListAsync(ct);
+        var ids = operators.Select(op => op.Id).ToList();
+
+        var sums = await recorded
+            .Where(t => ids.Contains(t.RecordedByOperatorId))
+            .GroupBy(t => t.RecordedByOperatorId)
+            .Select(g => new
+            {
+                OperatorId = g.Key,
+                TotalIn = g.Where(t => t.Direction == Direction.In).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                TotalOut = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                GeneratedCount = g.Count(t => t.GenerationKind != null),
+                GeneratedIn = g.Where(t => t.GenerationKind != null && t.Direction == Direction.In)
+                    .Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                GeneratedOut = g.Where(t => t.GenerationKind != null && t.Direction == Direction.Out)
+                    .Select(t => (decimal?)t.Value).Sum() ?? 0m
+            })
+            .ToDictionaryAsync(row => row.OperatorId, ct);
+
+        return new ActivityPage<OperatorActivityRow>(
+            totalCount,
+            operators
+                .Select(op =>
+                {
+                    var sum = sums.GetValueOrDefault(op.Id);
+                    return new OperatorActivityRow(
+                        op.Id, op.Name, op.Active, op.Count, sum?.TotalIn ?? 0m, sum?.TotalOut ?? 0m,
+                        sum?.GeneratedCount ?? 0, sum?.GeneratedIn ?? 0m, sum?.GeneratedOut ?? 0m);
+                })
+                .ToList());
+    }
+
+    public async Task<MonthlyFinancialRoleTotal> GetMonthlyFinancialRoleTotalAsNoTracking(
+        Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default)
+    {
+        var total = await BuildMonthlyFinancialRoleQuery(branchId, role, dateFrom, dateTo)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                InTotal = g.Where(t => t.Direction == Direction.In).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                OutTotal = g.Where(t => t.Direction == Direction.Out).Select(t => (decimal?)t.Value).Sum() ?? 0m,
+                RowCount = g.Count()
+            })
+            .SingleOrDefaultAsync(ct);
+
+        return total is null ? new MonthlyFinancialRoleTotal(0m, 0m, 0) : new MonthlyFinancialRoleTotal(total.InTotal, total.OutTotal, total.RowCount);
+    }
+
+    // Monthly financial role rows (M11 Phase 6.1): Active rows of types carrying the role, active or retired, on Terminal
+    // accounts in the window. The detailed rows and the totals compose this one predicate.
+    private IQueryable<Transaction> BuildMonthlyFinancialRoleQuery(
+        Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo)
+    {
+        return dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.Account.Type == AccountType.Terminal &&
+                t.TransactionType.MonthlyFinancialRole == role &&
+                t.Date >= dateFrom &&
+                t.Date <= dateTo);
     }
 
     public async Task<IReadOnlyList<MonthlyTransactionCountRow>> CountByBranchIdAndYearMonthGroupedByDateAndStatusAsNoTracking(
@@ -754,6 +1077,32 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToListAsync(ct);
     }
 
+    // Upcoming settlements (M11 Phase 5): the row's type is read whether or not it has since been retired, so a type's
+    // current instrument classifies every row it ever recorded.
+    private IQueryable<Transaction> BuildUpcomingSettlementQuery(Guid branchId, UpcomingSettlementFilter filter)
+    {
+        var query = dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.PaidAt == null &&
+                t.TransactionType.SettlementInstrument != SettlementInstrument.None &&
+                t.DueDate <= filter.DueDateTo);
+
+        if (filter.DueDateFrom is { } dueDateFrom)
+            query = query.Where(t => t.DueDate >= dueDateFrom);
+
+        if (filter.AccountId is { } accountId)
+            query = query.Where(t => t.AccountId == accountId);
+
+        if (filter.Instrument is { } instrument)
+            query = query.Where(t => t.TransactionType.SettlementInstrument == instrument);
+
+        return query;
+    }
+
     private IQueryable<Transaction> BuildOpenChequeBaseQuery(
         Guid branchId, Guid? accountId, Guid? clientId)
     {
@@ -763,7 +1112,10 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 t.BranchId == branchId &&
                 t.Active &&
                 t.Status == TransactionStatus.Active &&
-                t.OriginTransactionId != null);
+                // Every installment plan row (shipped definition), plus a standalone row whose type — active or
+                // retired — is classified Cheque (M11 Phase 4.2, working answer SQ2).
+                (t.OriginTransactionId != null ||
+                 t.TransactionType.SettlementInstrument == SettlementInstrument.Cheque));
 
         if (accountId is { } selectedAccountId)
             query = query.Where(t => t.AccountId == selectedAccountId);

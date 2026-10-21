@@ -47,6 +47,26 @@ public class DailyCloseItemsRepositoryBuilder
         return this;
     }
 
+    public DailyCloseItemsRepositoryBuilder ListOfficialVarianceStatusTotalsAsNoTrackingReturns(
+        Guid branchId,
+        Guid productId,
+        Guid? accountId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<OfficialVarianceStatusTotalRow> result)
+    {
+        _repository
+            .ListOfficialVarianceStatusTotalsAsNoTracking(
+                Arg.Is<Guid>(v => v == branchId),
+                Arg.Is<Guid>(v => v == productId),
+                Arg.Is<Guid?>(v => v == accountId),
+                Arg.Is<DateTime>(v => v == dateFrom),
+                Arg.Is<DateTime>(v => v == dateTo),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
     public IDailyCloseItemsRepository Build()
     {
         return _repository;

@@ -1341,6 +1341,9 @@ namespace server.Infrastructure.Migrations
                     b.Property<short?>("FiadoPaymentKind")
                         .HasColumnType("smallint");
 
+                    b.Property<short>("MonthlyFinancialRole")
+                        .HasColumnType("smallint");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1348,6 +1351,9 @@ namespace server.Infrastructure.Migrations
 
                     b.Property<bool>("RequiresTabAccountAndClient")
                         .HasColumnType("boolean");
+
+                    b.Property<short>("SettlementInstrument")
+                        .HasColumnType("smallint");
 
                     b.Property<short>("SettlementRule")
                         .HasColumnType("smallint");
@@ -1364,6 +1370,10 @@ namespace server.Infrastructure.Migrations
 
                     b.ToTable("TransactionTypes", null, t =>
                         {
+                            t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoMonthlyFinancialRole", "\"SystemRole\" IS NULL OR \"MonthlyFinancialRole\" = 0");
+
+                            t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoSettlementInstrument", "\"SystemRole\" IS NULL OR \"SettlementInstrument\" = 0");
+
                             t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NotPaymentMethod", "\"SystemRole\" IS NULL OR \"FiadoPaymentKind\" IS NULL");
                         });
                 });

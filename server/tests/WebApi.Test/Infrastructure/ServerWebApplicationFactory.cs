@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using server.Application.Services.Transactions;
 using server.Domain.Interfaces.Holidays;
 using server.Domain.Interfaces;
 using server.Infrastructure;
@@ -92,6 +93,16 @@ public class ServerWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.RemoveAll<INagerDateHolidayProvider>();
             services.AddSingleton<IBrasilApiHolidayProvider, UnavailableBrasilApiHolidayProvider>();
             services.AddSingleton<INagerDateHolidayProvider, UnavailableNagerDateHolidayProvider>();
+            // M11 Phase 7.5: a settable instant for time-dependent scenarios. Unfrozen it reads real time, and the
+            // production registration in AddApplication is left as it is.
+            services.RemoveAll<IBranchClock>();
+            services.AddSingleton<FrozenClockState>();
+            services.AddScoped<IBranchClock, FrozenBranchClock>();
+            // M11 Phase 7.5: an armable command interceptor (inactive unless a test arms it) for the snapshot,
+            // cancellation and atomic-failure scenarios.
+            services.AddSingleton<ArmableCommandInterceptor>();
+            services.ConfigureDbContext<ServerDbContext>((provider, options) =>
+                options.AddInterceptors(provider.GetRequiredService<ArmableCommandInterceptor>()));
         });
     }
 }

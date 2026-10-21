@@ -254,7 +254,7 @@ For each screen the dev-team prototype, attach/paste:
 - [x] **4.8.1** Cross-document audit and checks: catalog/index/IA, token and component references, local links, enum labels, contrast gate and doc-sync, all green.
 - [ ] **4.8.2** AA remainder blueprints after the server DailyClose/Product contract decision and catalog re-sync.
 - [ ] **4.8.3** AB and AC remainders after their owner decisions/contracts.
-- [ ] **4.8.4** Dashboard, Upcoming settlements and Monthly financial report blueprints after server M11 contracts and their catalog entries (gap Q).
+- [ ] **4.8.4** Dashboard, Upcoming settlements and Monthly financial report blueprints after server M11 contracts and their catalog entries (gap Q). *(2026-10-20: contracts shipped in server M11 Phases 4–7 and the catalog entries are written against them; both await independent review. The inventory tracks the three entries against placeholder headings only; no blueprint is authored. 2026-10-21, review fix: their enums now have domain tokens in both themes — `settlement-instrument`, `monthly-financial-role`, `overview-section-status` — required by the contrast checker, with three new negative scenarios.)*
 - [ ] **4.8.5** Independent acceptance of the corrected D04 blueprints, including membership-first offboarding, non-inferred product activity, operator-specific drill-downs and the final integrated canonical references. Local validation of corrections does not close this review gate.
 - [ ] **4.8.6** Blueprint updates from real Web/Mobile feature milestones (keyboard, screen reader, touch, 375px, enlarged text and native verification against the API).
 
@@ -282,9 +282,12 @@ For each screen the dev-team prototype, attach/paste:
 | Daily ledger | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 2; M11 Ph 2.4 | — |
 | Fiado balance | `reports-and-month-lock.md` | Web/Mobile M8 | M7.7 Ph 5; M11 Ph 3.1 | — |
 | Fiado aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7.7 Ph 5.1; M11 Ph 3.2 | — |
-| Open-cheque aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 5; M11 Ph 2.1 | — |
+| Open-cheque aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 5; M11 Ph 2.1, 4.2 | standalone-cheque groups (*Cheque avulso*, catalog v56 — review pending) |
 | Cash-variance summary | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 8; M7.7 Ph 6; M11 Ph 2.2 | — |
 | Monthly reconciliation + lock | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 10; M7.7 Ph 4; M11 Ph 2.3 | — |
+| Dashboard | `reports-and-month-lock.md` (placeholder) | Web/Mobile M8 | M11 Ph 7 (review pending) | whole blueprint (gap Q, 4.8.4) |
+| Upcoming settlements | `reports-and-month-lock.md` (placeholder) | Web/Mobile M8 | M11 Ph 4–5 (review pending) | whole blueprint (gap Q, 4.8.4) |
+| Monthly financial report | `reports-and-month-lock.md` (placeholder) | Web/Mobile M8 | M11 Ph 6 (review pending) | whole blueprint (gap Q, 4.8.4) |
 | My transaction summary | `time-and-self-service.md` | Web/Mobile M9 | M7 Ph 9; M7.7 Ph 5.8 | — |
 | My time-entry balance | `time-and-self-service.md` | Web/Mobile M9 | M7 Ph 11; M7.7 Ph 7 | — |
 | Operator Day Cockpit | `operator-day.md` | Web/Mobile M5 | M4; M7.7 Ph 3, 5.6, 7.6.1; M8 Ph 4 | — |
@@ -297,7 +300,7 @@ For each screen the dev-team prototype, attach/paste:
 | Account assignment (admin) | `administration.md` | Web/Mobile M10 | M2; M7.7 Ph 5.3, 5.6 | — |
 | Accounts (admin) | `administration.md` | Web/Mobile M10 | M2; M7.7 Ph 5.3 | — |
 | Clients (admin + counter) | `administration.md` | Web/Mobile M10 | M2 | — |
-| Categories & Transaction Types (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 5 | — |
+| Categories & Transaction Types (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 5; M11 Ph 4, 6 | report classifications (catalog v56 — review pending) |
 | Products (admin) | `administration.md` | Web/Mobile M10 | M6 | deactivation warning/recovery (gap AA) |
 | Holidays (admin) | `administration.md` | Web/Mobile M10 | M5, M6 | — |
 | Settings (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 4, 6, 7 | — |

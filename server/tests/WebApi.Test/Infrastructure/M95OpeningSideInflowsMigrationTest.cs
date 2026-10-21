@@ -98,20 +98,19 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
             Active = scenario != "retired-category"
         };
         db.AddRange(branch, other, product, category);
-        if (scenario == "system-category")
-            db.Add(new TransactionType { CategoryId = category.Id, Name = "System counterpart",
-                SystemRole = TransactionTypeSystemRole.FiadoCashRepaymentCounterpart });
         var otherCategoryCollision = scenario is "other-category-type" or "retired-other-category-type";
         var collisionCategory = otherCategoryCollision
             ? new Category { BranchId = branch.Id, Name = "Custom income", DefaultDirection = Direction.In,
                 Active = scenario != "retired-other-category-type" }
             : category;
         if (otherCategoryCollision) db.Add(collisionCategory);
-        if (scenario is "custom-type" or "retired-type" || otherCategoryCollision)
-            db.Add(new TransactionType { CategoryId = collisionCategory.Id, Name = "Tarifa Bolão",
-                SettlementRule = SettlementRule.TwoBusinessDays, RequiresTabAccountAndClient = true,
-                Active = scenario is not ("retired-type" or "retired-other-category-type") });
         await db.SaveChangesAsync();
+        if (scenario == "system-category")
+            await InsertPriorSchemaType(db, category.Id, "System counterpart", SettlementRule.SameDay, false, true,
+                TransactionTypeSystemRole.FiadoCashRepaymentCounterpart);
+        if (scenario is "custom-type" or "retired-type" || otherCategoryCollision)
+            await InsertPriorSchemaType(db, collisionCategory.Id, "Tarifa Bolão", SettlementRule.TwoBusinessDays, true,
+                scenario is not ("retired-type" or "retired-other-category-type"), null);
         var beforeVersion = await ProductVersion(db, product.Id);
         if (scenario != "missing")
             await SetMap(db, new[] { Map(branch.Id, product.Id, category.Id), Map(other.Id, null) });
@@ -194,4 +193,16 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
 
     private static Task<long> ProductVersion(ServerDbContext db, Guid id) => db.Database
         .SqlQuery<long>($"SELECT xmin::text::bigint AS \"Value\" FROM \"Products\" WHERE \"Id\" = {id}").SingleAsync();
+
+    // Written with the pre-M11 column set: the current TransactionType entity has columns this schema predates.
+    private static Task InsertPriorSchemaType(ServerDbContext db, Guid categoryId, string name, SettlementRule rule,
+        bool requiresTab, bool active, TransactionTypeSystemRole? systemRole)
+    {
+        return db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "TransactionTypes" ("Id", "Name", "SettlementRule", "RequiresTabAccountAndClient", "SystemRole",
+                "FiadoPaymentKind", "CategoryId", "CreatedAt", "Active")
+            VALUES ({Guid.NewGuid()}, {name}, {(short)rule}, {requiresTab}, {(short?)systemRole}, {(short?)null},
+                {categoryId}, {DateTime.UtcNow}, {active})
+            """);
+    }
 }

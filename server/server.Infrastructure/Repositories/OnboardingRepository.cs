@@ -24,7 +24,8 @@ internal sealed class OnboardingRepository(ServerDbContext db) : IOnboardingRepo
             .Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         return (items, total);
     }
-    public Task<int> PendingRequestCount(Guid branchId) => EligibleRequests(branchId).CountAsync(r => r.Status == OperatorLinkRequestStatus.Pending);
+    public Task<int> PendingRequestCount(Guid branchId, CancellationToken ct = default) =>
+        EligibleRequests(branchId).CountAsync(r => r.Status == OperatorLinkRequestStatus.Pending, ct);
     public async Task<Invitation?> GetInvitation(Guid id, Guid branchId)
     {
         var invitation = await db.Invitations.Include(i => i.Branch)

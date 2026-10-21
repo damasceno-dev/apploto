@@ -13,7 +13,7 @@ public interface IOperatorsRepository
     /// missing or cross-branch id.
     /// </summary>
     Task<Operator?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
-    Task<IReadOnlyList<Operator>> ListActiveByBranchId(Guid branchId);
+    Task<IReadOnlyList<Operator>> ListActiveByBranchId(Guid branchId, CancellationToken ct = default);
     Task<Operator?> GetActiveLinkedByUserIdAndBranchIdAsNoTracking(Guid userId, Guid branchId, CancellationToken ct = default);
     Task<IReadOnlyList<Operator>> ListByUserIdAndBranchId(Guid userId, Guid branchId, CancellationToken ct = default);
     Task<bool> ExistsActiveLinkedByUserIdAndBranchId(Guid userId,Guid branchId,Guid? exceptOperatorId = null);

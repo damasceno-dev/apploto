@@ -827,4 +827,10 @@
   <data name="GOOGLE_CHALLENGE_INVALID" xml:space="preserve"><value>A tentativa de entrada expirou ou já foi utilizada.</value></data>
   <data name="GOOGLE_LINK_PROOF_REQUIRED" xml:space="preserve"><value>Confirme a senha atual para vincular esta conta ao Google.</value></data>
   <data name="GOOGLE_IDENTITY_CONFLICT" xml:space="preserve"><value>Esta identidade Google não pode ser vinculada a esta conta.</value></data>
+  <data name="TRANSACTION_TYPE_SETTLEMENT_INSTRUMENT_INVALID" xml:space="preserve"><value>O instrumento de liquidação informado é inválido.</value></data>
+  <data name="TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_INVALID" xml:space="preserve"><value>A classificação do relatório financeiro mensal informada é inválida.</value></data>
+  <data name="TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_DIRECTION_INVALID" xml:space="preserve"><value>A tarifa de bolão exige um tipo de entrada, e a sobra exige um tipo de saída.</value></data>
+  <data name="REPORT_SETTLEMENT_INSTRUMENT_INVALID" xml:space="preserve"><value>Informe um instrumento de liquidação válido: cheque, cartão de crédito ou cartão de débito.</value></data>
+  <data name="REPORT_MONTH_IN_FUTURE" xml:space="preserve"><value>O mês informado ainda não começou.</value></data>
+  <data name="REPORT_YEAR_MONTH_PAIR_REQUIRED" xml:space="preserve"><value>Informe o ano e o mês juntos, ou nenhum dos dois.</value></data>
 </root>

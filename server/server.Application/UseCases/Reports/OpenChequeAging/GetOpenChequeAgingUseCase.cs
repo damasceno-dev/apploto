@@ -37,40 +37,14 @@ public class GetOpenChequeAgingUseCase(
         var dueDateTotals = await transactionsRepository.ListOpenChequeTotalsByDueDateAsNoTracking(
             branchUser.BranchId, request.AccountId, request.ClientId);
 
-        // N+1 acceptable: typical branch has < 20 open cheque groups per page.
-        var groupResponses = new List<ResponseOpenChequeAgingGroupJson>();
-        foreach (var group in groups)
-        {
-            var siblings = await transactionsRepository.ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
-                group.OriginTransactionId, branchUser.BranchId);
-
-            var unpaidSiblings = siblings.Where(s => s.PaidAt == null).ToList();
-
-            // Defensive: repo should already exclude fully-paid groups; skip if none unpaid.
-            if (unpaidSiblings.Count == 0) continue;
-
-            var rows = unpaidSiblings.Select(s =>
-            {
-                var daysOutstanding = Math.Max(0, (asOfDate.Date - s.DueDate.Date).Days);
-                var bucket = ReportAgingBucketizer.BucketFor(s.DueDate, asOfDate);
-                return new ResponseOpenChequeAgingRowJson
-                {
-                    TransactionId = s.Id,
-                    DueDate = s.DueDate,
-                    Value = s.Value,
-                    DaysOutstanding = daysOutstanding,
-                    Bucket = bucket
-                };
-            }).ToList();
-
-            var oldestOpenBucket = ReportAgingBucketizer.BucketFor(group.OldestOpenDueDate, asOfDate);
-
-            groupResponses.Add(new ResponseOpenChequeAgingGroupJson
+        var groupResponses = groups
+            .Where(group => group.OpenRows.Count > 0)
+            .Select(group => new ResponseOpenChequeAgingGroupJson
             {
                 OriginTransactionId = group.OriginTransactionId,
                 OutstandingTotal = group.OutstandingTotal,
                 OldestOpenDueDate = group.OldestOpenDueDate,
-                OldestOpenBucket = oldestOpenBucket,
+                OldestOpenBucket = ReportAgingBucketizer.BucketFor(group.OldestOpenDueDate, asOfDate),
                 OpenRowCount = group.OpenRowCount,
                 TotalRowCount = group.TotalRowCount,
                 ClientId = group.ClientId,
@@ -78,9 +52,18 @@ public class GetOpenChequeAgingUseCase(
                 AccountId = group.AccountId,
                 AccountName = group.AccountName,
                 Description = group.Description,
-                Rows = rows
-            });
-        }
+                Rows = group.OpenRows
+                    .Select(row => new ResponseOpenChequeAgingRowJson
+                    {
+                        TransactionId = row.TransactionId,
+                        DueDate = row.DueDate,
+                        Value = row.Value,
+                        DaysOutstanding = Math.Max(0, (asOfDate.Date - row.DueDate.Date).Days),
+                        Bucket = ReportAgingBucketizer.BucketFor(row.DueDate, asOfDate)
+                    })
+                    .ToList()
+            })
+            .ToList();
 
         return new ResponseOpenChequeAgingJson
         {

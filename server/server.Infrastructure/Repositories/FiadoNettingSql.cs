@@ -80,6 +80,14 @@ internal sealed class FiadoBalanceSqlRow
     public decimal OutstandingTotal { get; init; }
 }
 
+internal sealed class FiadoBalanceSummarySqlRow
+{
+    public int DebtorCount { get; init; }
+    public decimal TotalDebt { get; init; }
+    public int CreditorCount { get; init; }
+    public decimal TotalCredit { get; init; }
+}
+
 internal sealed class FiadoOpenSaleSqlRow
 {
     public Guid Id { get; init; }

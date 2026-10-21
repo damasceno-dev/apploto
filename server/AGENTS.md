@@ -297,6 +297,7 @@ Repository rules:
 - When a repository needs two overloads of the same query that differ only in EF Core tracking — one tracked for use-case mutations, one read-only for queries — suffix the read-only variant with `AsNoTracking`. Example: `GetActiveByIdAndBranchId` (tracked, used by Update/Deactivate) and `GetActiveByIdAndBranchIdAsNoTracking` (no tracking, used by Get). This makes the contract explicit and prevents accidental use of a non-tracked query in a write path.
 - Persisted idempotency reservations use a tracked repository read because the replay envelope and expiry may be updated in the same database transaction as the business write. Never implement financial idempotency with process memory.
 - PostgreSQL optimistic-concurrency roots (`DailyClose`, `Transaction`, and `Setting`) map a `uint Version` property to the `xmin` system column with `IsRowVersion()`; do not add a user-defined `Version` column or a second close-item concurrency mechanism.
+- A read that must see one consistent state across several queries (today the management overview) opens `IReportReadSnapshot` (`ReportReadSnapshot`): a read-only PostgreSQL transaction at `REPEATABLE READ` on the request's `ServerDbContext`, rolled back on dispose. Run the queries one after another inside it, never in parallel; it never commits, and the database refuses writes inside it.
 
 Unit of work rule:
 
@@ -586,6 +587,14 @@ Keep a small architecture test suite that at minimum verifies:
 
 - all use cases are registered in DI
 - all controllers declare auth intent at the class or endpoint level
+- report and preview use cases cannot commit — report use cases checked transitively through every Application class they construct, because their computation lives in shared readers under `server.Application.Services.Reports`
+- production registers the real scoped `BranchClock`
+
+### Time and command seams in WebApi.Test
+
+- The test host replaces the scoped `IBranchClock` with `FrozenBranchClock`. Unfrozen it reads real time; `factory.FreezeBranchLocalTime(...)` (disposed at the end of the test) freezes a branch-local instant, and `AdvanceTo` moves it. Use it for every assertion that depends on branch-local today or in-progress hours instead of `DateTime.Today`.
+- `ArmableCommandInterceptor` is attached to the host's `ServerDbContext` and does nothing until a test arms it with a command predicate and a one-shot hook (a concurrent committed write, a stall for cancellation, or an injected failure). Disarm it by disposing the scope.
+- A migration test that writes rows at an earlier schema uses SQL with that schema's columns, because the current entity may carry columns the earlier schema lacks.
 
 ### Mutation testing
 

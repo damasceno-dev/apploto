@@ -14,4 +14,16 @@ public class RequestUpdateTransactionTypeJson
     /// <c>In</c>-category type that requires a Tab account and a client may carry it; omitted means not a method.
     /// </summary>
     public FiadoPaymentKind? FiadoPaymentKind { get; init; }
+
+    /// <summary>
+    /// Receivable classification (M11 Phase 4). Omitted keeps the current value, so a rename never clears it; an
+    /// explicit <c>None</c> clears it. Applies to every row of the type at read time, past rows included.
+    /// </summary>
+    public SettlementInstrument? SettlementInstrument { get; init; }
+
+    /// <summary>
+    /// Monthly financial report classification (M11 Phase 6). Omitted keeps the current value; an explicit <c>None</c>
+    /// clears it. Applies to every row of the type at read time, past and locked months included.
+    /// </summary>
+    public MonthlyFinancialRole? MonthlyFinancialRole { get; init; }
 }

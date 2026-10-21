@@ -114,6 +114,12 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **MailDeliveryStatus** *(§6.16 — SMTP acceptance, never inbox arrival)*: `Pending` → "Envio pendente" · `Sent` → "Enviado ao servidor de e-mail" · `Failed` → "Falha no envio".
 
+**SettlementInstrument** *(§3.10, admin types, Upcoming settlements and the Dashboard)*: `None` → "Sem classificação" · `Cheque` → "Cheque" · `CreditCard` → "Cartão de crédito" · `DebitCard` → "Cartão de débito". *(A receivable class set by the manager on the type; never inferred from the type's name.)*
+
+**MonthlyFinancialRole** *(§3.10, admin types and the Monthly financial report)*: `None` → "Nenhuma" · `BolaoServiceFee` → "Tarifa de bolão" · `CommercialLeftover` → "Sobra (perda comercial)". *(Feminine — agrees with "classificação".)*
+
+**OverviewSectionStatus** *(§6.14, Dashboard sections)*: `Ready` → "Atualizado" · `Empty` → "Nada no período" · `NotConfigured` → "Não configurado". *(A section's state, never a figure: `NotConfigured` is never rendered as zero — see §7.5.)*
+
 **OperatorLinkRequestStatus** *(§6.16)*: `Pending` → "Pendente" · `Resolved` → "Resolvida". *(Feminine — agrees with "solicitação".)*
 
 ## 6. Error display
@@ -188,6 +194,15 @@ The backend is the single source of error-message truth. Every API error is `Res
 - Delivery status is never "entregue" or "recebido": "Enviado ao servidor de e-mail" / "Falha no envio"; a failed delivery offers "Reenviar convite".
 - Guided employee journeys: "Adicionar funcionário", "Desligar", "Concluir depois", remaining items "Sem terminal atribuído", "Convite pendente até {data/hora}", "Vincular login depois", "Envio do convite falhou"; removal confirmation "A pessoa deixará de acessar esta lotérica. O histórico registrado continua disponível."
 - Owner setup checklist: item states "Concluído", "Pendente", "Não foi possível verificar"; collapsed line "Configuração inicial concluída".
+
+### 7.5 Dashboard and M11 reports
+
+- Section states (`OverviewSectionStatus`): *Nada no período* reads as a sentence with the window — "Nenhum fechamento de 14/10 a 20/10." — while *Não configurado* names what is missing and where it is fixed, never a zero: "Nenhum tipo de transação está classificado como cartão ou cheque. Classifique os tipos em Categorias e tipos." and, for the monthly figures, "Tarifa de bolão não configurada" / "Sobras não configuradas" in place of the amount.
+- Every section names its window in words: "Hoje, 20/10", "Últimos 7 dias", "Outubro até hoje (parcial)", "Vencimentos de 20/10 a 02/11". A provisional figure says so: "em andamento — provisório" beside live hours.
+- Overdue stays its own line, never added to the period: "Vencidos antes de hoje: 2 · R$ 200,00".
+- Figures are never summed across sections or accounts: there is no "Total geral". The account list's note: "Valores por conta; não somam entre contas."
+- The Dashboard's footer is factual about freshness: "Atualizado às {hora} (horário da lotérica). Atualize para ver novos lançamentos." — never "ao vivo".
+- Working answers stay visible where they shape a figure: "Definição provisória — aguarda confirmação da lotérica" on the monthly fee, leftovers and card/cheque receivables.
 
 ## 8. Do / don't
 

@@ -130,6 +130,23 @@ try {
       delete d.color.domain.dark['aging-bucket'];
     }),
   );
+  expectFailure('missing M11 domain in one theme', 'missing required domain "overview-section-status"', (dir) =>
+    editColors(dir, (d) => {
+      delete d.color.domain.dark['overview-section-status'];
+    }),
+  );
+  expectFailure('invented M11 instrument value', 'Boleto is not a SettlementInstrument value', (dir) =>
+    editColors(dir, (d) => {
+      d.color.domain.light['settlement-instrument'].Boleto = { ...d.color.domain.light['settlement-instrument'].Cheque };
+      d.color.domain.dark['settlement-instrument'].Boleto = { ...d.color.domain.dark['settlement-instrument'].Cheque };
+    }),
+  );
+  expectFailure('missing M11 role value', 'missing enum value CommercialLeftover', (dir) =>
+    editColors(dir, (d) => {
+      delete d.color.domain.light['monthly-financial-role'].CommercialLeftover;
+      delete d.color.domain.dark['monthly-financial-role'].CommercialLeftover;
+    }),
+  );
   expectFailure('missing enum value in a domain', 'missing enum value Rejected', (dir) =>
     editColors(dir, (d) => {
       delete d.color.domain.light['daily-close-status'].Rejected;

@@ -112,7 +112,14 @@ export const operations = [
   { method: 'GET', path: '/report/daily-ledger', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/fiado/aging', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/fiado/balance', authTier: 'branch', headers: [] },
+  { method: 'GET', path: '/report/management-overview', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/manager-queue', authTier: 'branch', headers: [] },
+  {
+    method: 'GET',
+    path: '/report/monthly-financial/{year}/{month}',
+    authTier: 'branch',
+    headers: [],
+  },
   {
     method: 'GET',
     path: '/report/monthly-reconciliation/{year}/{month}',
@@ -121,6 +128,7 @@ export const operations = [
   },
   { method: 'GET', path: '/report/operator-summary', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/timeentry-balance', authTier: 'branch', headers: [] },
+  { method: 'GET', path: '/report/upcoming-settlements', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/setting', authTier: 'branch', headers: [] },
   { method: 'PUT', path: '/setting', authTier: 'branch', headers: ['If-Match'] },
   { method: 'POST', path: '/setting/lock-month', authTier: 'branch', headers: ['If-Match'] },

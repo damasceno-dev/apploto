@@ -297,7 +297,8 @@ public class TransactionsRepositoryBuilder
                 Arg.Is<Guid?>(value => value == accountId),
                 Arg.Is<Guid?>(value => value == clientId),
                 Arg.Is<int>(value => value == page),
-                Arg.Is<int>(value => value == pageSize))
+                Arg.Is<int>(value => value == pageSize),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -311,20 +312,9 @@ public class TransactionsRepositoryBuilder
         _repository.CountOpenChequeGroupsByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid?>(value => value == accountId),
-                Arg.Is<Guid?>(value => value == clientId))
+                Arg.Is<Guid?>(value => value == clientId),
+                Arg.Any<CancellationToken>())
             .Returns(count);
-        return this;
-    }
-
-    public TransactionsRepositoryBuilder ListActiveByOriginTransactionIdAndBranchIdAsNoTrackingReturns(
-        Guid originId,
-        Guid branchId,
-        IReadOnlyList<Transaction> result)
-    {
-        _repository.ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
-                Arg.Is<Guid>(value => value == originId),
-                Arg.Is<Guid>(value => value == branchId))
-            .Returns(result);
         return this;
     }
 
@@ -377,6 +367,70 @@ public class TransactionsRepositoryBuilder
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<int>(value => value == year),
                 Arg.Is<int>(value => value == month),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListUpcomingSettlementTotalsByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        UpcomingSettlementFilter filter,
+        IReadOnlyList<UpcomingSettlementInstrumentTotalRow> result)
+    {
+        _repository.ListUpcomingSettlementTotalsByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<UpcomingSettlementFilter>(value => value == filter),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListUpcomingSettlementsByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        UpcomingSettlementFilter filter,
+        int page,
+        int pageSize,
+        IReadOnlyList<UpcomingSettlementRow> result)
+    {
+        _repository.ListUpcomingSettlementsByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<UpcomingSettlementFilter>(value => value == filter),
+                Arg.Is<int>(value => value == page),
+                Arg.Is<int>(value => value == pageSize),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder ListMonthlyFinancialRoleRowsByBranchIdAsNoTrackingReturns(
+        Guid branchId,
+        MonthlyFinancialRole role,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<MonthlyFinancialRoleRow> result)
+    {
+        _repository.ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<MonthlyFinancialRole>(value => value == role),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder GetMonthlyFinancialRoleTotalAsNoTrackingReturns(
+        Guid branchId,
+        MonthlyFinancialRole role,
+        DateTime dateFrom,
+        DateTime dateTo,
+        MonthlyFinancialRoleTotal result)
+    {
+        _repository.GetMonthlyFinancialRoleTotalAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<MonthlyFinancialRole>(value => value == role),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo),
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return this;

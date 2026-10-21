@@ -67,6 +67,22 @@ Responsive behavior for all six: summary strip 4 → 2 → 1 columns; tables scr
 
 Loading; clean month; blockers present; locked (read-only, no lock action); current month (lock action absent: **O mês atual não pode ser bloqueado.**); out-of-range month (verbatim 400); error; uncertain lock (warning Notice; re-read the report and settings before anything else).
 
+## Not yet blueprinted (gap Q)
+
+These headings only track the three server M11 catalog entries. Each is **not blueprinted**: the [catalog](../../docs/screens.md) defines what the screen shows and does against shipped contracts, but the M4 per-screen gate (gap Q) holds until server M11 Phases 4–7 are independently accepted. Nothing below defines layout, regions, components or states; design M4 4.8.4 writes them, inheriting the shared report frame above.
+
+### Dashboard
+
+Not blueprinted — gap Q. Catalog: [Dashboard](../../docs/screens.md#dashboard).
+
+### Upcoming settlements
+
+Not blueprinted — gap Q. Catalog: [Upcoming settlements](../../docs/screens.md#upcoming-settlements).
+
+### Monthly financial report
+
+Not blueprinted — gap Q. Catalog: [Monthly financial report](../../docs/screens.md#monthly-financial-report).
+
 ## Verification boundary
 
 Static: frame, columns, summaries, labels and returns. Real-UI (Web/Mobile M8): whole-set totals against a populated local API, FIFO explanations with partial payments, the lock confirmation and its refusals, table scrolling and grouped lists at 375px with enlarged text.

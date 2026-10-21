@@ -193,6 +193,7 @@ public static class InfraDependencyInjection
         services.AddScoped<IHolidaysRepository, HolidaysRepository>();
         services.AddScoped<IIdempotencyRequestsRepository, IdempotencyRequestsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IReportReadSnapshot, ReportReadSnapshot>();
         services.AddScoped<IIdempotencyRequestCoordination, IdempotencyRequestCoordination>();
         services.AddScoped<IMonthLockCoordination, MonthLockCoordination>();
         services.AddScoped<IDailyCloseAccountCoordination, DailyCloseAccountCoordination>();

@@ -33,6 +33,9 @@ Blueprints are grouped by coherent feature rather than one file per screen, beca
 | Open-cheque aging | [reports-and-month-lock.md](reports-and-month-lock.md#open-cheque-aging) | Web/Mobile M8 | Ready |
 | Cash-variance summary | [reports-and-month-lock.md](reports-and-month-lock.md#cash-variance-summary) | Web/Mobile M8 | Ready |
 | Monthly reconciliation + lock | [reports-and-month-lock.md](reports-and-month-lock.md#monthly-reconciliation--lock) | Web/Mobile M8 | Ready |
+| Dashboard | [reports-and-month-lock.md](reports-and-month-lock.md#dashboard) | Web/Mobile M8 | Not blueprinted — gap Q (M4 4.8.4) |
+| Upcoming settlements | [reports-and-month-lock.md](reports-and-month-lock.md#upcoming-settlements) | Web/Mobile M8 | Not blueprinted — gap Q (M4 4.8.4) |
+| Monthly financial report | [reports-and-month-lock.md](reports-and-month-lock.md#monthly-financial-report) | Web/Mobile M8 | Not blueprinted — gap Q (M4 4.8.4) |
 | My transaction summary | [time-and-self-service.md](time-and-self-service.md#my-transaction-summary) | Web/Mobile M9 | Ready |
 | My time-entry balance | [time-and-self-service.md](time-and-self-service.md#my-time-entry-balance) | Web/Mobile M9 | Ready |
 | Operator Day Cockpit | [operator-day.md](operator-day.md#operator-day-cockpit) | Web/Mobile M5 | Ready |
@@ -53,7 +56,7 @@ Blueprints are grouped by coherent feature rather than one file per screen, beca
 | Add employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#add-employee-guided) | Web/Mobile M11 | Ready |
 | Offboard employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#offboard-employee-guided) | Web/Mobile M11 | Partial — withdrawing an invitation (gap AC) |
 
-**Not blueprinted, by decision:** Dashboard, Upcoming settlements and the Monthly financial report have no catalog entry yet (gap Q, server M11). They will inherit the shell and report frame once their contracts and entries exist; nothing here anticipates their figures.
+**Not blueprinted yet:** Dashboard, Upcoming settlements and the Monthly financial report now have catalog entries against shipped server M11 Phase 4–7 contracts (canonical v56), but those contracts await independent acceptance, so the M4 per-screen gate (gap Q) still holds. Their rows point at placeholder headings that say so; no layout, region order or component choice is defined for them until design M4 4.8.4.
 
 ## What every blueprint specifies
 

@@ -46,6 +46,18 @@ public interface IDailyClosesRepository
     /// </summary>
     Task<ManagerQueueBacklogRow> GetManagerQueueBacklogByBranchIdAndDateRangeAsNoTracking(
         Guid branchId, DateTime afterDateExclusive, DateTime beforeDateExclusive, CancellationToken ct = default);
+    /// <summary>
+    /// Active closes of every status dated in <c>[dateFrom, dateTo]</c>, in the <c>GET /dailyclose</c> order
+    /// (<c>Date DESC, CreatedAt DESC, Id DESC</c>), optionally limited to the first <paramref name="take"/> rows, each
+    /// with recorder and submitter identities (M11 Phases 6–7).
+    /// </summary>
+    Task<IReadOnlyList<DailyCloseSummaryRow>> ListCloseSummariesByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, int? take = null, CancellationToken ct = default);
+
+    /// <summary>Active close counts per status over <c>[dateFrom, dateTo]</c> from one grouped query.</summary>
+    Task<IReadOnlyList<DailyCloseStatusCountRow>> CountByStatusByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default);
+
     Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(
         Guid branchId, DailyCloseListFilter filter, CancellationToken ct = default);
     Task<int> CountByBranchIdAsNoTracking(

@@ -215,6 +215,57 @@ public class CreateTransactionTypeUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldPersistClassifications_AndDefaultOmittedOnesToNone()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var category = new CategoryBuilder().WithBranchId(branchUser.BranchId).WithDefaultDirection(Direction.Out).Build();
+        var request = new RequestCreateTransactionTypeJsonBuilder()
+            .WithCategoryId(category.Id)
+            .WithMonthlyFinancialRole(MonthlyFinancialRole.CommercialLeftover)
+            .Build();
+        var ttRepository = new TransactionTypesRepositoryBuilder()
+            .ExistsActiveByCategoryIdAndName(category.Id, request.Name.Trim(), false)
+            .Build();
+        ttRepository.GetActiveByIdWithCategoryAndBranchIdAsNoTracking(Arg.Any<Guid>(), branchUser.BranchId)
+            .Returns(new TransactionTypeBuilder().WithCategory(category).Build());
+        var useCase = CreateUseCase(
+            new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build(),
+            new CategoriesRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(category.Id, branchUser.BranchId, category).Build(),
+            ttRepository,
+            new UnitOfWorkBuilder().Build());
+
+        await useCase.Execute(request);
+
+        await ttRepository.Received(1).Add(Arg.Is<TransactionType>(tt =>
+            tt.MonthlyFinancialRole == MonthlyFinancialRole.CommercialLeftover &&
+            tt.SettlementInstrument == SettlementInstrument.None));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldThrowConflict_WhenFeeRoleIsOnAnOutCategory()
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var category = new CategoryBuilder().WithBranchId(branchUser.BranchId).WithDefaultDirection(Direction.Out).Build();
+        var request = new RequestCreateTransactionTypeJsonBuilder()
+            .WithCategoryId(category.Id)
+            .WithMonthlyFinancialRole(MonthlyFinancialRole.BolaoServiceFee)
+            .Build();
+        var ttRepository = new TransactionTypesRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var useCase = CreateUseCase(
+            new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build(),
+            new CategoriesRepositoryBuilder().GetActiveByIdAndBranchIdAsNoTracking(category.Id, branchUser.BranchId, category).Build(),
+            ttRepository,
+            unitOfWork);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(request));
+
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_DIRECTION_INVALID);
+        await ttRepository.DidNotReceiveWithAnyArgs().Add(default!);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
     private static CreateTransactionTypeUseCase CreateUseCase(
         IAuthenticationService authenticationService,
         ICategoriesRepository categoriesRepository,

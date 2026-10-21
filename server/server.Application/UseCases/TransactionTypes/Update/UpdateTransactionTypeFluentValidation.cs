@@ -17,5 +17,13 @@ public class UpdateTransactionTypeFluentValidation : AbstractValidator<RequestUp
             .IsInEnum()
             .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_FIADO_PAYMENT_KIND_ENUM_INVALID)
             .When(r => r.FiadoPaymentKind.HasValue);
+        RuleFor(r => r.SettlementInstrument)
+            .IsInEnum()
+            .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_SETTLEMENT_INSTRUMENT_INVALID)
+            .When(r => r.SettlementInstrument.HasValue);
+        RuleFor(r => r.MonthlyFinancialRole)
+            .IsInEnum()
+            .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_INVALID)
+            .When(r => r.MonthlyFinancialRole.HasValue);
     }
 }

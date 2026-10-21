@@ -314,7 +314,9 @@ internal static class TestSeeder
             bool requiresTabAccountAndClient = false,
             bool active = true,
             FiadoPaymentKind? fiadoPaymentKind = null,
-            TransactionTypeSystemRole? systemRole = null)
+            TransactionTypeSystemRole? systemRole = null,
+            SettlementInstrument settlementInstrument = SettlementInstrument.None,
+            MonthlyFinancialRole monthlyFinancialRole = MonthlyFinancialRole.None)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -328,7 +330,9 @@ internal static class TestSeeder
                 RequiresTabAccountAndClient = requiresTabAccountAndClient,
                 Active = active,
                 FiadoPaymentKind = fiadoPaymentKind,
-                SystemRole = systemRole
+                SystemRole = systemRole,
+                SettlementInstrument = settlementInstrument,
+                MonthlyFinancialRole = monthlyFinancialRole
             };
             dbContext.TransactionTypes.Add(transactionType);
             await dbContext.SaveChangesAsync();

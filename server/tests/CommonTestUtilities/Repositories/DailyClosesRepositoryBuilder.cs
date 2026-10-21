@@ -176,6 +176,38 @@ public class DailyClosesRepositoryBuilder
         return this;
     }
 
+    public DailyClosesRepositoryBuilder ListCloseSummariesByBranchIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        int? take,
+        IReadOnlyList<DailyCloseSummaryRow> result)
+    {
+        _repository.ListCloseSummariesByBranchIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo),
+                Arg.Is<int?>(value => value == take),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public DailyClosesRepositoryBuilder CountByStatusByBranchIdAndDateRangeAsNoTrackingReturns(
+        Guid branchId,
+        DateTime dateFrom,
+        DateTime dateTo,
+        IReadOnlyList<DailyCloseStatusCountRow> result)
+    {
+        _repository.CountByStatusByBranchIdAndDateRangeAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId),
+                Arg.Is<DateTime>(value => value == dateFrom),
+                Arg.Is<DateTime>(value => value == dateTo),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
     public IDailyClosesRepository Build()
     {
         return _repository;

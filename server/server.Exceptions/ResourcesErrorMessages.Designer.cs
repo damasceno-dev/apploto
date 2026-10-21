@@ -1627,5 +1627,11 @@ namespace server.Exceptions {
         public static string GOOGLE_CHALLENGE_INVALID => ResourceManager.GetString("GOOGLE_CHALLENGE_INVALID", resourceCulture);
         public static string GOOGLE_LINK_PROOF_REQUIRED => ResourceManager.GetString("GOOGLE_LINK_PROOF_REQUIRED", resourceCulture);
         public static string GOOGLE_IDENTITY_CONFLICT => ResourceManager.GetString("GOOGLE_IDENTITY_CONFLICT", resourceCulture);
+        public static string TRANSACTION_TYPE_SETTLEMENT_INSTRUMENT_INVALID => ResourceManager.GetString("TRANSACTION_TYPE_SETTLEMENT_INSTRUMENT_INVALID", resourceCulture);
+        public static string TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_INVALID => ResourceManager.GetString("TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_INVALID", resourceCulture);
+        public static string TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_DIRECTION_INVALID => ResourceManager.GetString("TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_DIRECTION_INVALID", resourceCulture);
+        public static string REPORT_SETTLEMENT_INSTRUMENT_INVALID => ResourceManager.GetString("REPORT_SETTLEMENT_INSTRUMENT_INVALID", resourceCulture);
+        public static string REPORT_MONTH_IN_FUTURE => ResourceManager.GetString("REPORT_MONTH_IN_FUTURE", resourceCulture);
+        public static string REPORT_YEAR_MONTH_PAIR_REQUIRED => ResourceManager.GetString("REPORT_YEAR_MONTH_PAIR_REQUIRED", resourceCulture);
     }
 }

@@ -10,6 +10,8 @@ public class RequestUpdateTransactionTypeJsonBuilder
     private string _name;
     private SettlementRule _settlementRule = SettlementRule.SameDay;
     private bool _requiresTabAccountAndClient = false;
+    private SettlementInstrument? _settlementInstrument;
+    private MonthlyFinancialRole? _monthlyFinancialRole;
 
     public RequestUpdateTransactionTypeJsonBuilder()
     {
@@ -34,13 +36,27 @@ public class RequestUpdateTransactionTypeJsonBuilder
         return this;
     }
 
+    public RequestUpdateTransactionTypeJsonBuilder WithSettlementInstrument(SettlementInstrument? value)
+    {
+        _settlementInstrument = value;
+        return this;
+    }
+
+    public RequestUpdateTransactionTypeJsonBuilder WithMonthlyFinancialRole(MonthlyFinancialRole? value)
+    {
+        _monthlyFinancialRole = value;
+        return this;
+    }
+
     public RequestUpdateTransactionTypeJson Build()
     {
         return new RequestUpdateTransactionTypeJson
         {
             Name = _name,
             SettlementRule = _settlementRule,
-            RequiresTabAccountAndClient = _requiresTabAccountAndClient
+            RequiresTabAccountAndClient = _requiresTabAccountAndClient,
+            SettlementInstrument = _settlementInstrument,
+            MonthlyFinancialRole = _monthlyFinancialRole
         };
     }
 }

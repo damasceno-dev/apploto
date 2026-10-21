@@ -10,7 +10,7 @@ Text (`typography.role.badge`) inside a rectangle with `radius.badge`, padding `
 
 | Variant | Tokens | Examples |
 |---|---|---|
-| Status (domain) | `dom.<group>.<value>.fg` on `dom.<group>.<value>.bg` | `dom.transaction-status.*`, `dom.daily-close-status.*`, `dom.installment-plan-status.*`, `dom.time-entry-status.*`, `dom.invitation-status.*`, `dom.mail-delivery-status.*`, `dom.operator-link-request-status.*`, `dom.review-event-type.*` |
+| Status (domain) | `dom.<group>.<value>.fg` on `dom.<group>.<value>.bg` | `dom.transaction-status.*`, `dom.daily-close-status.*`, `dom.installment-plan-status.*`, `dom.time-entry-status.*`, `dom.invitation-status.*`, `dom.mail-delivery-status.*`, `dom.operator-link-request-status.*`, `dom.review-event-type.*`, `dom.settlement-instrument.*`, `dom.monthly-financial-role.*`, `dom.overview-section-status.*` |
 | Severity (aging) | `dom.aging-bucket.*` — the most severe bucket is solid | **Em dia**, **0–30 dias** … **Mais de 90 dias** |
 | Provenance marker | `dom.generated-movement.automatic.fg` text, 1px `dom.generated-movement.automatic.border` outline, no fill | **Automática** beside a transaction type |
 | Feedback | `sem.feedback.<kind>.fg` on `sem.feedback.<kind>.bg` | **Inativa**, **Pendente**, **você** (`sem.feedback.info.*`), self-recorded marker |

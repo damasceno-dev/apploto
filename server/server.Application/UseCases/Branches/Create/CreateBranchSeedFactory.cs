@@ -91,6 +91,8 @@ public static class CreateBranchSeedFactory
                 Name = seed.Name,
                 CategoryId = categoriesByName[seed.CategoryName].Id,
                 SettlementRule = ResolveSettlementRule(seed.Name),
+                SettlementInstrument = ResolveSettlementInstrument(seed.Name),
+                MonthlyFinancialRole = ResolveMonthlyFinancialRole(seed.Name),
                 RequiresTabAccountAndClient = seed.Name == "Cliente"
             })
             .Concat(
@@ -123,6 +125,36 @@ public static class CreateBranchSeedFactory
             "Cartão de Crédito" => SettlementRule.TwoBusinessDays,
             "Depósito Dinheiro" => SettlementRule.NextCalendarDay,
             _ => SettlementRule.SameDay
+        };
+    }
+
+    /// <summary>
+    /// M11 Phase 4: fresh-seed classification from the working answers SQ1 (cards are receivables until payout) and
+    /// SQ2 (single cheques exist, paid = cleared). Keyed by this factory's own seed rows, never applied to an existing
+    /// branch's renamed or custom types.
+    /// </summary>
+    private static SettlementInstrument ResolveSettlementInstrument(string transactionTypeName)
+    {
+        return transactionTypeName switch
+        {
+            "Depósito Cheque" => SettlementInstrument.Cheque,
+            "Cartão de Crédito" => SettlementInstrument.CreditCard,
+            "Cartão de Débito" => SettlementInstrument.DebitCard,
+            _ => SettlementInstrument.None
+        };
+    }
+
+    /// <summary>
+    /// M11 Phase 6: fresh-seed report markers from the working answers SQ3 (Tarifa Bolão is the day's fee) and SQ4 (the
+    /// Sobra rows are commercial losses). Keyed by this factory's own seed rows; existing branches configure theirs.
+    /// </summary>
+    private static MonthlyFinancialRole ResolveMonthlyFinancialRole(string transactionTypeName)
+    {
+        return transactionTypeName switch
+        {
+            "Tarifa Bolão" => MonthlyFinancialRole.BolaoServiceFee,
+            "Sobra de Bolão" or "Sobra de Federal" => MonthlyFinancialRole.CommercialLeftover,
+            _ => MonthlyFinancialRole.None
         };
     }
 

@@ -66,6 +66,14 @@ public interface ITransactionsRepository
     Task<IReadOnlyList<FiadoClientBalanceRow>> ListFiadoBalancesByBranchIdAsNoTracking(
         Guid branchId, Guid? clientId, DateTime asOfDate, CancellationToken ct = default);
 
+    /// <summary>The debt/credit split over the same per-client balances, folded in the database (M11 Phase 7 review).</summary>
+    Task<FiadoBalanceSummary> GetFiadoBalanceSummaryByBranchIdAsNoTracking(
+        Guid branchId, DateTime asOfDate, CancellationToken ct = default);
+
+    /// <summary>The <paramref name="take"/> largest debtors over the same balances: balance DESC, client name, client id.</summary>
+    Task<IReadOnlyList<FiadoClientBalanceRow>> ListTopFiadoDebtorsByBranchIdAsNoTracking(
+        Guid branchId, DateTime asOfDate, int take, CancellationToken ct = default);
+
     /// <summary>
     /// Fiado sales still holding a positive unpaid remainder after branch/client-wide FIFO netting: every In of the
     /// client (any Tab) is applied to its Out rows ordered <c>DueDate, Date, Id</c>. Repayment In rows and credit
@@ -103,19 +111,66 @@ public interface ITransactionsRepository
     Task<OperatorTransactionSummaryProjection> SumByBranchIdAndOperatorIdAndDateRangeAsNoTracking(
         Guid branchId, Guid operatorId, DateTime dateFrom, DateTime dateTo, IReadOnlyList<Guid>? allowedAccountIds = null);
 
+    /// <summary>
+    /// Open-cheque aging groups (M11 Phase 4.2): every installment plan with an unpaid Active row, plus each unpaid
+    /// Active standalone row of a type classified <c>Cheque</c>, ordered by oldest open due date then group key, with
+    /// each page's unpaid rows read in one batch.
+    /// </summary>
     Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize);
+        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize, CancellationToken ct = default);
     Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId);
+        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default);
 
     /// <summary>
-    /// Whole-filter open-cheque totals (M11 Phase 2.1): every unpaid row of every open plan matching the filters,
-    /// grouped by due date in one query, independent of paging.
+    /// Whole-filter open-cheque totals (M11 Phase 2.1, widened in 4.2): every unpaid row of every open group matching
+    /// the filters, grouped by due date in one query, independent of paging.
     /// </summary>
     Task<IReadOnlyList<AgingDueDateTotalRow>> ListOpenChequeTotalsByDueDateAsNoTracking(
         Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default);
-    Task<IReadOnlyList<Transaction>> ListActiveByOriginTransactionIdAndBranchIdAsNoTracking(
-        Guid originId, Guid branchId);
+    /// <summary>
+    /// One page of upcoming settlements (M11 Phase 5) ordered <c>DueDate, Date, Id</c>; every filter applies before
+    /// paging and each installment row appears once.
+    /// </summary>
+    Task<IReadOnlyList<UpcomingSettlementRow>> ListUpcomingSettlementsByBranchIdAsNoTracking(
+        Guid branchId, UpcomingSettlementFilter filter, int page, int pageSize, CancellationToken ct = default);
+
+    /// <summary>Whole-filter count and value per instrument for the same selection, independent of paging.</summary>
+    Task<IReadOnlyList<UpcomingSettlementInstrumentTotalRow>> ListUpcomingSettlementTotalsByBranchIdAsNoTracking(
+        Guid branchId, UpcomingSettlementFilter filter, CancellationToken ct = default);
+
+    /// <summary>
+    /// Active (non-Draft, non-cancelled) rows of types carrying <paramref name="role"/> — active or retired — on
+    /// Terminal accounts dated in <c>[dateFrom, dateTo]</c>, grouped by date, account, recording operator and type
+    /// (M11 Phase 6).
+    /// </summary>
+    Task<IReadOnlyList<MonthlyFinancialRoleRow>> ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
+        Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default);
+
+    /// <summary>The same rows' inflow/outflow sums and count, folded in the database.</summary>
+    Task<MonthlyFinancialRoleTotal> GetMonthlyFinancialRoleTotalAsNoTracking(
+        Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default);
+
+    /// <summary>
+    /// Account activity on one date (M11 Phase 7.2): the listed set — every active Terminal plus any account, active
+    /// or deactivated, with Active or Draft rows that day — counted and limited to its first <paramref name="take"/>
+    /// accounts by name then id in the database; daily-ledger sums over Active rows and Draft counts apart, only for
+    /// those accounts.
+    /// </summary>
+    Task<ActivityPage<AccountActivityRow>> GetAccountActivityPageByBranchIdAndDateAsNoTracking(
+        Guid branchId, DateTime date, int take, CancellationToken ct = default);
+
+    /// <summary>The latest date carrying an Active row on or before <paramref name="throughDate"/> for each listed account.</summary>
+    Task<IReadOnlyList<AccountLastActivityRow>> ListLastActivityDatesByBranchIdAsNoTracking(
+        Guid branchId, IReadOnlyCollection<Guid> accountIds, DateTime throughDate, CancellationToken ct = default);
+
+    /// <summary>
+    /// Recording-operator activity over <c>[dateFrom, dateTo]</c> (M11 Phase 7.3, operator-summary predicates): active
+    /// operators plus any operator with Active rows, counted and limited to its first <paramref name="take"/> by row
+    /// count DESC, name, id in the database; sums and the generated share only for those operators.
+    /// </summary>
+    Task<ActivityPage<OperatorActivityRow>> GetOperatorActivityPageByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, int take, CancellationToken ct = default);
+
     /// <summary>
     /// Counts active, non-soft-deleted transactions for the branch/month grouped by (Date, Status), spanning
     /// all Active/Draft/Canceled. A dedicated count aggregate — NOT the paginated list — so it counts in

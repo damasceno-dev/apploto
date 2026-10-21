@@ -232,6 +232,16 @@ Status is always named in text; color is a second signal, never the only one. Ba
 | operator-link-request-status (OperatorLinkRequestStatus) | `Resolved` | Resolvida | `#146b45` / `#146b451a` | `#9fd8bb` / `#52c48d24` | 4.79 / 5.81 |
 | review-event-type (DailyCloseReviewEventType) | `Rejected` | Rejeitado na conferência | `#b33225` / `#b3322517` | `#ffb1a8` / `#ff897c21` | 4.57 / 5.76 |
 | review-event-type (DailyCloseReviewEventType) | `OpeningChanged` | Abertura alterada | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| settlement-instrument (SettlementInstrument) | `None` | Sem classificação | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
+| settlement-instrument (SettlementInstrument) | `Cheque` | Cheque | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| settlement-instrument (SettlementInstrument) | `CreditCard` | Cartão de crédito | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| settlement-instrument (SettlementInstrument) | `DebitCard` | Cartão de débito | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| monthly-financial-role (MonthlyFinancialRole) | `None` | Nenhuma | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
+| monthly-financial-role (MonthlyFinancialRole) | `BolaoServiceFee` | Tarifa de bolão | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| monthly-financial-role (MonthlyFinancialRole) | `CommercialLeftover` | Sobra (perda comercial) | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
+| overview-section-status (OverviewSectionStatus) | `Ready` | Atualizado | `#005592` / `#0067ad17` | `#9fd5f5` / `#63b8f021` | 5.78 / 6.04 |
+| overview-section-status (OverviewSectionStatus) | `Empty` | Nada no período | `#33495a` / `#ebf1f3` | `#b6c6d0` / `#1a2d3d` | 8.21 / 8.06 |
+| overview-section-status (OverviewSectionStatus) | `NotConfigured` | Não configurado | `#8f5300` / `#f3920024` | `#f2b347` / `#f3920029` | 4.70 / 5.19 |
 | cash-variance (—) | `shortage` | −R$ … · falta | `#b33225` / `surface` | `#ffb1a8` / `surface` | 5.22 / 7.01 |
 | cash-variance (—) | `surplus` | +R$ … · sobra | `#146b45` / `surface` | `#9fd8bb` / `surface` | 5.52 / 7.53 |
 | cash-variance (—) | `zero` | R$ 0,00 | `#0f2230` / `surface` | `#e4edf2` / `surface` | 13.74 / 10.24 |
@@ -248,7 +258,8 @@ A few choices deserve their reasons:
 - **Direction is deliberately uncolored.** `In` and `Out` resolve to the same neutral text color. An entrada is not revenue and a saída is not an expense — a cash withdrawal for a prize, a fiado sale and a deposit are all saídas — so the label, the column and the sign rules of [formatting §2–3](../specs/formatting-ptbr.md) carry direction, not a profit/loss hue.
 - **Signed values follow their own meaning.** Cash variance colors a shortage (falta) with the danger tone and a surplus (sobra) with the success tone, as the selected prototype does, while the sign and the words **falta**/**sobra** always accompany the figure. Hour balances follow the same rule. A client's fiado credit uses the success tone with the mandatory **crédito do cliente** label; debt stays in the primary text color because it is the ordinary state of a fiado ledger, not an alarm.
 - **The generated-movement marker is not a status.** `generated-movement.automatic` is an outlined neutral **Automática** marker that sits beside the type, never in the status column.
-- **Enum coverage is exact.** Each `$enum` group must list precisely the values of the same-named enum in the committed OpenAPI document (`shared/api/openapi/server-api.openapi.json`). A backend enum change fails the gate until the domain tokens and the [copy labels](../specs/copy-guidelines.md) are reconciled; nothing here invents an enum value. Enums that render only as text labels (role, account type, settlement rule, holiday source, blocker type, payment kind) have no domain color.
+- **M11 classifications are categories, not alarms.** A settlement instrument is a neutral fact about a receivable, so every classified instrument uses the info tone and *Sem classificação* the neutral one; the label always names the instrument. The monthly financial role marks the fee with info and the leftover — a commercial loss — with warning. A Dashboard section that is *Não configurado* uses warning because it asks the manager to act, *Nada no período* is neutral, and *Atualizado* info: a section's status is never a money signal, and a section that is not configured is never rendered as zero.
+- **Enum coverage is exact.** Each `$enum` group must list precisely the values of the same-named enum in the committed OpenAPI document (`shared/api/openapi/server-api.openapi.json`). A backend enum change fails the gate until the domain tokens and the [copy labels](../specs/copy-guidelines.md) are reconciled; nothing here invents an enum value. Enums that render only as text labels (role, account type, settlement rule, holiday source, blocker type, payment kind) have no domain color; the three M11 enums above (`SettlementInstrument`, `MonthlyFinancialRole`, `OverviewSectionStatus`) do, and the checker requires them in both themes.
 
 ## The contrast gate
 
@@ -264,13 +275,13 @@ The checker is a zero-dependency Node script. It loads the eight files, refuses 
 - **Coverage rules**: every semantic text token, every `fg`/`fg-hover`, the navigation text tokens and the secondary accent must appear in at least one text check, and every control boundary, focus ring and selection token in at least one non-text check. A pair list that leaves a token out fails, which is what keeps the gate from sampling only convenient colors.
 - **Thresholds**: 4.5:1 for text; 3:1 for essential non-text indicators (control boundaries, focus rings, the selection indicator and its check mark). A `large-text` pair (3:1) is accepted only with a written justification naming the actual size and weight — none is used today. Disabled labels are exempt under WCAG; the project still holds them to a 3:1 floor so a faded **Salvar** stays legible. Thresholds below WCAG AA are rejected.
 
-`node scripts/check-contrast.mjs --report` prints every checked combination. `node scripts/test-check-contrast.mjs` runs the disposable regression suite: the true source passes, and broken, cyclic and malformed references, missing themes, missing or invented domain values, a renamed contract enum, failing text, boundary and badge pairs, emptied or trimmed domain surfaces, missing or failing action states, a selection indicator failing on a selected row, an unjustified large-text exemption, relaxed thresholds, coverage holes, missing files and invalid JSON or easings all fail (37 scenarios) — on temporary copies, with the source files hashed before and after.
+`node scripts/check-contrast.mjs --report` prints every checked combination. `node scripts/test-check-contrast.mjs` runs the disposable regression suite: the true source passes, and broken, cyclic and malformed references, missing themes, missing or invented domain values, a renamed contract enum, failing text, boundary and badge pairs, emptied or trimmed domain surfaces, missing or failing action states, a selection indicator failing on a selected row, an unjustified large-text exemption, relaxed thresholds, coverage holes, missing files and invalid JSON or easings all fail — including a missing M11 domain in one theme, an invented instrument and a missing role value (40 scenarios) — on temporary copies, with the source files hashed before and after.
 
 ### Results (2026-10-20)
 
 The selected hover/focus surface is now checked for body text, feedback text and every domain badge. Dark muted/placeholder text uses night.250; feedback and the 61–90 day badge foregrounds were retuned to preserve the 4.5:1 floor on that stack. Thresholds and existing pairs remain in force.
 
-All 1024 combinations pass — 512 per theme. The lowest text ratios are 4.57:1 (light) and 4.76:1 (dark); the lowest essential boundary is 3.04:1 (light control border on the page background).
+All 1164 combinations pass — 582 per theme. The lowest text ratios are 4.57:1 (light) and 4.76:1 (dark); the lowest essential boundary is 3.04:1 (light control border on the page background).
 
 | Check | Kind | Combinations per theme | Lowest light | Lowest dark |
 |---|---|---|---|---|
@@ -310,7 +321,7 @@ All 1024 combinations pass — 512 per theme. The lowest text ratios are 4.57:1 
 | action secondary bg (structural) | text | 1 | 16.26 | 14.39 |
 | action secondary bg-active (structural) | text | 1 | 14.25 | 12.36 |
 | action secondary bg-hover (structural) | text | 1 | 15.20 | 12.99 |
-| every domain value on every domain surface (structural) | text | 276 | 4.63 | 4.76 |
+| every domain value on every domain surface (structural) | text | 346 | 4.63 | 4.76 |
 
 **What the gate proves, and what it does not.** It proves that the declared color pairs meet their thresholds when composited as declared. It does not prove that an app uses the right token on the right surface, that focus is visible in every component state, that text reflows at 200%, or that a screen reader announces anything. Those belong to the component contract and to each app's real-UI verification.
 

@@ -10,8 +10,9 @@ public class ResponseOpenChequeAgingJson
     public DateTime AsOfDate { get; init; }
 
     /// <summary>
-    /// Whole-filter totals over every open installment row of every open plan matching the filters, independent of
-    /// paging (M11 Phase 2.1). <see cref="TotalCount"/> stays the open-plan count.
+    /// Whole-filter totals over every unpaid row of every open group matching the filters, independent of paging
+    /// (M11 Phase 2.1). <see cref="TotalCount"/> is the open-group count: open plans plus standalone cheques
+    /// (M11 Phase 4.2).
     /// </summary>
     public decimal OutstandingTotal { get; init; }
     public int OpenRowCount { get; init; }

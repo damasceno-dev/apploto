@@ -1,3 +1,4 @@
+using server.Application.Services.Reports;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -407,14 +408,15 @@ public class GetManagerQueueUseCaseTest
     {
         return new GetManagerQueueUseCase(
             ctx.AuthenticationService,
-            ctx.DailyClosesRepository,
-            ctx.DailyCloseItemsRepository,
-            ctx.AccountsRepository,
-            ctx.TransactionsRepository,
-            ctx.CashVarianceProductResolver,
-            new LockDateReader(ctx.SettingsRepository),
-            ctx.BranchClock,
-            Substitute.For<IOnboardingRepository>());
+            new ManagerQueueReader(
+                ctx.DailyClosesRepository,
+                ctx.DailyCloseItemsRepository,
+                ctx.AccountsRepository,
+                ctx.TransactionsRepository,
+                ctx.CashVarianceProductResolver,
+                new LockDateReader(ctx.SettingsRepository),
+                Substitute.For<IOnboardingRepository>()),
+            ctx.BranchClock);
     }
 
     private static TestContext BuildContext(

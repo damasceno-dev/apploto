@@ -1,5 +1,6 @@
 using NSubstitute;
 using server.Domain.Entities;
+using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 
 namespace CommonTestUtilities.Repositories;
@@ -57,6 +58,23 @@ public class TransactionTypesRepositoryBuilder
                 Arg.Is<string>(v => v == name),
                 exceptId)
             .Returns(exists);
+        return this;
+    }
+
+    public TransactionTypesRepositoryBuilder ExistsWithSettlementInstrumentByBranchIdAsNoTracking(Guid branchId, bool result)
+    {
+        _repository.ExistsWithSettlementInstrumentByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId), Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionTypesRepositoryBuilder ListConfiguredMonthlyFinancialRolesByBranchIdAsNoTracking(
+        Guid branchId, IReadOnlyList<MonthlyFinancialRole> result)
+    {
+        _repository.ListConfiguredMonthlyFinancialRolesByBranchIdAsNoTracking(
+                Arg.Is<Guid>(value => value == branchId), Arg.Any<CancellationToken>())
+            .Returns(result);
         return this;
     }
 

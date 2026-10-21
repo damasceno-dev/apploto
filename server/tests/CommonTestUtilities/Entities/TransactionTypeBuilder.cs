@@ -14,6 +14,8 @@ public class TransactionTypeBuilder
     private Guid _categoryId = Guid.NewGuid();
     private Category? _category;
     private bool _active = true;
+    private SettlementInstrument _settlementInstrument = SettlementInstrument.None;
+    private MonthlyFinancialRole _monthlyFinancialRole = MonthlyFinancialRole.None;
 
     public TransactionTypeBuilder()
     {
@@ -64,6 +66,18 @@ public class TransactionTypeBuilder
         return this;
     }
 
+    public TransactionTypeBuilder WithSettlementInstrument(SettlementInstrument value)
+    {
+        _settlementInstrument = value;
+        return this;
+    }
+
+    public TransactionTypeBuilder WithMonthlyFinancialRole(MonthlyFinancialRole value)
+    {
+        _monthlyFinancialRole = value;
+        return this;
+    }
+
     public TransactionType Build()
     {
         var branch = new BranchBuilder().Build();
@@ -84,7 +98,9 @@ public class TransactionTypeBuilder
             RequiresTabAccountAndClient = _requiresTabAccountAndClient,
             CategoryId = _categoryId,
             Category = category,
-            Active = _active
+            Active = _active,
+            SettlementInstrument = _settlementInstrument,
+            MonthlyFinancialRole = _monthlyFinancialRole
         };
     }
 }

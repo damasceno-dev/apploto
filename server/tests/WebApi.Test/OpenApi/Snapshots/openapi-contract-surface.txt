@@ -36,9 +36,12 @@ enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum InvitationStatus string: Pending, Accepted, Declined, Expired
 enum MailDeliveryStatus string: Pending, Sent, Failed
+enum MonthlyFinancialRole string: None, BolaoServiceFee, CommercialLeftover
 enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions, MissingExpectedClose
 enum OperatorLinkRequestStatus string: Pending, Resolved
+enum OverviewSectionStatus string: Ready, Empty, NotConfigured
 enum Role string: Admin, Manager, Member
+enum SettlementInstrument string: None, Cheque, CreditCard, DebitCard
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
 enum TimeEntryTapAction string: Open, Close
@@ -144,8 +147,10 @@ schema RequestCreateTransactionJson
 schema RequestCreateTransactionTypeJson
   categoryId required string
   fiadoPaymentKind optional enum:FiadoPaymentKind?
+  monthlyFinancialRole optional enum:MonthlyFinancialRole?
   name required string
   requiresTabAccountAndClient optional boolean
+  settlementInstrument optional enum:SettlementInstrument?
   settlementRule optional enum:SettlementRule
 
 schema RequestDailyCloseVariancePreviewJson
@@ -301,8 +306,10 @@ schema RequestUpdateTransactionJson
 
 schema RequestUpdateTransactionTypeJson
   fiadoPaymentKind optional enum:FiadoPaymentKind?
+  monthlyFinancialRole optional enum:MonthlyFinancialRole?
   name required string
   requiresTabAccountAndClient optional boolean
+  settlementInstrument optional enum:SettlementInstrument?
   settlementRule optional enum:SettlementRule
 
 schema RequestUpsertDailyCloseItemJson
@@ -935,6 +942,225 @@ schema ResponseListTransactionsJson
   totalCount required integer
   totalPages required integer
 
+schema ResponseManagementOverviewAccountActivityJson
+  date required string
+  items required ResponseManagementOverviewAccountJson[]
+  previewLimit required integer
+  status required enum:OverviewSectionStatus
+  totalCount required integer
+
+schema ResponseManagementOverviewAccountJson
+  accountId required string
+  accountName required string
+  accountType required enum:AccountType
+  activeCount required integer
+  draftCount required integer
+  isActive required boolean
+  lastActivityDate optional string?
+  net required number
+  totalIn required number
+  totalOut required number
+
+schema ResponseManagementOverviewCashVarianceJson
+  approvedCount required integer
+  dateFrom required string
+  dateTo required string
+  largestVariances required ResponseCashVarianceSummaryItemJson[]
+  maxVariance required number
+  meanVariance required number
+  minVariance required number
+  previewLimit required integer
+  rejectedCount required integer
+  status required enum:OverviewSectionStatus
+  submittedCount required integer
+  totalCount required integer
+  totalVariance required number
+
+schema ResponseManagementOverviewCloseJson
+  accountActive required boolean
+  accountId required string
+  accountName required string
+  dailyCloseId required string
+  date required string
+  officialVariance optional number?
+  recordedByOperatorId optional string?
+  recordedByOperatorName optional string?
+  recordedByUserId optional string?
+  recordedByUserName optional string?
+  status required enum:DailyCloseStatus
+  submittedByOperatorId optional string?
+  submittedByOperatorName optional string?
+  submittedByUserId optional string?
+  submittedByUserName optional string?
+
+schema ResponseManagementOverviewFiadoJson
+  agingByBucket required ResponseAgingBucketTotalJson[]
+  agingOutstandingTotal required number
+  asOfDate required string
+  creditorCount required integer
+  debtorCount required integer
+  oldestUnpaidDate optional string?
+  previewLimit required integer
+  status required enum:OverviewSectionStatus
+  topDebtors required ResponseFiadoClientBalanceItemJson[]
+  totalCount required integer
+  totalCredit required number
+  totalDebt required number
+
+schema ResponseManagementOverviewHoursJson
+  containsInProgress required boolean
+  dateFrom required string
+  dateTo required string
+  liveNowCount required integer
+  mostBehind required ResponseManagementOverviewHoursOperatorJson[]
+  negativeBalanceCount required integer
+  negativeBalanceHours required number
+  positiveBalanceCount required integer
+  positiveBalanceHours required number
+  previewLimit required integer
+  status required enum:OverviewSectionStatus
+  totalCount required integer
+  unresolvedOpenCount required integer
+
+schema ResponseManagementOverviewHoursOperatorJson
+  containsInProgress required boolean
+  isActive required boolean
+  operatorId required string
+  operatorName required string
+  totalBalanceHours required number
+  totalHours required number
+
+schema ResponseManagementOverviewJson
+  accountActivity required ResponseManagementOverviewAccountActivityJson
+  asOfDate required string
+  branchLocalNow required string
+  cashVariance required ResponseManagementOverviewCashVarianceJson
+  fiado required ResponseManagementOverviewFiadoJson
+  generatedAtUtc required string
+  hours required ResponseManagementOverviewHoursJson
+  isPartialMonth required boolean
+  month required integer
+  monthDateFrom required string
+  monthDateTo required string
+  monthlyFinancial required ResponseManagementOverviewMonthlyFinancialJson
+  openCheques required ResponseManagementOverviewOpenChequesJson
+  operatorActivity required ResponseManagementOverviewOperatorActivityJson
+  queue required ResponseManagementOverviewQueueJson
+  recentCloses required ResponseManagementOverviewRecentClosesJson
+  reconciliation required ResponseManagementOverviewReconciliationJson
+  upcomingSettlements required ResponseManagementOverviewUpcomingSettlementsJson
+  year required integer
+
+schema ResponseManagementOverviewMonthlyFinancialJson
+  bolaoServiceFeeTotal optional number?
+  commercialLeftoverTotal optional number?
+  containsInProgress required boolean
+  dateFrom required string
+  dateTo required string
+  hoursTotal required number
+  isBolaoServiceFeeConfigured required boolean
+  isCommercialLeftoverConfigured required boolean
+  isPartialMonth required boolean
+  month required integer
+  officialCloseCount required integer
+  officialVarianceTotal required number
+  status required enum:OverviewSectionStatus
+  year required integer
+
+schema ResponseManagementOverviewOpenChequeJson
+  accountId required string
+  accountName required string
+  clientId optional string?
+  clientName optional string?
+  oldestOpenBucket required enum:AgingBucket
+  oldestOpenDueDate required string
+  oldestOpenTransactionId required string
+  openRowCount required integer
+  originTransactionId optional string?
+  outstandingTotal required number
+  totalRowCount required integer
+
+schema ResponseManagementOverviewOpenChequesJson
+  asOfDate required string
+  byBucket required ResponseAgingBucketTotalJson[]
+  items required ResponseManagementOverviewOpenChequeJson[]
+  oldestOpenDueDate optional string?
+  openRowCount required integer
+  outstandingTotal required number
+  previewLimit required integer
+  status required enum:OverviewSectionStatus
+  totalCount required integer
+
+schema ResponseManagementOverviewOperatorActivityJson
+  date required string
+  items required ResponseManagementOverviewOperatorJson[]
+  previewLimit required integer
+  status required enum:OverviewSectionStatus
+  totalCount required integer
+
+schema ResponseManagementOverviewOperatorJson
+  generatedCount required integer
+  generatedIn required number
+  generatedOut required number
+  isActive required boolean
+  operatorId required string
+  operatorName required string
+  totalIn required number
+  totalOut required number
+  transactionCount required integer
+
+schema ResponseManagementOverviewQueueJson
+  backlogDraftCount required integer
+  backlogRejectedCount required integer
+  backlogSubmittedCount required integer
+  date required string
+  notSubmittedCount required integer
+  oldestPendingDate optional string?
+  pendingApprovalCount required integer
+  pendingOperatorLinkRequestCount required integer
+  rejectedCount required integer
+  status required enum:OverviewSectionStatus
+  unlockedDraftTransactionCount required integer
+
+schema ResponseManagementOverviewRecentClosesJson
+  approvedCount required integer
+  dateFrom required string
+  dateTo required string
+  draftCount required integer
+  items required ResponseManagementOverviewCloseJson[]
+  previewLimit required integer
+  rejectedCount required integer
+  status required enum:OverviewSectionStatus
+  submittedCount required integer
+  totalCount required integer
+
+schema ResponseManagementOverviewReconciliationJson
+  dateFrom required string
+  dateTo required string
+  draftTransactionBlockerCount required integer
+  isMonthElapsed required boolean
+  isMonthLocked required boolean
+  lockDate optional string?
+  lockReady required boolean
+  missingExpectedCloseBlockerCount required integer
+  month required integer
+  status required enum:OverviewSectionStatus
+  unapprovedCloseBlockerCount required integer
+  year required integer
+
+schema ResponseManagementOverviewUpcomingSettlementsJson
+  asOfDate required string
+  byInstrument required ResponseSettlementInstrumentTotalJson[]
+  dueDateFrom required string
+  dueDateTo required string
+  items required ResponseUpcomingSettlementItemJson[]
+  overdueCount required integer
+  overdueValue required number
+  previewLimit required integer
+  status required enum:OverviewSectionStatus
+  totalCount required integer
+  totalValue required number
+
 schema ResponseManagerQueueBacklogJson
   draftCount required integer
   oldestPendingDate optional string?
@@ -976,6 +1202,76 @@ schema ResponseManagerQueueNotSubmittedJson
   operatorId required string
   operatorName required string
   status optional enum:DailyCloseStatus?
+
+schema ResponseMonthlyFinancialHoursDayJson
+  balanceHours required number
+  date required string
+  isInProgress required boolean
+  operatorActive required boolean
+  operatorId required string
+  operatorName required string
+  status required enum:TimeEntryStatus
+  totalHours required number
+
+schema ResponseMonthlyFinancialLeftoverJson
+  accountActive required boolean
+  accountId required string
+  accountName required string
+  date required string
+  recordedByOperatorActive required boolean
+  recordedByOperatorId required string
+  recordedByOperatorName required string
+  rowCount required integer
+  transactionTypeId required string
+  transactionTypeName required string
+  value required number
+
+schema ResponseMonthlyFinancialLeftoverTypeTotalJson
+  rowCount required integer
+  total required number
+  transactionTypeActive required boolean
+  transactionTypeId required string
+  transactionTypeName required string
+
+schema ResponseMonthlyFinancialReportJson
+  asOfDate required string
+  bolaoServiceFeeTotal optional number?
+  branchLocalNow required string
+  commercialLeftoverTotal optional number?
+  containsInProgress required boolean
+  dateFrom required string
+  dateTo required string
+  hours required ResponseMonthlyFinancialHoursDayJson[]
+  hoursTotal required number
+  isBolaoServiceFeeConfigured required boolean
+  isCommercialLeftoverConfigured required boolean
+  isPartialMonth required boolean
+  leftovers required ResponseMonthlyFinancialLeftoverJson[]
+  leftoversByType required ResponseMonthlyFinancialLeftoverTypeTotalJson[]
+  month required integer
+  officialCloseCount required integer
+  officialVarianceTotal required number
+  terminalDays required ResponseMonthlyFinancialTerminalDayJson[]
+  year required integer
+
+schema ResponseMonthlyFinancialTerminalDayJson
+  accountActive required boolean
+  accountId required string
+  accountName required string
+  bolaoServiceFee optional number?
+  bolaoServiceFeeRowCount required integer
+  closeStatus optional enum:DailyCloseStatus?
+  dailyCloseId optional string?
+  date required string
+  officialVariance optional number?
+  recordedByOperatorId optional string?
+  recordedByOperatorName optional string?
+  recordedByUserId optional string?
+  recordedByUserName optional string?
+  submittedByOperatorId optional string?
+  submittedByOperatorName optional string?
+  submittedByUserId optional string?
+  submittedByUserName optional string?
 
 schema ResponseMonthlyReconciliationBlockerJson
   accountId optional string?
@@ -1020,7 +1316,7 @@ schema ResponseOpenChequeAgingGroupJson
   oldestOpenBucket required enum:AgingBucket
   oldestOpenDueDate required string
   openRowCount required integer
-  originTransactionId required string
+  originTransactionId optional string?
   outstandingTotal required number
   rows required ResponseOpenChequeAgingRowJson[]
   totalRowCount required integer
@@ -1168,6 +1464,11 @@ schema ResponseSettingJson
   lunchDeductionOver6H required number
   version required integer
 
+schema ResponseSettlementInstrumentTotalJson
+  count required integer
+  instrument required enum:SettlementInstrument
+  value required number
+
 schema ResponseTimeEntryBalanceOperatorJson
   abonadoDays required integer
   absentDays required integer
@@ -1263,10 +1564,41 @@ schema ResponseTransactionTypeJson
   createdAt required string
   fiadoPaymentKind optional enum:FiadoPaymentKind?
   id required string
+  monthlyFinancialRole required enum:MonthlyFinancialRole
   name required string
   requiresTabAccountAndClient required boolean
+  settlementInstrument required enum:SettlementInstrument
   settlementRule required enum:SettlementRule
   systemRole optional enum:TransactionTypeSystemRole?
+
+schema ResponseUpcomingSettlementItemJson
+  accountId required string
+  accountName required string
+  clientId optional string?
+  clientName optional string?
+  date required string
+  dueDate required string
+  instrument required enum:SettlementInstrument
+  originTransactionId optional string?
+  transactionId required string
+  transactionTypeId required string
+  transactionTypeName required string
+  value required number
+
+schema ResponseUpcomingSettlementsJson
+  asOfDate required string
+  byInstrument required ResponseSettlementInstrumentTotalJson[]
+  dueDateFrom required string
+  dueDateTo required string
+  hasNext required boolean
+  hasPrevious required boolean
+  isConfigured required boolean
+  items required ResponseUpcomingSettlementItemJson[]
+  overdueCount required integer
+  overdueValue required number
+  totalCount required integer
+  totalPages required integer
+  totalValue required number
 
 schema ResponseUpdateBranchUserRoleJson
   branchUser required ResponseBranchUserJson
@@ -2010,10 +2342,28 @@ operation GET /report/fiado/balance
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
 
+operation GET /report/management-overview
+  security BranchBearer[Admin,Manager]
+  query Month optional integer|string
+  query Year optional integer|string
+  response 200 ResponseManagementOverviewJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
 operation GET /report/manager-queue
   security BranchBearer[Admin,Manager]
   query Date required string
   response 200 ResponseManagerQueueJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation GET /report/monthly-financial/{year}/{month}
+  security BranchBearer[Admin,Manager]
+  path month required integer
+  path year required integer
+  response 200 ResponseMonthlyFinancialReportJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
@@ -2046,6 +2396,20 @@ operation GET /report/timeentry-balance
   query Mine optional boolean
   query OperatorId optional string
   response 200 ResponseTimeEntryBalanceSummaryJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation GET /report/upcoming-settlements
+  security BranchBearer[Admin,Manager]
+  query AccountId optional string
+  query DueDateFrom required string
+  query DueDateTo required string
+  query Instrument optional enum:SettlementInstrument
+  query Page required integer|string
+  query PageSize required integer|string
+  response 200 ResponseUpcomingSettlementsJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

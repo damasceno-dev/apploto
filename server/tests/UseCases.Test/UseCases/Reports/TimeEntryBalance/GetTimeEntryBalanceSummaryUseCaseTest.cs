@@ -1,3 +1,4 @@
+using server.Application.Services.Reports;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -695,9 +696,11 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         return new GetTimeEntryBalanceSummaryUseCase(
             ctx.AuthenticationService,
             ctx.OperatorsRepository,
-            ctx.TimeEntriesRepository,
-            ctx.TimeEntryPoliciesRepository,
-            ctx.CalculationService,
+            new TimeEntryBalanceProjector(
+                ctx.OperatorsRepository,
+                ctx.TimeEntriesRepository,
+                ctx.TimeEntryPoliciesRepository,
+                ctx.CalculationService),
             ctx.BranchClock,
             ctx.MemberScopeResolver);
     }

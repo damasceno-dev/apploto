@@ -2,9 +2,13 @@ using server.Domain.Entities.Enums;
 
 namespace server.Communication.Responses;
 
+/// <summary>
+/// One open-cheque group: an installment plan, or (M11 Phase 4.2) a standalone row of a type classified <c>Cheque</c>.
+/// </summary>
 public class ResponseOpenChequeAgingGroupJson
 {
-    public Guid OriginTransactionId { get; init; }
+    /// <summary>The plan's origin transaction id; <c>null</c> for a standalone cheque, whose single row carries its id.</summary>
+    public Guid? OriginTransactionId { get; init; }
     public decimal OutstandingTotal { get; init; }
     public DateTime OldestOpenDueDate { get; init; }
     public AgingBucket OldestOpenBucket { get; init; }

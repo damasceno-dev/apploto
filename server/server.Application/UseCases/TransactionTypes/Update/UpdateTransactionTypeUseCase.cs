@@ -9,8 +9,9 @@ using server.Exceptions.Exceptions;
 namespace server.Application.UseCases.TransactionTypes.Update;
 
 /// <summary>
-/// Updates the mutable metadata of a TransactionType (Name, SettlementRule, RequiresTabAccountAndClient).
-/// Changes are forward-only: existing <c>Transaction</c> rows are NOT recomputed.
+/// Updates the mutable metadata of a TransactionType (Name, SettlementRule, RequiresTabAccountAndClient, fiado payment
+/// kind and the report classifications). Changes are forward-only: existing <c>Transaction</c> rows are NOT recomputed.
+/// The report classifications are read at query time, so they apply to the type's past rows too (M11 Phase 4.2).
 /// Each Transaction captured <c>Direction</c>, <c>CategoryId</c>, and <c>DueDate</c> as
 /// immutable denormalized snapshots at create time per §6.1.
 /// </summary>
@@ -40,6 +41,9 @@ public class UpdateTransactionTypeUseCase(
             transactionType.Category.DefaultDirection,
             request.RequiresTabAccountAndClient);
 
+        if (request.MonthlyFinancialRole is { } requestedRole)
+            TransactionTypeMonthlyFinancialRules.EnsureDirectionMatches(requestedRole, transactionType.Category.DefaultDirection);
+
         var exists = await transactionTypesRepository.ExistsActiveByCategoryIdAndName(
             transactionType.CategoryId, request.Name.Trim(), exceptId: transactionTypeId);
         if (exists)
@@ -49,6 +53,13 @@ public class UpdateTransactionTypeUseCase(
         transactionType.SettlementRule = request.SettlementRule;
         transactionType.RequiresTabAccountAndClient = request.RequiresTabAccountAndClient;
         transactionType.FiadoPaymentKind = request.FiadoPaymentKind;
+
+        // M11 Phase 4.2: omitted keeps the classification, so a client that only renames never clears it.
+        if (request.SettlementInstrument is { } settlementInstrument)
+            transactionType.SettlementInstrument = settlementInstrument;
+
+        if (request.MonthlyFinancialRole is { } monthlyFinancialRole)
+            transactionType.MonthlyFinancialRole = monthlyFinancialRole;
 
         await unitOfWork.Commit();
 

@@ -17,6 +17,15 @@ public class TransactionType : EntityBase
     /// </summary>
     public FiadoPaymentKind? FiadoPaymentKind { get; set; }
 
+    /// <summary>
+    /// Receivable classification (M11 Phase 4): report metadata read at query time, so changing it reclassifies the
+    /// type's rows in current-state receivable reports without touching any row, balance or variance.
+    /// </summary>
+    public SettlementInstrument SettlementInstrument { get; set; } = SettlementInstrument.None;
+
+    /// <summary>Monthly financial report classification (M11 Phase 6), read at query time like the instrument.</summary>
+    public MonthlyFinancialRole MonthlyFinancialRole { get; set; } = MonthlyFinancialRole.None;
+
     public Guid CategoryId { get; init; }
     public Category Category { get; init; } = null!;
 }

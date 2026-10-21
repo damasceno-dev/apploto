@@ -82,7 +82,8 @@ public class TimeEntriesRepositoryBuilder
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid>(value => value == operatorId),
                 Arg.Is<DateTime>(value => value == dateFrom),
-                Arg.Is<DateTime>(value => value == dateTo))
+                Arg.Is<DateTime>(value => value == dateTo),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -96,7 +97,8 @@ public class TimeEntriesRepositoryBuilder
         _repository.ListByBranchIdAndDateRangeAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<DateTime>(value => value == dateFrom),
-                Arg.Is<DateTime>(value => value == dateTo))
+                Arg.Is<DateTime>(value => value == dateTo),
+                Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }

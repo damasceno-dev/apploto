@@ -35,6 +35,10 @@ public class CreateTransactionTypeUseCase(
             category.DefaultDirection,
             request.RequiresTabAccountAndClient);
 
+        TransactionTypeMonthlyFinancialRules.EnsureDirectionMatches(
+            request.MonthlyFinancialRole ?? MonthlyFinancialRole.None,
+            category.DefaultDirection);
+
         var exists = await transactionTypesRepository.ExistsActiveByCategoryIdAndName(category.Id, request.Name.Trim());
         if (exists)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT);

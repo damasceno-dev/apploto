@@ -15,4 +15,17 @@ public class RequestCreateTransactionTypeJson
     /// <c>In</c>-category type that requires a Tab account and a client may carry it; omitted means not a method.
     /// </summary>
     public FiadoPaymentKind? FiadoPaymentKind { get; init; }
+
+    /// <summary>
+    /// Receivable classification (M11 Phase 4) read by upcoming settlements and the standalone-cheque part of
+    /// open-cheque aging. Explicit configuration, independent of <see cref="SettlementRule"/>; omitted means
+    /// <c>None</c>.
+    /// </summary>
+    public SettlementInstrument? SettlementInstrument { get; init; }
+
+    /// <summary>
+    /// Monthly financial report classification (M11 Phase 6): <c>BolaoServiceFee</c> needs an <c>In</c> category,
+    /// <c>CommercialLeftover</c> an <c>Out</c> one. Omitted means <c>None</c>.
+    /// </summary>
+    public MonthlyFinancialRole? MonthlyFinancialRole { get; init; }
 }

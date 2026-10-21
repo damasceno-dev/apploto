@@ -10554,6 +10554,184 @@
         ]
       }
     },
+    "/report/upcoming-settlements": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "parameters": [
+          {
+            "name": "DueDateFrom",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "DueDateTo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "AccountId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Instrument",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/SettlementInstrument"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseUpcomingSettlementsJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseUpcomingSettlementsJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseUpcomingSettlementsJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
     "/report/cash-variance": {
       "get": {
         "tags": [
@@ -10769,6 +10947,248 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResponseMonthlyReconciliationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/report/monthly-financial/{year}/{month}": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "month",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseMonthlyFinancialReportJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseMonthlyFinancialReportJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseMonthlyFinancialReportJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/report/management-overview": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "parameters": [
+          {
+            "name": "Year",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Month",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseManagementOverviewJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseManagementOverviewJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseManagementOverviewJson"
                 }
               }
             }
@@ -15972,6 +16392,14 @@
         ],
         "type": "string"
       },
+      "MonthlyFinancialRole": {
+        "enum": [
+          "None",
+          "BolaoServiceFee",
+          "CommercialLeftover"
+        ],
+        "type": "string"
+      },
       "MonthlyReconciliationBlockerType": {
         "enum": [
           "UnapprovedClose",
@@ -15984,6 +16412,14 @@
         "enum": [
           "Pending",
           "Resolved"
+        ],
+        "type": "string"
+      },
+      "OverviewSectionStatus": {
+        "enum": [
+          "Ready",
+          "Empty",
+          "NotConfigured"
         ],
         "type": "string"
       },
@@ -16465,6 +16901,26 @@
               },
               {
                 "$ref": "#/components/schemas/FiadoPaymentKind"
+              }
+            ]
+          },
+          "settlementInstrument": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SettlementInstrument"
+              }
+            ]
+          },
+          "monthlyFinancialRole": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MonthlyFinancialRole"
               }
             ]
           }
@@ -17213,6 +17669,26 @@
               },
               {
                 "$ref": "#/components/schemas/FiadoPaymentKind"
+              }
+            ]
+          },
+          "settlementInstrument": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SettlementInstrument"
+              }
+            ]
+          },
+          "monthlyFinancialRole": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MonthlyFinancialRole"
               }
             ]
           }
@@ -20332,6 +20808,1061 @@
           }
         }
       },
+      "ResponseManagementOverviewAccountActivityJson": {
+        "required": [
+          "status",
+          "date",
+          "totalCount",
+          "previewLimit",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseManagementOverviewAccountJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewAccountJson": {
+        "required": [
+          "accountId",
+          "accountName",
+          "accountType",
+          "isActive",
+          "totalIn",
+          "totalOut",
+          "net",
+          "activeCount",
+          "draftCount"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountType": {
+            "$ref": "#/components/schemas/AccountType"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "totalIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOut": {
+            "type": "number",
+            "format": "double"
+          },
+          "net": {
+            "type": "number",
+            "format": "double"
+          },
+          "activeCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draftCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastActivityDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ResponseManagementOverviewCashVarianceJson": {
+        "required": [
+          "status",
+          "dateFrom",
+          "dateTo",
+          "totalCount",
+          "totalVariance",
+          "meanVariance",
+          "maxVariance",
+          "minVariance",
+          "submittedCount",
+          "approvedCount",
+          "rejectedCount",
+          "previewLimit",
+          "largestVariances"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalVariance": {
+            "type": "number",
+            "format": "double"
+          },
+          "meanVariance": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxVariance": {
+            "type": "number",
+            "format": "double"
+          },
+          "minVariance": {
+            "type": "number",
+            "format": "double"
+          },
+          "submittedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approvedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejectedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "largestVariances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseCashVarianceSummaryItemJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewCloseJson": {
+        "required": [
+          "dailyCloseId",
+          "date",
+          "accountId",
+          "accountName",
+          "accountActive",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "dailyCloseId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountActive": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DailyCloseStatus"
+          },
+          "officialVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "recordedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "recordedByUserName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recordedByOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "recordedByOperatorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "submittedByUserName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedByOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "submittedByOperatorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponseManagementOverviewFiadoJson": {
+        "required": [
+          "status",
+          "asOfDate",
+          "totalCount",
+          "debtorCount",
+          "totalDebt",
+          "creditorCount",
+          "totalCredit",
+          "agingOutstandingTotal",
+          "agingByBucket",
+          "previewLimit",
+          "topDebtors"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "debtorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalDebt": {
+            "type": "number",
+            "format": "double"
+          },
+          "creditorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCredit": {
+            "type": "number",
+            "format": "double"
+          },
+          "agingOutstandingTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "agingByBucket": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseAgingBucketTotalJson"
+            }
+          },
+          "oldestUnpaidDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "topDebtors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseFiadoClientBalanceItemJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewHoursJson": {
+        "required": [
+          "status",
+          "dateFrom",
+          "dateTo",
+          "totalCount",
+          "liveNowCount",
+          "unresolvedOpenCount",
+          "containsInProgress",
+          "positiveBalanceCount",
+          "positiveBalanceHours",
+          "negativeBalanceCount",
+          "negativeBalanceHours",
+          "previewLimit",
+          "mostBehind"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "liveNowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unresolvedOpenCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "containsInProgress": {
+            "type": "boolean"
+          },
+          "positiveBalanceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "positiveBalanceHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "negativeBalanceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "negativeBalanceHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mostBehind": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseManagementOverviewHoursOperatorJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewHoursOperatorJson": {
+        "required": [
+          "operatorId",
+          "operatorName",
+          "isActive",
+          "totalHours",
+          "totalBalanceHours",
+          "containsInProgress"
+        ],
+        "type": "object",
+        "properties": {
+          "operatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operatorName": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "totalHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalBalanceHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "containsInProgress": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponseManagementOverviewJson": {
+        "required": [
+          "generatedAtUtc",
+          "asOfDate",
+          "branchLocalNow",
+          "year",
+          "month",
+          "monthDateFrom",
+          "monthDateTo",
+          "isPartialMonth",
+          "queue",
+          "recentCloses",
+          "cashVariance",
+          "reconciliation",
+          "fiado",
+          "openCheques",
+          "upcomingSettlements",
+          "accountActivity",
+          "operatorActivity",
+          "hours",
+          "monthlyFinancial"
+        ],
+        "type": "object",
+        "properties": {
+          "generatedAtUtc": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "branchLocalNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "monthDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "monthDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isPartialMonth": {
+            "type": "boolean"
+          },
+          "queue": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewQueueJson"
+          },
+          "recentCloses": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewRecentClosesJson"
+          },
+          "cashVariance": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewCashVarianceJson"
+          },
+          "reconciliation": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewReconciliationJson"
+          },
+          "fiado": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewFiadoJson"
+          },
+          "openCheques": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewOpenChequesJson"
+          },
+          "upcomingSettlements": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewUpcomingSettlementsJson"
+          },
+          "accountActivity": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewAccountActivityJson"
+          },
+          "operatorActivity": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewOperatorActivityJson"
+          },
+          "hours": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewHoursJson"
+          },
+          "monthlyFinancial": {
+            "$ref": "#/components/schemas/ResponseManagementOverviewMonthlyFinancialJson"
+          }
+        }
+      },
+      "ResponseManagementOverviewMonthlyFinancialJson": {
+        "required": [
+          "status",
+          "year",
+          "month",
+          "dateFrom",
+          "dateTo",
+          "isPartialMonth",
+          "officialVarianceTotal",
+          "officialCloseCount",
+          "isBolaoServiceFeeConfigured",
+          "isCommercialLeftoverConfigured",
+          "hoursTotal",
+          "containsInProgress"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isPartialMonth": {
+            "type": "boolean"
+          },
+          "officialVarianceTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "officialCloseCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isBolaoServiceFeeConfigured": {
+            "type": "boolean"
+          },
+          "bolaoServiceFeeTotal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "isCommercialLeftoverConfigured": {
+            "type": "boolean"
+          },
+          "commercialLeftoverTotal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "hoursTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "containsInProgress": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponseManagementOverviewOpenChequeJson": {
+        "required": [
+          "oldestOpenTransactionId",
+          "outstandingTotal",
+          "oldestOpenDueDate",
+          "oldestOpenBucket",
+          "openRowCount",
+          "totalRowCount",
+          "accountId",
+          "accountName"
+        ],
+        "type": "object",
+        "properties": {
+          "originTransactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "oldestOpenTransactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "outstandingTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "oldestOpenDueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "oldestOpenBucket": {
+            "$ref": "#/components/schemas/AgingBucket"
+          },
+          "openRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "clientName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponseManagementOverviewOpenChequesJson": {
+        "required": [
+          "status",
+          "asOfDate",
+          "totalCount",
+          "openRowCount",
+          "outstandingTotal",
+          "byBucket",
+          "previewLimit",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "outstandingTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "byBucket": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseAgingBucketTotalJson"
+            }
+          },
+          "oldestOpenDueDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseManagementOverviewOpenChequeJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewOperatorActivityJson": {
+        "required": [
+          "status",
+          "date",
+          "totalCount",
+          "previewLimit",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseManagementOverviewOperatorJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewOperatorJson": {
+        "required": [
+          "operatorId",
+          "operatorName",
+          "isActive",
+          "transactionCount",
+          "totalIn",
+          "totalOut",
+          "generatedCount",
+          "generatedIn",
+          "generatedOut"
+        ],
+        "type": "object",
+        "properties": {
+          "operatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operatorName": {
+            "type": "string"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "transactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOut": {
+            "type": "number",
+            "format": "double"
+          },
+          "generatedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "generatedIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "generatedOut": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ResponseManagementOverviewQueueJson": {
+        "required": [
+          "status",
+          "date",
+          "pendingApprovalCount",
+          "rejectedCount",
+          "notSubmittedCount",
+          "backlogSubmittedCount",
+          "backlogRejectedCount",
+          "backlogDraftCount",
+          "unlockedDraftTransactionCount",
+          "pendingOperatorLinkRequestCount"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pendingApprovalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejectedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "notSubmittedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backlogSubmittedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backlogRejectedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "backlogDraftCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldestPendingDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "unlockedDraftTransactionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pendingOperatorLinkRequestCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponseManagementOverviewRecentClosesJson": {
+        "required": [
+          "status",
+          "dateFrom",
+          "dateTo",
+          "totalCount",
+          "draftCount",
+          "submittedCount",
+          "approvedCount",
+          "rejectedCount",
+          "previewLimit",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draftCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "submittedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "approvedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rejectedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseManagementOverviewCloseJson"
+            }
+          }
+        }
+      },
+      "ResponseManagementOverviewReconciliationJson": {
+        "required": [
+          "status",
+          "year",
+          "month",
+          "dateFrom",
+          "dateTo",
+          "isMonthLocked",
+          "isMonthElapsed",
+          "lockReady",
+          "unapprovedCloseBlockerCount",
+          "draftTransactionBlockerCount",
+          "missingExpectedCloseBlockerCount"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lockDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "isMonthLocked": {
+            "type": "boolean"
+          },
+          "isMonthElapsed": {
+            "type": "boolean"
+          },
+          "lockReady": {
+            "type": "boolean"
+          },
+          "unapprovedCloseBlockerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "draftTransactionBlockerCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingExpectedCloseBlockerCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponseManagementOverviewUpcomingSettlementsJson": {
+        "required": [
+          "status",
+          "asOfDate",
+          "dueDateFrom",
+          "dueDateTo",
+          "totalCount",
+          "totalValue",
+          "byInstrument",
+          "overdueCount",
+          "overdueValue",
+          "previewLimit",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/OverviewSectionStatus"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "byInstrument": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseSettlementInstrumentTotalJson"
+            }
+          },
+          "overdueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overdueValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "previewLimit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseUpcomingSettlementItemJson"
+            }
+          }
+        }
+      },
       "ResponseManagerQueueBacklogJson": {
         "required": [
           "submittedCount",
@@ -20556,6 +22087,359 @@
           }
         }
       },
+      "ResponseMonthlyFinancialHoursDayJson": {
+        "required": [
+          "date",
+          "operatorId",
+          "operatorName",
+          "operatorActive",
+          "status",
+          "totalHours",
+          "balanceHours",
+          "isInProgress"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "operatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operatorName": {
+            "type": "string"
+          },
+          "operatorActive": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TimeEntryStatus"
+          },
+          "totalHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "balanceHours": {
+            "type": "number",
+            "format": "double"
+          },
+          "isInProgress": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponseMonthlyFinancialLeftoverJson": {
+        "required": [
+          "date",
+          "accountId",
+          "accountName",
+          "accountActive",
+          "recordedByOperatorId",
+          "recordedByOperatorName",
+          "recordedByOperatorActive",
+          "transactionTypeId",
+          "transactionTypeName",
+          "value",
+          "rowCount"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountActive": {
+            "type": "boolean"
+          },
+          "recordedByOperatorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordedByOperatorName": {
+            "type": "string"
+          },
+          "recordedByOperatorActive": {
+            "type": "boolean"
+          },
+          "transactionTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionTypeName": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "rowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponseMonthlyFinancialLeftoverTypeTotalJson": {
+        "required": [
+          "transactionTypeId",
+          "transactionTypeName",
+          "transactionTypeActive",
+          "total",
+          "rowCount"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionTypeName": {
+            "type": "string"
+          },
+          "transactionTypeActive": {
+            "type": "boolean"
+          },
+          "total": {
+            "type": "number",
+            "format": "double"
+          },
+          "rowCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponseMonthlyFinancialReportJson": {
+        "required": [
+          "year",
+          "month",
+          "asOfDate",
+          "branchLocalNow",
+          "dateFrom",
+          "dateTo",
+          "isPartialMonth",
+          "officialVarianceTotal",
+          "officialCloseCount",
+          "isBolaoServiceFeeConfigured",
+          "isCommercialLeftoverConfigured",
+          "leftoversByType",
+          "hoursTotal",
+          "containsInProgress",
+          "terminalDays",
+          "leftovers",
+          "hours"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "branchLocalNow": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isPartialMonth": {
+            "type": "boolean"
+          },
+          "officialVarianceTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "officialCloseCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isBolaoServiceFeeConfigured": {
+            "type": "boolean"
+          },
+          "bolaoServiceFeeTotal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "isCommercialLeftoverConfigured": {
+            "type": "boolean"
+          },
+          "commercialLeftoverTotal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "leftoversByType": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseMonthlyFinancialLeftoverTypeTotalJson"
+            }
+          },
+          "hoursTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "containsInProgress": {
+            "type": "boolean"
+          },
+          "terminalDays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseMonthlyFinancialTerminalDayJson"
+            }
+          },
+          "leftovers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseMonthlyFinancialLeftoverJson"
+            }
+          },
+          "hours": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseMonthlyFinancialHoursDayJson"
+            }
+          }
+        }
+      },
+      "ResponseMonthlyFinancialTerminalDayJson": {
+        "required": [
+          "date",
+          "accountId",
+          "accountName",
+          "accountActive",
+          "bolaoServiceFeeRowCount"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "accountActive": {
+            "type": "boolean"
+          },
+          "dailyCloseId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "closeStatus": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DailyCloseStatus"
+              }
+            ]
+          },
+          "officialVariance": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "bolaoServiceFee": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "bolaoServiceFeeRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recordedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "recordedByUserName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recordedByOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "recordedByOperatorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "submittedByUserName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "submittedByOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "submittedByOperatorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ResponseMonthlyReconciliationBlockerJson": {
         "required": [
           "type",
@@ -20730,7 +22614,6 @@
       },
       "ResponseOpenChequeAgingGroupJson": {
         "required": [
-          "originTransactionId",
           "outstandingTotal",
           "oldestOpenDueDate",
           "oldestOpenBucket",
@@ -20743,7 +22626,10 @@
         "type": "object",
         "properties": {
           "originTransactionId": {
-            "type": "string",
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "uuid"
           },
           "outstandingTotal": {
@@ -21498,6 +23384,27 @@
           }
         }
       },
+      "ResponseSettlementInstrumentTotalJson": {
+        "required": [
+          "instrument",
+          "count",
+          "value"
+        ],
+        "type": "object",
+        "properties": {
+          "instrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "ResponseTimeEntryBalanceOperatorJson": {
         "required": [
           "operatorId",
@@ -21946,6 +23853,8 @@
           "name",
           "settlementRule",
           "requiresTabAccountAndClient",
+          "settlementInstrument",
+          "monthlyFinancialRole",
           "categoryId",
           "categoryName",
           "createdAt",
@@ -21986,6 +23895,12 @@
               }
             ]
           },
+          "settlementInstrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "monthlyFinancialRole": {
+            "$ref": "#/components/schemas/MonthlyFinancialRole"
+          },
           "categoryId": {
             "type": "string",
             "format": "uuid"
@@ -21998,6 +23913,148 @@
             "format": "date-time"
           },
           "active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponseUpcomingSettlementItemJson": {
+        "required": [
+          "transactionId",
+          "date",
+          "dueDate",
+          "value",
+          "instrument",
+          "transactionTypeId",
+          "transactionTypeName",
+          "accountId",
+          "accountName"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "originTransactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "instrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "transactionTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionTypeName": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "clientName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ResponseUpcomingSettlementsJson": {
+        "required": [
+          "asOfDate",
+          "isConfigured",
+          "dueDateFrom",
+          "dueDateTo",
+          "totalCount",
+          "totalValue",
+          "byInstrument",
+          "overdueCount",
+          "overdueValue",
+          "items",
+          "totalPages",
+          "hasNext",
+          "hasPrevious"
+        ],
+        "type": "object",
+        "properties": {
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isConfigured": {
+            "type": "boolean"
+          },
+          "dueDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "byInstrument": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseSettlementInstrumentTotalJson"
+            }
+          },
+          "overdueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overdueValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseUpcomingSettlementItemJson"
+            }
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "hasPrevious": {
             "type": "boolean"
           }
         }
@@ -22070,6 +24127,15 @@
           "Admin",
           "Manager",
           "Member"
+        ],
+        "type": "string"
+      },
+      "SettlementInstrument": {
+        "enum": [
+          "None",
+          "Cheque",
+          "CreditCard",
+          "DebitCard"
         ],
         "type": "string"
       },

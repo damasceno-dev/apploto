@@ -97,7 +97,8 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
         Guid branchId,
         Guid operatorId,
         DateTime dateFrom,
-        DateTime dateTo)
+        DateTime dateTo,
+        CancellationToken ct = default)
     {
         return await dbContext.TimeEntries
             .AsNoTracking()
@@ -109,13 +110,14 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
                 te.Date <= dateTo &&
                 te.Active)
             .OrderBy(te => te.Date)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<TimeEntry>> ListByBranchIdAndDateRangeAsNoTracking(
         Guid branchId,
         DateTime dateFrom,
-        DateTime dateTo)
+        DateTime dateTo,
+        CancellationToken ct = default)
     {
         return await dbContext.TimeEntries
             .AsNoTracking()
@@ -128,7 +130,7 @@ internal class TimeEntriesRepository(ServerDbContext dbContext) : ITimeEntriesRe
                 te.Active)
             .OrderBy(te => te.Operator.Name)
             .ThenBy(te => te.Date)
-            .ToListAsync();
+            .ToListAsync(ct);
     }
 
     public async Task<bool> ExistsActiveByBranchIdOperatorIdAndDate(Guid branchId, Guid operatorId, DateTime date)

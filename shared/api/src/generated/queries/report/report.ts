@@ -23,19 +23,24 @@ import type {
   GetReportDailyLedgerParams,
   GetReportFiadoAgingParams,
   GetReportFiadoBalanceParams,
+  GetReportManagementOverviewParams,
   GetReportManagerQueueParams,
   GetReportOperatorSummaryParams,
   GetReportTimeentryBalanceParams,
+  GetReportUpcomingSettlementsParams,
   ResponseCashVarianceSummaryJson,
   ResponseDailyLedgerJson,
   ResponseErrorJson,
   ResponseFiadoAgingJson,
   ResponseFiadoBalanceJson,
+  ResponseManagementOverviewJson,
   ResponseManagerQueueJson,
+  ResponseMonthlyFinancialReportJson,
   ResponseMonthlyReconciliationJson,
   ResponseOpenChequeAgingJson,
   ResponseOperatorTransactionSummaryJson,
   ResponseTimeEntryBalanceSummaryJson,
+  ResponseUpcomingSettlementsJson,
 } from '../../model';
 
 import { apiFetch } from '../../../client/fetch';
@@ -964,6 +969,250 @@ export function useGetReportChequesOpenAging<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export type getReportUpcomingSettlementsResponse200TextPlain = {
+  data: ResponseUpcomingSettlementsJson;
+  status: 200;
+};
+
+export type getReportUpcomingSettlementsResponse200ApplicationJson = {
+  data: ResponseUpcomingSettlementsJson;
+  status: 200;
+};
+
+export type getReportUpcomingSettlementsResponse200TextJson = {
+  data: ResponseUpcomingSettlementsJson;
+  status: 200;
+};
+
+export type getReportUpcomingSettlementsResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportUpcomingSettlementsResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportUpcomingSettlementsResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportUpcomingSettlementsResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportUpcomingSettlementsResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportUpcomingSettlementsResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportUpcomingSettlementsResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportUpcomingSettlementsResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportUpcomingSettlementsResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportUpcomingSettlementsResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportUpcomingSettlementsResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportUpcomingSettlementsResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportUpcomingSettlementsResponseSuccess = (
+  | getReportUpcomingSettlementsResponse200TextPlain
+  | getReportUpcomingSettlementsResponse200ApplicationJson
+  | getReportUpcomingSettlementsResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportUpcomingSettlementsResponseError = (
+  | getReportUpcomingSettlementsResponse400TextPlain
+  | getReportUpcomingSettlementsResponse400ApplicationJson
+  | getReportUpcomingSettlementsResponse400TextJson
+  | getReportUpcomingSettlementsResponse401TextPlain
+  | getReportUpcomingSettlementsResponse401ApplicationJson
+  | getReportUpcomingSettlementsResponse401TextJson
+  | getReportUpcomingSettlementsResponse403TextPlain
+  | getReportUpcomingSettlementsResponse403ApplicationJson
+  | getReportUpcomingSettlementsResponse403TextJson
+  | getReportUpcomingSettlementsResponse404TextPlain
+  | getReportUpcomingSettlementsResponse404ApplicationJson
+  | getReportUpcomingSettlementsResponse404TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportUpcomingSettlementsUrl = (params: GetReportUpcomingSettlementsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/upcoming-settlements?${stringifiedParams}`
+    : `/report/upcoming-settlements`;
+};
+
+export const getReportUpcomingSettlements = async (
+  params: GetReportUpcomingSettlementsParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportUpcomingSettlementsResponseSuccess> => {
+  return apiFetch<getReportUpcomingSettlementsResponseSuccess>(
+    getGetReportUpcomingSettlementsUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export const getGetReportUpcomingSettlementsQueryKey = (
+  params?: GetReportUpcomingSettlementsParams,
+) => {
+  return [`/report/upcoming-settlements`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetReportUpcomingSettlementsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportUpcomingSettlementsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportUpcomingSettlements>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReportUpcomingSettlementsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportUpcomingSettlements>>> = ({
+    signal,
+  }) => getReportUpcomingSettlements(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetReportUpcomingSettlementsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReportUpcomingSettlements>>
+>;
+export type GetReportUpcomingSettlementsQueryError = ErrorType<ResponseErrorJson>;
+
+export function useGetReportUpcomingSettlements<
+  TData = Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportUpcomingSettlementsParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportUpcomingSettlements>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+          TError,
+          Awaited<ReturnType<typeof getReportUpcomingSettlements>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportUpcomingSettlements<
+  TData = Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportUpcomingSettlementsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportUpcomingSettlements>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+          TError,
+          Awaited<ReturnType<typeof getReportUpcomingSettlements>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportUpcomingSettlements<
+  TData = Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportUpcomingSettlementsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportUpcomingSettlements>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetReportUpcomingSettlements<
+  TData = Awaited<ReturnType<typeof getReportUpcomingSettlements>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportUpcomingSettlementsParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportUpcomingSettlements>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetReportUpcomingSettlementsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export type getReportCashVarianceResponse200TextPlain = {
   data: ResponseCashVarianceSummaryJson;
   status: 200;
@@ -1439,6 +1688,456 @@ export function useGetReportMonthlyReconciliationYearMonth<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getGetReportMonthlyReconciliationYearMonthQueryOptions(year, month, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type getReportMonthlyFinancialYearMonthResponse200TextPlain = {
+  data: ResponseMonthlyFinancialReportJson;
+  status: 200;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse200ApplicationJson = {
+  data: ResponseMonthlyFinancialReportJson;
+  status: 200;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse200TextJson = {
+  data: ResponseMonthlyFinancialReportJson;
+  status: 200;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportMonthlyFinancialYearMonthResponseSuccess = (
+  | getReportMonthlyFinancialYearMonthResponse200TextPlain
+  | getReportMonthlyFinancialYearMonthResponse200ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportMonthlyFinancialYearMonthResponseError = (
+  | getReportMonthlyFinancialYearMonthResponse400TextPlain
+  | getReportMonthlyFinancialYearMonthResponse400ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse400TextJson
+  | getReportMonthlyFinancialYearMonthResponse401TextPlain
+  | getReportMonthlyFinancialYearMonthResponse401ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse401TextJson
+  | getReportMonthlyFinancialYearMonthResponse403TextPlain
+  | getReportMonthlyFinancialYearMonthResponse403ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportMonthlyFinancialYearMonthUrl = (year: number, month: number) => {
+  return `/report/monthly-financial/${year}/${month}`;
+};
+
+export const getReportMonthlyFinancialYearMonth = async (
+  year: number,
+  month: number,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportMonthlyFinancialYearMonthResponseSuccess> => {
+  return apiFetch<getReportMonthlyFinancialYearMonthResponseSuccess>(
+    getGetReportMonthlyFinancialYearMonthUrl(year, month),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export const getGetReportMonthlyFinancialYearMonthQueryKey = (year: number, month: number) => {
+  return [`/report/monthly-financial/${year}/${month}`] as const;
+};
+
+export const getGetReportMonthlyFinancialYearMonthQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  year: number,
+  month: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetReportMonthlyFinancialYearMonthQueryKey(year, month);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>> = ({
+    signal,
+  }) => getReportMonthlyFinancialYearMonth(year, month, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: year !== null && year !== undefined && month !== null && month !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetReportMonthlyFinancialYearMonthQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>
+>;
+export type GetReportMonthlyFinancialYearMonthQueryError = ErrorType<ResponseErrorJson>;
+
+export function useGetReportMonthlyFinancialYearMonth<
+  TData = Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  year: number,
+  month: number,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+          TError,
+          Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportMonthlyFinancialYearMonth<
+  TData = Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  year: number,
+  month: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+          TError,
+          Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportMonthlyFinancialYearMonth<
+  TData = Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  year: number,
+  month: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetReportMonthlyFinancialYearMonth<
+  TData = Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  year: number,
+  month: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportMonthlyFinancialYearMonth>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetReportMonthlyFinancialYearMonthQueryOptions(year, month, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type getReportManagementOverviewResponse200TextPlain = {
+  data: ResponseManagementOverviewJson;
+  status: 200;
+};
+
+export type getReportManagementOverviewResponse200ApplicationJson = {
+  data: ResponseManagementOverviewJson;
+  status: 200;
+};
+
+export type getReportManagementOverviewResponse200TextJson = {
+  data: ResponseManagementOverviewJson;
+  status: 200;
+};
+
+export type getReportManagementOverviewResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportManagementOverviewResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportManagementOverviewResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportManagementOverviewResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportManagementOverviewResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportManagementOverviewResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportManagementOverviewResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportManagementOverviewResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportManagementOverviewResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportManagementOverviewResponseSuccess = (
+  | getReportManagementOverviewResponse200TextPlain
+  | getReportManagementOverviewResponse200ApplicationJson
+  | getReportManagementOverviewResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportManagementOverviewResponseError = (
+  | getReportManagementOverviewResponse400TextPlain
+  | getReportManagementOverviewResponse400ApplicationJson
+  | getReportManagementOverviewResponse400TextJson
+  | getReportManagementOverviewResponse401TextPlain
+  | getReportManagementOverviewResponse401ApplicationJson
+  | getReportManagementOverviewResponse401TextJson
+  | getReportManagementOverviewResponse403TextPlain
+  | getReportManagementOverviewResponse403ApplicationJson
+  | getReportManagementOverviewResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportManagementOverviewUrl = (params?: GetReportManagementOverviewParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/management-overview?${stringifiedParams}`
+    : `/report/management-overview`;
+};
+
+export const getReportManagementOverview = async (
+  params?: GetReportManagementOverviewParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportManagementOverviewResponseSuccess> => {
+  return apiFetch<getReportManagementOverviewResponseSuccess>(
+    getGetReportManagementOverviewUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export const getGetReportManagementOverviewQueryKey = (
+  params?: GetReportManagementOverviewParams,
+) => {
+  return [`/report/management-overview`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetReportManagementOverviewQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReportManagementOverview>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params?: GetReportManagementOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportManagementOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReportManagementOverviewQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportManagementOverview>>> = ({
+    signal,
+  }) => getReportManagementOverview(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReportManagementOverview>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetReportManagementOverviewQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReportManagementOverview>>
+>;
+export type GetReportManagementOverviewQueryError = ErrorType<ResponseErrorJson>;
+
+export function useGetReportManagementOverview<
+  TData = Awaited<ReturnType<typeof getReportManagementOverview>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: undefined | GetReportManagementOverviewParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportManagementOverview>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportManagementOverview>>,
+          TError,
+          Awaited<ReturnType<typeof getReportManagementOverview>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportManagementOverview<
+  TData = Awaited<ReturnType<typeof getReportManagementOverview>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params?: GetReportManagementOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportManagementOverview>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportManagementOverview>>,
+          TError,
+          Awaited<ReturnType<typeof getReportManagementOverview>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportManagementOverview<
+  TData = Awaited<ReturnType<typeof getReportManagementOverview>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params?: GetReportManagementOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportManagementOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetReportManagementOverview<
+  TData = Awaited<ReturnType<typeof getReportManagementOverview>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params?: GetReportManagementOverviewParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportManagementOverview>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetReportManagementOverviewQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

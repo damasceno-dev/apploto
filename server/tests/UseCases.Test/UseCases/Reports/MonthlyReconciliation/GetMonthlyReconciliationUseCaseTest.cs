@@ -1,3 +1,4 @@
+using server.Application.Services.Reports;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -283,12 +284,13 @@ public class GetMonthlyReconciliationUseCaseTest
     {
         return new GetMonthlyReconciliationUseCase(
             ctx.AuthenticationService,
-            ctx.DailyClosesRepository,
-            ctx.TransactionsRepository,
-            ctx.DailyCloseItemsRepository,
-            ctx.CashVarianceProductResolver,
-            new server.Application.Services.Settings.MonthLockReadinessEvaluator(),
-            ctx.LockDateReader,
+            new MonthlyReconciliationReader(
+                ctx.DailyClosesRepository,
+                ctx.TransactionsRepository,
+                ctx.DailyCloseItemsRepository,
+                ctx.CashVarianceProductResolver,
+                new server.Application.Services.Settings.MonthLockReadinessEvaluator(),
+                ctx.LockDateReader),
             ctx.BranchClock);
     }
 

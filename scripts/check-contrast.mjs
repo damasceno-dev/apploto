@@ -39,6 +39,9 @@ const REQUIRED_ENUM_DOMAINS = {
   'mail-delivery-status': 'MailDeliveryStatus',
   'operator-link-request-status': 'OperatorLinkRequestStatus',
   'review-event-type': 'DailyCloseReviewEventType',
+  'settlement-instrument': 'SettlementInstrument',
+  'monthly-financial-role': 'MonthlyFinancialRole',
+  'overview-section-status': 'OverviewSectionStatus',
 };
 const REQUIRED_VALUE_DOMAINS = {
   'cash-variance': ['shortage', 'surplus', 'zero'],

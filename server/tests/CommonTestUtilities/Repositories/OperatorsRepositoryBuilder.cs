@@ -28,7 +28,7 @@ public class OperatorsRepositoryBuilder
 
     public OperatorsRepositoryBuilder ListActiveByBranchId(Guid branchId, IReadOnlyList<Operator> operators)
     {
-        _repository.ListActiveByBranchId(branchId).Returns(operators);
+        _repository.ListActiveByBranchId(branchId, Arg.Any<CancellationToken>()).Returns(operators);
         return this;
     }
 

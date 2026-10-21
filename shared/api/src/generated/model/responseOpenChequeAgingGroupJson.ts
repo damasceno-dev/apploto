@@ -8,7 +8,8 @@ import type { AgingBucket } from './agingBucket';
 import type { ResponseOpenChequeAgingRowJson } from './responseOpenChequeAgingRowJson';
 
 export interface ResponseOpenChequeAgingGroupJson {
-  originTransactionId: string;
+  /** @nullable */
+  originTransactionId?: string | null;
   outstandingTotal: number;
   oldestOpenDueDate: string;
   oldestOpenBucket: AgingBucket;

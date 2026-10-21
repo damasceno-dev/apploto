@@ -185,6 +185,61 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             groups.Count == 0 ? null : groups.Min(group => group.OldestDate));
     }
 
+    public async Task<IReadOnlyList<DailyCloseSummaryRow>> ListCloseSummariesByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, int? take = null, CancellationToken ct = default)
+    {
+        var query = dbContext.DailyCloses
+            .AsNoTracking()
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.Active &&
+                dailyClose.Date >= dateFrom &&
+                dailyClose.Date <= dateTo)
+            .OrderByDescending(dailyClose => dailyClose.Date)
+            .ThenByDescending(dailyClose => dailyClose.CreatedAt)
+            .ThenByDescending(dailyClose => dailyClose.Id)
+            .AsQueryable();
+
+        if (take is { } limit)
+            query = query.Take(limit);
+
+        return await query
+            .Select(dailyClose => new DailyCloseSummaryRow(
+                dailyClose.Id,
+                dailyClose.Date,
+                dailyClose.CreatedAt,
+                dailyClose.AccountId,
+                dailyClose.Account.Name,
+                dailyClose.Account.Active,
+                dailyClose.Status,
+                dailyClose.RecordedByUserId,
+                dailyClose.RecordedByUser != null ? dailyClose.RecordedByUser.Name : null,
+                dailyClose.RecordedByOperatorId,
+                dailyClose.RecordedByOperator != null ? dailyClose.RecordedByOperator.Name : null,
+                dailyClose.SubmittedByUserId,
+                dailyClose.SubmittedByUser != null ? dailyClose.SubmittedByUser.Name : null,
+                dailyClose.SubmittedByOperatorId,
+                dailyClose.SubmittedByOperator != null ? dailyClose.SubmittedByOperator.Name : null))
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<DailyCloseStatusCountRow>> CountByStatusByBranchIdAndDateRangeAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default)
+    {
+        var rows = await dbContext.DailyCloses
+            .AsNoTracking()
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.Active &&
+                dailyClose.Date >= dateFrom &&
+                dailyClose.Date <= dateTo)
+            .GroupBy(dailyClose => dailyClose.Status)
+            .Select(group => new { Status = group.Key, Count = group.Count() })
+            .ToListAsync(ct);
+
+        return rows.Select(row => new DailyCloseStatusCountRow(row.Status, row.Count)).ToList();
+    }
+
     public async Task<IReadOnlyList<DailyClose>> ListByBranchIdAsNoTracking(
         Guid branchId,
         DailyCloseListFilter filter,

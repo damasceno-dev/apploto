@@ -9,7 +9,7 @@ public interface IOnboardingRepository
     Task<OperatorLinkRequest?> GetOwnRequest(Guid userId, Guid branchId);
     Task AddRequest(OperatorLinkRequest request);
     Task<(IReadOnlyList<OperatorLinkRequest> Items, int Total)> ListRequests(Guid branchId, OperatorLinkRequestStatus? status, int page, int pageSize);
-    Task<int> PendingRequestCount(Guid branchId);
+    Task<int> PendingRequestCount(Guid branchId, CancellationToken ct = default);
     Task<Invitation?> GetInvitation(Guid id, Guid branchId);
     Task<Invitation?> GetInvitationByHash(string hash);
     Task<Invitation?> GetPendingInvitation(Guid branchId, string email);

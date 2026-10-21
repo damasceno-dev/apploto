@@ -4,10 +4,13 @@ using server.Application.UseCases.Reports.DailyLedger;
 using server.Application.UseCases.Reports.ManagerQueue;
 using server.Application.UseCases.Reports.FiadoAging;
 using server.Application.UseCases.Reports.FiadoBalance;
+using server.Application.UseCases.Reports.ManagementOverview;
+using server.Application.UseCases.Reports.MonthlyFinancial;
 using server.Application.UseCases.Reports.MonthlyReconciliation;
 using server.Application.UseCases.Reports.OpenChequeAging;
 using server.Application.UseCases.Reports.OperatorSummary;
 using server.Application.UseCases.Reports.TimeEntryBalance;
+using server.Application.UseCases.Reports.UpcomingSettlements;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -81,6 +84,23 @@ public class ReportController : ControllerBase
     }
 
     [HttpGet]
+    [Route("upcoming-settlements")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseUpcomingSettlementsJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpcomingSettlements(
+        [FromServices] GetUpcomingSettlementsUseCase useCase,
+        [FromQuery] RequestUpcomingSettlementsJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(request, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpGet]
     [Route("cash-variance")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponseCashVarianceSummaryJson), StatusCodes.Status200OK)]
@@ -118,6 +138,47 @@ public class ReportController : ControllerBase
             Year = year,
             Month = month
         }, cancellationToken);
+        return Ok(response);
+    }
+
+    // Range checking is owned by MonthlyFinancialFluentValidation (same keys as monthly reconciliation); a month that
+    // has not started at the branch is 400 REPORT_MONTH_IN_FUTURE.
+    [HttpGet]
+    [Route("monthly-financial/{year:int}/{month:int}")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseMonthlyFinancialReportJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> MonthlyFinancial(
+        [FromServices] GetMonthlyFinancialReportUseCase useCase,
+        [FromRoute] int year,
+        [FromRoute] int month,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(new RequestMonthlyFinancialReportJson
+        {
+            Year = year,
+            Month = month
+        }, cancellationToken);
+        return Ok(response);
+    }
+
+    // The Dashboard's data (M11 Phase 7). The screen may be titled Dashboard; the API never is. The Manager Work Queue
+    // (manager-queue) stays the exception-first home and is unchanged.
+    [HttpGet]
+    [Route("management-overview")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseManagementOverviewJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ManagementOverview(
+        [FromServices] GetManagementOverviewUseCase useCase,
+        [FromQuery] RequestManagementOverviewJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(request, cancellationToken);
         return Ok(response);
     }
 
@@ -163,9 +224,10 @@ public class ReportController : ControllerBase
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> TimeEntryBalance(
         [FromServices] GetTimeEntryBalanceSummaryUseCase useCase,
-        [FromQuery] RequestTimeEntryBalanceSummaryJson request)
+        [FromQuery] RequestTimeEntryBalanceSummaryJson request,
+        CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(request);
+        var response = await useCase.Execute(request, cancellationToken);
         return Ok(response);
     }
 }

@@ -208,6 +208,84 @@ public class UpdateTransactionTypeUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Theory]
+    [InlineData(null, SettlementInstrument.CreditCard)]
+    [InlineData(SettlementInstrument.None, SettlementInstrument.None)]
+    [InlineData(SettlementInstrument.Cheque, SettlementInstrument.Cheque)]
+    public async Task Execute_ShouldKeepOmittedInstrument_AndApplyExplicitOne(
+        SettlementInstrument? requested,
+        SettlementInstrument expected)
+    {
+        // M11 Phase 4.2: a rename that omits the instrument never clears the classification; an explicit value
+        // (None included) replaces it.
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var tt = new TransactionTypeBuilder().WithSettlementInstrument(SettlementInstrument.CreditCard).Build();
+        var request = new RequestUpdateTransactionTypeJsonBuilder()
+            .WithName("Renamed card")
+            .WithSettlementInstrument(requested)
+            .Build();
+
+        var authenticationService = new AuthenticationServiceBuilder()
+            .GetAuthenticatedBranchUser(branchUser)
+            .Build();
+        var ttRepository = new TransactionTypesRepositoryBuilder()
+            .GetActiveByIdWithCategoryAndBranchId(tt.Id, branchUser.BranchId, tt)
+            .ExistsActiveByCategoryIdAndName(tt.CategoryId, "Renamed card", false, tt.Id)
+            .Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var response = await CreateUseCase(authenticationService, ttRepository, unitOfWork).Execute(tt.Id, request);
+
+        tt.SettlementInstrument.ShouldBe(expected);
+        response.SettlementInstrument.ShouldBe(expected);
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Theory]
+    [InlineData(Direction.In, MonthlyFinancialRole.CommercialLeftover)]
+    [InlineData(Direction.Out, MonthlyFinancialRole.BolaoServiceFee)]
+    public async Task Execute_ShouldThrowConflict_WhenRoleDoesNotMatchCategoryDirection(Direction direction, MonthlyFinancialRole role)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
+        var category = new CategoryBuilder().WithDefaultDirection(direction).Build();
+        var tt = new TransactionTypeBuilder().WithCategory(category).Build();
+        var request = new RequestUpdateTransactionTypeJsonBuilder().WithMonthlyFinancialRole(role).Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+        var useCase = CreateUseCase(
+            new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build(),
+            new TransactionTypesRepositoryBuilder().GetActiveByIdWithCategoryAndBranchId(tt.Id, branchUser.BranchId, tt).Build(),
+            unitOfWork);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(tt.Id, request));
+
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_DIRECTION_INVALID);
+        tt.MonthlyFinancialRole.ShouldBe(MonthlyFinancialRole.None);
+        await unitOfWork.DidNotReceive().Commit();
+    }
+
+    [Theory]
+    [InlineData(null, MonthlyFinancialRole.BolaoServiceFee)]
+    [InlineData(MonthlyFinancialRole.None, MonthlyFinancialRole.None)]
+    public async Task Execute_ShouldKeepOmittedRole_AndApplyExplicitOne(MonthlyFinancialRole? requested, MonthlyFinancialRole expected)
+    {
+        var branchUser = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var category = new CategoryBuilder().WithDefaultDirection(Direction.In).Build();
+        var tt = new TransactionTypeBuilder().WithCategory(category).WithMonthlyFinancialRole(MonthlyFinancialRole.BolaoServiceFee).Build();
+        var request = new RequestUpdateTransactionTypeJsonBuilder().WithName("Taxa do bolão").WithMonthlyFinancialRole(requested).Build();
+        var useCase = CreateUseCase(
+            new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build(),
+            new TransactionTypesRepositoryBuilder()
+                .GetActiveByIdWithCategoryAndBranchId(tt.Id, branchUser.BranchId, tt)
+                .ExistsActiveByCategoryIdAndName(tt.CategoryId, "Taxa do bolão", false, tt.Id)
+                .Build(),
+            new UnitOfWorkBuilder().Build());
+
+        var response = await useCase.Execute(tt.Id, request);
+
+        tt.MonthlyFinancialRole.ShouldBe(expected);
+        response.MonthlyFinancialRole.ShouldBe(expected);
+    }
+
     private static UpdateTransactionTypeUseCase CreateUseCase(
         IAuthenticationService authenticationService,
         ITransactionTypesRepository transactionTypesRepository,

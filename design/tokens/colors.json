@@ -612,6 +612,55 @@
             "bg": "{color.semantic.light.feedback.info.bg}"
           }
         },
+        "settlement-instrument": {
+          "$enum": "SettlementInstrument",
+          "None": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "Cheque": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "CreditCard": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "DebitCard": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          }
+        },
+        "monthly-financial-role": {
+          "$enum": "MonthlyFinancialRole",
+          "None": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "BolaoServiceFee": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "CommercialLeftover": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          }
+        },
+        "overview-section-status": {
+          "$enum": "OverviewSectionStatus",
+          "Ready": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Empty": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "NotConfigured": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          }
+        },
         "cash-variance": {
           "shortage": {
             "fg": "{color.semantic.light.feedback.danger.fg}"
@@ -823,6 +872,55 @@
           "OpeningChanged": {
             "fg": "{color.semantic.dark.feedback.info.fg}",
             "bg": "{color.semantic.dark.feedback.info.bg}"
+          }
+        },
+        "settlement-instrument": {
+          "$enum": "SettlementInstrument",
+          "None": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "Cheque": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "CreditCard": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "DebitCard": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          }
+        },
+        "monthly-financial-role": {
+          "$enum": "MonthlyFinancialRole",
+          "None": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "BolaoServiceFee": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "CommercialLeftover": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          }
+        },
+        "overview-section-status": {
+          "$enum": "OverviewSectionStatus",
+          "Ready": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Empty": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "NotConfigured": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
           }
         },
         "cash-variance": {

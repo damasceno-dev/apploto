@@ -11,6 +11,8 @@ public class RequestCreateTransactionTypeJsonBuilder
     private string _name;
     private SettlementRule _settlementRule = SettlementRule.SameDay;
     private bool _requiresTabAccountAndClient = false;
+    private SettlementInstrument? _settlementInstrument;
+    private MonthlyFinancialRole? _monthlyFinancialRole;
 
     public RequestCreateTransactionTypeJsonBuilder()
     {
@@ -41,6 +43,18 @@ public class RequestCreateTransactionTypeJsonBuilder
         return this;
     }
 
+    public RequestCreateTransactionTypeJsonBuilder WithSettlementInstrument(SettlementInstrument? value)
+    {
+        _settlementInstrument = value;
+        return this;
+    }
+
+    public RequestCreateTransactionTypeJsonBuilder WithMonthlyFinancialRole(MonthlyFinancialRole? value)
+    {
+        _monthlyFinancialRole = value;
+        return this;
+    }
+
     public RequestCreateTransactionTypeJson Build()
     {
         return new RequestCreateTransactionTypeJson
@@ -48,7 +62,9 @@ public class RequestCreateTransactionTypeJsonBuilder
             CategoryId = _categoryId,
             Name = _name,
             SettlementRule = _settlementRule,
-            RequiresTabAccountAndClient = _requiresTabAccountAndClient
+            RequiresTabAccountAndClient = _requiresTabAccountAndClient,
+            SettlementInstrument = _settlementInstrument,
+            MonthlyFinancialRole = _monthlyFinancialRole
         };
     }
 }

@@ -1,4 +1,5 @@
 using server.Application.Services.DailyCloses;
+using server.Application.Services.Reports;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -39,12 +40,8 @@ public class GetCashVarianceSummaryUseCase(
         var rows = await dailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
             branchUser.BranchId, productId, request.AccountId, request.DateFrom, request.DateTo, ct);
 
-        var totalVariance = rows.Sum(r => r.Value);
-        var meanVariance = rows.Count > 0 ? totalVariance / rows.Count : 0m;
-        var maxVariance = rows.Count > 0 ? rows.Max(r => r.Value) : 0m;
-        var minVariance = rows.Count > 0 ? rows.Min(r => r.Value) : 0m;
-
-        var totalCount = rows.Count;
+        var figures = CashVarianceFold.From(rows);
+        var totalCount = figures.Count;
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / request.PageSize);
         var pagedItems = rows
             .Skip((request.Page - 1) * request.PageSize)
@@ -67,13 +64,13 @@ public class GetCashVarianceSummaryUseCase(
             TotalPages = totalPages,
             HasNext = request.Page < totalPages,
             HasPrevious = request.Page > 1,
-            TotalVariance = totalVariance,
-            MeanVariance = meanVariance,
-            MaxVariance = maxVariance,
-            MinVariance = minVariance,
-            SubmittedCount = rows.Count(r => r.DailyCloseStatus == DailyCloseStatus.Submitted),
-            ApprovedCount = rows.Count(r => r.DailyCloseStatus == DailyCloseStatus.Approved),
-            RejectedCount = rows.Count(r => r.DailyCloseStatus == DailyCloseStatus.Rejected)
+            TotalVariance = figures.Total,
+            MeanVariance = figures.Mean,
+            MaxVariance = figures.Max,
+            MinVariance = figures.Min,
+            SubmittedCount = figures.SubmittedCount,
+            ApprovedCount = figures.ApprovedCount,
+            RejectedCount = figures.RejectedCount
         };
     }
 

@@ -10,19 +10,24 @@ import type {
   GetReportDailyLedgerParams,
   GetReportFiadoAgingParams,
   GetReportFiadoBalanceParams,
+  GetReportManagementOverviewParams,
   GetReportManagerQueueParams,
   GetReportOperatorSummaryParams,
   GetReportTimeentryBalanceParams,
+  GetReportUpcomingSettlementsParams,
   ResponseCashVarianceSummaryJson,
   ResponseDailyLedgerJson,
   ResponseErrorJson,
   ResponseFiadoAgingJson,
   ResponseFiadoBalanceJson,
+  ResponseManagementOverviewJson,
   ResponseManagerQueueJson,
+  ResponseMonthlyFinancialReportJson,
   ResponseMonthlyReconciliationJson,
   ResponseOpenChequeAgingJson,
   ResponseOperatorTransactionSummaryJson,
   ResponseTimeEntryBalanceSummaryJson,
+  ResponseUpcomingSettlementsJson,
 } from '../../model';
 
 import { apiFetch } from '../../../client/fetch';
@@ -476,6 +481,134 @@ export const getReportChequesOpenAging = async (
   );
 };
 
+export type getReportUpcomingSettlementsResponse200TextPlain = {
+  data: ResponseUpcomingSettlementsJson;
+  status: 200;
+};
+
+export type getReportUpcomingSettlementsResponse200ApplicationJson = {
+  data: ResponseUpcomingSettlementsJson;
+  status: 200;
+};
+
+export type getReportUpcomingSettlementsResponse200TextJson = {
+  data: ResponseUpcomingSettlementsJson;
+  status: 200;
+};
+
+export type getReportUpcomingSettlementsResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportUpcomingSettlementsResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportUpcomingSettlementsResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportUpcomingSettlementsResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportUpcomingSettlementsResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportUpcomingSettlementsResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportUpcomingSettlementsResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportUpcomingSettlementsResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportUpcomingSettlementsResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportUpcomingSettlementsResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportUpcomingSettlementsResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportUpcomingSettlementsResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportUpcomingSettlementsResponseSuccess = (
+  | getReportUpcomingSettlementsResponse200TextPlain
+  | getReportUpcomingSettlementsResponse200ApplicationJson
+  | getReportUpcomingSettlementsResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportUpcomingSettlementsResponseError = (
+  | getReportUpcomingSettlementsResponse400TextPlain
+  | getReportUpcomingSettlementsResponse400ApplicationJson
+  | getReportUpcomingSettlementsResponse400TextJson
+  | getReportUpcomingSettlementsResponse401TextPlain
+  | getReportUpcomingSettlementsResponse401ApplicationJson
+  | getReportUpcomingSettlementsResponse401TextJson
+  | getReportUpcomingSettlementsResponse403TextPlain
+  | getReportUpcomingSettlementsResponse403ApplicationJson
+  | getReportUpcomingSettlementsResponse403TextJson
+  | getReportUpcomingSettlementsResponse404TextPlain
+  | getReportUpcomingSettlementsResponse404ApplicationJson
+  | getReportUpcomingSettlementsResponse404TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportUpcomingSettlementsUrl = (params: GetReportUpcomingSettlementsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/upcoming-settlements?${stringifiedParams}`
+    : `/report/upcoming-settlements`;
+};
+
+export const getReportUpcomingSettlements = async (
+  params: GetReportUpcomingSettlementsParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportUpcomingSettlementsResponseSuccess> => {
+  return apiFetch<getReportUpcomingSettlementsResponseSuccess>(
+    getGetReportUpcomingSettlementsUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
 export type getReportCashVarianceResponse200TextPlain = {
   data: ResponseCashVarianceSummaryJson;
   status: 200;
@@ -693,6 +826,215 @@ export const getReportMonthlyReconciliationYearMonth = async (
 ): Promise<getReportMonthlyReconciliationYearMonthResponseSuccess> => {
   return apiFetch<getReportMonthlyReconciliationYearMonthResponseSuccess>(
     getGetReportMonthlyReconciliationYearMonthUrl(year, month),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export type getReportMonthlyFinancialYearMonthResponse200TextPlain = {
+  data: ResponseMonthlyFinancialReportJson;
+  status: 200;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse200ApplicationJson = {
+  data: ResponseMonthlyFinancialReportJson;
+  status: 200;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse200TextJson = {
+  data: ResponseMonthlyFinancialReportJson;
+  status: 200;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportMonthlyFinancialYearMonthResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportMonthlyFinancialYearMonthResponseSuccess = (
+  | getReportMonthlyFinancialYearMonthResponse200TextPlain
+  | getReportMonthlyFinancialYearMonthResponse200ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportMonthlyFinancialYearMonthResponseError = (
+  | getReportMonthlyFinancialYearMonthResponse400TextPlain
+  | getReportMonthlyFinancialYearMonthResponse400ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse400TextJson
+  | getReportMonthlyFinancialYearMonthResponse401TextPlain
+  | getReportMonthlyFinancialYearMonthResponse401ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse401TextJson
+  | getReportMonthlyFinancialYearMonthResponse403TextPlain
+  | getReportMonthlyFinancialYearMonthResponse403ApplicationJson
+  | getReportMonthlyFinancialYearMonthResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportMonthlyFinancialYearMonthUrl = (year: number, month: number) => {
+  return `/report/monthly-financial/${year}/${month}`;
+};
+
+export const getReportMonthlyFinancialYearMonth = async (
+  year: number,
+  month: number,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportMonthlyFinancialYearMonthResponseSuccess> => {
+  return apiFetch<getReportMonthlyFinancialYearMonthResponseSuccess>(
+    getGetReportMonthlyFinancialYearMonthUrl(year, month),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export type getReportManagementOverviewResponse200TextPlain = {
+  data: ResponseManagementOverviewJson;
+  status: 200;
+};
+
+export type getReportManagementOverviewResponse200ApplicationJson = {
+  data: ResponseManagementOverviewJson;
+  status: 200;
+};
+
+export type getReportManagementOverviewResponse200TextJson = {
+  data: ResponseManagementOverviewJson;
+  status: 200;
+};
+
+export type getReportManagementOverviewResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportManagementOverviewResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportManagementOverviewResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportManagementOverviewResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportManagementOverviewResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportManagementOverviewResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportManagementOverviewResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportManagementOverviewResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportManagementOverviewResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportManagementOverviewResponseSuccess = (
+  | getReportManagementOverviewResponse200TextPlain
+  | getReportManagementOverviewResponse200ApplicationJson
+  | getReportManagementOverviewResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportManagementOverviewResponseError = (
+  | getReportManagementOverviewResponse400TextPlain
+  | getReportManagementOverviewResponse400ApplicationJson
+  | getReportManagementOverviewResponse400TextJson
+  | getReportManagementOverviewResponse401TextPlain
+  | getReportManagementOverviewResponse401ApplicationJson
+  | getReportManagementOverviewResponse401TextJson
+  | getReportManagementOverviewResponse403TextPlain
+  | getReportManagementOverviewResponse403ApplicationJson
+  | getReportManagementOverviewResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportManagementOverviewUrl = (params?: GetReportManagementOverviewParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/management-overview?${stringifiedParams}`
+    : `/report/management-overview`;
+};
+
+export const getReportManagementOverview = async (
+  params?: GetReportManagementOverviewParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportManagementOverviewResponseSuccess> => {
+  return apiFetch<getReportManagementOverviewResponseSuccess>(
+    getGetReportManagementOverviewUrl(params),
     {
       ...options,
       method: 'GET',

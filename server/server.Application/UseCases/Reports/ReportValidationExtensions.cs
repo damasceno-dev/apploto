@@ -9,6 +9,8 @@ internal static class ReportValidationExtensions
     internal const int PageSizeMin = 1;
     internal const int PageSizeMax = 200;
     internal const int DateRangeMaxDays = 366;
+    internal const int YearMin = 2000;
+    internal const int YearMax = 2100;
 
     extension<T>(IRuleBuilder<T, DateTime> rule)
     {

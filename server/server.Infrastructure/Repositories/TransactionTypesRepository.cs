@@ -96,4 +96,25 @@ internal class TransactionTypesRepository(ServerDbContext dbContext) : ITransact
 
         return await query.AnyAsync();
     }
+
+    public Task<bool> ExistsWithSettlementInstrumentByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
+    {
+        return dbContext.TransactionTypes
+            .AsNoTracking()
+            .AnyAsync(type =>
+                type.Category.BranchId == branchId &&
+                type.SettlementInstrument != SettlementInstrument.None,
+                ct);
+    }
+
+    public async Task<IReadOnlyList<MonthlyFinancialRole>> ListConfiguredMonthlyFinancialRolesByBranchIdAsNoTracking(
+        Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.TransactionTypes
+            .AsNoTracking()
+            .Where(type => type.Category.BranchId == branchId && type.MonthlyFinancialRole != MonthlyFinancialRole.None)
+            .Select(type => type.MonthlyFinancialRole)
+            .Distinct()
+            .ToListAsync(ct);
+    }
 }

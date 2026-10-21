@@ -206,6 +206,61 @@ public class ArchitectureTest
         );
     }
 
+    /// <summary>
+    /// M11 Phase 7: the report use cases now delegate to shared readers in <c>server.Application.Services.Reports</c>
+    /// (the management overview reaches ten of them), so the never-commits guarantee is checked through every concrete
+    /// Application dependency they construct, not only their own constructors.
+    /// </summary>
+    [Fact]
+    public void ReportUseCases_DoNotReachUnitOfWork_ThroughAnyApplicationDependency()
+    {
+        var applicationAssembly = typeof(AppDependencyInjection).Assembly;
+        var reportUseCases = applicationAssembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .Where(t => t.Name.EndsWith("UseCase", StringComparison.Ordinal))
+            .Where(t => t.Namespace?.StartsWith("server.Application.UseCases.Reports", StringComparison.Ordinal) is true)
+            .ToList();
+        reportUseCases.ShouldContain(typeof(server.Application.UseCases.Reports.ManagementOverview.GetManagementOverviewUseCase));
+
+        var offenders = new List<string>();
+        foreach (var useCase in reportUseCases)
+        {
+            var visited = new HashSet<Type>();
+            var pending = new Stack<(Type Type, string Path)>([(useCase, useCase.Name)]);
+            while (pending.TryPop(out var current))
+            {
+                if (visited.Add(current.Type) is false)
+                    continue;
+
+                foreach (var parameter in current.Type.GetConstructors().SelectMany(constructor => constructor.GetParameters()))
+                {
+                    var path = $"{current.Path} -> {parameter.ParameterType.Name}";
+                    if (parameter.ParameterType == typeof(IUnitOfWork))
+                        offenders.Add(path);
+                    else if (parameter.ParameterType is { IsClass: true, IsAbstract: false } dependency &&
+                             dependency.Assembly == applicationAssembly)
+                        pending.Push((dependency, path));
+                }
+            }
+        }
+
+        offenders.ShouldBeEmpty("Report surfaces must never be able to commit: " + string.Join(" | ", offenders));
+    }
+
+    /// <summary>
+    /// The WebApi test host swaps in a settable clock (M11 Phase 7.5); production must keep the real branch clock.
+    /// </summary>
+    [Fact]
+    public void ProductionBranchClockRegistration_IsTheRealScopedClock()
+    {
+        var services = new ServiceCollection();
+        services.AddApplication();
+
+        var clock = services.Single(descriptor => descriptor.ServiceType == typeof(server.Application.Services.Transactions.IBranchClock));
+        clock.ImplementationType.ShouldBe(typeof(server.Application.Services.Transactions.BranchClock));
+        clock.Lifetime.ShouldBe(ServiceLifetime.Scoped);
+    }
+
     [Fact]
     public void DailyCloseAccountCoordination_HasExactlyTheThirteenDeclaredMutationParticipants()
     {

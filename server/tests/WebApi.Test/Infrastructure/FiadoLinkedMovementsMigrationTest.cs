@@ -111,10 +111,20 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
         {
             foreach (var branchId in new[] { BranchA, BranchB })
             {
+                // Projected reads: this schema predates later TransactionType columns (M11), so the current entity
+                // shape cannot be materialized here.
                 var systemTypes = await dbContext.TransactionTypes
                     .AsNoTracking()
-                    .Include(type => type.Category)
                     .Where(type => type.Category.BranchId == branchId && type.SystemRole != null)
+                    .Select(type => new
+                    {
+                        type.Name,
+                        type.SystemRole,
+                        type.Active,
+                        type.FiadoPaymentKind,
+                        type.RequiresTabAccountAndClient,
+                        Category = new { type.Category.DefaultDirection }
+                    })
                     .ToListAsync();
 
                 systemTypes.Count.ShouldBe(2);
@@ -127,7 +137,10 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
                 systemTypes.ShouldAllBe(type => type.Active && type.FiadoPaymentKind == null && !type.RequiresTabAccountAndClient);
             }
 
-            var legacyType = await dbContext.TransactionTypes.AsNoTracking().SingleAsync(type => type.Id == RepaymentTypeId);
+            var legacyType = await dbContext.TransactionTypes.AsNoTracking()
+                .Where(type => type.Id == RepaymentTypeId)
+                .Select(type => new { type.FiadoPaymentKind, type.SystemRole })
+                .SingleAsync();
             legacyType.FiadoPaymentKind.ShouldBeNull();
             legacyType.SystemRole.ShouldBeNull();
             var legacyRow = await dbContext.Transactions.AsNoTracking().SingleAsync(row => row.Id == LegacyRepaymentId);
@@ -139,7 +152,7 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
             // category, and the manager's category keeps its name, state and only its own type.
             var cashCategory = await dbContext.TransactionTypes.AsNoTracking()
                 .Where(type => type.SystemRole == TransactionTypeSystemRole.FiadoCashRepaymentCounterpart && type.Category.BranchId == BranchA)
-                .Select(type => type.Category)
+                .Select(type => new { type.Category.Id, type.Category.Name })
                 .SingleAsync();
             cashCategory.Id.ShouldNotBe(ManagerActiveCategoryId);
             cashCategory.Name.ShouldStartWith("Movimentos automáticos de fiado (entrada) — sistema ");
