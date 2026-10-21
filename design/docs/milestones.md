@@ -282,7 +282,7 @@ For each screen the dev-team prototype, attach/paste:
 | Daily ledger | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 2; M11 Ph 2.4 | — |
 | Fiado balance | `reports-and-month-lock.md` | Web/Mobile M8 | M7.7 Ph 5; M11 Ph 3.1 | — |
 | Fiado aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7.7 Ph 5.1; M11 Ph 3.2 | — |
-| Open-cheque aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 5; M11 Ph 2.1, 4.2 | standalone-cheque groups (*Cheque avulso*, catalog v56 — review pending) |
+| Open-cheque aging | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 5; M11 Ph 2.1, 4.2 | standalone-cheque groups (*Cheque avulso*, catalog v56, accepted at v57) |
 | Cash-variance summary | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 8; M7.7 Ph 6; M11 Ph 2.2 | — |
 | Monthly reconciliation + lock | `reports-and-month-lock.md` | Web/Mobile M8 | M7 Ph 10; M7.7 Ph 4; M11 Ph 2.3 | — |
 | Dashboard | `reports-and-month-lock.md` (placeholder) | Web/Mobile M8 | M11 Ph 7 (review pending) | whole blueprint (gap Q, 4.8.4) |
@@ -300,7 +300,7 @@ For each screen the dev-team prototype, attach/paste:
 | Account assignment (admin) | `administration.md` | Web/Mobile M10 | M2; M7.7 Ph 5.3, 5.6 | — |
 | Accounts (admin) | `administration.md` | Web/Mobile M10 | M2; M7.7 Ph 5.3 | — |
 | Clients (admin + counter) | `administration.md` | Web/Mobile M10 | M2 | — |
-| Categories & Transaction Types (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 5; M11 Ph 4, 6 | report classifications (catalog v56 — review pending) |
+| Categories & Transaction Types (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 5; M11 Ph 4, 6 | report classifications (catalog v56, accepted at v57) |
 | Products (admin) | `administration.md` | Web/Mobile M10 | M6 | deactivation warning/recovery (gap AA) |
 | Holidays (admin) | `administration.md` | Web/Mobile M10 | M5, M6 | — |
 | Settings (admin) | `administration.md` | Web/Mobile M10 | M6; M7.7 Ph 4, 6, 7 | — |
