@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v56
+Spec revision: v57
 -->
 <html lang="en">
 <head>
@@ -336,6 +336,16 @@ Spec revision: v56
     "    uuid id PK\n" +
     "    string keyHash UK \"normalized email SHA-256\"\n" +
     "    datetime nextAllowedAt \"UTC\"\n" +
+    "  }\n" +
+    "\n" +
+    "  LoginThrottle {\n" +
+    "    uuid id PK\n" +
+    "    string keyHash UK \"account or account+network SHA-256\"\n" +
+    "    string accountKeyHash \"account SHA-256\"\n" +
+    "    int failureCount \"> 0\"\n" +
+    "    datetime windowStartedAt \"UTC\"\n" +
+    "    datetime blockedUntil \"nullable UTC\"\n" +
+    "    datetime expiresAt \"UTC sweep\"\n" +
     "  }\n" +
     "\n" +
     "  OperatorLinkRequest {\n" +

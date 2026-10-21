@@ -30,6 +30,7 @@ public sealed class AccountSecurityUseCaseTest
         await ctx.ChangePassword.Execute(new RequestChangePasswordJson { CurrentPassword = "Password123", NewPassword = "NewPassword123" });
         await ctx.Security.Received(1).RevokeAllRefreshTokens(ctx.User.Id);
         await ctx.Security.Received(1).InvalidateRecovery(ctx.User.Id);
+        await ctx.LoginThrottles.Received(1).RemoveAccount(LoginAttemptGuard.AccountKey(ctx.User.Email));
         await ctx.Coordination.Received(1).TryAcquire(Arg.Is<string[]>(keys => keys.SequenceEqual(new[] { SecurityRules.EmailKey(ctx.User.Email) })));
         new PasswordEncryption().VerifyPassword("NewPassword123", ctx.User.Password).ShouldBeTrue();
         await ctx.Work.Received(1).Commit();
@@ -45,6 +46,7 @@ public sealed class AccountSecurityUseCaseTest
         { CurrentPassword = "wrong", NewPassword = "NewPassword123" }));
         ctx.User.Password.ShouldBe(original);
         await ctx.Security.DidNotReceive().RevokeAllRefreshTokens(ctx.User.Id);
+        await ctx.LoginThrottles.DidNotReceive().RemoveAccount(Arg.Any<string>());
         await ctx.Work.DidNotReceive().Commit();
     }
 
@@ -143,15 +145,16 @@ public sealed class AccountSecurityUseCaseTest
         var mail = Substitute.For<IRecoveryMailQueue>();
         var clock = new FixedUtcTimeProvider(Now);
         var options = new AccountSecurityOptions(new Uri("https://app.example.invalid/"), TimeSpan.FromMinutes(30), TimeSpan.FromHours(72), TimeSpan.FromSeconds(60));
-        var updater = new AccountPasswordUpdater(security, password);
-        return new(user, users, security, coordination, scope, work, mail,
+        var loginThrottles = new LoginThrottleRepositoryBuilder().Build();
+        var updater = new AccountPasswordUpdater(security, loginThrottles, password);
+        return new(user, users, security, loginThrottles, coordination, scope, work, mail,
             new ChangeUserPasswordUseCase(auth, security, coordination, work, password, updater),
             new LogoutUserUseCase(auth, security, coordination, work),
             new ForgotUserPasswordUseCase(users, security, coordination, work, clock, options, mail),
             new ResetUserPasswordUseCase(users, security, coordination, work, clock, updater));
     }
     private sealed record Context(User User, IUsersRepository Users, IAccountSecurityRepository Security,
-        ISecurityCoordination Coordination, ISecurityScope Scope, IUnitOfWork Work, IRecoveryMailQueue Mail,
+        ILoginThrottleRepository LoginThrottles, ISecurityCoordination Coordination, ISecurityScope Scope, IUnitOfWork Work, IRecoveryMailQueue Mail,
         ChangeUserPasswordUseCase ChangePassword, LogoutUserUseCase Logout,
         ForgotUserPasswordUseCase ForgotPassword, ResetUserPasswordUseCase ResetPassword);
 }

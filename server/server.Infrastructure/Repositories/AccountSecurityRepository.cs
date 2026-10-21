@@ -31,6 +31,9 @@ internal sealed class AccountSecurityRepository(ServerDbContext db) : IAccountSe
         return token;
     }
     public async Task AddReset(PasswordResetToken token) => await db.PasswordResetTokens.AddAsync(token);
-    public Task<RecoveryThrottle?> GetThrottle(string key) => db.RecoveryThrottles.SingleOrDefaultAsync(t => t.KeyHash == key);
+    // Row-locked for the same reason as LoginThrottleRepository: the retention sweep skips it while a request holds it.
+    public Task<RecoveryThrottle?> GetThrottle(string key) => db.RecoveryThrottles
+        .FromSql($"SELECT * FROM \"RecoveryThrottles\" WHERE \"KeyHash\" = {key} FOR UPDATE")
+        .SingleOrDefaultAsync();
     public async Task AddThrottle(RecoveryThrottle throttle) => await db.RecoveryThrottles.AddAsync(throttle);
 }

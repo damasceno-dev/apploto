@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v56
+Spec revision: v57
 -->
 <html lang="en">
 <head>
@@ -577,7 +577,7 @@ const SLIDES=[
  ],
  steps:[
   {title:'Login: Identity Chain',
-   narrative:'Back on <b>March 15</b> — Jennifer\'s own Saturday from UC1 and UC2, now told end-to-end. When she logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br><span class="design-note"><span class="dn-label">Design note:</span> the Operator→User link is validated at the API layer to ensure branch consistency, and a filtered unique index guarantees one active linked Operator per User within a Branch while still allowing unlinked historical operators.</span>',
+   narrative:'Back on <b>March 15</b> — Jennifer\'s own Saturday from UC1 and UC2, now told end-to-end. When she logs in, the system resolves the full <b>identity chain</b>:<br><br>User (global auth) → BranchUser (role in this branch) → Branch (tenant) → Operator (employee) → OperatorAccount → Account (terminal).<br><br><span class="design-note"><span class="dn-label">Design note:</span> the Operator→User link is validated at the API layer to ensure branch consistency, and a filtered unique index guarantees one active linked Operator per User within a Branch while still allowing unlinked historical operators. Before any account is read, a password login spends per-network and per-account failed-check budgets: a blocked budget answers 429 with <code>Retry-After</code>, the same for every account, and mints nothing.</span>',
    activeTables:['User','BranchUser','Branch','Operator','OperatorAccount','Account'],
    activeArrows:['u-bu','bu-br','br-op','op-oa','oa-acc'],
    staggerDelay:true,
@@ -751,7 +751,7 @@ function renderTitle(i){
 
 function renderSchema(i){
   const groups=[
-    {name:'Auth',color:'var(--blue)',entities:['User','RefreshToken','BranchUser','Branch','PasswordResetToken','RecoveryThrottle','Invitation']},
+    {name:'Auth',color:'var(--blue)',entities:['User','RefreshToken','BranchUser','Branch','PasswordResetToken','RecoveryThrottle','LoginThrottle','Invitation']},
     {name:'Employee',color:'var(--green)',entities:['Operator','OperatorAccount','Account','OperatorLinkRequest']},
     {name:'Financial',color:'var(--amber)',entities:['Category','TransactionType','Transaction','Client','IdempotencyRequest']},
     {name:'Closing',color:'var(--purple)',entities:['DailyClose','DailyCloseItem','Product']},
@@ -762,7 +762,7 @@ function renderSchema(i){
     return `<div class="schema-group"><h3 style="border-bottom-color:${g.color};color:${g.color}">${g.name}</h3>${ents}</div>`;
   }).join('');
   return `<div class="slide schema-slide" data-idx="${i}">
-    <h2>The Map — 19 Entities</h2>
+    <h2>The Map — 25 Entities</h2>
     <p style="font-size:14px;color:var(--dim);font-style:italic;margin:-18px 0 24px;text-align:center">The complete data map behind the stories and architectural decisions ahead.</p>
     <div class="schema-groups">${gs}</div>
   </div>`;

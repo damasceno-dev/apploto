@@ -4,6 +4,7 @@ using CommonTestUtilities.Requests;
 using CommonTestUtilities.Services;
 using NSubstitute;
 using server.Application.Services;
+using server.Application.Services.Security;
 using server.Application.UseCases.Users.Login;
 using server.Domain.Entities;
 using server.Domain.Interfaces;
@@ -79,7 +80,8 @@ public class UserLoginUseCaseTest
         var exception = await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.PASSWORD_WRONG);
-        await unitOfWork.DidNotReceive().Commit();
+        // The failed check is counted for a missing account exactly as for an existing one.
+        await unitOfWork.Received(1).Commit();
     }
 
     [Fact]
@@ -107,7 +109,8 @@ public class UserLoginUseCaseTest
         var exception = await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.PASSWORD_WRONG);
-        await unitOfWork.DidNotReceive().Commit();
+        await unitOfWork.Received(1).Commit();
+        await refreshTokenRepository.DidNotReceive().SaveRefreshToken(Arg.Any<RefreshToken>());
     }
 
     [Theory]
@@ -126,7 +129,7 @@ public class UserLoginUseCaseTest
 
         var error = await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
         error.Message.ShouldBe(ResourcesErrorMessages.PASSWORD_WRONG);
-        await work.DidNotReceive().Commit();
+        await work.Received(1).Commit();
     }
 
     [Fact]
@@ -150,15 +153,85 @@ public class UserLoginUseCaseTest
         await unitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldCountAFailure_InBothBudgets_ForEveryAccountState()
+    {
+        var request = new RequestUserLoginJsonBuilder().WithEmail("absent@example.com").WithPassword("WrongPassword123").Build();
+        var users = new UsersRepositoryBuilder().GetByEmail(null).Build();
+        users.NormalizeEmail(request.Email).Returns("absent@example.com");
+        var guard = new LoginAttemptGuardBuilder();
+        var work = new UnitOfWorkBuilder().Build();
+        var scope = Substitute.For<ISecurityScope>();
+        var useCase = CreateUseCase(users, new TokenServicesBuilder().Build(), new RefreshTokenRepositoryBuilder().Build(), work,
+            PasswordEncryptionBuilder.Build(), SecurityCoordinationBuilder.Build(scope), guard.Build());
+
+        await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
+
+        guard.Throttles.Rows.Count.ShouldBe(2);
+        guard.Throttles.Rows.ShouldAllBe(r => r.FailureCount == 1 && r.AccountKeyHash == LoginAttemptGuard.AccountKey("absent@example.com"));
+        await work.Received(1).Commit();
+        await scope.Received(1).Complete();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRefuseBeforeReadingTheAccount_WhenABudgetIsBlocked()
+    {
+        var user = new UserBuilder().WithEmail("user@example.com").WithHashedPassword("Password123").Build();
+        var request = new RequestUserLoginJsonBuilder().WithEmail(user.Email).WithPassword("Password123").Build();
+        var users = new UsersRepositoryBuilder().GetByEmail(user).Build();
+        users.NormalizeEmail(request.Email).Returns(user.Email);
+        var guard = new LoginAttemptGuardBuilder();
+        var now = new DateTimeOffset(2026, 10, 21, 12, 0, 0, TimeSpan.Zero).UtcDateTime;
+        guard.Throttles.WithRow(new LoginThrottle
+        {
+            KeyHash = LoginAttemptGuard.AccountKey(user.Email), AccountKeyHash = LoginAttemptGuard.AccountKey(user.Email),
+            FailureCount = LoginProtectionOptionsFactory.DefaultAccountFailureLimit, WindowStartedAt = now.AddMinutes(-1),
+            BlockedUntil = now.AddSeconds(90), ExpiresAt = now.AddSeconds(90)
+        });
+        var refresh = new RefreshTokenRepositoryBuilder().Build();
+        var work = new UnitOfWorkBuilder().Build();
+        var useCase = CreateUseCase(users, new TokenServicesBuilder().Build(), refresh, work, PasswordEncryptionBuilder.Build(),
+            attempts: guard.Build());
+
+        var error = await Should.ThrowAsync<TooManyAttemptsException>(() => useCase.Execute(request));
+
+        error.Message.ShouldBe(ResourcesErrorMessages.SECURITY_RATE_LIMITED);
+        error.RetryAfter.ShouldBe(TimeSpan.FromSeconds(90));
+        await users.DidNotReceive().GetByEmail(Arg.Any<string>());
+        await refresh.DidNotReceive().SaveRefreshToken(Arg.Any<RefreshToken>());
+        await work.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldClearOnlyThisNetworksBudget_WhenThePasswordIsProven()
+    {
+        var user = new UserBuilder().WithEmail("user@example.com").WithHashedPassword("Password123").Build();
+        var request = new RequestUserLoginJsonBuilder().WithEmail(user.Email).WithPassword("WrongPassword123").Build();
+        var users = new UsersRepositoryBuilder().GetByEmail(user).Build();
+        users.NormalizeEmail(Arg.Any<string>()).Returns(user.Email);
+        var guard = new LoginAttemptGuardBuilder();
+        var attempts = guard.Build();
+        var useCase = CreateUseCase(users, new TokenServicesBuilder().Build(), new RefreshTokenRepositoryBuilder().Build(),
+            new UnitOfWorkBuilder().Build(), PasswordEncryptionBuilder.Build(), attempts: attempts);
+        await Should.ThrowAsync<InvalidLoginException>(() => useCase.Execute(request));
+
+        await useCase.Execute(new RequestUserLoginJsonBuilder().WithEmail(user.Email).WithPassword("Password123").Build());
+
+        var remaining = guard.Throttles.Rows.ShouldHaveSingleItem();
+        remaining.KeyHash.ShouldBe(LoginAttemptGuard.AccountKey(user.Email));
+        remaining.FailureCount.ShouldBe(1);
+    }
+
     private static UserLoginUseCase CreateUseCase(
         IUsersRepository usersRepository,
         ITokenServices tokenServices,
         IRefreshTokenRepository refreshTokenRepository,
         IUnitOfWork unitOfWork,
         PasswordEncryption passwordEncryption,
-        ISecurityCoordination? coordination = null)
+        ISecurityCoordination? coordination = null,
+        LoginAttemptGuard? attempts = null)
     {
         return new UserLoginUseCase(usersRepository, tokenServices, refreshTokenRepository, unitOfWork,
-            passwordEncryption, coordination ?? SecurityCoordinationBuilder.Build());
+            passwordEncryption, coordination ?? SecurityCoordinationBuilder.Build(), attempts ?? new LoginAttemptGuardBuilder().Build());
     }
 }

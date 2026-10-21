@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using server.Communication.Responses;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
+using server.Headers;
 
 namespace server.ExceptionHandling;
 
@@ -15,6 +16,9 @@ public class ApiExceptionHandler : IApiExceptionHandler
         var errorMessage = environment?.EnvironmentName == "Development"
             ? GetErrorDetail(exception, httpContext)
             : ResourcesErrorMessages.UNKNOWN_ERROR;
+
+        if (exception is TooManyAttemptsException tooMany)
+            RetryAfterHeader.Write(httpContext.Response, tooMany.RetryAfter);
 
         return exception is ServerException serverException
             ? new ObjectResult(new ResponseErrorJson(serverException.GetErrorMessages)) { StatusCode = serverException.GetStatusCode }

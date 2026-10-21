@@ -13,7 +13,7 @@ namespace server.Application.UseCases.Users.Google;
 public sealed class GoogleSignInUseCase(IGoogleIdentityVerifier verifier, IGoogleIdentityRepository identities,
     IUsersRepository users, IRefreshTokenRepository refreshTokens, ITokenServices tokens,
     ISecurityCoordination coordination, IUnitOfWork unitOfWork, InvitationWorkflow invitations,
-    IAccountSecurityRepository security, PasswordEncryption passwords, TimeProvider time)
+    IAccountSecurityRepository security, PasswordEncryption passwords, TimeProvider time, LoginAttemptGuard attempts)
 {
     public async Task<ResponseUserLoginJson> Execute(RequestGoogleSignInJson request, CancellationToken ct = default)
     {
@@ -72,10 +72,8 @@ public sealed class GoogleSignInUseCase(IGoogleIdentityVerifier verifier, IGoogl
                 // A verified Google email alone cannot take over a legacy password account.
                 // Auto-link only where both sides have explicit, recorded email proof and
                 // Google is authoritative for that mailbox; otherwise require its password.
-                if (!(google.GoogleAuthoritative && user.EmailVerifiedAt.HasValue) &&
-                    (string.IsNullOrEmpty(request.CurrentPassword) || string.IsNullOrEmpty(user.Password) ||
-                     !passwords.VerifyPassword(request.CurrentPassword, user.Password)))
-                    throw new ConflictException(ResourcesErrorMessages.GOOGLE_LINK_PROOF_REQUIRED);
+                if (!(google.GoogleAuthoritative && user.EmailVerifiedAt.HasValue))
+                    await ProvePassword(user, request.CurrentPassword, scope, ct);
             }
             else
             {
@@ -102,6 +100,27 @@ public sealed class GoogleSignInUseCase(IGoogleIdentityVerifier verifier, IGoogl
         await unitOfWork.Commit(ct);
         await scope.Complete();
         return user.ToResponse(identityToken, refresh);
+    }
+
+    /// <summary>
+    /// The first-link password proof is a password check, so it spends the same budgets as password login
+    /// (M8 Phase 8). A refused proof commits only those budget rows: the challenge, link and session stay untouched.
+    /// </summary>
+    private async Task ProvePassword(User user, string? currentPassword, ISecurityScope scope, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(user.Password))
+            throw new ConflictException(ResourcesErrorMessages.GOOGLE_LINK_PROOF_REQUIRED);
+        var attempt = await attempts.Admit(user.Email);
+        if (passwords.VerifyPassword(currentPassword, user.Password))
+        {
+            attempts.Succeeded(attempt);
+            return;
+        }
+
+        await attempts.Failed(attempt);
+        await unitOfWork.Commit(ct);
+        await scope.Complete();
+        throw new ConflictException(ResourcesErrorMessages.GOOGLE_LINK_PROOF_REQUIRED);
     }
 
     private static InvalidLoginException Invalid() => new(ResourcesErrorMessages.GOOGLE_ASSERTION_INVALID);

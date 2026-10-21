@@ -184,6 +184,7 @@ The backend is the single source of error-message truth. Every API error is `Res
 
 - Login: "Entrar", "Continuar com Google", "Esqueci minha senha", and the static hint "Primeiro acesso? Abra o link do convite recebido por e-mail." Never "Criar conta" or "Cadastre-se" on Login — there is no public sign-up.
 - Google link step: heading "Confirme sua senha do Lotero", action "Confirmar senha e vincular".
+- Rate limited (429 `SECURITY_RATE_LIMITED` on Login, its Google link step and capability screens): the returned message verbatim and nothing else — no countdown from `Retry-After`, no "conta bloqueada", no hint that the password was wrong or the account exists.
 - Forgot password confirmation (identical for every outcome): "Se houver uma conta ativa com este e-mail, enviaremos um link para definir uma nova senha. O link vale por tempo limitado."
 - Reset password: title "Definir nova senha", success "Senha definida. Entre com a nova senha.", missing token "Abra novamente o link recebido por e-mail.", unusable link action "Peça um novo link".
 - Change password: consequence "Ao alterar a senha, todas as sessões desta conta são encerradas, inclusive neste dispositivo."; success on Login "Senha alterada. Entre novamente com a nova senha."; repeat mismatch "As senhas não conferem."

@@ -1802,6 +1802,17 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
             "content": {
               "text/plain": {
                 "schema": {
@@ -6874,6 +6885,17 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
             "content": {
               "text/plain": {
                 "schema": {
@@ -6967,6 +6989,17 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
             "content": {
               "text/plain": {
                 "schema": {
@@ -7211,6 +7244,17 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
             "content": {
               "text/plain": {
                 "schema": {
@@ -15928,6 +15972,37 @@
                 }
               }
             }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
           }
         },
         "security": [ ]
@@ -15961,6 +16036,17 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
             "content": {
               "text/plain": {
                 "schema": {
@@ -16131,6 +16217,17 @@
           },
           "429": {
             "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Whole seconds to wait before trying again (at least 1). Advisory: clients do not retry automatically.",
+                "required": true,
+                "schema": {
+                  "minimum": 1,
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            },
             "content": {
               "text/plain": {
                 "schema": {

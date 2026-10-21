@@ -15,7 +15,8 @@ public class UserLoginUseCase(
     IRefreshTokenRepository refreshTokenRepository,
     IUnitOfWork unitOfWork,
     PasswordEncryption passwordEncryption,
-    ISecurityCoordination coordination)
+    ISecurityCoordination coordination,
+    LoginAttemptGuard attempts)
 {
     private static readonly string UnavailableAccountHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString());
 
@@ -24,9 +25,18 @@ public class UserLoginUseCase(
         Validate(request);
         var email = await usersRepository.NormalizeEmail(request.Email);
         await using var scope = await SecurityRules.Acquire(coordination, SecurityRules.EmailKey(email));
-        var userToVerify = await usersRepository.GetByEmail(email);
-        var user = VerifyUserAndPassword(userToVerify, request.Password);
+        // The abuse budgets are checked before the account is read or BCrypt runs, the same way for every account state.
+        var attempt = await attempts.Admit(email);
+        var user = VerifyUserAndPassword(await usersRepository.GetByEmail(email), request.Password);
+        if (user is null)
+        {
+            await attempts.Failed(attempt);
+            await unitOfWork.Commit();
+            await scope.Complete();
+            throw new InvalidLoginException(ResourcesErrorMessages.PASSWORD_WRONG);
+        }
 
+        attempts.Succeeded(attempt);
         var token = tokenServices.GenerateGlobalToken(user);
         var refreshToken = refreshTokenRepository.Generate();
         await refreshTokenRepository.SaveRefreshToken(new RefreshToken
@@ -36,23 +46,18 @@ public class UserLoginUseCase(
         });
         await unitOfWork.Commit();
         await scope.Complete();
-        
+
         return user.ToResponse(token, refreshToken);
     }
 
-    private User VerifyUserAndPassword(User? user, string requestPassword)
+    private User? VerifyUserAndPassword(User? user, string requestPassword)
     {
         // Verify one BCrypt hash even for unavailable accounts so response time does not
         // trivially distinguish them from a wrong password on an active account.
         var usable = user is { Active: true } && !string.IsNullOrEmpty(user.Password);
         var passwordMatches = passwordEncryption.VerifyPassword(requestPassword,
             usable ? user!.Password : UnavailableAccountHash);
-        if (!usable || !passwordMatches)
-        {
-            throw new InvalidLoginException(ResourcesErrorMessages.PASSWORD_WRONG);
-        }
-
-        return user!;
+        return usable && passwordMatches ? user : null;
     }
 
     private static void Validate(RequestUserLoginJson request)

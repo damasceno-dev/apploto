@@ -100,6 +100,125 @@ SELECT
 FROM "IdempotencyRequests";
 ```
 
+## M8 local security operations
+
+This is the reproducible local path for account security (server M8 Phase 8 local subset). It never touches
+`loto-postgres-local`, a shared database or a real mailbox, and it proves nothing about a production sender, domain,
+Google project or Production bootstrap.
+
+**1. Own a disposable environment.** Run every command from the repository root. Generate the local-only database
+password into the shell, never into a file or the command history of another tool, and keep the ports on loopback:
+
+```bash
+export LOTO_M8_DB_PASSWORD="$(openssl rand -hex 16)"
+docker run -d --rm --name loto-m8-local-db -p 127.0.0.1:55432:5432 \
+  -e POSTGRES_DB=loto_dev_m8 -e POSTGRES_PASSWORD="$LOTO_M8_DB_PASSWORD" postgres:16-alpine
+docker compose -f infra/docker-compose.m8-mail.yml -p loto-m8-mail up -d   # SMTP 127.0.0.1:11025, UI http://127.0.0.1:18025
+export LOTO_M8_CONNECTION="Host=127.0.0.1;Port=55432;Database=loto_dev_m8;Username=postgres;Password=$LOTO_M8_DB_PASSWORD"
+dotnet ef database update --project server/server.Infrastructure --startup-project server/server.API --connection "$LOTO_M8_CONNECTION"
+```
+
+**2. Inject configuration explicitly.** Every value below comes from the environment of the process that needs it; the
+API and the CLI read the same keys (the CLI with the `LOTO_CLI_` prefix). Invalid security options stop the process at
+startup: the application URL must be HTTPS or loopback HTTP ending in `/`, and every `AccountSecurity:Login*` value must
+lie in the range in the table below.
+
+```bash
+export LOTO_CLI_AccountSecurity__ApplicationUrl=http://127.0.0.1:3000/
+export LOTO_CLI_SecurityMail__Enabled=true LOTO_CLI_SecurityMail__Host=127.0.0.1
+export LOTO_CLI_SecurityMail__Port=11025 LOTO_CLI_SecurityMail__LocalCapture=true
+```
+
+**3. First platform operator.** Preview eligibility first; it writes nothing. Repeat with `--execute` to create the
+passwordless account and send its single-use setup link to the local capture. The CLI never accepts or prints a password
+or capability, and it refuses `Production` and `loto_prod`/`production` database names.
+
+```bash
+dotnet run --project server/server.Cli -- bootstrap-platform --environment Development \
+  --connection-env LOTO_M8_CONNECTION --name "Operador local" --email operador@example.invalid
+```
+
+**4. Activate and sign in through the ordinary API.** Start the API with the same injected values (it keeps the
+terminal). In a second shell, open the captured message in the Mailpit UI, copy the value after `#token=` into
+`LOTO_M8_SETUP_TOKEN` and choose `LOTO_M8_OPERATOR_PASSWORD` (8 characters to 72 UTF-8 bytes). Activation is the normal
+`POST /user/reset-password` (204); then `POST /user/login` returns the identity session (200).
+
+```bash
+ConnectionStrings__DefaultConnection="$LOTO_M8_CONNECTION" AccountSecurity__ApplicationUrl=http://127.0.0.1:3000/ \
+SecurityMail__Enabled=true SecurityMail__Host=127.0.0.1 SecurityMail__Port=11025 SecurityMail__LocalCapture=true \
+ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:5180 \
+dotnet run --project server/server.API --no-launch-profile
+```
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:5180/user/reset-password \
+  -H 'Content-Type: application/json' -d "{\"token\":\"$LOTO_M8_SETUP_TOKEN\",\"newPassword\":\"$LOTO_M8_OPERATOR_PASSWORD\"}"
+curl -s -o /dev/null -w '%{http_code}\n' -X POST http://127.0.0.1:5180/user/login \
+  -H 'Content-Type: application/json' -d "{\"email\":\"operador@example.invalid\",\"password\":\"$LOTO_M8_OPERATOR_PASSWORD\"}"
+```
+
+Operated onboarding (`POST /platform/onboarding` or the CLI `onboard`) and invitations then follow the M8 milestone notes.
+`FirstPlatformOperatorCliTest`, `M8LocalAcceptanceJourneyTest` and `OperatedOnboardingHttpTest` replay the same
+journeys on disposable containers.
+
+**5. Clean up only what step 1 created.**
+
+```bash
+docker rm -f loto-m8-local-db
+docker compose -f infra/docker-compose.m8-mail.yml -p loto-m8-mail down
+unset LOTO_M8_DB_PASSWORD LOTO_M8_CONNECTION LOTO_M8_SETUP_TOKEN LOTO_M8_OPERATOR_PASSWORD
+```
+
+### Login abuse protection
+
+`POST /user/login` passes three budgets. A refusal is always 429 `SECURITY_RATE_LIMITED` with `Retry-After` in whole
+seconds, identical for missing, inactive, passwordless and existing accounts, and it happens before the account is read,
+BCrypt runs or a token is minted.
+
+| Setting (`AccountSecurity:`) | Default | Allowed | Scope |
+|---|---|---|---|
+| `LoginRequestsPerMinute` | 30 | 1–1000 | requests per client network per minute, **per API process** (restart resets it; N instances allow N×) |
+| `LoginClientFailureLimit` | 5 | 1–100 | failed checks per account from one client network, PostgreSQL (all instances, survives restart) |
+| `LoginAccountFailureLimit` | 20 | client limit–1000 | failed checks per account from all networks, PostgreSQL; set it explicitly whenever `LoginClientFailureLimit` exceeds 20, or startup stops |
+| `LoginFailureWindowMinutes` | 15 | 1–1440 | window in which failures accumulate |
+| `LoginCooldownMinutes` | 15 | 1–1440 | block length once a failure limit is reached |
+
+A failed check counts for a wrong password on `POST /user/login` (401) and for a wrong `CurrentPassword` on the Google
+first-link proof, which answers 409 `GOOGLE_LINK_PROOF_REQUIRED`. Validation 400s, coordination 409s
+(`SECURITY_COORDINATION_BUSY`), a Google proof request without a password and 429 refusals never count or extend a
+block. A successful login clears only that network's budget. A successful password reset or change deletes every
+persistent budget of the account (all its `LoginThrottles` rows), so **a locked-out person recovers through Esqueci
+minha senha**; the process-local request limit of their network is separate and still runs out its current minute, so
+an immediate login may get one more 429 with a `Retry-After` of at most 60 seconds. Do not delete `LoginThrottles`
+rows by hand. A sustained attack from more networks than
+`LoginAccountFailureLimit / LoginClientFailureLimit` can keep re-imposing the account cooldown: it is never permanent,
+and an already-linked Google sign-in is unaffected.
+
+**Client network and proxies.** The client network is the connection's peer address: an IPv4 address, or the /64 of an
+IPv6 address. `X-Forwarded-For` is ignored unless the peer is listed in `ForwardedHeaders:KnownProxies` (addresses) or
+`ForwardedHeaders:KnownNetworks` (CIDR); then the framework unwraps trusted hops only and the first untrusted address is
+the client. An invalid entry stops startup. Behind an unconfigured reverse proxy every client shares the proxy's
+partition, so the request limit becomes global and the network budget becomes per account. Never set
+`ASPNETCORE_FORWARDEDHEADERS_ENABLED`, which trusts every sender. The forgot-password (60/min) and capability (120/min)
+limiters use the same partition; forgot-password still answers its suppressed request with the same empty 202.
+
+**Retention.** `SecurityThrottleCleanupHostedService` deletes expired `LoginThrottles` rows and elapsed
+`RecoveryThrottles` rows every `SecurityThrottleCleanup:SweepIntervalMinutes` (15) in batches of
+`SecurityThrottleCleanup:BatchSize` (500), both positive integers. It uses `FOR UPDATE SKIP LOCKED`, so it never touches
+a row a request is holding, and it is safe with several instances. Rows hold only SHA-256 key hashes, counts and UTC
+instants. Inspect without mutating:
+
+```sql
+SELECT COUNT(*) AS login_rows,
+       COUNT(*) FILTER (WHERE "BlockedUntil" > now()) AS blocked_rows,
+       COUNT(*) FILTER (WHERE "ExpiresAt" <= now()) AS awaiting_sweep
+FROM "LoginThrottles";
+```
+
+`infra/scripts/render-server-appsettings.sh` does not yet render any `AccountSecurity`, `SecurityMail`,
+`ForwardedHeaders` or `SecurityThrottleCleanup` value; hosted environments use the defaults until M9 adds them. Real
+sender/DNS/TLS, a cross-instance request limiter and the Production first-operator rollout remain M8 Phase 8 launch work.
+
 ## M95 opening-side inflow upgrade
 
 `20261020104851_M95OpeningSideInflows` changes data only. Back up the owned database and stop application writers before the reviewed upgrade; do not reset development or staging. A fresh empty database needs no mapping. An existing database **always** needs an explicit identity review for every branch, including inactive branches. Earlier seeds used random IDs and editable names, so neither a matching name, display order, creation time nor a complete-looking catalog proves which product was seeded. Never bulk-select by `Name = 'Tarifa Bolão'` and call that provenance.

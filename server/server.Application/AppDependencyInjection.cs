@@ -276,6 +276,7 @@ public static class AppDependencyInjection
         services.AddScoped<server.Application.UseCases.OperatorLinkRequests.List.ListOperatorLinkRequestsUseCase>();
         services.AddScoped<server.Application.UseCases.OperatorLinkRequests.Resolve.ResolveOperatorLinkRequestUseCase>();
         services.AddScoped<server.Application.Services.Security.AccountPasswordUpdater>();
+        services.AddScoped<server.Application.Services.Security.LoginAttemptGuard>();
         services.AddScoped<server.Application.Services.Security.InvitationWorkflow>();
         services.AddScoped<server.Application.Services.Security.OperatorLinkRequestReader>();
         services.AddScoped<server.Application.Services.Security.BranchBootstrap>();
