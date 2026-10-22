@@ -22,6 +22,9 @@ const appRoot = fileURLToPath(new URL('..', import.meta.url));
 const generatedDirectories = new Set([
   'node_modules',
   '.next',
+  '.next-e2e',
+  'playwright-report',
+  'test-results',
   '.expo',
   'dist',
   'out',

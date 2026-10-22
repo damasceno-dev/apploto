@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { AppProviders } from '@/client/app-providers';
 import { serverEnv } from '@/config/server-env';
+import { serverSnapshot } from '@/server/gate/guards';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -8,12 +10,16 @@ export const metadata: Metadata = {
   description: 'Aplicativo Lotero',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
-  // Validate configuration on the server without exposing it or making a request.
-  void serverEnv;
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // The session view from this request's cookies (no network, no token): seeds the client.
+  const session = await serverSnapshot();
   return (
     <html lang="pt-BR">
-      <body>{children}</body>
+      <body>
+        <AppProviders session={session} fixtures={serverEnv.e2eFixtures}>
+          {children}
+        </AppProviders>
+      </body>
     </html>
   );
 }

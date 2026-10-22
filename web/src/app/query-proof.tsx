@@ -1,10 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { getGetBranchMyBranchesQueryKey, useGetBranchMyBranches } from '@loto/api/queries';
 
-function DisabledQueryProof() {
+/**
+ * Technical proof that the client entry runs under the app-owned, per-scope `QueryClient`
+ * (`AppProviders`); the generated query stays permanently disabled, so no request is made.
+ */
+export function QueryProof() {
   const query = useGetBranchMyBranches({ query: { enabled: false, retry: false } });
   return (
     <p>
@@ -12,15 +14,5 @@ function DisabledQueryProof() {
       {getGetBranchMyBranchesQueryKey().length} chave ·{' '}
       {query.fetchStatus === 'idle' ? 'sem requisição' : 'inesperado'}.
     </p>
-  );
-}
-
-export function QueryProof() {
-  // Context identity proof only; the generated query is permanently disabled.
-  const [client] = useState(() => new QueryClient({ defaultOptions: { mutations: { retry: 0 } } }));
-  return (
-    <QueryClientProvider client={client}>
-      <DisabledQueryProof />
-    </QueryClientProvider>
   );
 }

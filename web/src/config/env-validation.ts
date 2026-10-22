@@ -18,3 +18,18 @@ export function validateApiBaseUrl(value: string | undefined): string {
   }
   return value;
 }
+
+/** Optional public origin of the web app (behind a proxy); unset means the request's own origin. */
+export function validateWebOrigin(value: string | undefined): string | null {
+  if (value === undefined || value === '') return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error('LOTO_WEB_ORIGIN deve ser uma origem absoluta HTTP(S).');
+  }
+  if (!['http:', 'https:'].includes(url.protocol) || url.origin !== value) {
+    throw new Error('LOTO_WEB_ORIGIN deve ser somente a origem, por exemplo https://app.example.');
+  }
+  return value;
+}

@@ -7,7 +7,15 @@ import { rawColorRule } from './tooling/colors.mjs';
 export default defineConfig(
   root,
   next,
-  globalIgnores(['.next/**', 'out/**', 'next-env.d.ts']),
+  globalIgnores([
+    '.next/**',
+    '.next-e2e/**',
+    'out/**',
+    'next-env.d.ts',
+    'playwright-report/**',
+    'test-results/**',
+    'e2e/.state/**',
+  ]),
   {
     files: ['**/*.{ts,tsx}', '*.{mjs,cjs}'],
     plugins: { loto: { rules: { 'raw-color': rawColorRule } } },
@@ -32,7 +40,10 @@ export default defineConfig(
     },
   },
   {
-    files: ['src/app/**/{page,layout,loading,error,global-error,not-found}.tsx'],
+    files: [
+      'src/app/**/{page,layout,loading,error,global-error,not-found}.tsx',
+      'src/app/**/{page,layout}.e2e.tsx',
+    ],
     rules: { 'no-restricted-syntax': 'off' },
   },
   { files: ['src/theme/token-adapter.ts'], rules: { 'loto/raw-color': 'off' } },

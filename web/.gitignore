@@ -1,0 +1,5 @@
+# Web M2 test output (the root .gitignore covers .next/, next-env.d.ts and .env*.local).
+/.next-e2e/
+/playwright-report/
+/test-results/
+/e2e/.state/
