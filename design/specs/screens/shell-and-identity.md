@@ -118,7 +118,7 @@ Every path passes the session gate first; a branch-scoped path opened without a 
 ## Forgot password
 
 - **Regions:** identity sheet · title **Recuperar acesso** · one paragraph explaining that a link will be sent · E-mail · **Enviar link** · **Voltar para entrar**.
-- **States:** sent → the sheet body is replaced by the fixed confirmation text (copy §7.4) with **Voltar para entrar** and **Enviar novamente**; invalid e-mail inline; busy/no-connection Notice. The confirmation never varies with the account.
+- **States:** confirmed 202 → the sheet body is replaced by the fixed confirmation text (copy §7.4) with **Voltar para entrar** and **Enviar novamente**; invalid e-mail inline; coordination busy (409 verbatim, manual retry); no connection before dispatch (no request sent); lost response or 5xx after dispatch → result unconfirmed, with the same generic confirmation guidance and explicit **Enviar novamente**, never automatic replay or a delivery claim. The confirmation never varies with the account.
 - **From Profile:** the e-mail is pre-filled and read-only; return goes to Profile.
 
 ## Reset password

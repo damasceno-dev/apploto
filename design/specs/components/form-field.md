@@ -26,7 +26,7 @@ Label (`typography.role.label`, `sem.text.primary`) · optional "opcional" marke
 ## Behavior
 
 - Client pre-validation reuses backend wording where a backend rule exists (copy §6) and runs on blur or submit, never on every keystroke.
-- A server message is placed inline only when its association to this field is unambiguous; otherwise it stays in the form's [error summary](notice.md). The field keeps its value either way.
+- A server message is placed inline only when its association to this field is unambiguous; otherwise it stays in the form's [error summary](notice.md). Non-secret fields keep their values either way. Passwords follow [Input's retention boundary](input.md#behavior) and the owning authentication screen's clearing rule; capabilities follow the catalog's capability-link rule.
 - Required/optional: mark the minority. Most Lotero forms are short and mostly required, so optional fields carry **(opcional)**.
 - Masks and formatting belong to the specific input and `@loto/core`, not to the field.
 

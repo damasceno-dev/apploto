@@ -38,9 +38,9 @@ Responsive behavior for all six: summary strip 4 → 2 → 1 columns; tables scr
 ## Open-cheque aging
 
 - **Filters:** Posição em, Conta, Cliente.
-- **Summary:** **Total em aberto**, **Parcelas em aberto**, per-bucket figures; `TotalCount` stays the plan count in the table heading.
-- **Table:** expandable plan groups ([Disclosure](../components/disclosure.md) per row): Cliente · Conta · Descrição · **{abertas}/{total} parcelas em aberto** · Vencimento mais antigo · Faixa · Total em aberto; expanded rows: Vencimento · Valor · Dias · Faixa · **Abrir parcela** (where `PaidAt` is set as cheques clear).
-- **Compact:** each plan is a block with its summary line and a **Ver parcelas** disclosure.
+- **Summary:** **Total em aberto**, **Lançamentos em aberto**, per-bucket figures; `TotalCount` is the number of groups (plans plus standalone cheques), labelled **Grupos em aberto**.
+- **Table:** expandable plan groups ([Disclosure](../components/disclosure.md) per row): Cliente · Conta · Descrição · **{abertas}/{total} parcelas em aberto** · Vencimento mais antigo · Faixa · Total em aberto; expanded rows: Vencimento · Valor · Dias · Faixa · **Abrir parcela** (where `PaidAt` is set as cheques clear). A null `OriginTransactionId` identifies a **Cheque avulso** one-row group: show its transaction directly with **Abrir transação**, without inventing a plan or a plan-finalization action. Plans remain included independently of their type's instrument; standalone rows require `Cheque`, including retired classified types. Totals cover both, with paid, Draft and cancelled rows excluded.
+- **Compact:** each plan is a block with its summary line and a **Ver parcelas** disclosure; each standalone cheque is a direct transaction block. Keep the report's account/client/as-of filters for return.
 
 ## Cash-variance summary
 
