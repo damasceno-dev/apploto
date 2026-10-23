@@ -1,6 +1,6 @@
 # Shell, identity and account — blueprint
 
-> **Design M4 · D04 (2026-10-20), review pending.** Feeds **Web/Mobile M4** (shell, Login, Branch picker, Session menu) and **Web/Mobile M11** (Profile, Change password, Forgot/Reset password, Invitation, Google on Login). Semantics: [catalog](../../docs/screens.md) entries and the [navigation map](../../docs/screens.md#navigation--information-architecture). Contracts: server M8 Phases 1–7 (shipped). Launch-only gates (live Google, production e-mail, login throttling) stay with server M8 Phase 8 and do not change these layouts.
+> **Design M4 · D04 (2026-10-20), corrected scope accepted in 4.8.5. D-M2-1 reconciliation (2026-10-22) authored, awaiting independent acceptance in 4.8.4.** Feeds **Web/Mobile M4** (shell, Login, Branch picker, Session menu) and **Web/Mobile M11** (Profile, Change password, Forgot/Reset password, Invitation, Google on Login). Semantics: [catalog](../../docs/screens.md) entries and the [navigation map](../../docs/screens.md#navigation--information-architecture). Contracts: server M8 Phases 1–7 (shipped). Launch-only gates (live Google, production e-mail, login throttling) stay with server M8 Phase 8 and do not change these layouts.
 
 The shell is the frame every later blueprint assumes: a blue navigation column, a white work surface, and a top bar that always says **which branch, which day, which mode, who**. Identity screens sit outside that frame on a calm sheet, because no branch exists yet when they run.
 
@@ -11,7 +11,7 @@ The shell is the frame every later blueprint assumes: a blue navigation column, 
 1. **Skip link** — **Pular para o conteúdo**, first focusable element, visible on focus (`layer.skip-link`).
 2. **Sidebar** (wide) — product mark (placeholder mark, not a final logo; no CAIXA wordmark), grouped destinations, `sem.nav.bg`, width `spacing.size.sidebar`.
 3. **Top bar** — sticky (`layer.sticky`, `sem.topbar.bg`, bottom rule `sem.topbar.border`, `shadow.raised` once content scrolls under it), minimum height `spacing.size.topbar-min`:
-   branch name · mode badge ([Badge](../components/badge.md) mode variant) · branch-local date and time (`GET /branch/current`, labelled **horário da filial**) · **Trocar filial** (multi-branch identities) · theme control ([Tabs](../components/tabs.md) segmented: Claro / Escuro / Sistema, icons with names) · avatar trigger with name and role → [Session menu](#session-menu).
+   branch name (from the active scoped session; Web selects context through this tab’s URL) · mode badge ([Badge](../components/badge.md) mode variant) · branch-local date and time (`GET /branch/current`, labelled **horário da filial**) · **Trocar filial** (multi-branch identities) · theme control ([Tabs](../components/tabs.md) segmented: Claro / Escuro / Sistema, icons with names) · avatar trigger with name and role → [Session menu](#session-menu).
 4. **Status rail** — directly under the top bar, full width, holding app-level [Notices](../components/notice.md) in priority order: session recovery, branch date changed, no connection, retained input waiting. At most two visible; the rest collapse into **+{n} avisos**.
 5. **Workspace** — `sem.background`, page gutters `spacing.page.inline-wide` (wide) / `spacing.page.inline-compact` (compact), content capped at `spacing.size.content-max`; every screen starts with a [PageHeader](../components/page-header.md).
 
@@ -19,7 +19,7 @@ The shell is the frame every later blueprint assumes: a blue navigation column, 
 
 | Mode | Groups and destinations (labels per copy) |
 |---|---|
-| **Gestão** (Manager/Admin) | **Gestão**: Fila de trabalho · Transações · Nova transação. **Relatórios**: Movimento da conta · Saldo fiado · Fiado por idade · Cheques em aberto · Diferenças de caixa · Fechamento mensal. **Ponto**: Gestão de ponto. **Cadastros**: Operadores · Contas dos operadores · Contas · Clientes · Categorias e tipos · Produtos · Feriados · Configurações · Membros da filial |
+| **Gestão** (Manager/Admin) | **Gestão**: Fila de trabalho · Transações · Nova transação. **Relatórios**: Dashboard · Movimento da conta · Saldo fiado · Fiado por idade · Cheques em aberto · A receber · Diferenças de caixa · Fechamento mensal · Relatório financeiro mensal. **Ponto**: Gestão de ponto. **Cadastros**: Operadores · Contas dos operadores · Contas · Clientes · Categorias e tipos · Produtos · Feriados · Configurações · Membros da filial |
 | **Meu turno** (Member; linked Manager/Admin) | **Meu turno**: Hoje · Nova transação · Transações · Clientes. **Meus números**: Ponto *(Members only — never shown to Manager/Admin)* · Minhas transações · Meu banco de horas |
 
 Current destination: `sem.nav.active` fill, `sem.nav.text-strong` label and a start-edge `sem.nav.marker` bar `spacing.size.marker-width` wide; `aria-current="page"`. Group labels use `typography.role.overline` in `sem.nav.text-muted`. Focus inside the sidebar uses `sem.focus.ring-on-nav`. **Nova transação** is a shortcut (catalog IA): it has no origin, so it returns to Transactions list. Hidden destinations are absent, never disabled — except Meu turno in the Session menu, which shows its unavailable reason.
@@ -44,27 +44,33 @@ At enlarged text the em-based breakpoints switch earlier, so the top bar wraps i
 
 ### Route map (web)
 
-Paths are shareable addresses of a destination and its **filters only**. The return origin travels in navigation state (web history state, native params), never as a URL parameter, so a link cannot claim an origin or a permission; a direct link uses the catalog fallback.
+Paths are shareable addresses of a destination and its allowlisted **branch context, resource ids and filters only**. **D-M2-1, owner confirmed 2026-10-22:** all branch-scoped Web URLs start `/f/{branchId}`. The id is untrusted context for a fresh membership/session gate, never authorization. Identity/account/global paths are explicitly unscoped. Mobile uses the existing stack with branch-scoped parameters, not these URLs. The return origin travels in navigation state (web history state, native params), never as a URL parameter, so a link cannot claim an origin or a permission; a direct link uses the catalog fallback.
 
 | Destination | Path |
 |---|---|
-| Login · Forgot password | `/entrar` · `/entrar/esqueci-senha` |
-| Reset password · Invitation *(fixed by the server's e-mail links)* | `/reset-password` · `/invitation` |
-| Branch picker · Plataforma | `/filiais` · `/plataforma` |
-| Profile · Change password | `/conta` · `/conta/senha` |
-| Manager Work Queue · Daily-close approval | `/gestao/fila?data=` · `/gestao/conferencia/{dailyCloseId}` |
-| Operator Day Cockpit | `/turno/hoje` |
-| Open day · Close day · Fix & resubmit | `/fechamentos/abrir?conta=&data=` · `/fechamentos/{dailyCloseId}` · `/fechamentos/{dailyCloseId}/correcao` |
-| Transactions list · Create · Edit | `/transacoes?de=&ate=&conta=&…` · `/transacoes/nova` · `/transacoes/{id}` |
-| Installment plan (new · existing) | `/transacoes/cheque-pre-datado/novo` · `/transacoes/cheque-pre-datado/{originTransactionId}` |
-| Clients · Client statement · Receber pagamento | `/clientes` · `/clientes/{id}/extrato` · `/clientes/{id}/receber` |
-| Reports | `/relatorios/movimento`, `/relatorios/saldo-fiado`, `/relatorios/fiado-por-idade`, `/relatorios/cheques`, `/relatorios/diferencas`, `/relatorios/fechamento-mensal/{ano}/{mes}` |
-| Self-service | `/turno/ponto`, `/turno/minhas-transacoes`, `/turno/banco-de-horas` (manager-selected: `/gestao/operadores/{id}/transacoes`, `/gestao/ponto/banco-de-horas`) |
-| Time-entry management | `/gestao/ponto` |
-| Administration | `/gestao/operadores`, `/gestao/contas-dos-operadores`, `/gestao/contas`, `/gestao/categorias`, `/gestao/produtos`, `/gestao/feriados`, `/gestao/configuracoes`, `/gestao/membros` |
-| Guided employee journeys | `/gestao/funcionarios/novo`; operator entry: `/gestao/funcionarios/{operatorId}/desligar`; membership entry (including a person without an operator): `/gestao/membros/{branchUserId}/desligar` |
+| Login · Forgot password *(identity/global; unscoped)* | `/entrar` · `/entrar/esqueci-senha` |
+| Reset password · Invitation *(fixed by the server's e-mail links)* *(identity/global; unscoped)* | `/reset-password` · `/invitation` |
+| Branch picker · Plataforma *(identity/global; unscoped)* | `/filiais` · `/plataforma` |
+| Profile · Change password *(identity/global; unscoped)* | `/conta` · `/conta/senha` |
+| Manager Work Queue · Daily-close approval | `/f/{branchId}/gestao/fila?data=` · `/f/{branchId}/gestao/conferencia/{dailyCloseId}` |
+| Operator Day Cockpit | `/f/{branchId}/turno/hoje` |
+| Open day · Close day · Fix & resubmit | `/f/{branchId}/fechamentos/abrir?conta=&data=` · `/f/{branchId}/fechamentos/{dailyCloseId}` · `/f/{branchId}/fechamentos/{dailyCloseId}/correcao` |
+| Transactions list · Create · Edit | `/f/{branchId}/transacoes?de=&ate=&conta=&…` · `/f/{branchId}/transacoes/nova` · `/f/{branchId}/transacoes/{id}` |
+| Installment plan (new · existing) | `/f/{branchId}/transacoes/cheque-pre-datado/novo` · `/f/{branchId}/transacoes/cheque-pre-datado/{originTransactionId}` |
+| Clients · Client statement · Receber pagamento | `/f/{branchId}/clientes` · `/f/{branchId}/clientes/{id}/extrato` · `/f/{branchId}/clientes/{id}/receber` |
+| Reports *(nine destinations)* | `/f/{branchId}/relatorios/dashboard?ano=&mes=`, `/f/{branchId}/relatorios/movimento`, `/f/{branchId}/relatorios/saldo-fiado`, `/f/{branchId}/relatorios/fiado-por-idade`, `/f/{branchId}/relatorios/cheques`, `/f/{branchId}/relatorios/a-receber?de=&ate=&conta=&instrumento=&pagina=&tamanho=`, `/f/{branchId}/relatorios/diferencas`, `/f/{branchId}/relatorios/fechamento-mensal/{ano}/{mes}`, `/f/{branchId}/relatorios/financeiro-mensal/{ano}/{mes}` |
+| Self-service | `/f/{branchId}/turno/ponto`, `/f/{branchId}/turno/minhas-transacoes`, `/f/{branchId}/turno/banco-de-horas` (manager-selected: `/f/{branchId}/gestao/operadores/{id}/transacoes`, `/f/{branchId}/gestao/ponto/banco-de-horas`) |
+| Time-entry management | `/f/{branchId}/gestao/ponto` |
+| Administration | `/f/{branchId}/gestao/operadores`, `/f/{branchId}/gestao/contas-dos-operadores`, `/f/{branchId}/gestao/contas`, `/f/{branchId}/gestao/categorias`, `/f/{branchId}/gestao/produtos`, `/f/{branchId}/gestao/feriados`, `/f/{branchId}/gestao/configuracoes`, `/f/{branchId}/gestao/membros` |
+| Guided employee journeys | `/f/{branchId}/gestao/funcionarios/novo`; operator entry: `/f/{branchId}/gestao/funcionarios/{operatorId}/desligar`; membership entry (including a person without an operator): `/f/{branchId}/gestao/membros/{branchUserId}/desligar` |
 
-Every path passes the session gate first; a branch-scoped path opened without a branch session is kept as intent until Branch picker resolves a session for the right branch and permission.
+A bare `/f/{branchId}` first passes the branch gate and opens that role’s default home: Manager/Admin → Gestão / Work Queue; Member → Meu turno / Cockpit (including its setup state). It carries no return origin.
+
+Every path passes its identity/branch gate before reading protected data; the branch URL binds an intent to that intended branch and the verified identity, not whichever branch another tab most recently used. Missing/invalid branch or insufficient permission keeps the target behind the gate and shows the actual backend message. Shared destinations retain that tab's mode; management reports activate Gestão. Unlinked Manager/Admin close routes remain reachable in Gestão. See the [report audit](reports-and-month-lock.md#branch-scoped-report-entry-and-return-audit) for all report filter mappings and nested returns.
+
+**Tab-local switch, session-wide identity.** Trocar filial changes only the initiating tab's branch context. Persist isolated old-branch input first; stop pending dispatch, detach late responses, clear this tab's active scoped data, mode, filters and origin, then choose the new branch and default home. Another tab retains its own branch, filters, mode and return chain, including when both tabs started at the same branch. Logout/identity replacement still affects all tabs; membership revocation affects authority in every tab for the revoked branch. The shell rechecks through existing session/role/foreground gates, not through a URL claim. Same-tab reload and back/forward preserve the URL plus app-owned non-secret navigation state: mode, parent origin chain, applied filters, section/row and scroll/focus. Apps persist enough tab-scoped context for a shared route such as `/f/X/transacoes` to keep a linked manager’s Meu turno mode on reload. Before restoration, recheck identity, URL branch, live membership/role and mode availability, then validate each origin/resource against that scope; restore focus only after the destination is ready. A valid shared route keeps the restored mode; a mode-specific route follows its owning mode. Stale or mismatched state is discarded and uses the catalog fallback/default role mode, never another branch’s context.
+
+A bookmark, copied link or fresh tab with no app navigation state carries only the allowlisted URL branch, ids and filters: no origin, and the role’s default mode for shared routes. Browsers may copy history state/sessionStorage when duplicating a tab; duplication cannot reliably be detected. If copied state is present, treat it as an untrusted restoration candidate under the same checks, not as a guaranteed fresh entry or a privileged origin. Subsequent mode/filter/branch changes stay independent per tab. Neither restored nor URL-only navigation grants permission, restores an ended session/stale write precondition, or submits/replays a mutation. Back into a switched-away branch requires fresh scope checks. Mobile retains its equivalent scoped stack context; `/f/` is Web-only.
 
 ### Shell states
 
@@ -92,7 +98,7 @@ Every path passes the session gate first; a branch-scoped path opened without a 
 - **Regions:** same brand strip and sheet as Login · title **Escolha a filial** · list of branches as full-width option rows (name in `typography.role.body-strong`, address/CNPJ in `typography.role.helper`, role [Badge](../components/badge.md)) · **Plataforma** link row (platform operators only) · account footer: signed-in name and e-mail, **Minha conta**, **Sair**.
 - **Layout:** one column; rows at least `spacing.size.touch-target-comfortable` tall; the whole row is the action (it is a button whose name includes the role: **Lotérica Boa Sorte — Centro, Gerente**).
 - **States:** loading (Skeleton rows); single branch → auto-open (a brief **Abrindo {filial}…**, no list); empty → [EmptyState](../components/empty-state.md) setup variant **Você ainda não tem acesso a uma lotérica.** with guidance and the account footer (plus **Plataforma** when flagged); branch unavailable on selection → danger Notice with verbatim `BRANCH_NOT_FOUND` and a refreshed list; error → Notice with retry; selecting → the chosen row shows **Abrindo…**, others disabled.
-- **Return:** to the role home of the opened branch, or a validated intent.
+- **Return:** to the role home of the branch opened in this tab, or a validated identity/branch-bound intent. Selecting here does not change another tab’s branch context. An intent for X cannot resume automatically after selecting Y.
 
 ## Session menu
 

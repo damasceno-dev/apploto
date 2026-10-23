@@ -46,7 +46,7 @@ Loading; read-only (cancelled, locked, generated, another operator's row, prior-
 
 ### Return
 
-The originating list, report or blocker; without one, Transactions list.
+The originating list, report or blocker, explicitly including Upcoming settlements and Dashboard cheque/receivable items; preserve their branch-bound month/window, account/instrument filters, page/size, section and clicked TransactionId for focus. A plan route also retains OriginTransactionId and the complete report parent chain. Without origin, Transactions list in the active mode.
 
 ## Transactions list
 
@@ -90,7 +90,7 @@ States: as Create, with one `Idempotency-Key` for the whole plan and the same un
 
 States: loading; stale set (`TRANSACTION_PLAN_STALE_WRITE` → **Recarregar e conferir**); mixed confirmation required (verbatim, then the confirmation); per-row saves report individually (never an atomic save claim); read-only rows (locked, cancelled, another operator's, prior day for a Member).
 
-Layout: below `breakpoint.medium` each installment is a stacked block with its fields and per-row action. Return: to the installment or list that opened it.
+Layout: below `breakpoint.medium` each installment is a stacked block with its fields and per-row action. Return: to the installment, list or report that opened it, preserving the branch-bound origin chain, source month/window and all account/instrument/page filters. Upcoming settlements / Dashboard plan entries use the returned OriginTransactionId and retain the clicked TransactionId for focus; a changed Draft/Mixed state uses this same editor, never a per-row finalize. Without origin, return to Transactions list. This 2026-10-22 report integration awaits acceptance under M4 4.8.4.
 
 ## Client statement (Extrato de fiado)
 

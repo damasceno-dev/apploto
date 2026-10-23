@@ -26,14 +26,14 @@ Time screens answer one of two questions: *am I on the clock?* or *am I ahead or
 - **Regions:** PageHeader **Minhas transações** (own context) or **Transações de {operador}** (manager-selected, **Inativo** badge when deactivated); FilterBar De / Até (default current month) · SummaryStrip: Transações (**{n} transações, {m} delas automáticas**) · Entradas · Saídas · Líquido, each with the automatic share beside it (**R$ … automáticas**) · Table by category: Categoria · Quantidade (and automatic) · Entradas · Saídas · link **Ver transações** (Transactions list with `Mine=true` for own context, or the explicit `OperatorId` for a manager-selected operator, plus the window; never send both filters).
 - **States:** loading; empty (no transactions or unlinked Member — **Nenhuma transação no período.**); error; success.
 - **Notes:** these are recorded volumes, not revenue; no profit/loss color. The automatic share is stated so a fiado repayment's drawer entrada is not read as a second receipt.
-- **Return:** Cockpit (own) or Operators (manager-selected).
+- **Origin and return:** Cockpit (own); Operators or Dashboard **Registros por operador** (manager-selected). Return to the actual validated opener, preserving its branch, period, filters, mode, Dashboard month/section/operator row and scroll/focus. Without origin: Cockpit for own context, Operators for manager-selected context. Dashboard supplies explicit OperatorId and its activity Date as DateFrom=DateTo; do not replace that window with the summary’s fresh-entry month default.
 
 ## My time-entry balance
 
 - **Regions:** PageHeader **Meu banco de horas** (own) or **Banco de horas da equipe** (roll-up) / **Banco de horas de {operador}**; FilterBar De / Até (default current month) · in-progress Notice **Há registros em andamento** when any `ContainsInProgress` · SummaryStrip (single operator): Horas · Saldo do banco de horas (`dom.hour-balance.*`) · Presentes · Ausências · Devendo · Abonados · Table (single operator): Dia · Situação · Horas · Meta do dia (derived; single operator only) · Saldo · in-progress marker; window days with no entry read **Sem registro** · Roll-up table: Operador (**Inativo** badge) · Horas · Saldo · Presentes · Ausências · Devendo · Abonados · **Ver detalhes**.
 - **States:** loading; empty (no entries or unlinked — **Nenhum registro no período.**); in-progress variant; error (verbatim window violations); success.
 - **Notes:** the target appears only per day in a single-operator view, never on the roll-up, because a window can span a policy change.
-- **Return:** Cockpit (own), or Time-entry management (roll-up and manager-selected views).
+- **Origin and return:** Cockpit (own); Time-entry management, Dashboard **Horas do mês** (roll-up or operator), or Monthly financial report **Horas por operador e dia** (operator). Return to the actual validated opener, preserving branch, period, filters, mode, month/section/row and focus. Report entries keep the supplied month DateFrom/DateTo and optional OperatorId; nested roll-up → operator detail returns through the roll-up to that same report. Without origin: Cockpit for own context, Time-entry management for roll-up/manager-selected context.
 
 ## Verification boundary
 
