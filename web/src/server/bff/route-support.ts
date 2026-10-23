@@ -2,7 +2,8 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { NextResponse, type NextRequest } from 'next/server';
 import { serverEnv } from '@/config/server-env';
-import { scopeHeader } from '@/lib/bff-protocol';
+import { branchHeader, parseScope, scopeHeader } from '@/lib/bff-protocol';
+import { isBranchId } from '@/lib/branch-route';
 import { createAuthBackend, type AuthBackend } from '../session/backend';
 import {
   deviceCookieName,
@@ -56,6 +57,8 @@ export interface BffRequest {
   readonly allowedOrigin: string;
   /** The scope the browser acted on (`x-loto-scope`; null when it held none). */
   readonly declaredScope: string | null;
+  /** The branch the tab works in (`x-loto-branch`; null outside a branch route). */
+  readonly declaredBranch: string | null;
 }
 
 /** Applies the shared request policy; returns the refusal response, or the request's inputs. */
@@ -66,28 +69,37 @@ export function admit(request: NextRequest, stateChanging: boolean): BffRequest 
   if (stateChanging && !isJson(request) && request.method !== 'DELETE') {
     return bffErrorResponse('unsupported-media-type');
   }
+  const declaredBranch = request.headers.get(branchHeader);
+  if (declaredBranch !== null && !isBranchId(declaredBranch)) {
+    return bffErrorResponse('invalid-branch');
+  }
   const cookies = readSessionCookies(request.cookies);
   return {
     context: requestContext(cookies),
     cookies,
     allowedOrigin,
     declaredScope: request.headers.get(scopeHeader),
+    declaredBranch,
   };
 }
 
 /**
  * Runs one session command for this browser, serialized with its other session commands and
- * applied only to the authority it was issued against: the scope the browser declared must be the
- * scope its last committed command left (or, if this process has not seen it, the scope its
- * cookies hold). Otherwise the command is `superseded` and changes nothing — a late login cannot
- * restore a session a later logout ended, and a late logout cannot end a newer login.
+ * applied only to the authority it was issued against: the identity scope the browser declared
+ * (the part of a tab's scope before its branch generation) must be the scope its last committed
+ * command left (or, if this process has not seen it, the scope its cookies hold). Otherwise the
+ * command is `superseded` and changes nothing — a late login cannot restore a session a later
+ * logout ended, and a late logout cannot end a newer login. Branch choices never change this scope:
+ * each tab's branch lives in its own route.
  */
 export function runCommand(
   admitted: BffRequest,
   command: () => Promise<SessionCommandResult>,
   options: { readonly compareScope: boolean } = { compareScope: true },
 ): Promise<SessionCommandResult | 'superseded'> {
-  const { context, cookies, declaredScope } = admitted;
+  const { context, cookies } = admitted;
+  const declaredScope =
+    admitted.declaredScope === null ? null : (parseScope(admitted.declaredScope)?.identity ?? '');
   const cookieScope = cookies.meta?.scope ?? null;
   return serializeDevice<SessionCommandResult | 'superseded'>(
     context.registry,

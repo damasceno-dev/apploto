@@ -11,7 +11,10 @@ import {
   cookieNames,
   encodeIntent,
   encodeMeta,
+  encodeSlot,
   readSessionCookies,
+  slotCookieName,
+  type BranchSlot,
   type CookieWrite,
   type SessionCookies,
   type SessionMeta,
@@ -24,6 +27,12 @@ export function jwt(label: string, expiresAtMs: number): string {
   const encode = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
   return `${encode({ alg: 'HS256', typ: 'JWT' })}.${encode({ exp: Math.floor(expiresAtMs / 1000), label })}.c2ln`;
 }
+
+/** Branch ids are GUIDs, as the API returns them (`/f/{branchId}` accepts nothing else). */
+export const B1 = '11111111-1111-4111-8111-111111111111';
+export const B2 = '22222222-2222-4222-8222-222222222222';
+export const B3 = '33333333-3333-4333-8333-333333333333';
+export const B9 = '99999999-9999-4999-8999-999999999999';
 
 export function branch(
   id: string,
@@ -86,7 +95,7 @@ export class FakeBackend implements AuthBackend {
         token: this.token(`branch-${branchId}-${identity.slice(-6)}`),
         branch: branch(branchId),
       });
-    this.branchesHandler = () => ok([branch('b1')]);
+    this.branchesHandler = () => ok([branch(B1)]);
   }
 
   token(label: string): string {
@@ -164,26 +173,54 @@ export function setup(clock = new Clock()) {
 
 export function meta(overrides: Partial<SessionMeta> = {}): SessionMeta {
   return {
-    v: 1,
+    v: 2,
     sid: 'sid-1',
     scope: 'scope-1',
     user: { userId: 'user-ana', name: 'Ana', email: 'ana@example.invalid' },
-    branchId: 'b1',
-    branch: branch('b1'),
-    notice: null,
     ...overrides,
   };
 }
 
-export function sessionCookies(values: Partial<SessionCookies>): SessionCookies {
+/** A branch session held by identity generation `sid-1` unless overridden. */
+export function slot(
+  branchId: string,
+  token: string,
+  overrides: Partial<BranchSlot> = {},
+): BranchSlot {
+  return {
+    v: 1,
+    sid: 'sid-1',
+    gen: `gen-${branchId.slice(0, 2)}`,
+    token,
+    branch: branch(branchId),
+    at: 0,
+    ...overrides,
+  };
+}
+
+export function sessionCookies(
+  values: Partial<Omit<SessionCookies, 'slots' | 'branchCookieNames'>> & {
+    readonly slots?: readonly BranchSlot[];
+  },
+): SessionCookies {
+  const { slots = [], ...rest } = values;
   return {
     identity: null,
     refresh: null,
-    branch: null,
     meta: null,
     intent: null,
     device: null,
-    ...values,
+    ...rest,
+    slots: new Map(slots.map((held) => [held.branch.id, held])),
+    branchCookieNames: slots.map((held) => slotCookieName(held.branch.id)),
+  };
+}
+
+/** A cookie reader over a plain map (both `get` and `getAll`, as Next's cookie stores offer). */
+export function cookieReader(jar: ReadonlyMap<string, string>) {
+  return {
+    get: (name: string) => (jar.has(name) ? { value: jar.get(name) ?? '' } : undefined),
+    getAll: () => [...jar].map(([name, value]) => ({ name, value })),
   };
 }
 
@@ -197,11 +234,9 @@ export function applyWrites(
     value === null ? jar.delete(name) : jar.set(name, value);
   put(cookieNames.identity, cookies.identity);
   put(cookieNames.refresh, cookies.refresh);
-  put(cookieNames.branch, cookies.branch);
   put(cookieNames.meta, cookies.meta ? encodeMeta(cookies.meta) : null);
   put(cookieNames.intent, cookies.intent ? encodeIntent(cookies.intent) : null);
+  for (const held of cookies.slots.values()) put(slotCookieName(held.branch.id), encodeSlot(held));
   for (const write of writes) put(write.name, write.value);
-  return readSessionCookies({
-    get: (name) => (jar.has(name) ? { value: jar.get(name) ?? '' } : undefined),
-  });
+  return readSessionCookies(cookieReader(jar));
 }

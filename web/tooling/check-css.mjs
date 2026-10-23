@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import postcss from 'postcss';
-import { hasArbitraryColor, hasRawColor } from './colors.mjs';
+import { hasArbitraryColor, hasPrimitiveReference, hasRawColor } from './colors.mjs';
 
 export function checkCss(source, filename) {
   const errors = [];
@@ -10,10 +10,18 @@ export function checkCss(source, filename) {
   root.walkDecls((decl) => {
     if (hasRawColor(decl.value))
       errors.push(`${filename}:${decl.source.start.line}: raw color in ${decl.prop}`);
+    if (hasPrimitiveReference(decl.prop) || hasPrimitiveReference(decl.value))
+      errors.push(`${filename}:${decl.source.start.line}: primitive token in ${decl.prop}`);
   });
   root.walkAtRules((rule) => {
     if (hasArbitraryColor(rule.params) || hasRawColor(rule.params))
       errors.push(`${filename}:${rule.source.start.line}: raw color in @${rule.name}`);
+    if (hasPrimitiveReference(rule.params))
+      errors.push(`${filename}:${rule.source.start.line}: primitive token in @${rule.name}`);
+  });
+  root.walkRules((rule) => {
+    if (hasPrimitiveReference(rule.selector))
+      errors.push(`${filename}:${rule.source.start.line}: primitive token in a selector`);
   });
   return errors;
 }
@@ -23,6 +31,7 @@ const generatedDirectories = new Set([
   'node_modules',
   '.next',
   '.next-e2e',
+  '.next-styleguide',
   'playwright-report',
   'test-results',
   '.expo',

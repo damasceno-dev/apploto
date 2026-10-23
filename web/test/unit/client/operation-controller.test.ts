@@ -382,6 +382,25 @@ describe('stored record validation (review round 2)', () => {
     expect(controller.current()).toMatchObject({ status: 'uncertain', key: complete.key });
   });
 
+  it('a record frozen for another endpoint is quarantined, never resent through this one', async () => {
+    const f = fixture();
+    f.storage.setItem(
+      key,
+      JSON.stringify({ ...complete, operation: 'POST /transaction/fiado-payment' }),
+    );
+    const controller = f.controller();
+    expect(controller.storageProblem()).toBe('corrupt');
+    expect(await controller.verifyAndRetry()).toEqual({
+      kind: 'storage-unreadable',
+      storage: 'corrupt',
+    });
+    expect(f.keys).toEqual([]);
+    // Recovery stays deliberate: after the discard, a new intent starts cleanly.
+    controller.discardCorrupt();
+    expect(controller.storageProblem()).toBeNull();
+    expect((await controller.submit({ value: 10 })).kind).toBe('confirmed');
+  });
+
   it('a complete record older than the window is reconciled, never resent', async () => {
     const f = fixture();
     f.storage.setItem(key, JSON.stringify(complete));

@@ -69,11 +69,14 @@ export function useIdempotentOperation<P, R>(config: {
         partition,
         context,
         operation,
-        client: createBrowserApiClient(scope),
+        // Bound to this scope and this tab's branch for the controller's whole life: its writes
+        // are never sent under another branch, even after the tab moves on.
+        client: createBrowserApiClient(scope, branch?.id ?? null),
         send: (payload, key, options) => sendRef.current(payload, key, options),
         writesPaused: () => pausedRef.current,
         serverNow: latestServerTimeMs,
-        refreshServerTime: () => bffFetch(bffSessionPath, { method: 'GET' }, scope),
+        refreshServerTime: () =>
+          bffFetch(bffSessionPath, { method: 'GET' }, scope, branch?.id ?? null),
       });
       setController(created);
       setView(describe(created));

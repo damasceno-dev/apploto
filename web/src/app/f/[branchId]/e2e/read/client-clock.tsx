@@ -14,6 +14,7 @@ export function ClientClock() {
           : state.status}
       </p>
       <p data-testid="client-session">{`${snapshot.user?.email ?? '-'}|${snapshot.branch?.name ?? '-'}`}</p>
+      <p data-testid="client-scope">{snapshot.scope ?? '-'}</p>
       <button type="button" onClick={() => void refresh()}>
         Atualizar
       </button>

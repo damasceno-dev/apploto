@@ -15,3 +15,13 @@ export const sessionCopy = Object.freeze({
   logoutUnconfirmed:
     'Você saiu deste dispositivo. Não foi possível confirmar o encerramento da sessão no servidor.',
 });
+
+/**
+ * The branch gate's 403 (a `/f/{branchId}` address this identity cannot open). The catalog's
+ * explanation that the filial is unavailable, beside the backend's verbatim messages.
+ */
+export const gateCopy = Object.freeze({
+  forbiddenTitle: 'Filial indisponível',
+  forbiddenBody: 'Esta filial não está disponível para a sua conta.',
+  chooseBranch: 'Escolher filial',
+});

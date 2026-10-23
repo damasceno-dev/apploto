@@ -5,8 +5,8 @@ import { QueryProof } from './query-proof';
 export default function HomePage() {
   const factory: (options: Parameters<typeof createApiClient>[0]) => ApiClient = createApiClient;
   return (
-    <main className="mx-auto max-w-2xl space-y-4 p-8">
-      <h1 className="text-2xl font-semibold">Lotero</h1>
+    <main className="mx-auto flex max-w-form-max flex-col gap-stack-md px-page-inline-compact py-page-block-start medium:px-page-inline-wide">
+      <h1 className="type-page-title">Lotero</h1>
       <p>Estrutura inicial do aplicativo.</p>
       <p>
         Pacotes locais: API {typeof factory} · {Object.keys(Role).length} tipos de perfil · core{' '}

@@ -217,7 +217,7 @@ All findings are fixed. The suggested broader detection of mixed values under cu
 
 - [x] **3.1** `POST /bff/session/login`: calls `POST /user/login`; on success sets identity/refresh cookies and resolves memberships (`GET /branch/my-branches`): zero → `no-memberships`, one → auto-open branch session, several → `choose-branch` with the list. Errors pass status, verbatim `ErrorMessages` and `Retry-After` through; the password is never stored, logged or echoed; JSON never carries a token.
 - [x] **3.2** `GET /bff/session` returns the snapshot (`anonymous`, `no-memberships`, `choose-branch`, `branch`, `branch-unavailable`, `renewal-unconfirmed`) after proactive renewal and, when needed, branch-session recreation for the same branch.
-- [ ] **3.3** `POST /bff/session/branch {branchId}` selects/switches (new scope generation, branch cookies, intent resumed only when it matches the user and branch); `DELETE /bff/session/branch` leaves the branch for the picker. *Implemented and checked for one browser profile; the catalog's independent branch context **per tab** is blocked by decision D-M2-1 (review round 1, below).*
+- [x] **3.3** `POST /bff/session/branch {branchId}` opens a branch for this identity (fresh `POST /branch/session`; that branch's slot only; the branch generation survives an unchanged role; intent resumed only for the same e-mail and a matching branch); switching is navigation into another `/f/{branchId}` namespace — no command ends another tab's branch. *Per-tab context per owner decision D-M2-1 (2026-10-22, below); independently accepted 2026-10-22 for the local single-instance environment (see Independent re-review, below).*
 - [x] **3.4** `POST /bff/session/logout` revokes the refresh session through `POST /user/logout` (renewing the identity first when it is expired), clears every session cookie whatever the outcome and reports `serverConfirmed: false` when revocation was not confirmed.
 - [x] **3.5** Every BFF request requires the `x-loto-bff` header; state changes also require a same-origin `Origin` (and `Sec-Fetch-Site: same-origin` when sent). All BFF responses are `Cache-Control: no-store, private` and never contain a token.
 
@@ -270,9 +270,9 @@ All findings are fixed. The suggested broader detection of mixed values under cu
 | 7.1–7.4 | `src/client/mutations/*`, `src/client/drafts/*` | Unit/RTL: key lifetime, classification, stale 409, draft privacy |
 | 8.1–8.4 | Tests, docs | Commands and results below |
 
-### M2 implementation evidence (2026-10-21; review rounds 1–2 corrected 2026-10-22, awaiting re-review)
+### M2 implementation evidence (2026-10-21; review rounds 1–2 corrected and D-M2-1 implemented 2026-10-22; accepted locally, single instance)
 
-Baseline: worktree `Project-app`, branch `paralell/app`, clean at `93e7d04` (Web M1 `05ed70a`, Server M8 Phase 8 local subset `452eef8`); Node 26.6.0 / pnpm 10.34.6, .NET SDK 10.0.201, Docker, Google Chrome. Ticks above mean **implemented and checked by the implementer**; none is independently accepted yet. Criterion 3.3 is blocked only by decision D-M2-1 (per-tab branch context); no other criterion is blocked.
+Baseline: worktree `Project-app`, branch `paralell/app`, clean at `93e7d04` (Web M1 `05ed70a`, Server M8 Phase 8 local subset `452eef8`); Node 26.6.0 / pnpm 10.34.6, .NET SDK 10.0.201, Docker, Google Chrome. Ticks above mean **implemented and checked by the implementer**; none is independently accepted yet. Criterion 3.3 was blocked by decision D-M2-1 until the owner decided it on 2026-10-22; it is now implemented (see *D-M2-1 resolution* below). No criterion is blocked; none is accepted until the independent re-review.
 
 **What the checks prove (and what they do not).**
 
@@ -284,7 +284,7 @@ Baseline: worktree `Project-app`, branch `paralell/app`, clean at `93e7d04` (Web
 
 **Decisions and limitations to review.**
 
-- **One branch session per browser profile — not accepted; blocked by decision D-M2-1** (review round 1). M2 enforces the safety half of the catalog rule (a tab whose scope ended is refused before forwarding and never sends work under another tab's branch), but a switch in one tab still moves every tab.
+- **Per-tab branch context (D-M2-1, decided 2026-10-22).** Each tab's branch is its `/f/{branchId}` address; the earlier one-branch-per-browser model and its single branch cookie are gone (a leftover `__Host-loto-br` is cleared and never authorizes).
 - **Process boundary.** Single flight, peer results, rotation memory and generation endings are in-process. Two Next instances behind a load balancer would race rotations and could resurrect ended generations; M12 must choose sticky sessions or a shared store.
 - **Forwarded client address.** The BFF sends no `X-Forwarded-For` (a route handler has no trustworthy peer address, and passing the incoming header would let clients spoof it). Behind the BFF every login shares the BFF's network partition in the API's abuse budgets. M12 hosting must forward the real client address and list the BFF in the API's `ForwardedHeaders:KnownProxies`.
 - **Server rendering never renews** (it cannot set cookies); the proxy renews first. A 401 in a server read redirects to the gate without clearing cookies; the proxy settles them on the next request.
@@ -322,7 +322,7 @@ The reviewer reproduced all gates and the 11 browser tests, then found nine defe
 
 Round-1 validation (2026-10-22, from the repository root): `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check`, `pnpm -r test` (Shared 103, Web 7 + 104, Mobile 7), fresh Web production build with the bundle check and the client-asset scan, `pnpm --filter @loto/api generate:check` (287 files), `git diff --check` and `pnpm --filter @loto/web test:e2e` (12/12, own stack) all passed. Two browser-test assertions changed with the fixes, not to hide them: the session-cookie helper excludes the intended device id (its attributes are asserted separately), and tests wait for Sair's result before the next command, since a command issued against the pre-Sair scope is now correctly superseded.
 
-### Independent review round 2 (2026-10-22) — corrections awaiting re-review
+### Independent review round 2 (2026-10-22) — corrections accepted in the re-review below
 
 The reviewer confirmed six round-1 findings fixed (cross-scope financial dispatch, login/logout command fencing, stale page-gate authority, writes after unknown renewal, credential-bearing intents, backend `Date`), confirmed that storage read failures and invalid JSON block correctly, and kept D-M2-1 open. Two findings were only partly fixed:
 
@@ -333,11 +333,36 @@ The reviewer confirmed six round-1 findings fixed (cross-scope financial dispatc
 
 Round-2 validation (2026-10-22): `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check`, `pnpm -r test` (Shared 103, Web 7 + 109, Mobile 7), fresh Web production build with the bundle check and the client-asset scan, `pnpm --filter @loto/api generate:check` (287 files), `git diff --check`, and `pnpm --filter @loto/web test:e2e` (13/13 in Chrome, own disposable stack, containers and processes removed) all passed. The inherited doc-sync failure (canonical v57, design v55) is unchanged.
 
-**D-M2-1 — needs a coordinator/design decision (product authority).** The catalog (*Across-tab single flight*) requires each tab to keep its own branch context. With httpOnly cookies, one cookie jar is shared by every tab of a browser profile, and page navigations and React Server Component requests cannot carry a per-tab identifier. Implementable options, each changing something already fixed elsewhere:
+**D-M2-1 — decided by the owner on 2026-10-22 (option 2, implemented below); the original analysis is kept for the record.** The catalog (*Across-tab single flight*) requires each tab to keep its own branch context. With httpOnly cookies, one cookie jar is shared by every tab of a browser profile, and page navigations and React Server Component requests cannot carry a per-tab identifier. Implementable options, each changing something already fixed elsewhere:
 1. **Per-tab branch slots selected by a request header** (`x-loto-tab` from tab-scoped storage) for every BFF call, with branch-scoped pages rendering branch data only on the client (the server renders the shell). Cost: drops the "Server Components fetch branch data" rule for branch screens; a duplicated tab inherits its slot.
 2. **A tab/branch segment in branch URLs** (for example `/f/{slot}/gestao/fila`) so navigations select the slot. Cost: changes the shell blueprint route map.
 3. **Accept one branch context per browser profile** for web, keeping the implemented safety (no request under another tab's branch; other tabs re-read and drop their scope). Cost: a switch in one tab moves every tab.
-M2 keeps option 3's behavior until the decision; every other criterion is independent of it.
+Until the decision M2 kept option 3's behavior. The owner chose **option 2** with one namespace for every branch destination, `/f/{branchId}/…`, applied to both lanes.
+
+### D-M2-1 resolution and round-2 re-inspection (2026-10-22) — accepted in the independent re-review
+
+**Round-2 re-inspection.** The two round-2 corrections were re-read against their reproductions: reads crossing a session command are voided at both the command's start and its settlement, and the record validator requires every recovery field. One remaining defect was found and fixed: a stored operation record frozen for **another endpoint** (a reused context, a tampered entry) was accepted and could be re-sent through this controller's operation. `OperationController` now quarantines it like a corrupt record (deliberate `discardCorrupt` only). Regression: the record is refused, no key is sent, and after the discard a new intent starts cleanly. All retained financial/session fences (scope-bound clients and disposal, write pause on unknown renewal, `Idempotency-Key`/`If-Match`/`Date`/`Retry-After` handling, CSRF) are unchanged and re-run.
+
+**What the owner's decision changed (Web-only; no .NET contract change).**
+
+| Area        | Before                                        | Now                                                                                                                                                                                                                                                                                           |
+| ----------- | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Routes      | branch destinations at the root (`/gestao/…`) | every branch destination under `/f/{branchId}/…` (`src/lib/branch-route.ts`); identity/account/global routes unchanged; unscoped branch paths wait for a chosen branch and resume inside its namespace                                                                                        |
+| Credentials | one branch cookie per browser                 | identity cookies plus one `__Host-loto-b-{branchId}` slot per branch (token, summary, branch generation), bound to the `sid` that opened it, at most 4 (oldest evicted; an evicted tab's slot reopens under the generation the tab declares)                                                  |
+| Selection   | "the current branch"                          | the request's route branch (page, layout, server client) or `x-loto-branch` (BFF calls); a slot of another login never counts; a missing slot is opened through `POST /branch/session`, which verifies membership; the API re-verifies membership and role on every call                      |
+| Scope       | one browser scope                             | `{identity scope}.{branch generation}` per tab; commands compare the identity part; the forwarder refuses an ended or superseded branch generation (409)                                                                                                                                      |
+| Refusal     | redirect to the picker                        | a branch the identity cannot open is a 403 page (verbatim messages, link to `/filiais`) and a not-forwarded `403 branch-unavailable` for BFF calls; no existence oracle (missing and foreign read alike)                                                                                      |
+| Client      | one session view                              | identity `SessionProvider` at the root; a `BranchSessionProvider` + nested query scope per `/f/[branchId]` subtree (re-reads only its branch; re-reads when the identity changes under it; new generation remounts the subtree); the deepest mounted scope is the default for generated hooks |
+
+**Boundary.** Slots live in the browser's cookie jar (no server store); single flights, rotation memory and ended generations remain in-process (one Next instance; M12 chooses sticky sessions or a shared store). A cookie-header bound of 4 slots means a fifth branch evicts the oldest; the evicted tab's next request reopens it.
+
+**Checks.** Vitest (session core, routes, forwarder, gate, browser layer) adds: two branches held at once with each request using only its own slot; opening a third branch leaves the others; a slot of another login is never used; stale/ended declared generations refused without opening anything; eviction and reopening under the tab's generation; role change → new generation that ends the old one for every tab; login drops every previous slot; namespaced intents resume only for the same e-mail and never into another branch; real route handlers with one cookie jar: tab A opens Alfa, tab B Beta, each re-read stays on its own branch, a command from a branch tab is compared on its identity part, Sair ends both, and another person signed in on the same browser gets a refusal (not the old authority) for the old address; jsdom: queries carry the tab's branch and scope, moving the tab aborts the old branch's request and drops its late answer, leaving the branch subtree returns hooks to the identity scope.
+
+Real stack (`e2e/branch-tabs.spec.ts`, **two or more pages of one browser context**): simultaneous server-rendered and browser reads in Alfa and Beta (each forwarded call names its own branch and scope); switching one tab leaves the other's address, filter, page instance and scope untouched; back/forward, reload, a duplicated tab and a bookmark open the branch their address names; a foreign branch is a 403 with the API's verbatim message, refused unforwarded by the BFF, while other tabs keep working; Sair in one tab ends every tab and a renewal answer written back after Sair authorizes nothing (both branches gate to Login; the rotated refresh token is refused by the API); an uncertain write stays in its branch — the other tab and the same tab after moving to Beta cannot verify or replay it, and back in Alfa it is verified with the same key, bytes and branch (one row in Alfa, none in Beta); another person signing in on the browser re-reads the open tab with their own role (Member), never the previous Admin authority. The M2 regression suite was migrated to the namespace (session, renewal, intent, CSRF, writes). Run on 2026-10-22 against the owned stack: **20/20** (18 on the first run; the two that failed were harness timing — a click waiting on a tab that had already reached its 403, and a held route cancelled by the gate's navigation — corrected and re-run green). After the M3 work and its round-1 corrections the full suite was rerun on a fresh owned stack: **20/20**.
+
+### Independent re-review (2026-10-22) — selected M2 corrections and D-M2-1 accepted
+
+The same reviewer inspected the candidate (the committed round-2 corrections, session/BFF/scopes and the per-tab implementation) and **accepted the selected Web M2 corrections and D-M2-1 in the local single-instance environment, including the proof with tabs that share one cookie jar**. The reviewer's own runs passed: the 20 real-stack tests, the workspace tests, typecheck, lint, formatting, build/bundle checks, a frozen install in a disposable copy, OpenAPI/generation drift, contrast and doc sync v57. Scope of the acceptance: one Next instance on localhost — multi-instance hosting (shared registry or sticky sessions) and real HTTPS stay with M12; no real screen reader or touch device was used.
 
 Iterating locally: `node e2e/stack-cli.ts start` (from `web/`) prints a state file; export it as `LOTO_WEB_E2E_STATE` to run `npx playwright test` repeatedly against that stack, then `node e2e/stack-cli.ts stop`. Without the variable, `test:e2e` starts and removes its own stack; it never touches `loto-postgres-local`, another worktree's database or a real mailbox.
 
@@ -358,6 +383,105 @@ Changed ownership: `web/` (runtime, tests, fixtures, tooling, AGENTS, this miles
 - **First Impeccable pass** across the primitives, with any out-of-system suggestion returned to design.
 
 **Precondition:** Web M1; Design M2 (tokens) for the adapter and themes; Design M3 (component contract) for the primitives.
+
+### Plan, decisions and boundaries (written before code, 2026-10-22)
+
+Inputs read: tokens and their README (all eight files), the 25-spec component index and every spec, copy and formatting contracts, the shell blueprint and the Claude implementation handoff and measurements, in the committed design snapshot (markers v57). The scope grew with Design M3: the index has 25 families (the 15 above plus SummaryStrip, DetailList, FilterBar, Pagination, Menu, Tabs, Disclosure, Stepper, Notice and SaveStatus), and M3 builds all of them.
+
+- **Tailwind 4 has no JS preset.** The adapter is `src/theme/token-adapter.ts` (pure TS, erasable syntax only). At build time a PostCSS plugin (`tooling/token-css.mjs`, listed before Tailwind's) replaces the single `@loto-tokens;` marker in `globals.css` with the generated CSS: theme variable blocks, an `@theme inline` block naming semantic/domain tokens only, and `@utility` roles. Raw values therefore never exist in a source CSS file (the CSS gate stays exemption-free); they exist only in the adapter's input JSON and in build output. A names-only `src/theme/tokens.generated.ts` (no values) types components and the gallery; `lint` fails on drift.
+- **Shared/core boundary.** `@loto/core` is empty (Shared M3: native formatter strategy unmeasured). Formatting stays out of Web: MoneyInput, DatePicker and the masked-identifier Input take a narrow **presentation port** (`src/components/ui/format-port.ts`) with no production fallback; Badge takes its pt-BR label from the caller. Tests use explicit doubles; the gallery uses labelled fixture tables of reference strings, not a formatter.
+- **Theme preference** is a non-secret device cookie (`__Host-loto-theme`: `light`/`dark`/`system`), read by the server render to set `data-theme-preference` on `<html>` before first paint; Sistema resolves through CSS `prefers-color-scheme`, so no script decides the first paint. It is never cleared with the session.
+- **`/styleguide`** is compiled only in development or with `LOTO_WEB_STYLEGUIDE=1` (`page.styleguide.tsx`, like the e2e fixtures): an ordinary production build contains no gallery route at all.
+- **Impeccable** is not installed on this machine (no CLI, package, plugin or skill). No guessed package or remote script is run; Phase 6 does a manual contract-based refinement and records the named-tool pass as not executed.
+
+### Phase 1 — Token adapter and enforcement
+
+- [x] **1.1** The adapter loads exactly the eight files, each with its one expected top-level group, ignoring `$` metadata; it rejects malformed JSON, missing/extra files, bad keys, embedded or broken references, references to groups, cycles, literals in the semantic/domain layers, cross-theme references, theme asymmetry and non-color files reaching color except through a semantic token — each with a named error.
+- [x] **1.2** Units map as the README says: type, spacing, sizes and radii px → rem; breakpoints → em; letter spacing em; shadows px with their theme color; motion ms and `cubic-bezier`; layers integers; backdrop opacity per theme; `tabular-lining` → `tabular-nums lining-nums`.
+- [x] **1.3** Generated CSS exposes **only** semantic and domain colors (light under `:root`/`light`, dark under `dark`, Sistema through `prefers-color-scheme`), reduced-motion swaps, and Tailwind 4 theme names; Tailwind's default palettes and scales are cleared. No primitive name or value is reachable from app code.
+- [x] **1.4** The lint gate also rejects primitive references — token paths, `--…primitive…` variables and palette-ramp classes (`bg-blue-600`, `text-red-700`, …) — in app TS/TSX, CSS and class strings, with negative fixtures; the only exemption stays `src/theme/token-adapter.ts`. Contrast and thresholds stay with the design gate, untouched.
+
+### Phase 2 — Themes and foundation
+
+- [x] **2.1** Claro / Escuro / Sistema, Sistema by default; the explicit choice persists on the device only and syncs across tabs; logout and branch changes never touch it.
+- [x] **2.2** First paint is right in server rendering and hydration: the server writes the preference attribute; a system change re-themes live with no reload; no wrong-theme flash and no hydration mismatch.
+- [x] **2.3** Foundation: base typography (system stack), focus ring (`sem.focus.ring`, 2px outline/2px offset), selection, `color-scheme`, skip-link layer, tabular money, reduced motion and rem/em scaling; the M1/M2 placeholder pages use tokens only.
+
+### Phase 3 — Input components
+
+- [x] **3.1** Button (primary, CTA, secondary, text/link, danger outline, danger solid; default/small; loading; disabled-but-focusable with reason) and real-link variant.
+- [x] **3.2** FormField (stacked, grid, fieldset; helper, inline error, optional marker, read-only reason, unsaved marker) with correct label/description/`aria-invalid` wiring and error-summary focus contract.
+- [x] **3.3** Input: text, e-mail, password (Mostrar/Ocultar senha, correct autocomplete), textarea with counter, search with clear and polite count; masked identifier through the port only.
+- [x] **3.4** MoneyInput presentation/control contract: blank ≠ zero, digits-only state, right-to-left cents entry and paste through the port, `R$` adornment hidden from AT, numeric keypad, row actions outside the field, read-only amount. **Wiring to `@loto/core` is criterion 7.4.**
+- [x] **3.5** Select: native, listbox (combobox pattern), searchable (local over a complete list), no-default; loading/failed/empty options; out-of-options and inactive markers.
+- [x] **3.6** DatePicker: date text field plus calendar dialog grid (keyboard), range, day stepper, month, time; calendar values stay `YYYY-MM-DD` strings (no `Date`), today only from the branch clock prop; display names through the port.
+- [x] **3.7** Checkbox (incl. indeterminate), Radio group with no default, Switch (immediate device preferences only).
+
+### Phase 4 — Data and layout components
+
+- [x] **4.1** Badge: every domain group and value from the tokens, exhaustively typed against the generated API enums; unknown values neutral; provenance, feedback and mode variants.
+- [x] **4.2** Card (section, next action, checklist, sheet), SummaryStrip (totals, explanatory, signed, unavailable), DetailList (identity, provenance, restriction).
+- [x] **4.3** Table/List: semantic table with caption and scoped headers, labelled scroll region, whole-row pointer target that ignores text selection and nested controls, explicit row link, grouped list, selection, loading/empty/error/updating.
+- [x] **4.4** FilterBar (apply-on-submit, scope summary, Limpar filtros), Pagination (envelope-driven, range text, `aria-current`), PageHeader (breadcrumb / Voltar para, h1 focus on entry, wrapping actions). Navigation props take real hrefs from the app; no permission or total is invented.
+
+### Phase 5 — Overlays, navigation and feedback
+
+- [x] **5.1** Modal/Sheet on the native `<dialog>` top layer: dialog, confirmation, drawer, bottom sheet; focus first-meaningful/contain/return, Escape/backdrop/close through one path, busy not dismissible, inert background, scroll lock; one level, popovers above.
+- [x] **5.2** Menu (menu button pattern, roving focus, type-ahead, mode `menuitemradio`, unavailable focusable with reason), Tabs (tabs pattern and segmented radio group), Disclosure, Stepper (confirmed statuses only).
+- [x] **5.3** Notice (kinds, error summary with field links, verbatim `ErrorMessages` in order, uncertain result, no-body fallback, assertive/polite), Toast (success only, ≥5 s, pause on hover/focus, one at a time), SaveStatus (every state; real timestamps passed in), Skeleton (busy region, reduced motion) and EmptyState (four kinds).
+
+### Phase 6 — Running `/styleguide` and refinement
+
+- [x] **6.1** Development-only gallery rendering all 25 families with their variants and states, every exposed token in both themes, and keyboard/touch/375px/enlarged-text/reduced-motion/nested-overlay examples; fixture data and controlled scenarios are labelled; no request and no financial mutation.
+- [x] **6.2** Refinement pass against the specs and the Claude handoff measurements, with the token vocabulary; any out-of-system suggestion is returned to design. Named-tool (Impeccable) execution recorded as not performed.
+
+### Phase 7 — Integration, tests and close-out
+
+- [x] **7.1** Vitest/Testing Library: adapter resolution and every rejection, the lint negatives, theme, and each family's variants, states, focus and keyboard behavior.
+- [x] **7.2** Playwright (no API needed): gallery in both themes, first paint/reload/system change, 375px, 200% text, reduced motion, dialog/menu/tabs/listbox/calendar keyboard flows, nested overlays, row link versus nested actions, plus an automated accessibility scan as a supplement.
+- [x] **7.3** Docs: consumption rules, commands and evidence in `web/AGENTS.md` and below; build/bundle checks green.
+- [ ] **7.4** _(blocked by Shared M3)_ MoneyInput, DatePicker and masked-identifier wiring to the accepted `@loto/core` formatters and the spoken money value; Badge labels from core's maps. Not claimable until core exports exist and are accepted.
+
+
+### M3 criterion map, evidence and limits (2026-10-22; review round 1 corrected, awaiting re-verification)
+
+Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot markers v57, `@loto/core` still `export {}`). Ticks mean **implemented and checked by the implementer**; nothing here is independently accepted, and **7.4 stays open**, so Web M3 is not complete.
+
+| Criteria | Artifact | Meaningful check |
+|---|---|---|
+| 1.1–1.3 | `src/theme/token-adapter.ts`, `tooling/token-css.mjs` (PostCSS, before Tailwind), `src/app/globals.css` marker, `src/theme/tokens.generated.ts` (names only; `generate:tokens`, `lint` drift check) | Vitest against the committed tokens (both themes, references followed, every enum value, units, cleared Tailwind defaults, no primitive name in output) and 16 rejection cases on disposable copies (missing/unexpected file, invalid JSON, bad group/key, embedded/missing/group reference, cycle, semantic literal, cross-theme, wrong layer ×3, theme asymmetry ×2, invalid values ×3); built CSS inspected: both themes present, no default palette, no primitive |
+| 1.4 | `tooling/colors.mjs` (`hasPrimitiveReference`), `tooling/check-css.mjs` | Node tests: ramp classes with variants/opacity, `color.primitive.*`, primitive and palette CSS variables, `@apply`, `@theme`, selectors all fail; semantic/domain names and copy pass; the adapter's own negative fixtures are assembled at run time so the gate keeps covering test sources; unit test bans root-resolved `var(--color-…)` in `src/` |
+| 2.1–2.3 | `src/theme/theme.ts`, `theme-provider.tsx`, `theme-control.tsx`, `src/app/layout.tsx`, `globals.css` base layer, `[data-theme-scope]` blocks | jsdom: default Sistema, cookie attributes, live attribute change; Chrome: Sistema follows the device live without reload, the first HTML carries the chosen theme and renders it **with JavaScript disabled**, Escuro persists on reload and reaches a second tab, Sistema restores |
+| 3.1–3.7 | `src/components/ui/{button,form-field,input,money-input,select,date-picker,calendar,choice,format-port}.tsx` | jsdom: variant token mapping, disabled-but-focusable with reason and suppressed activation incl. implicit form submit, width-stable loading; label/helper/error wiring, fieldset, read-only, error summary focus and field links; password toggle, e-mail attributes, counter, search clear/announcement, port-masked identifier; MoneyInput blank≠zero, right-to-left digits, deletion back to blank, leading zero, port paste, spoken value, source free of number parsing; combobox keyboard, groups, type-ahead, missing/inactive markers, loading/failed/empty, native, searchable filter/count/Enter, compact bottom sheet; calendar math without `Date` (leap years, month/year edges) and a source scan; date field parse on blur, invalid text kept, calendar keyboard grid, bounds, no calendar before the branch date; day stepper; checkbox mixed, radio no default, switch. Chrome: real keystrokes in MoneyInput; calendar keyboard inside a dialog |
+| 4.1–4.4 | `badge.tsx` (enum exhaustiveness at compile time and run time), `card`, `summary-strip`, `detail-list`, `table`, `filter-bar`, `pagination`, `page-header` | jsdom: every enum value ↔ token, domain variables, unknown value neutral and reported, markers; region card, unavailable figure never zero, em dash; semantic table, named scroll region, row click activates the row link with modifiers, nested control and text selection do not; staged filters, compact sheet; envelope-driven pagination through the port; h1 focus, breadcrumb, **Voltar para**. Chrome: row vs nested action vs text drag; 375px table scrolls in its region |
+| 5.1–5.3 | `dialog`, `popover`, `menu`, `tabs`, `disclosure`, `stepper`, `notice`, `toast`, `save-status`, `skeleton`, `empty-state` | jsdom: focus in/return, scroll lock, Escape/backdrop/close one path, busy blocks all, destructive confirm; menu keyboard, type-ahead, unavailable with reason, sheet on compact; tabs/segmented arrows; disclosure; stepper statuses; verbatim messages with duplicates, uncertain notice copy, toast timing/pause/replace, every SaveStatus text, skeleton busy region, neutral all-clear. Chrome: modal `<dialog>` focus containment, listbox and calendar **in the top layer above the dialog**, Escape layering, focus return |
+| 6.1 | `src/app/styleguide/*` (development-only; fixture port of finite tables) | Chrome: all 25 families and 5 token categories render; no request leaves the page; both themes side by side; 375px, 200% zoom and doubled root text without page scroll; reduced motion zeroes durations |
+| 6.2 | refinement fixes | Manual pass against the specs and handoff in the browser pane: select labels wrapped instead of truncated, badges wrap at words, pagination icon kept with its label, scoped regions now use per-theme variables (found by the axe scan: `--color-*` resolved at the root). **Impeccable was not executed** (not installed; no guessed package or remote script run) |
+| 7.1–7.3 | tests, `test:styleguide`, docs | Commands below |
+
+| Check (2026-10-22) | Result |
+|---|---|
+| `pnpm install --frozen-lockfile`; `pnpm -r typecheck`; `pnpm -r lint`; `pnpm format:check` | Passed |
+| `pnpm -r test` | Passed: Shared 103; Web 9 tooling + 219 Vitest (17 files, round-1 regressions included); Mobile 7 |
+| `LOTO_API_BASE_URL=http://127.0.0.1:59999 pnpm --filter @loto/web build` (fresh `.next`) | Passed with the bundle check (one app-owned TanStack/React; **no `/styleguide` or `/e2e` route** in an ordinary build); client assets contain no API variable/URL, session cookie name or gallery fixture |
+| `pnpm --filter @loto/web test:styleguide` (fresh `.next-styleguide`, Chrome) | Passed 15/15 (round 1 adds the 375 px nested-overlay check), including axe-core 4.14.0 WCAG 2.0/2.1/2.2 A/AA in Claro and Escuro with no violations |
+| `pnpm --filter @loto/api generate:check`; `bash docs/check-loto-doc-sync.sh` | Passed: 287 files match; doc sync aligned at v57 (read-only) |
+| `git diff --check`; personal-path scan of changed files | Passed |
+| `pnpm --filter @loto/web test:e2e` after the M3 changes and the round-1 corrections (own disposable stack, Chrome) | Passed 20/20 (M2 regression + per-tab spec); containers and processes removed |
+
+**Independent review round 1 (2026-10-22) — corrected, awaiting re-verification.** The reviewer accepted M2/D-M2-1 (above) and confirmed five M3 defects, each with a reproduction; every correction has a regression test of that reproduction (`test/unit/ui/review-round-1.test.tsx`; the first was also shown to fail against the old merge).
+
+| Finding | Correction | Regression check |
+|---|---|---|
+| P2 — `useControlProps` replaced a control's own `disabled`, `required` and `aria-invalid` | The field context only adds: either source disables or requires; an explicit consumer `aria-invalid` wins over the field's | Disabled+required+invalid inputs, textarea and native select keep their props inside and outside a field; the field still adds its own state when the control sets none |
+| P2 — a disabled Select / compact SearchableSelect still opened and changed value | `disabled` prop and the field's disabled state make the control unavailable; opening, every key, pointer choice and the compact sheet trigger are gated, and the visible open state is derived from availability | Pointer and keys (`ArrowDown`, `Enter`, Space, `Home`, type-ahead) open nothing, `onValueChange` never fires, by field or prop; searchable wide (input disabled) and compact (no sheet) |
+| P2 — a disabled DateField's calendar still chose dates | `disabled` covers the composite: calendar button natively disabled, surface and selection gated; DateRangeField, DayStepper and MonthField gain `disabled` (MonthField also follows its field). MonthField's hardcoded fallback year is gone: without a value or `max` it waits (no guessed year) | No calendar or new date in a disabled field; range, stepper and month emit nothing when disabled; the month picker waits without a known month |
+| P2 — replacing a toast charged the old budget to the new one; closing while focused left a pause that never ended | Unread time is per message id (a message that leaves charges nothing); pause (hover/focus) belongs to a message id and leaves with it | Replacement after 4 s: the next stays 5 s; close while focused, then a new toast expires on time; a hovered toast resumes with its unread time |
+| P3 — at 375 px a picker inside a dialog opened a second modal | Dialog provides an in-dialog context; below a dialog the calendar surfaces, SearchableSelect, Menu and FilterBar use the popover layer / inline fields instead of a sheet | jsdom at compact width: calendar, searchable list and menu inside a dialog leave one `<dialog>`; Chrome at 375 px: one `dialog:modal` and one `:popover-open` for the calendar and the listbox |
+
+**Not covered / open.** 7.4 (core wiring) is blocked by Shared M3. No real screen-reader pass was executed (axe is a supplement); the browser's default-font-size setting was not emulated (200% zoom via half-width viewport and a doubled root size were); only Chrome was driven; native/mobile is out of scope; touch was checked as coarse-pointer sizing in code, not on a device. The gallery's month/day labels and amounts are fixture tables; outside them values appear unformatted by design.
+
+**Contract/dependency impact.** No API, Shared, design or canonical-doc change. New devDependency `axe-core 4.14.0` (already resolved in the workspace; lockfile adds only the importer entry). Cross-area suggestion for the design lane, not acted on: the Badge spec could say how a scoped (pinned-theme) region references domain colors, and the shell blueprint's route map could show the `/f/{branchId}` prefix the owner decided.
 
 ---
 

@@ -187,21 +187,6 @@ export async function serializeDevice<T>(
   }
 }
 
-/** Records a scope change made outside a serialized command (for example a branch found gone). */
-export function noteDeviceScope(
-  registry: SessionRegistry,
-  deviceId: string | undefined,
-  from: string,
-  to: string | null,
-): void {
-  if (deviceId === undefined) return;
-  const state = registry.devices.get(deviceId);
-  if (state !== undefined && state.touched > 0 && state.scope === from) {
-    state.scope = to;
-    state.touched = registry.now();
-  }
-}
-
 const deviceMemoryMs = endedGenerationMs;
 
 function pruneDevices(registry: SessionRegistry): void {

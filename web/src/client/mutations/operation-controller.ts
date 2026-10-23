@@ -140,7 +140,13 @@ export class OperationController<P, R> {
   }
 
   private load(): void {
-    const stored = loadOperation(this.config.storage, this.config.partition, this.config.context);
+    const loaded = loadOperation(this.config.storage, this.config.partition, this.config.context);
+    // A record frozen for another endpoint (the context reused, a tampered entry) is never resent
+    // here: its bytes were prepared for that operation. It is quarantined like a corrupt record.
+    const stored =
+      loaded.status === 'found' && loaded.record.operation !== this.config.operation
+        ? ({ status: 'corrupt' } as const)
+        : loaded;
     this.unreadable =
       stored.status === 'unavailable' || stored.status === 'corrupt' ? stored.status : null;
     // A record left `pending` (reload or crash mid-dispatch) has an unknown outcome.

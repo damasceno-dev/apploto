@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { jwt } from '../support/session-fixtures';
+import { B1, B2, jwt } from '../support/session-fixtures';
 
 const origin = 'http://localhost:3000';
 const api = 'http://127.0.0.1:5180';
@@ -47,6 +47,8 @@ const json = (body: unknown, status = 200) =>
 let loginGate: Promise<void> | null = null;
 let logoutCalls = 0;
 let loginStarted = 0;
+/** Memberships by e-mail; `POST /branch/session` answers 404 outside them, as the API does. */
+let memberships: Record<string, readonly string[]> = {};
 
 beforeEach(() => {
   vi.stubEnv('LOTO_API_BASE_URL', api);
@@ -54,6 +56,7 @@ beforeEach(() => {
   logoutCalls = 0;
   loginStarted = 0;
   loginGate = null;
+  memberships = {};
   vi.stubGlobal('fetch', async (input: RequestInfo | URL, init: RequestInit = {}) => {
     const path = new URL(String(input)).pathname;
     if (path === '/user/login') {
@@ -70,7 +73,24 @@ beforeEach(() => {
         },
       });
     }
-    if (path === '/branch/my-branches') return json({ branches: [] });
+    const bearer = new Headers(init.headers).get('authorization') ?? '';
+    const caller = /id-([^.#]+@example\.invalid)/.exec(
+      Buffer.from(bearer.split('.')[1] ?? '', 'base64url').toString(),
+    )?.[1];
+    const mine = memberships[caller ?? ''] ?? [];
+    if (path === '/branch/my-branches') {
+      return json({
+        branches: mine.map((id) => ({ id, name: `Filial ${id.slice(0, 2)}`, role: 'Admin' })),
+      });
+    }
+    if (path === '/branch/session') {
+      const { branchId } = JSON.parse(String(init.body)) as { branchId: string };
+      if (!mine.includes(branchId)) return json({ errorMessages: ['Filial não encontrada.'] }, 404);
+      return json({
+        token: jwt(`br-${caller}-${branchId}`, Date.now() + 3_600_000),
+        branch: { id: branchId, name: `Filial ${branchId.slice(0, 2)}`, role: 'Admin' },
+      });
+    }
     if (path === '/user/logout') {
       logoutCalls += 1;
       return new Response(null, { status: 204 });
@@ -101,7 +121,16 @@ function post(path: string, jar: Jar, declared: string | null, body: unknown = {
 async function routes() {
   const login = (await import('@/app/bff/session/login/route')).POST;
   const logout = (await import('@/app/bff/session/logout/route')).POST;
-  return { login, logout };
+  const select = (await import('@/app/bff/session/branch/route')).POST;
+  const read = (await import('@/app/bff/session/route')).GET;
+  return { login, logout, select, read };
+}
+
+/** A tab's `GET /bff/session` for its route branch. */
+function readBranch(jar: Jar, branchId: string) {
+  return new NextRequest(`${origin}/bff/session`, {
+    headers: { 'x-loto-bff': '1', cookie: jar.header(), 'x-loto-branch': branchId },
+  });
 }
 
 describe('session commands apply only to the authority they were issued against', () => {
@@ -210,5 +239,79 @@ describe('session commands apply only to the authority they were issued against'
       .find((cookie) => cookie.startsWith('__Host-loto-device='));
     expect(deviceCookie).toMatch(/HttpOnly/i);
     expect(deviceCookie).toMatch(/Secure/i);
+  });
+});
+
+describe('two tabs of one browser keep two branches (D-M2-1)', () => {
+  it('opening a branch in one tab never replaces the other tab’s branch session', async () => {
+    const { login, logout, select, read } = await routes();
+    memberships = { 'ana@example.invalid': [B1, B2] };
+    const jar = new Jar();
+    const signedIn = await login(
+      post('/bff/session/login', jar, null, { email: 'ana@example.invalid', password: 'x' }),
+    );
+    jar.take(signedIn);
+    expect(await signedIn.json()).toMatchObject({ state: 'choose-branch' });
+    const identityScope = jar.scope();
+
+    // Tab A opens Alfa, tab B opens Beta: each answer is that branch; the identity scope stays.
+    const tabA = await select(post('/bff/session/branch', jar, identityScope, { branchId: B1 }));
+    jar.take(tabA);
+    const tabB = await select(post('/bff/session/branch', jar, identityScope, { branchId: B2 }));
+    jar.take(tabB);
+    const a = (await tabA.json()) as { state: string; scope: string; branch: { id: string } };
+    const b = (await tabB.json()) as { state: string; scope: string; branch: { id: string } };
+    expect([a.branch.id, b.branch.id]).toEqual([B1, B2]);
+    expect(jar.scope()).toBe(identityScope);
+    expect(jar.has(`__Host-loto-b-${B1}`) && jar.has(`__Host-loto-b-${B2}`)).toBe(true);
+
+    // Each tab re-reads its own branch and finds it unchanged.
+    const readA = (await (await read(readBranch(jar, B1))).json()) as typeof a;
+    const readB = (await (await read(readBranch(jar, B2))).json()) as typeof b;
+    expect(readA).toMatchObject({ state: 'branch', scope: a.scope, branch: { id: B1 } });
+    expect(readB).toMatchObject({ state: 'branch', scope: b.scope, branch: { id: B2 } });
+
+    // A command issued from a branch tab declares its whole scope; the identity part decides.
+    const reopened = await select(post('/bff/session/branch', jar, a.scope, { branchId: B1 }));
+    expect(reopened.status).toBe(200);
+    jar.take(reopened);
+
+    // Sair in either tab ends the identity and every branch session it held.
+    const before = jar.header();
+    const sair = await logout(post('/bff/session/logout', jar, b.scope));
+    expect(sair.status).toBe(200);
+    jar.take(sair);
+    expect(jar.has(`__Host-loto-b-${B1}`) || jar.has(`__Host-loto-b-${B2}`)).toBe(false);
+    const replayed = await read(
+      new NextRequest(`${origin}/bff/session`, {
+        headers: { 'x-loto-bff': '1', cookie: before, 'x-loto-branch': B1 },
+      }),
+    );
+    expect(await replayed.json()).toMatchObject({ state: 'anonymous' });
+  });
+
+  it('another person signed in on the same browser cannot use the old address’s branch', async () => {
+    const { login, read } = await routes();
+    memberships = { 'ana@example.invalid': [B1], 'bia@example.invalid': [B2] };
+    const jar = new Jar();
+    jar.take(
+      await login(
+        post('/bff/session/login', jar, null, { email: 'ana@example.invalid', password: 'x' }),
+      ),
+    );
+    expect(jar.has(`__Host-loto-b-${B1}`)).toBe(true);
+    const anaScope = jar.scope();
+    const bia = await login(
+      post('/bff/session/login', jar, anaScope, { email: 'bia@example.invalid', password: 'x' }),
+    );
+    jar.take(bia);
+    // Bia's login dropped Ana's branch session; Bia's own session for Alfa's address is refused.
+    expect(jar.has(`__Host-loto-b-${B1}`)).toBe(false);
+    const oldAddress = await read(readBranch(jar, B1));
+    expect(await oldAddress.json()).toMatchObject({
+      state: 'branch-unavailable',
+      branch: null,
+      messages: ['Filial não encontrada.'],
+    });
   });
 });

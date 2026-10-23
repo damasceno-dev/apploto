@@ -1,5 +1,48 @@
 @import 'tailwindcss';
 
-@theme {
-  --color-*: initial;
+/* Expanded at build time from design/tokens (src/theme/token-adapter.ts): theme variables, the
+   Tailwind theme (semantic and domain names only) and the typography/motion/layer utilities. */
+@loto-tokens;
+
+@layer base {
+  html {
+    background-color: var(--loto-sem-background);
+    color: var(--loto-sem-text-primary);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    @apply type-body;
+    min-height: 100dvh;
+    background-color: var(--loto-sem-background);
+    color: var(--loto-sem-text-primary);
+  }
+
+  /* One focus treatment everywhere (component contract): a solid ring outside the element. */
+  :focus-visible {
+    outline: var(--spacing-size-focus-ring-width) solid var(--loto-sem-focus-ring);
+    outline-offset: var(--spacing-size-focus-ring-offset);
+  }
+
+  [data-on-nav] :focus-visible,
+  [data-on-nav]:focus-visible {
+    outline-color: var(--loto-sem-focus-ring-on-nav);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* Skeleton shimmer; its duration is the motion token (0 under reduced motion: a static shape). */
+@keyframes loto-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }

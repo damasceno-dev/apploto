@@ -16,9 +16,12 @@ const bffErrorStatus: Readonly<Record<BffErrorCode, number>> = {
   'invalid-path': 404,
   'authorization-not-allowed': 400,
   'body-too-large': 413,
+  'invalid-branch': 400,
   'session-scope-changed': 409,
   'session-lost': 401,
-  'branch-unavailable': 401,
+  // The tab's branch was refused for this identity (no, removed or inactive membership): a
+  // permission answer, not an authentication one — no renewal follows it.
+  'branch-unavailable': 403,
   'no-branch-session': 401,
   'renewal-unconfirmed': 503,
 };

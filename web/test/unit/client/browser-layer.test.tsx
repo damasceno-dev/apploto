@@ -6,7 +6,11 @@ import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useDeviceDraft } from '@/client/drafts/use-device-draft';
 import { ScopedQueryProvider } from '@/client/query/scoped-query-provider';
-import { SessionProvider, useSession } from '@/client/session/session-provider';
+import {
+  BranchSessionProvider,
+  SessionProvider,
+  useSession,
+} from '@/client/session/session-provider';
 import { resetServerTime, sessionSignalEvent } from '@/client/bff-fetch';
 import { useIdempotentOperation } from '@/client/mutations/use-idempotent-operation';
 import { anonymousSnapshot, type SessionSnapshot } from '@/lib/bff-protocol';
@@ -27,6 +31,31 @@ function branchSnapshot(email: string, branchId: string, scope: string): Session
     user: { userId: `u-${email}`, name: email, email },
     branch: { id: branchId, name: `Filial ${branchId}`, role: 'Manager' },
   };
+}
+
+/**
+ * A tab inside `/f/{branchId}`: the identity provider, then this tab's branch provider and its
+ * query scope — as `src/app/f/[branchId]/layout.tsx` composes them. `scope` is `identity.branch`.
+ */
+function BranchTab({
+  snapshot,
+  children,
+}: {
+  readonly snapshot: SessionSnapshot;
+  readonly children: ReactNode;
+}) {
+  const branchId = snapshot.branch?.id ?? 'none';
+  return (
+    <SessionProvider key={snapshot.scope ?? 'anon'} initial={snapshot} fixtures={false}>
+      <ScopedQueryProvider scope={snapshot.scope?.split('.')[0] ?? null}>
+        <BranchSessionProvider key={branchId} branchId={branchId} initial={snapshot}>
+          <ScopedQueryProvider scope={snapshot.scope} branchId={branchId}>
+            {children}
+          </ScopedQueryProvider>
+        </BranchSessionProvider>
+      </ScopedQueryProvider>
+    </SessionProvider>
+  );
 }
 
 interface Pending {
@@ -156,16 +185,23 @@ function Wrapped({
   readonly snapshot: SessionSnapshot;
   readonly verified: boolean;
 }) {
+  if (snapshot.state !== 'branch') {
+    return (
+      <SessionProvider key={snapshot.scope ?? 'anon'} initial={snapshot} fixtures={false}>
+        <DraftProbe verified={verified} />
+      </SessionProvider>
+    );
+  }
   return (
-    <SessionProvider key={snapshot.scope ?? 'anon'} initial={snapshot} fixtures={false}>
+    <BranchTab snapshot={snapshot}>
       <DraftProbe verified={verified} />
-    </SessionProvider>
+    </BranchTab>
   );
 }
 
 describe('device draft restore rules', () => {
   it('stays locked without a branch session and unread until authority is rechecked', async () => {
-    const ana = branchSnapshot('ana@example.invalid', 'b1', 's1');
+    const ana = branchSnapshot('ana@example.invalid', 'b1', 's1.g1');
     const { rerender } = render(<Wrapped snapshot={anonymousSnapshot} verified />);
     await screen.findByText('rascunho:locked');
 
@@ -177,13 +213,13 @@ describe('device draft restore rules', () => {
     await screen.findByText('rascunho:found');
 
     // A fresh login as another person on this device sees nothing of Ana's input.
-    rerender(<Wrapped snapshot={branchSnapshot('bia@example.invalid', 'b1', 's2')} verified />);
+    rerender(<Wrapped snapshot={branchSnapshot('bia@example.invalid', 'b1', 's2.g1')} verified />);
     await screen.findByText('rascunho:none');
     // Ana again (re-login): her input is restored after the same checks.
-    rerender(<Wrapped snapshot={branchSnapshot('ana@example.invalid', 'b1', 's3')} verified />);
+    rerender(<Wrapped snapshot={branchSnapshot('ana@example.invalid', 'b1', 's3.g1')} verified />);
     await screen.findByText('rascunho:found');
     // Ana in another branch: isolated.
-    rerender(<Wrapped snapshot={branchSnapshot('ana@example.invalid', 'b2', 's4')} verified />);
+    rerender(<Wrapped snapshot={branchSnapshot('ana@example.invalid', 'b2', 's4.g2')} verified />);
     await screen.findByText('rascunho:none');
   });
 });
@@ -203,28 +239,15 @@ function Operation({ onReady }: { readonly onReady: (submit: () => Promise<unkno
   return <p>{operation.ready ? 'pronto' : 'aguardando'}</p>;
 }
 
-function Scoped({
-  snapshot,
-  children,
-}: {
-  readonly snapshot: SessionSnapshot;
-  readonly children: ReactNode;
-}) {
-  return (
-    <SessionProvider key={snapshot.scope ?? 'anon'} initial={snapshot} fixtures={false}>
-      <ScopedQueryProvider scope={snapshot.scope}>{children}</ScopedQueryProvider>
-    </SessionProvider>
-  );
-}
-
 describe('financial intent and scope change', () => {
   it('an operation started for Ana/Alfa never dispatches after the scope becomes Bia/Beta', async () => {
     resetServerTime();
-    const sent: { url: string; scope: string | null }[] = [];
+    const sent: { url: string; scope: string | null; branch: string | null }[] = [];
     let releaseTime!: () => void;
     vi.stubGlobal('fetch', async (input: RequestInfo | URL, init: RequestInit = {}) => {
       const url = String(input);
-      sent.push({ url, scope: new Headers(init.headers).get('x-loto-scope') });
+      const headers = new Headers(init.headers);
+      sent.push({ url, scope: headers.get('x-loto-scope'), branch: headers.get('x-loto-branch') });
       if (url === '/bff/session') {
         await new Promise<void>((done) => (releaseTime = done));
         return new Response('{}', { status: 200, headers: { date: new Date().toUTCString() } });
@@ -235,11 +258,11 @@ describe('financial intent and scope change', () => {
       });
     });
     let submit: (() => Promise<unknown>) | null = null;
-    const ana = branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana-alfa');
+    const ana = branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.alfa');
     const { rerender } = render(
-      <Scoped snapshot={ana}>
+      <BranchTab snapshot={ana}>
         <Operation onReady={(next) => (submit = next)} />
-      </Scoped>,
+      </BranchTab>,
     );
     await screen.findByText('pronto');
     let outcome: unknown;
@@ -247,11 +270,16 @@ describe('financial intent and scope change', () => {
       void submit?.().then((value) => (outcome = value));
     });
     await waitFor(() => expect(sent.map((entry) => entry.url)).toContain('/bff/session'));
+    // The server-time read belongs to Ana's tab context: her scope and her branch.
+    expect(sent.find((entry) => entry.url === '/bff/session')).toMatchObject({
+      scope: 'scope-ana.alfa',
+      branch: 'alfa',
+    });
 
     rerender(
-      <Scoped snapshot={branchSnapshot('bia@example.invalid', 'beta', 'scope-bia-beta')}>
+      <BranchTab snapshot={branchSnapshot('bia@example.invalid', 'beta', 'scope-bia.beta')}>
         <Operation onReady={() => undefined} />
-      </Scoped>,
+      </BranchTab>,
     );
     await act(async () => releaseTime());
     await waitFor(() => expect(outcome).toEqual({ kind: 'cancelled' }));
@@ -314,7 +342,7 @@ describe('reads during a session command (review round 2)', () => {
     const session = useSession();
     return (
       <div>
-        <p>estado:{session.snapshot.state}</p>
+        <p>pessoa:{session.snapshot.user?.email ?? '-'}</p>
         <button type="button" onClick={() => void session.login('bia@example.invalid', 'x')}>
           Entrar
         </button>
@@ -354,13 +382,13 @@ describe('reads during a session command (review round 2)', () => {
     });
     await waitFor(() => expect(reads).toHaveLength(1));
     await act(async () => releaseLogin(new Response(JSON.stringify(bia), { status: 200 })));
-    await screen.findByText('estado:branch');
+    await screen.findByText('pessoa:bia@example.invalid');
     // The older read answers "anonymous" after the login settled: it is ignored.
     await act(async () =>
       releaseRead(new Response(JSON.stringify(anonymousSnapshot), { status: 200 })),
     );
     await new Promise((resolve) => setTimeout(resolve, 20));
-    expect(screen.getByText('estado:branch')).toBeTruthy();
+    expect(screen.getByText('pessoa:bia@example.invalid')).toBeTruthy();
   });
 
   it('a superseded command reads the session afresh after it settles', async () => {
@@ -383,8 +411,116 @@ describe('reads during a session command (review round 2)', () => {
       </SessionProvider>,
     );
     act(() => screen.getByText('Entrar').click());
-    await screen.findByText('estado:branch');
+    await screen.findByText('pessoa:bia@example.invalid');
     expect(calls[0]).toBe('/bff/session/login');
     expect(calls).toContain('/bff/session');
+  });
+});
+
+describe('per-tab branch scope (D-M2-1)', () => {
+  it('a tab’s queries carry its route branch; moving the tab to another branch drops the old one', async () => {
+    const pending = controlledFetch();
+    const alfa = branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa');
+    const { rerender } = render(
+      <BranchTab snapshot={alfa}>
+        <BranchName />
+      </BranchTab>,
+    );
+    await waitFor(() =>
+      expect(pending.some((call) => call.url === '/bff/api/branch/current')).toBe(true),
+    );
+    const first = pending.find((call) => call.url === '/bff/api/branch/current')!;
+    expect(new Headers(first.init.headers).get('x-loto-branch')).toBe('alfa');
+    expect(new Headers(first.init.headers).get('x-loto-scope')).toBe('scope-ana.g-alfa');
+
+    rerender(
+      <BranchTab snapshot={branchSnapshot('ana@example.invalid', 'beta', 'scope-ana.g-beta')}>
+        <BranchName />
+      </BranchTab>,
+    );
+    await waitFor(() =>
+      expect(pending.filter((call) => call.url === '/bff/api/branch/current')).toHaveLength(2),
+    );
+    const second = pending.filter((call) => call.url === '/bff/api/branch/current')[1]!;
+    expect(first.init.signal?.aborted).toBe(true);
+    expect(new Headers(second.init.headers).get('x-loto-branch')).toBe('beta');
+    await act(async () => {
+      second.resolve(current('Beta'));
+      first.resolve(current('Alfa'));
+    });
+    await screen.findByText('filial:Beta');
+    expect(screen.queryByText('filial:Alfa')).toBeNull();
+  });
+
+  it('leaving the branch subtree returns generated hooks to the identity scope', async () => {
+    const pending = controlledFetch();
+    const alfa = branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa');
+    function Tab({ inBranch }: { readonly inBranch: boolean }) {
+      return (
+        <SessionProvider initial={alfa} fixtures={false}>
+          <ScopedQueryProvider scope="scope-ana">
+            {inBranch ? (
+              <BranchSessionProvider branchId="alfa" initial={alfa}>
+                <ScopedQueryProvider scope={alfa.scope} branchId="alfa">
+                  <BranchName />
+                </ScopedQueryProvider>
+              </BranchSessionProvider>
+            ) : (
+              <BranchName />
+            )}
+          </ScopedQueryProvider>
+        </SessionProvider>
+      );
+    }
+    const { rerender } = render(<Tab inBranch />);
+    await waitFor(() => expect(pending).toHaveLength(1));
+    expect(new Headers(pending[0]!.init.headers).get('x-loto-branch')).toBe('alfa');
+    rerender(<Tab inBranch={false} />);
+    await waitFor(() => expect(pending).toHaveLength(2));
+    const headers = new Headers(pending[1]!.init.headers);
+    expect(headers.get('x-loto-branch')).toBeNull();
+    expect(headers.get('x-loto-scope')).toBe('scope-ana');
+  });
+
+  it('re-reads only its own branch, and again when the identity changes under it', async () => {
+    const reads: { url: string; branch: string | null }[] = [];
+    const alfa = branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa');
+    const bia = {
+      ...anonymousSnapshot,
+      state: 'choose-branch' as const,
+      scope: 'scope-bia',
+      user: alfa.user,
+    };
+    vi.stubGlobal('fetch', async (input: RequestInfo | URL, init: RequestInit = {}) => {
+      const url = String(input);
+      const branch = new Headers(init.headers).get('x-loto-branch');
+      reads.push({ url, branch });
+      const body = branch === null ? bia : { ...alfa, scope: 'scope-bia.g-alfa' };
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    function Probe() {
+      const { snapshot, writesPaused } = useSession();
+      return <p>{`${snapshot.scope}|${writesPaused ? 'pausado' : 'livre'}`}</p>;
+    }
+    render(
+      <SessionProvider initial={alfa} fixtures={false}>
+        <BranchSessionProvider branchId="alfa" initial={alfa}>
+          <Probe />
+        </BranchSessionProvider>
+      </SessionProvider>,
+    );
+    await screen.findByText('scope-ana.g-alfa|livre');
+    // Another tab signed in as someone else: this tab's identity re-read moves it…
+    act(() => {
+      window.dispatchEvent(
+        new CustomEvent(sessionSignalEvent, {
+          detail: { code: 'session-scope-changed', outcome: null },
+        }),
+      );
+    });
+    // …and its branch is read again for the identity the cookies now hold, never kept from Ana.
+    await screen.findByText('scope-bia.g-alfa|livre');
+    expect(reads.filter((read) => read.branch === 'alfa').length).toBeGreaterThan(0);
+    expect(reads.every((read) => read.url === '/bff/session')).toBe(true);
   });
 });

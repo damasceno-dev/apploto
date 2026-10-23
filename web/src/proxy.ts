@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { serverEnv } from '@/config/server-env';
-import { decideGate, routeTier, validateIntentPath } from '@/lib/route-policy';
+import { decideGate, routeBranch, routeTier, validateIntentPath } from '@/lib/route-policy';
+import { gateCopy } from '@/lib/session-copy';
 import { deviceWrites, requestContext } from '@/server/bff/route-support';
 import { applyCookieWrites, noStoreHeaders } from '@/server/bff/responses';
 import {
@@ -14,13 +15,15 @@ import { fenceWrites, resolveSession, scopeAfter } from '@/server/session/servic
 
 /**
  * The page-level session gate (Web M2 Phase 5). Before any gated route renders, it renews expiring
- * credentials (the only place a page request can set cookies), resolves the authority state and
- * either lets the render see the refreshed cookies or redirects to Login / Branch picker. A gated
- * branch deep link is kept as an unexecuted navigation intent.
+ * credentials (the only place a page request can set cookies), resolves the authority state — for a
+ * `/f/{branchId}` route, the signed-in identity's own session for **that** branch — and either lets
+ * the render see the refreshed cookies, redirects to Login / Branch picker, or answers 403 when the
+ * route's branch is not open to this identity. A gated deep link is kept as an unexecuted intent.
  */
 export async function proxy(request: NextRequest) {
   const fixtures = serverEnv.e2eFixtures;
-  const tier = routeTier(request.nextUrl.pathname, { fixtures });
+  const pathname = request.nextUrl.pathname;
+  const tier = routeTier(pathname, { fixtures });
   const cookies = readSessionCookies(request.cookies);
   // Every page gives the browser its device id before any session command needs it.
   const context = requestContext(cookies);
@@ -31,23 +34,34 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  const branchId = tier === 'branch' ? routeBranch(pathname) : null;
   // Serialized after this browser's pending session commands, like `GET /bff/session`.
   const { snapshot, writes } = await serializeDevice(
     context.registry,
     context.device ?? '',
     async () => {
-      const resolved = await resolveSession(context, cookies, { needBranches: tier === 'branch' });
+      const resolved = await resolveSession(context, cookies, { branchId });
       return { value: resolved, scope: scopeAfter(resolved.writes) };
     },
   );
   const fenced = [...device, ...fenceWrites(context, cookies.meta, writes)];
-  const decision = decideGate(tier, snapshot);
+  const decision = decideGate(tier, snapshot, { branchId });
+
+  if (decision.kind === 'forbidden') {
+    // Not an existence oracle: a branch that does not exist and one without membership read alike.
+    const response = new NextResponse(forbiddenPage(decision.messages), {
+      status: 403,
+      headers: { ...noStoreHeaders, 'content-type': 'text/html; charset=utf-8' },
+    });
+    applyCookieWrites(response.cookies, fenced);
+    return response;
+  }
 
   if (decision.kind === 'redirect') {
     const response = NextResponse.redirect(new URL(decision.to, request.url));
     const intentPath =
       decision.holdIntent && request.method === 'GET' && !isPrefetch(request)
-        ? validateIntentPath(request.nextUrl.pathname + request.nextUrl.search, { fixtures })
+        ? validateIntentPath(pathname + request.nextUrl.search, { fixtures })
         : null;
     const intent: CookieWrite[] =
       intentPath === null
@@ -58,8 +72,8 @@ export async function proxy(request: NextRequest) {
               value: encodeIntent({
                 v: 1,
                 path: intentPath,
-                branchId: cookies.meta?.branchId ?? null,
-                email: snapshot.user?.email ?? null,
+                branchId,
+                email: snapshot.user?.email ?? cookies.meta?.user.email ?? null,
               }),
             },
           ];
@@ -72,6 +86,9 @@ export async function proxy(request: NextRequest) {
   if (fenced.length > 0) headers.set('cookie', cookieHeaderAfter(request, fenced));
   const response = NextResponse.next({ request: { headers } });
   applyCookieWrites(response.cookies, fenced);
+  if (branchId !== null) {
+    for (const [name, value] of Object.entries(noStoreHeaders)) response.headers.set(name, value);
+  }
   return response;
 }
 
@@ -91,6 +108,30 @@ function isPrefetch(request: NextRequest): boolean {
     request.headers.get('purpose') === 'prefetch' ||
     request.headers.get('sec-purpose')?.includes('prefetch') === true
   );
+}
+
+/**
+ * A minimal, self-contained 403 document (the gate answers before any app render): the backend's
+ * messages verbatim, in order, and the way back to Branch picker. No branch data, no script.
+ */
+function forbiddenPage(messages: readonly string[]): string {
+  const escape = (text: string) =>
+    text.replace(/[&<>"']/g, (character) => `&#${character.charCodeAt(0)};`);
+  const list =
+    messages.length === 0
+      ? ''
+      : `<ul>${messages.map((message) => `<li>${escape(message)}</li>`).join('')}</ul>`;
+  return [
+    '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    `<meta name="color-scheme" content="light dark"><title>${escape(gateCopy.forbiddenTitle)} · Lotero</title>`,
+    '</head><body><main>',
+    `<h1>${escape(gateCopy.forbiddenTitle)}</h1>`,
+    `<p>${escape(gateCopy.forbiddenBody)}</p>`,
+    list,
+    `<p><a href="/filiais">${escape(gateCopy.chooseBranch)}</a></p>`,
+    '</main></body></html>',
+  ].join('');
 }
 
 export const config = {

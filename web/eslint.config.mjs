@@ -10,6 +10,7 @@ export default defineConfig(
   globalIgnores([
     '.next/**',
     '.next-e2e/**',
+    '.next-styleguide/**',
     'out/**',
     'next-env.d.ts',
     'playwright-report/**',
@@ -43,6 +44,7 @@ export default defineConfig(
     files: [
       'src/app/**/{page,layout,loading,error,global-error,not-found}.tsx',
       'src/app/**/{page,layout}.e2e.tsx',
+      'src/app/**/page.styleguide.tsx',
     ],
     rules: { 'no-restricted-syntax': 'off' },
   },

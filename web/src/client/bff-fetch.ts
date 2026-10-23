@@ -1,6 +1,7 @@
 import {
   bffErrorHeader,
   bffRequestHeader,
+  branchHeader,
   scopeHeader,
   sessionOutcomeHeader,
   type BffErrorCode,
@@ -65,18 +66,21 @@ export function observeResponse(response: Response): void {
 }
 
 /**
- * Same-origin fetch to the BFF: adds `x-loto-bff`, and `x-loto-scope` when a scope is known (so a
- * request started in an ended scope is refused before it reaches the API), never sends credentials
- * other than the browser's own cookies, and observes session signals and server time.
+ * Same-origin fetch to the BFF: adds `x-loto-bff`, `x-loto-scope` when a scope is known (so a
+ * request started in an ended scope is refused before it reaches the API) and, from a branch tab,
+ * `x-loto-branch` with the tab's route branch. It never sends credentials other than the browser's
+ * own cookies, and observes session signals and server time.
  */
 export async function bffFetch(
   input: RequestInfo | URL,
   init: RequestInit = {},
   scope: string | null = null,
+  branchId: string | null = null,
 ): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set(bffRequestHeader, '1');
   if (scope !== null) headers.set(scopeHeader, scope);
+  if (branchId !== null) headers.set(branchHeader, branchId);
   const response = await fetch(input, {
     ...init,
     headers,

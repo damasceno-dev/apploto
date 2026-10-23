@@ -1,5 +1,13 @@
 import { expect, test, type Page } from '@playwright/test';
-import { branchNames, openBranch, sessionCookies, signIn, signOut } from './helpers';
+import {
+  branchNames,
+  branchSlot,
+  branchUrl,
+  openBranch,
+  sessionCookies,
+  signIn,
+  signOut,
+} from './helpers';
 import { readState, type StackState } from './stack';
 
 let state: StackState;
@@ -7,9 +15,9 @@ test.beforeAll(async () => {
   state = await readState();
 });
 
-/** Calls the API directly with the branch token the browser currently holds (test harness only). */
-async function asBrowserBranch(page: Page) {
-  const token = (await sessionCookies(page.context(), state))['__Host-loto-br']?.value;
+/** Calls the API directly with the browser's branch token for `branchId` (test harness only). */
+async function asBrowserBranch(page: Page, branchId = state.branches.alfa) {
+  const token = branchSlot(await sessionCookies(page.context(), state), branchId)?.token;
   return (method: string, route: string, body?: unknown, headers: Record<string, string> = {}) =>
     fetch(`${state.apiUrl}${route}`, {
       method,
@@ -25,7 +33,7 @@ async function asBrowserBranch(page: Page) {
 async function signInAlfa(page: Page) {
   await signIn(page, state, state.users.ana);
   await openBranch(page, branchNames.alfa);
-  await page.goto(`${state.webUrl}/e2e/branch/writes`);
+  await page.goto(branchUrl(state, state.branches.alfa, '/e2e/writes'));
 }
 
 test('guarded update: ETag to If-Match, stale 409 verbatim with input kept and a reload path', async ({
@@ -164,7 +172,7 @@ test('device input survives reload and re-login for the same person only', async
   for (const secret of [
     cookies['__Host-loto-id']?.value,
     cookies['__Host-loto-rt']?.value,
-    cookies['__Host-loto-br']?.value,
+    branchSlot(cookies, state.branches.alfa)?.token,
   ]) {
     expect(storage).not.toContain(secret ?? '-');
   }
@@ -173,7 +181,7 @@ test('device input survives reload and re-login for the same person only', async
   await page.goto(`${state.webUrl}/e2e/session`);
   await signOut(page);
   await signIn(page, state, state.users.bia);
-  await page.goto(`${state.webUrl}/e2e/branch/writes`);
+  await page.goto(branchUrl(state, state.branches.gama, '/e2e/writes'));
   await expect(page.getByTestId('draft-state')).toHaveText('none');
   await expect(page.locator('textarea[name="notes"]')).toHaveValue('');
 

@@ -22,8 +22,21 @@ export interface LogoutResult {
 
 const jsonHeaders = { 'content-type': 'application/json' };
 
-export async function readSession(signal?: AbortSignal): Promise<SessionCommandResult> {
-  return settle(await bffFetch(bffSessionPath, { method: 'GET', signal }));
+/**
+ * The session as the server resolves it: identity level, or — with `branchId` — the tab's branch.
+ * `branches` (Branch picker) also lists the identity's branches and applies the membership rule.
+ */
+export async function readSession(
+  options: {
+    readonly signal?: AbortSignal;
+    readonly branchId?: string | null;
+    readonly branches?: boolean;
+  } = {},
+): Promise<SessionCommandResult> {
+  const path = options.branches === true ? `${bffSessionPath}?branches=1` : bffSessionPath;
+  return settle(
+    await bffFetch(path, { method: 'GET', signal: options.signal }, null, options.branchId ?? null),
+  );
 }
 
 // Every command declares the scope it was issued against (`declared`, null when signed out). The
@@ -55,10 +68,6 @@ export async function selectBranch(
       declared,
     ),
   );
-}
-
-export async function leaveBranch(declared: string | null): Promise<SessionCommandResult> {
-  return settle(await bffFetch(`${bffSessionPath}/branch`, { method: 'DELETE' }, declared));
 }
 
 export async function logout(

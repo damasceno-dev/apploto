@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { jwt } from '../support/session-fixtures';
+import { B1, jwt } from '../support/session-fixtures';
 
 const origin = 'http://localhost:3000';
 const api = 'http://127.0.0.1:5180';
@@ -60,9 +60,9 @@ describe('login route', () => {
           responseToken: { token: identity, refreshToken: 'refresh+/=value' },
         }),
       'GET /branch/my-branches': () =>
-        json({ branches: [{ id: 'b1', name: 'Centro', role: 'Member' }] }),
+        json({ branches: [{ id: B1, name: 'Centro', role: 'Member' }] }),
       'POST /branch/session': () =>
-        json({ token: branchToken, branch: { id: 'b1', name: 'Centro', role: 'Member' } }),
+        json({ token: branchToken, branch: { id: B1, name: 'Centro', role: 'Member' } }),
     });
     const { POST } = await import('@/app/bff/session/login/route');
     const response = await POST(
@@ -80,6 +80,8 @@ describe('login route', () => {
     });
     const cookies = setCookies(response);
     expect(cookies.length).toBeGreaterThanOrEqual(4);
+    // The opened branch lives in its own cookie, named after the branch.
+    expect(cookies.some((cookie) => cookie.startsWith(`__Host-loto-b-${B1}=`))).toBe(true);
     for (const cookie of cookies) {
       expect(cookie).toMatch(/^__Host-loto-/);
       expect(cookie).toMatch(/; HttpOnly/i);
@@ -150,20 +152,27 @@ describe('logout route', () => {
     });
     const meta = Buffer.from(
       JSON.stringify({
-        v: 1,
+        v: 2,
         sid: 's',
         scope: 'c',
         user: { userId: 'u', name: 'Ana', email: 'ana@example.invalid' },
-        branchId: null,
-        branch: null,
-        notice: null,
+      }),
+    ).toString('base64url');
+    const slot = Buffer.from(
+      JSON.stringify({
+        v: 1,
+        sid: 's',
+        gen: 'g',
+        token: jwt('branch', Date.now() + 3_600_000),
+        branch: { id: B1, name: 'Centro', role: 'Admin' },
+        at: 0,
       }),
     ).toString('base64url');
     const request = post(
       '/bff/session/logout',
       {},
       {
-        cookie: `__Host-loto-device=00000000-0000-4000-8000-0000000000aa; __Host-loto-id=${identity}; __Host-loto-rt=refresh-1; __Host-loto-meta=${meta}`,
+        cookie: `__Host-loto-device=00000000-0000-4000-8000-0000000000aa; __Host-loto-id=${identity}; __Host-loto-rt=refresh-1; __Host-loto-meta=${meta}; __Host-loto-b-${B1}=${slot}`,
         'x-loto-scope': 'c',
       },
     );
@@ -172,9 +181,11 @@ describe('logout route', () => {
     expect(revoked).toEqual({ refreshToken: 'refresh-1' });
     expect(await response.json()).toMatchObject({ state: 'anonymous', serverConfirmed: true });
     const cookies = setCookies(response);
+    // identity, refresh, meta, intent and every branch cookie the browser holds.
     expect(cookies).toHaveLength(5);
+    expect(cookies.some((cookie) => cookie.startsWith(`__Host-loto-b-${B1}=;`))).toBe(true);
     for (const cookie of cookies) {
-      expect(cookie).toMatch(/^__Host-loto-[a-z]+=;/);
+      expect(cookie).toMatch(/^__Host-loto-[a-z0-9-]+=;/);
       expect(cookie).toMatch(/Max-Age=0/i);
       expect(cookie).toMatch(/; Secure/i);
       expect(cookie).toMatch(/; Path=\//i);

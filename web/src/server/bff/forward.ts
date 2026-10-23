@@ -1,11 +1,14 @@
 import 'server-only';
 import {
   bffApiPrefix,
+  branchHeader,
+  parseScope,
   scopeHeader,
   sessionOutcomeHeader,
   type BffErrorCode,
   type SessionOutcome,
 } from '@/lib/bff-protocol';
+import { isBranchId } from '@/lib/branch-route';
 import { clearAllWrites, type CookieWrite, type SessionCookies } from '../session/cookies';
 import {
   branchLostWrites,
@@ -70,10 +73,20 @@ export async function forward(
   if (operation === null) return refused('unknown-operation');
   if (request.headers.has('authorization')) return refused('authorization-not-allowed');
 
+  // The tab's branch (its route): which of this identity's own branch sessions to use. Untrusted
+  // context — it never grants anything the API would not grant that identity for that branch.
+  const branchId = request.headers.get(branchHeader);
+  if (branchId !== null && !isBranchId(branchId)) return refused('invalid-branch');
+  let declaredGeneration: string | null = null;
   if (operation.authTier !== 'anonymous') {
     if (cookies.meta === null) return refused('session-lost');
-    if (request.headers.get(scopeHeader) !== cookies.meta.scope) {
+    const declared = parseScope(request.headers.get(scopeHeader));
+    if (declared === null || declared.identity !== cookies.meta.scope) {
       return refused('session-scope-changed');
+    }
+    if (operation.authTier === 'branch') {
+      if (branchId === null || declared.branch === null) return refused('no-branch-session');
+      declaredGeneration = declared.branch;
     }
   }
 
@@ -88,6 +101,8 @@ export async function forward(
 
   const credentials = await ensureCredentials(config.context, cookies, operation.authTier, {
     write: isStateChanging(method),
+    branchId,
+    declaredGeneration,
   });
   if (!credentials.ok) return refused(refusalFor(credentials.failure), credentials.writes);
   const writes: CookieWrite[] = [...credentials.writes];
@@ -106,7 +121,7 @@ export async function forward(
       config.context,
       credentials.cookies,
       operation.authTier,
-      { force: true, write: isStateChanging(method) },
+      { force: true, write: isStateChanging(method), branchId, declaredGeneration },
     );
     writes.push(...recovery.writes);
     outcome = recovery.ok ? 'renewed' : outcomeFor(recovery.failure);
@@ -114,13 +129,12 @@ export async function forward(
       upstream = await send(recovery.token);
       if (upstream instanceof Response && upstream.status === 401) {
         // A second 401 ends recovery: the branch gate for branch work, Login for identity work.
-        const meta = recovery.cookies.meta;
-        if (operation.authTier === 'branch' && meta !== null) {
+        if (operation.authTier === 'branch' && branchId !== null) {
           outcome = 'branch-unavailable';
-          writes.push(...branchLostWrites(config.context, meta, []));
+          writes.push(...branchLostWrites(config.context, branchId, recovery.slot));
         } else {
           outcome = 'lost';
-          writes.push(...clearAllWrites());
+          writes.push(...clearAllWrites(cookies));
         }
       }
     }

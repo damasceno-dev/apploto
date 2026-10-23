@@ -61,6 +61,13 @@ for (const source of [...allSources, ...trace.files]) {
       'Shared tooling React must not reach the page runtime',
     );
 }
+// An ordinary production build carries neither the end-to-end fixtures nor the component gallery.
+if (!process.argv[2]) {
+  const routes = await readdir(path.join(build, 'server/app'));
+  for (const technical of ['e2e', 'styleguide']) {
+    assert.ok(!routes.includes(technical), `An ordinary build must not contain /${technical}`);
+  }
+}
 console.log(
   `Web SSR: one app-owned ${expected}; no foreign executable React in source maps/page trace. Next keeps its framework React aliases.`,
 );

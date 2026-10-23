@@ -8,13 +8,18 @@ import type {
   SessionCommandFailure,
   SessionCommandResult,
 } from '@/client/session/session-client';
+import { landingFor } from '@/lib/route-policy';
 
 type Outcome = SessionCommandResult | LogoutResult | SessionCommandFailure | null;
 
 // A session command changes the scope, which remounts this subtree; the last result survives here.
 let lastOutcome: Outcome = null;
 
-/** Technical session controls for Playwright. Holds the password only for the single request. */
+/**
+ * Technical session controls for Playwright (identity level: this page is outside any branch).
+ * Holds the password only for the single request. Opening a branch reports where this tab would
+ * land (`landingFor`); the test navigates there, as the M4 picker will.
+ */
 export function SessionFixture() {
   const session = useSession();
   const [outcome, setOutcomeState] = useState<Outcome>(() => lastOutcome);
@@ -24,16 +29,16 @@ export function SessionFixture() {
   };
   const [readBranches, setReadBranches] = useState(false);
   const branches = useGetBranchMyBranches({ query: { enabled: readBranches } });
-  const { refresh } = session;
+  const { readBranchChoice } = session;
   const needsList =
     (session.snapshot.state === 'choose-branch' ||
       session.snapshot.state === 'branch-unavailable') &&
     session.snapshot.branches === null;
   // The server render knows only what the cookies say; a choice needs the branch list (as the M4
-  // Branch picker will read it), so the fixture re-reads the session when it lacks one.
+  // Branch picker will read it), so the fixture reads it when it lacks one.
   useEffect(() => {
-    if (needsList) void refresh();
-  }, [needsList, refresh]);
+    if (needsList) void readBranchChoice();
+  }, [needsList, readBranchChoice]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -44,6 +49,11 @@ export function SessionFixture() {
       await session.login(String(data.get('email') ?? ''), String(data.get('password') ?? '')),
     );
   }
+
+  const landing =
+    outcome !== null && 'snapshot' in outcome && outcome.snapshot !== null
+      ? landingFor(outcome.snapshot)
+      : null;
 
   return (
     <div>
@@ -69,9 +79,6 @@ export function SessionFixture() {
           </li>
         ))}
       </ul>
-      <button type="button" onClick={async () => setOutcome(await session.leaveBranch())}>
-        Trocar filial
-      </button>
       <button type="button" onClick={async () => setOutcome(await session.logout())}>
         Sair
       </button>
@@ -79,6 +86,7 @@ export function SessionFixture() {
         Ler filiais
       </button>
       <pre data-testid="outcome">{JSON.stringify(outcome)}</pre>
+      <p data-testid="landing">{landing ?? '-'}</p>
       <p data-testid="identity-read">
         {branches.data
           ? `filiais:${branches.data.data.branches.length}`

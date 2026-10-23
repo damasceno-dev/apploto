@@ -111,3 +111,51 @@ test('project lint rejects imported palette definitions used by styles and inter
   const messages = [palette, consumer].flatMap((source) => lint(source));
   assert.equal(messages.filter((message) => message.ruleId === 'loto/raw-color').length, 1);
 });
+
+// Fixture classes are assembled at run time so this file itself names no primitive.
+const ramp = (utility, name, step = '') => [utility, name, step].filter(Boolean).join('-');
+const primitivePath = ['color', 'primitive', 'blue', '600'].join('.');
+
+test('primitive references fail in classes, token paths and CSS variables (Web M3 1.4)', () => {
+  for (const code of [
+    `const x = <div className="p-4 ${ramp('bg', 'blue', '600')}"/>;`,
+    `const x = cn('${ramp('hover:text', 'red', '700')}/50');`,
+    `const tone = '${ramp('border-t', 'neutral', '200')}';`,
+    `const x = <p className="${ramp('text', 'black')}"/>;`,
+    `const ref = '{${primitivePath}}';`,
+    `const x = { color: 'var(--${ramp('color', 'teal', '400')})' };`,
+    `const classes = \`\${active ? '${ramp('bg', 'orange', '500')}' : ''}\`;`,
+  ]) {
+    assert.ok(
+      lint(code).some((m) => m.ruleId === 'loto/raw-color'),
+      code,
+    );
+  }
+  for (const css of [
+    `a { @apply ${ramp('bg', 'sky', '600')}; }`,
+    `a { color: var(--${ramp('color', 'night', '950')}); }`,
+    `@theme { --${ramp('color', 'amber', '700')}: inherit; }`,
+    `.${ramp('text', 'green', '600')} { display: block }`,
+  ]) {
+    assert.ok(checkCss(css, 'test.css').length, css);
+  }
+});
+
+test('semantic and domain token names, and copy that mentions colors, pass', () => {
+  for (const code of [
+    'const x = <div className="bg-surface-default text-text-primary border-border-control"/>;',
+    'const x = <span className="text-feedback-neutral-fg bg-dom-aging-bucket-Days91Plus-bg"/>;',
+    'const x = <nav className="bg-nav-bg text-nav-text-muted ring-focus-ring-on-nav"/>;',
+    "const label = 'Saldo em vermelho no relatório';",
+    "const label = 'neutral';",
+  ]) {
+    assert.equal(lint(code).length, 0, code);
+  }
+  assert.deepEqual(
+    checkCss(
+      'a { color: var(--color-text-primary); background: var(--loto-sem-background) }',
+      't.css',
+    ),
+    [],
+  );
+});

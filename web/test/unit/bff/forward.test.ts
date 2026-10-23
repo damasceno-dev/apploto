@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { forward, targetUrl, type ForwarderConfig } from '@/server/bff/forward';
-import { cookieNames, type CookieWrite } from '@/server/session/cookies';
+import { cookieNames, slotCookieName, type CookieWrite } from '@/server/session/cookies';
 import {
+  B1,
+  B2,
   fail,
   httpError,
   jwt,
@@ -9,6 +11,7 @@ import {
   networkError,
   sessionCookies,
   setup,
+  slot,
 } from '../support/session-fixtures';
 
 const origin = 'http://localhost:3000';
@@ -41,8 +44,8 @@ function harness(responder: (sent: Sent, index: number) => Response | Promise<Re
   const cookies = sessionCookies({
     identity,
     refresh: 'refresh-ana',
-    branch: branchToken,
     meta: meta(),
+    slots: [slot(B1, branchToken)],
   });
   const config = (): ForwarderConfig => ({
     context: env.context(),
@@ -53,11 +56,17 @@ function harness(responder: (sent: Sent, index: number) => Response | Promise<Re
   return { ...env, sent, cookies, identity, branchToken, config };
 }
 
-function request(path: string, init: RequestInit & { scope?: string | null } = {}): Request {
+/** A request from a tab working in branch B1 (its scope: identity generation + B1's generation). */
+function request(
+  path: string,
+  init: RequestInit & { scope?: string | null; branch?: string | null } = {},
+): Request {
   const headers = new Headers(init.headers);
   if (!headers.has('x-loto-bff')) headers.set('x-loto-bff', '1');
-  const scope = init.scope === undefined ? 'scope-1' : init.scope;
+  const scope = init.scope === undefined ? 'scope-1.gen-11' : init.scope;
   if (scope !== null) headers.set('x-loto-scope', scope);
+  const branch = init.branch === undefined ? B1 : init.branch;
+  if (branch !== null) headers.set('x-loto-branch', branch);
   const method = init.method ?? 'GET';
   if (method !== 'GET' && !headers.has('origin')) headers.set('origin', origin);
   return new Request(`${origin}/bff/api${path}`, { ...init, method, headers });
@@ -317,7 +326,7 @@ describe('review fixes', () => {
         body: '{}',
         headers: { 'content-type': 'application/json' },
       }),
-      { ...expiring, branch: jwt('br', h.clock.ms + 10_000) },
+      { ...expiring, slots: new Map([[B1, slot(B1, jwt('br', h.clock.ms + 10_000))]]) },
       h.config(),
     );
     expect(refused.response.headers.get('x-loto-bff-error')).toBe('renewal-unconfirmed');
@@ -374,7 +383,11 @@ describe('forwarder renewal policy', () => {
     expect(h.sent).toHaveLength(2);
     expect(h.backend.count('renew')).toBe(1);
     expect(response.headers.get('x-loto-session')).toBe('branch-unavailable');
-    expect(writes.findLast((write) => write.name === cookieNames.branch)?.value).toBeNull();
+    expect(writes.findLast((write) => write.name === slotCookieName(B1))?.value).toBeNull();
+    // Only this tab's branch is closed; the identity stays.
+    expect(writes.some((write) => write.name === cookieNames.refresh && write.value === null)).toBe(
+      false,
+    );
   });
 
   it('coalesces a burst of concurrent 401s into one renewal', async () => {
@@ -406,5 +419,105 @@ describe('forwarder renewal policy', () => {
     expect(response.headers.get('x-loto-bff-error')).toBe('session-lost');
     expect(h.sent).toHaveLength(0);
     expect(writes.every((write) => write.value === null)).toBe(true);
+  });
+});
+
+describe('the tab’s branch selects the credential (D-M2-1)', () => {
+  it('each tab’s request carries its own branch’s bearer, never another tab’s', async () => {
+    const h = harness(() => json({}));
+    const other = jwt('branch-b2', h.clock.ms + 3_600_000);
+    const cookies = sessionCookies({
+      identity: h.identity,
+      refresh: 'refresh-ana',
+      meta: meta(),
+      slots: [slot(B1, h.branchToken), slot(B2, other)],
+    });
+    await forward(request('/branch/current'), cookies, h.config());
+    await forward(
+      request('/branch/current', { branch: B2, scope: 'scope-1.gen-22' }),
+      cookies,
+      h.config(),
+    );
+    expect(h.sent.map((sent) => sent.headers.get('authorization'))).toEqual([
+      `Bearer ${h.branchToken}`,
+      `Bearer ${other}`,
+    ]);
+    expect(h.backend.count('createBranchSession')).toBe(0);
+  });
+
+  it('branch work without a branch, or with a malformed one, is refused before dispatch', async () => {
+    const h = harness(() => json({}));
+    const none = await forward(request('/branch/current', { branch: null }), h.cookies, h.config());
+    expect(none.response.headers.get('x-loto-bff-error')).toBe('no-branch-session');
+    const identityScopeOnly = await forward(
+      request('/branch/current', { scope: 'scope-1' }),
+      h.cookies,
+      h.config(),
+    );
+    expect(identityScopeOnly.response.headers.get('x-loto-bff-error')).toBe('no-branch-session');
+    const malformed = await forward(
+      request('/branch/current', { branch: '../b1' }),
+      h.cookies,
+      h.config(),
+    );
+    expect(malformed.response.status).toBe(400);
+    expect(malformed.response.headers.get('x-loto-bff-error')).toBe('invalid-branch');
+    expect(h.sent).toHaveLength(0);
+  });
+
+  it('a branch this identity cannot open answers 403 and nothing is forwarded', async () => {
+    const h = harness(() => json({}));
+    h.backend.branchHandler = () =>
+      fail(httpError('POST', '/branch/session', 404, ['Filial não encontrada']));
+    const { response, writes } = await forward(
+      request('/branch/current', { branch: B2, scope: 'scope-1.gen-22' }),
+      h.cookies,
+      h.config(),
+    );
+    expect(response.status).toBe(403);
+    expect(response.headers.get('x-loto-bff-error')).toBe('branch-unavailable');
+    expect(h.sent).toHaveLength(0);
+    // B1, the other tab's branch, is untouched.
+    expect(writes.some((write) => write.name === slotCookieName(B1))).toBe(false);
+  });
+
+  it('a tab still on an older branch generation is refused; its identity work is not', async () => {
+    const h = harness(() => json({ branches: [] }));
+    const branchWork = await forward(
+      request('/branch/current', { scope: 'scope-1.gen-old' }),
+      h.cookies,
+      h.config(),
+    );
+    expect(branchWork.response.status).toBe(409);
+    expect(branchWork.response.headers.get('x-loto-bff-error')).toBe('session-scope-changed');
+    const identityWork = await forward(
+      request('/branch/my-branches', { scope: 'scope-1.gen-old' }),
+      h.cookies,
+      h.config(),
+    );
+    expect(identityWork.response.status).toBe(200);
+    expect(h.sent.map((sent) => new URL(sent.url).pathname)).toEqual(['/branch/my-branches']);
+  });
+
+  it('a write prepared in one branch keeps its branch: it never goes out under another', async () => {
+    const h = harness(() => json({}, 201));
+    const other = jwt('branch-b2', h.clock.ms + 3_600_000);
+    const cookies = sessionCookies({
+      identity: h.identity,
+      refresh: 'refresh-ana',
+      meta: meta(),
+      slots: [slot(B1, h.branchToken), slot(B2, other)],
+    });
+    await forward(
+      request('/transaction', {
+        method: 'POST',
+        body: '{"value":"1.00"}',
+        headers: { 'content-type': 'application/json', 'idempotency-key': 'k-b1' },
+      }),
+      cookies,
+      h.config(),
+    );
+    expect(h.sent[0]?.headers.get('authorization')).toBe(`Bearer ${h.branchToken}`);
+    expect(h.sent[0]?.headers.get('idempotency-key')).toBe('k-b1');
   });
 });
