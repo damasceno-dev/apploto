@@ -1,6 +1,6 @@
 # Lotero screen blueprints
 
-> **Status:** Design M4, authored 2026-10-20 (D04) for every currently unblocked feature; independent review pending. Blueprints are written just ahead of the matching Web/Mobile feature milestone and mature with the apps; M4 stays open.
+> **Status:** Design M4, authored 2026-10-20 (D04) for every currently unblocked feature; corrected D04 scope accepted as recorded in 4.8.5; the 2026-10-22 three-report/IA extension is authored and awaiting independent acceptance in 4.8.4. Blueprints are written just ahead of the matching Web/Mobile feature milestone and mature with the apps; M4 stays open.
 
 A blueprint turns a catalog entry into a layout: the order of regions, how they rearrange from a wide desktop to a 375px phone, which [components](../components/README.md) and [tokens](../../tokens/README.md) carry them, where focus goes, which origin each journey returns to, and how every named state looks. It never changes what a screen does — the [catalog](../../docs/screens.md) does that — and it never moves a calculation or a permission decision into the client.
 
@@ -33,9 +33,9 @@ Blueprints are grouped by coherent feature rather than one file per screen, beca
 | Open-cheque aging | [reports-and-month-lock.md](reports-and-month-lock.md#open-cheque-aging) | Web/Mobile M8 | Ready |
 | Cash-variance summary | [reports-and-month-lock.md](reports-and-month-lock.md#cash-variance-summary) | Web/Mobile M8 | Ready |
 | Monthly reconciliation + lock | [reports-and-month-lock.md](reports-and-month-lock.md#monthly-reconciliation--lock) | Web/Mobile M8 | Ready |
-| Dashboard | [reports-and-month-lock.md](reports-and-month-lock.md#dashboard) | Web/Mobile M8 | Not blueprinted — gap Q (M4 4.8.4) |
-| Upcoming settlements | [reports-and-month-lock.md](reports-and-month-lock.md#upcoming-settlements) | Web/Mobile M8 | Not blueprinted — gap Q (M4 4.8.4) |
-| Monthly financial report | [reports-and-month-lock.md](reports-and-month-lock.md#monthly-financial-report) | Web/Mobile M8 | Not blueprinted — gap Q (M4 4.8.4) |
+| Dashboard | [reports-and-month-lock.md](reports-and-month-lock.md#dashboard) | Web/Mobile M8 | Authored — independent acceptance pending (M4 4.8.4) |
+| Upcoming settlements | [reports-and-month-lock.md](reports-and-month-lock.md#upcoming-settlements) | Web/Mobile M8 | Authored — independent acceptance pending (M4 4.8.4) |
+| Monthly financial report | [reports-and-month-lock.md](reports-and-month-lock.md#monthly-financial-report) | Web/Mobile M8 | Authored — independent acceptance pending (M4 4.8.4) |
 | My transaction summary | [time-and-self-service.md](time-and-self-service.md#my-transaction-summary) | Web/Mobile M9 | Ready |
 | My time-entry balance | [time-and-self-service.md](time-and-self-service.md#my-time-entry-balance) | Web/Mobile M9 | Ready |
 | Operator Day Cockpit | [operator-day.md](operator-day.md#operator-day-cockpit) | Web/Mobile M5 | Ready |
@@ -56,7 +56,7 @@ Blueprints are grouped by coherent feature rather than one file per screen, beca
 | Add employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#add-employee-guided) | Web/Mobile M11 | Ready |
 | Offboard employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#offboard-employee-guided) | Web/Mobile M11 | Partial — withdrawing an invitation (gap AC) |
 
-**Not blueprinted yet:** Dashboard, Upcoming settlements and the Monthly financial report now have catalog entries against shipped server M11 Phase 4–7 contracts (canonical v56), but those contracts await independent acceptance, so the M4 per-screen gate (gap Q) still holds. Their rows point at placeholder headings that say so; no layout, region order or component choice is defined for them until design M4 4.8.4.
+**M11 report extension (2026-10-22):** Dashboard, Upcoming settlements and Monthly financial report have full blueprints: envelope/nested fields, periods, configuration/empty/error states, responsive/focus behavior, source-specific financial meaning and exact drill-down/return filters. Source contracts are accepted at `84f75b9`; this design extension awaits independent acceptance under 4.8.4. Nine reports and 45 catalog entries remain indexed. The [shell route map](shell-and-identity.md#route-map-web) and [report route audit](reports-and-month-lock.md#branch-scoped-report-entry-and-return-audit) apply the owner-confirmed D-M2-1 `/f/{branchId}` convention. Existing tokens/components remain unchanged; AA/AB/AC and real app evidence remain with their owners.
 
 ## What every blueprint specifies
 

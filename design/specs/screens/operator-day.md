@@ -51,7 +51,7 @@ Home of Meu turno. Every destination it opens (Open day, Close day, Fix & resubm
 - **Regions:** PageHeader **Abrir o dia** (breadcrumb from its origin) · confirmation card **Abrir dia para {terminal}** with **Trocar terminal** (Meu turno) or a Terminal [Select](../components/select.md) (Gestão) · date: branch-local today shown as text in Meu turno; in Gestão a [DatePicker](../components/date-picker.md) defaulting to today with future dates disabled and backdating as an explicit change (**Abrir em outra data**) · **Abrir dia** (CTA in Meu turno, primary in Gestão) · **Voltar**.
 - **Origin context:** when opened from a blocked sale or payment, a neutral Notice explains **Abrir o dia não registra a venda; você volta ao formulário para confirmar.**
 - **States:** setup needed (no Terminal: EmptyState with the setup link); validating; conflict (already open → info Notice **Este dia já está aberto** + **Ir para o fechamento**, resolved through the exact account/date read); lock-blocked (verbatim); error; success → return.
-- **Return:** Meu turno → Cockpit; Gestão → originating Work Queue / Monthly reconciliation; blocked operation → that same form with everything typed.
+- **Return:** Meu turno → Cockpit; Gestão → originating Work Queue / Monthly reconciliation (a missing-day entry; Dashboard and Monthly financial report open only existing closes, not Open day); blocked operation → that same form with everything typed.
 
 ## Close day
 
@@ -94,14 +94,14 @@ Loading (header and Skeleton grid; inputs not editable until the review loads); 
 
 ### Origin and return
 
-From the Cockpit (including **Ver fechamento de hoje**), from a Work Queue or Monthly reconciliation exception, or from Daily-close approval's **Gerenciar fechamento**. After submit: Cockpit (Meu turno) or the originating management view; from approval → back to that approval with its queue origin.
+From the Cockpit (including **Ver fechamento de hoje**), a status-routed Work Queue / Cash-variance summary / Monthly reconciliation / Dashboard / Monthly financial report exception, or Daily-close approval’s **Gerenciar fechamento**. Report entries use their returned DailyCloseId/status, never date alone. After submit or Voltar: Cockpit (Meu turno) or the actual originating management/report view, retaining its month/window, filters, section/row and focus; from approval → back to that approval with the complete parent origin chain. Without origin → active mode home. Unlinked Manager/Admin retains this access in Gestão.
 
 ## Fix & resubmit
 
 - **Regions:** PageHeader **Corrigir fechamento** (context as Close day) · **Por que este fechamento precisa de revisão?** group: one block per event, oldest first, each with its own dated title — **Rejeitado na conferência** (**Rejeitado em {data/hora}**, actor, **Observação da gerência** quoted) and **Abertura alterada** (**Alterada em {data/hora}**, actor, source → target sentence, the "não é uma nova rejeição" line, and [Disclosure](../components/disclosure.md) **Ver o que mudou** with a table Produto · Antes · Depois · Alteração); event badges `dom.review-event-type.*`; honest fallbacks when history is incomplete · next-action line · then the full Close day form (regions 3–9) in its correction mode (explicit **Salvar**, **Reenviar para aprovação**).
 - **Layout:** the cause group sits above the form at every width; on compact each event is its own section and the before/after table becomes label/value rows per product.
 - **States:** rejected · opening changed · both · editing · resubmitted (read-only, awaiting) · error; history incomplete fallbacks (**Data da rejeição indisponível**, **Detalhes da alteração indisponíveis para este fechamento**).
-- **Return:** Cockpit after an own resubmit; the originating management view after elevated handling.
+- **Origin and return:** Cockpit rejected state for own work; Work Queue, Cash-variance summary, Monthly reconciliation, Dashboard or Monthly financial report for a returned Rejected close. After elevated resubmit or Voltar, restore the actual management/report origin with month/window, filters, section/row, mode and focus; retain any nested approval chain. Own resubmit returns to Cockpit; without origin → active mode home.
 
 ## AA remainder: retired-product rows
 

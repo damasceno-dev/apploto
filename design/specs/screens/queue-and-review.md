@@ -8,7 +8,7 @@ A manager opens Lotero to act, not to browse. The queue therefore reads top to b
 
 ### Regions, in reading order
 
-1. **PageHeader** — title **Fila de trabalho**; context line: long date of the selected day with **(hoje na filial)** when it is today · **data de bloqueio {dd/MM/yyyy}**; day stepper ([DatePicker](../components/date-picker.md) day-stepper variant: **Dia anterior** · date · **Próximo dia**) aligned with the title on wide layouts, below it on compact.
+1. **PageHeader** — title **Fila de trabalho**; context line: long date of the selected day with **(hoje na filial)** when it is today · **data de bloqueio {dd/MM/yyyy}**; day stepper ([DatePicker](../components/date-picker.md) day-stepper variant: **Dia anterior** · date · **Próximo dia**) aligned with the title on wide layouts, below it on compact. Secondary **Dashboard** link → `/f/{branchId}/relatorios/dashboard` (Web; native branch-scoped destination), fresh current-month overview; retain this queue date/mode as return origin. It does not replace the queue home or inherit its selected date as Dashboard today. This 2026-10-22 report-entry integration awaits acceptance under M4 4.8.4.
 2. **Owner setup checklist** *(only while a required item is pending; otherwise one collapsed line)* — [Card](../components/card.md) checklist variant titled **Configuração inicial da lotérica**: one row per item with status text (**Concluído** / **Pendente** / **Não foi possível verificar** + retry), what it unlocks, and its link; the three required items first, then **Conforme o uso** items, then **Equipe** counts. Collapsed form: **Configuração inicial concluída · Ver itens opcionais** with a device-local **Ocultar**.
 3. **Earlier-days banner** *(when any backlog count is non-zero)* — warning [Notice](../components/notice.md): **Dias anteriores com fechamentos pendentes** · **{n} enviado · {n} rejeitado · {n} em rascunho — o mais antigo em {data}** · **Ver dia mais antigo**.
 4. **Seu turno** *(linked Manager/Admin)* — one line: workstation terminal and today's close status, **Escolher terminal**, or **Sem terminal atribuído** with its link; the link switches to Meu turno.
@@ -85,7 +85,7 @@ Loading (Skeleton table with header kept); not found/cross-branch (EmptyState **
 
 ### Origin and return
 
-From the Work Queue, a Cash-variance summary row or a Monthly reconciliation blocker; returns to that origin (Work Queue when none). **Gerenciar fechamento** → Close day in Gestão and back here with the queue origin kept.
+From Work Queue, a Cash-variance summary row, a Monthly reconciliation blocker, Dashboard recent/variance previews or a Monthly financial report Terminal/day close link. Return after review/approve/reject to that actual validated origin, with its month/window, filters, section/row and scroll/focus retained (Work Queue when none). **Gerenciar fechamento** → Close day in Gestão and back here with the complete parent chain kept, including a Dashboard or Monthly financial report origin. Only Submitted is approvable; Approved remains review-only.
 
 ## Verification boundary
 
