@@ -28,6 +28,7 @@ This file is the general milestone list for the `mobile/` area. Detailed phases 
 - **Design M2 + M3** and the adapter pattern proven in **Web M3** → Mobile M3.
 - **Design M4** blueprints → each feature milestone, Mobile M4–M11, shared with the same-numbered web milestone.
 - **Server gates per feature** are the same as web: M7.7 Phase 5 (A, H, L, S), server M8 (C, N, U, V) for Mobile M11, server M9 alongside Mobile M12.
+- **Flow-alignment plan (owner, 2026-10-26):** the same batches as web, all before release — Batch B in M4–M5 plus the Batch B increments of M6 (transaction entry) and M7 (review and approval) (server M9.6), Batch C in M6/M8 (server M9.7), Batch D in M8–M10 (server M9.8, M10). Scope is defined in the same-numbered web milestone; mobile follows the web implementation of each batch.
 
 ### Milestone overview
 
@@ -208,7 +209,7 @@ All findings are fixed. The suggested broader detection of mixed values under cu
 
 ## Milestone 5 — Operator Day
 
-**Scope and gates:** as Web M5 — the mobile-first flows of the catalog. This includes gap AA on Close day and Fix & resubmit (retained-retired-product edit/preview/save recovery only; server DailyClose/Product, scheduling pending M7.7 close-out triage); other screen behavior and historical reads proceed. The catalog’s gap → screen map remains authoritative. **Mobile-specific:** the "once per device and branch-local day" terminal choice is stored on the device; Close day's count entry is tuned for numeric keypads and survives the app being backgrounded mid-count.
+**Scope and gates:** as Web M5 — the mobile-first flows of the catalog. This includes gap AA on Close day and Fix & resubmit (retained-retired-product edit/preview/save recovery only; server DailyClose/Product, scheduling pending M7.7 close-out triage); other screen behavior and historical reads proceed. The catalog’s gap → screen map remains authoritative. **Mobile-specific:** the "once per device and branch-local day" terminal choice is stored on the device; Close day's count entry is tuned for numeric keypads and survives the app being backgrounded mid-count. **Flow-alignment (Batch B):** the blind count, Conferir/Recontar, inline opening and *Passar o caixa* follow Web M5; the arithmetic money input works with the numeric keypad (operators need `+`), and a backgrounded app never reveals the difference before Conferir.
 
 ## Milestone 6 — Transactions Ledger
 
@@ -240,4 +241,4 @@ All findings are fixed. The suggested broader detection of mixed values under cu
 
 **Goal:** Ship the app to the stores: build profiles per environment aligned with server M9, final bundle identifiers, signing, store listings in pt-BR, the over-the-air update policy (what may ship as an update versus a store release), crash reporting, and a device test matrix for the spine flows.
 
-**Precondition:** Server M9 (staging/production environments) and the MVP feature milestones that release scope requires.
+**Precondition:** Server M9 (staging/production environments) and the MVP feature milestones that release scope requires — including every flow-alignment batch (B, C, D).

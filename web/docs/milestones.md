@@ -31,6 +31,7 @@ This file is the general milestone list for the `web/` area. Detailed phases wit
 - **Server gates per feature:** M7.7 Phase 5 (gaps A, H, L, S) gates the fiado and pairing features; server M8 (gaps C, N, U, V) gates Web M11 and the U/V qualified features elsewhere; server M9 aligns with Web M12.
 - **Server M11 tripwire delivered.** The manager-queue rename already landed before Shared M2; baseline `f424deb` includes M11 `18012d5`. Web M1 consumes the committed source packages without regeneration.
 - **Mobile:** Mobile M1 may run in parallel with Web M1. Mobile M2 and M3 follow the patterns Web M2 and M3 lock. From M4 on, Web MN ∥ Mobile MN.
+- **Flow-alignment plan (owner, 2026-10-26; server `milestones.md` *Flow-alignment plan*).** All before release. **Batch B — real cashier day** is Web M4–M5 plus the Batch B increments of M6 (transaction entry: fiado sale, repayment, cofre deposit, inline opening from an operation) and M7 (per-session review and approval) — never Batch C's settlement work — against server M9.6 (sessions, inline opening, blind count/Conferir, handover, close-form entries, separation of duties, fiado boundaries, cofre transfer) and Design M4 Phase 9 (4.9.1–4.9.8); its demonstration is complete seeded journeys in the running app. **Batch C** adds receivables, reconciliation, P&L and shortages to Web M6/M8 against server M9.7 (Design 4.9.9–4.9.12). **Batch D** adds the employee statement, hour bank, special draws, opening count and Access import to Web M8–M10 against server M9.8 and M10 (Design 4.9.13–4.9.15). Ease-of-use principle: the screen supplies known information and asks only for physical observations or decisions the system cannot infer; extra controls appear only on a discrepancy or exception.
 
 ### Milestone overview
 
@@ -49,7 +50,7 @@ This file is the general milestone list for the `web/` area. Detailed phases wit
 | **M11** | Account & Onboarding                 | Server M8, design 0.4.6                              | The auth & account screen set, Plataforma, guided employee flows       |
 | **M12** | Release Readiness                    | Server M9                                            | Deployment, CI gates, audits, observability                            |
 
-Post-MVP report screens (KPI page, upcoming settlements, consolidated monthly report — gap Q) get their own milestone once server M11 is scheduled and the catalog entries exist.
+The M11 report screens (Dashboard, Upcoming settlements, Monthly financial — gap Q) ship in Web M8 now that server M11 shipped and their blueprints exist (Design 4.8.4). The flow-alignment plan adds its screens to M5, M6, M7, M8, M9 and M10 (sections below), all before M12.
 
 ---
 
@@ -513,6 +514,8 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 
 **Precondition:** Web M4 and the Design M4 day-close blueprints. The cockpit's "record a transaction" entry links into Web M6.
 
+**Flow-alignment plan — Batch B (server M9.6; Design 4.9.2–4.9.7):** sessions on shared and separate cashboxes; **inline opening** (*Conferir abertura e iniciar* committed atomically with the first operation; *Abertura diferente*; explicit zero opening); **blind count** — values entered, **Conferir**, then the calculation; **Recontar**; outdated and unconfirmed states; the extra confirmation only when the ledger changed before submit; autosave that never reveals the difference — replacing the live `variance-preview` behavior above; the three close-form fields (*Relatório do terminal*, signed; *Tarifa Bolão*; *Tarifa Especial*); **Passar o caixa** and the incoming acknowledgment with the handover discrepancy; the restricted arithmetic money input (from `@loto/core`, server M9.6 Phase 8). **Demonstration:** seeded journeys — a single-person day, a matching handover, Abertura diferente, separate cashboxes, a ledger change between Conferir and submit — each with cash and card/PIX sales, fiado with a cash and a PIX repayment, a cofre deposit, an expense and a small difference, running against the real API.
+
 ---
 
 ## Milestone 6 — Transactions Ledger
@@ -528,6 +531,8 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 
 **Precondition:** Web M5 (Terminal activity needs an open close) and the Design M4 ledger blueprints.
 
+**Flow-alignment plan.** *Batch B (server M9.6; Design 4.9.6):* the fiado sale writes its cashbox movement automatically — the counted-stock choice disappears; repayment method without default (Dinheiro, PIX, configured others); **Depósito Dinheiro** as the two-leg cofre transfer; operations started without an active session go through the inline opening. *Batch C (server M9.7; Design 4.9.9–4.9.10):* cheque custody into the cofre, batch **Depositar**, **Cheque devolvido** → **Reapresentar** / **Converter em fiado**, card settlement batches and **Recolhimento**, with occurrence versus posting dates explained.
+
 ---
 
 ## Milestone 7 — Manager Work Queue & Approvals
@@ -542,6 +547,8 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 
 **Precondition:** Web M5 and M6 (the flows the queue routes into) and the Design M4 queue/approval blueprints.
 
+**Flow-alignment plan — Batch B (server M9.6 Phases 2, 4, 5; Design 4.9.5):** review per session — sessions side by side, never summed counts; **Aprovar dia do caixa** applying every check to each session; **Aprovar como único gestor** (reason, audited); handover discrepancies — unattributed until the manager attributes them (outgoing, incoming or neither, with a reason) — open custody and the Conferir history in the queue and on approval.
+
 ---
 
 ## Milestone 8 — Reports & Month Lock
@@ -551,6 +558,8 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 **Scope boundary / key behaviors:** report defaults from the catalog, server-side aggregation only, drill-downs that return to the source report, structured lock blockers that deep-link into their resolution flows. **Gated:** Fiado balance and Fiado aging (gap H, server M7.7 Phase 5).
 
 **Precondition:** Web M7 and the Design M4 report blueprints.
+
+**Also in this milestone:** the M11 Dashboard, Upcoming settlements and Monthly financial report (Design 4.8.4). **Flow-alignment plan.** *Batch C (server M9.7; Design 4.9.11–4.9.12):* statement reconciliation (OFX import, proposed matches, confirm displayed matches only), P&L by financial class and posting date with frozen locked months, shortage tracking, and the per-session/settlement-event revisions of the existing reports. *Batch D (server M9.8; Design 4.9.13):* the employee statement and special-draws catalog.
 
 ---
 
@@ -562,6 +571,8 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 
 **Precondition:** Web M4 and the Design M4 time blueprints. Independent of M5–M8, so it can be scheduled earlier if useful.
 
+**Flow-alignment plan — Batch D (server M9.8 Phase 2; Design 4.9.14):** hour bank — carry-over balance and manager *Pagamento/Ajuste de horas* entries with a reason, kept apart from attendance.
+
 ---
 
 ## Milestone 10 — Admin & Configuration
@@ -571,6 +582,8 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 **Scope boundary / key behaviors:** Clients keeps the entry mode and stays available to any branch role except deactivate. **Gated:** Account assignment's Tab pairing (gap L) and Accounts' deactivation rule (gap S), both server M7.7 Phase 5; Branch members' own-row guard (gap U) and member addition by invitation (gap C), both server M8. Products' deactivation warning/recovery only (gap AA, server DailyClose/Product; scheduling pending M7.7 close-out triage) is also gated; ordinary Product CRUD and reads proceed.
 
 **Precondition:** Web M4 and the Design M4 admin blueprints. Until this lands, local and staging data come from the backend seeds and the server M8 command-line onboarding.
+
+**Flow-alignment plan.** *Batch B (server M9.6; Design 4.9.8):* cashbox with its paired fiado account by default and its Terminal reference, cofre account type, seeded expense types and repayment methods, Tarifa Especial role, system-owned close-form types, owner setup checklist items. *Batch D (server M9.6 Phase 3, M9.8, M10; Design 4.9.13, 4.9.15):* pay items and effective-dated commission rules; the go-live screens — **Opening count** (server M9.6 Phase 3), **opening fiado balances and opening receivables** (M10 Part A) and **Access import** (M10 Part B: guide, mapping, dry run, confirmation). Batch B journeys use seeded openings.
 
 ---
 
@@ -586,4 +599,4 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 
 **Goal:** Ship the web app: hosting target and deployment pipeline aligned with server M9, CI running the standing gates plus the Playwright suite, an accessibility audit and performance budgets across the spine screens, error tracking, and security headers for the cookie session.
 
-**Precondition:** Server M9 (staging/production environments) and the MVP feature milestones that release scope requires. The hosting decision is shared with `infra/` and recorded there.
+**Precondition:** Server M9 (staging/production environments) and the MVP feature milestones that release scope requires — including every flow-alignment batch (B, C, D) and its demonstration. The hosting decision is shared with `infra/` and recorded there.

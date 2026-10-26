@@ -311,6 +311,37 @@ For each screen the dev-team prototype, attach/paste:
 - [x] **4.8.5** Independent acceptance of the corrected D04 blueprints, including membership-first offboarding, non-inferred product activity, operator-specific drill-downs and the final integrated canonical references. Independent round 1 confirmed the semantics; owner instruction closed the verified P3-2/P3-3 corrections on 2026-10-22.
 - [ ] **4.8.6** Blueprint updates from real Web/Mobile feature milestones (keyboard, screen reader, touch, 375px, enlarged text and native verification against the API).
 
+### Phase 9 — Flow-alignment plan (owner, 2026-10-26; server M9.6–M9.8, M10)
+
+The server's flow-alignment plan (`server/docs/milestones.md`, *Flow-alignment plan* and M9.5 Phase 5) changes the close-day model and adds receivables, reconciliation and people screens. **Ease-of-use principle for every blueprint below:** the screen supplies known information, links related entries automatically and asks only for physical observations or decisions the system cannot infer; ordinary operations use the shortest safe path, and extra explanation or controls appear only on a discrepancy or exception. The work runs in **two lanes**:
+
+- **Lane 1 — per-phase catalog reconciliation (alongside server work).** Every server phase of M9.5 Phase 5, M9.6, M9.7, M9.8 and M10 that changes a contract brings its own spec bump; the assigned design-doc owner reconciles `product.md`, `screens.md` (entries, source tags, gap ownership) and `copy-guidelines.md` against that phase's spec and actual code **in the same delivery**, obtains technical review and only then updates both `Synced against loto-specs` markers, so `docs/check-loto-doc-sync.sh` stays green phase by phase. Catalog entries describe the shipped contract of that phase; nothing waits for a whole batch.
+- **Lane 2 — screen blueprints (after the contracts they draw on).** The blueprints below follow the standing per-screen gate: the catalog entry is reconciled (lane 1) against the **shipped** contract, then the blueprint is written, then independently accepted.
+
+**Lane 1**
+- [ ] **4.9.1** Per-phase catalog reconciliation for every contract-changing server phase of the plan (continuous; one sub-entry per phase in its delivery note). The first one, with M9.5 Phase 5 and M9.6 Phase 1, introduces the terminal/cashbox/session vocabulary across `product.md`, `screens.md` and `copy-guidelines.md` (proposed pt-BR terms, settled there: cashbox = *caixa*, session = *turno*), both custody arrangements, and the M9.6 operation matrix as the source for operator help text.
+
+**Lane 2 — Batch B, real cashier day** *(blueprint gate: the M9.6 phase each screen draws on is shipped and reconciled; precedes Web/Mobile M4–M5 and the Batch B increments of M6–M7)*
+- [ ] **4.9.2** `operator-day.md` revision — Cockpit and Open day: **inline opening** (*Conferir abertura e iniciar*, one prefilled confirmation with cashbox, proposed opening and the caller; *Abertura diferente* entering only differing items); explicit zero opening; separate cashboxes on one terminal.
+- [ ] **4.9.3** `operator-day.md` revision — Close day and Fix & resubmit: **blind count** (expected closing and difference hidden until **Conferir**; opening values visible), **Recontar**, outdated and unconfirmed calculation states, the extra confirmation only when the ledger changed between Conferir and submit, autosave that reveals nothing; the three close-form fields (*Relatório do terminal*, signed; *Tarifa Bolão*; *Tarifa Especial*). Replaces the live-preview requirement ("Live variance explanation").
+- [ ] **4.9.4** New — **Passar o caixa** (handover): the leaving operator's one screen and the incoming operator's acknowledgment, the handover-discrepancy outcome, the audited manager exception.
+- [ ] **4.9.5** `queue-and-review.md` revision — Work Queue and approval per session: **Aprovar dia do caixa** with per-session checks, **Aprovar como único gestor** (reason, audited), handover discrepancies (unattributed until the manager attributes them to the outgoing operator, the incoming operator or neither, with a reason) and Conferir history visible to the manager; sessions side by side, never summed counts.
+- [ ] **4.9.6** `transactions.md` revision — fiado sale with its automatic cashbox movement (no counted-stock choice), repayment method without default (Dinheiro, PIX, configured others), **Depósito Dinheiro** as the two-leg cofre transfer.
+- [ ] **4.9.7** Cross-screen pattern — **arithmetic money input**: restricted grammar, visible evaluated result before acceptance, BRL rounding, error presentation; referenced by every money field.
+- [ ] **4.9.8** `administration.md` revision — Accounts (cashbox with paired fiado account by default, Terminal reference, cofre account type), Categories & Transaction Types (seeded expense types, repayment methods, Tarifa Especial role, system-owned close-form types), owner setup checklist (opening count, cashbox without fiado pairing).
+
+**Lane 2 — Batch C, receivables and reconciliation** *(blueprint gate: the M9.7 phase each screen draws on is shipped and reconciled; precedes the Web/Mobile M6/M8 increments)*
+- [ ] **4.9.9** Cheques: custody into the cofre, batch **Depositar**, **Cheque devolvido** (client, next deposit date, optional alínea) → **Reapresentar** / **Converter em fiado**; occurrence versus posting dates explained in plain language.
+- [ ] **4.9.10** Card settlement batches (provider, receiving account, fees confirmed or left unmatched) and cofre → bank **Recolhimento** with pending/confirmed receipts.
+- [ ] **4.9.11** **Statement reconciliation**: OFX import, proposed matches, confirmation of the displayed matches only, unmatched items kept, duplicate-import notice.
+- [ ] **4.9.12** **P&L** by financial class and posting date, frozen locked months; **shortage tracking** per person (informational, threshold alert; unattributed handover discrepancies listed separately, with the manager's attribution action); revisions to Upcoming settlements, Open-cheque aging and Monthly financial for settlement events, per-session attribution and frozen classification.
+
+**Lane 2 — Batch D, people and go-live** *(blueprint gate: the M9.6 Phase 3, M9.8 and M10 phase each screen draws on is shipped and reconciled)*
+- [ ] **4.9.13** **Employee statement** (sessions, differences, hours, pay items, effective-dated commission, no automatic deduction, printable) and the **special-draws catalog**.
+- [ ] **4.9.14** Hour bank: carry-over balance and manager *Pagamento/Ajuste de horas* entries, as a revision of Time-entry management and My time-entry balance.
+- [ ] **4.9.15** Go-live: **Opening count** (server M9.6 Phase 3), **opening fiado balances and opening receivables** (M10 Part A) and **Access import** (M10 Part B: export guide, mapping step, dry run with explained exceptions, confirmation).
+- [ ] **4.9.16** Inventory, index and checks: every new or revised screen has its row below and in `design/specs/screens/README.md`; full design-doc, contrast and doc-sync gates green; independent acceptance per batch.
+
 ### Blueprint inventory
 
 | Screen (catalog entry) | Blueprint | App milestone | Current contract (server) | Remainder |

@@ -2667,7 +2667,42 @@ Items 3.1–3.4 are documentation and decisions and do not gate the release. Ite
 | 3.2, formal 3.4, 4.2 / whole milestone | Names await Q5/Q6; VarianceEffect extension deferred, formal owner decision pending; completion depends on the open items | No new product decision, acknowledgement or compensating movement is inferred from green checks. |
 
 - [x] **4.1** All three suites green; architecture tests unaffected.
-- [ ] **4.2** Completion notes recording each outcome, especially where reality contradicted the working hypotheses above. **Revisit trigger:** when the product team answers any of questions 1–10, or the first M10 dry run on real data shows a mismatch, reopen only the Phase 2/3 items that consumed that answer.
+- [ ] **4.2** Completion notes recording each outcome, especially where reality contradicted the working hypotheses above. **Revisit trigger:** when the product team answers any of questions 1–10, or the first M10 dry run on real data shows a mismatch, reopen only the Phase 2/3 items that consumed that answer. *(The trigger fired on 2026-10-23 — see Phase 5.)*
+
+### Phase 5 — Product answers, the new Access file and the flow-alignment plan *(plan item A1; added 2026-10-26)*
+
+**What happened.** The product team answered the 2026-10-20 questions on 2026-10-23 and sent an updated Access database (`LoteriaMestre.accdb`, BE/FE 1.5.0, real data: 4,642 lançamentos 2025-03-01 → 2026-10-01, 2,355 stock rows). Its tables, queries, VBA form code and form controls were exported read-only on macOS to `../exportMestre` (outside the repository; real client data, never committed), with the reproducible `exportMestre/tools/export_mestre.sh`. The answers and the code changed several working answers above, and the owner adopted a flow-alignment plan that becomes server milestones **M9.6–M9.8** and an updated **M10**. This phase records the facts and closes M9.5; the plan's code lives in those milestones.
+
+**Confirmed by the product team (2026-10-23):**
+- **Q3 Tarifa Bolão** — the bolão service fee, added to the sale price (example: R$100 quota + 35% = R$135). The working answer stands.
+- **Q4 Sobras** — expenses: CAIXA charges the full bolão/Federal value to the shop's account, so unsold quotas/fractions are a loss. The working answer stands.
+- **Q5 Products / counted stock** — deliveries and returns are not recorded; product value "turns into" cash when sold, and the operator also buys product with drawer cash. Counted stock is valued at purchase cost and sells for that same value, so a cash sale exchanges stock for cash at equal value (count-only, 3.1, stands).
+- **Q1 Cards** — reconciliation is not done yet; it will use the bank statement and possibly the card-terminal statement. Credit lands in up to 2 days, debit in 1, grouped; fees arrive already deducted (the seeded `Tarifa cartão` type is not how fees are recorded today).
+- **Q2 Cheques** — "paid" means **deposited** (corrects the working answer "cleared"). A bounced cheque gets a reversal entry with the cheque's client, due at the next clearing.
+- **Q6 Other types** — `Depósito Dinheiro`: the operator moves drawer cash into the store's **cofre inteligente** (corrects "to the bank"); `PIX`: the customer pays a bill or game by PIX into the shop's account (corrects "saque via PIX"); `MarketPlace`: CAIXA online-marketplace games the operator records as a saída, credited to the shop's account at day end; `Pgto Prêmio`: prize paid from the drawer; `Desconto`: discount on a bolão; `Volante rejeitado`: a slip misprint that cannot be reversed; `Outras Despesas`: expenses outside the list.
+- **Q7 Bank** — `Crédito/Débito Banco` are bank movements; a movement is **not** recorded on both sides today (corrects the working answer); CAIXA reimburses prizes directly to the bank account.
+- **Q8 Fiado** — clients buy bills and games on fiado, controlled when the operator records them in their caixa.
+- **Q10 Shared terminal** — each person pulls the terminal report for their period and answers for it. The owner confirmed that both shared and separate cashboxes occur.
+- **Q9** was not understood by the product team ("which old screen?"); see the inference below.
+
+**Inferred from the new Access code and data (owner-accepted):**
+- **Single cheques exist** — `FrmLancamentoCheque` has a single-cheque mode (no client, due the next day) beside pre-dated plans; the data holds 69 single cheques against 18 plan rows. The new system supports both.
+- **Tarifa Especial** (`prod 14`, new) — the bolão service fee for special draws (`TblLoteriaEspecial`); `FrmCaixa` adds it to the opening side exactly like Tarifa Bolão.
+- **The Access close-day calculation** (`FrmCaixa.AtualizarDiferenca`): `(counts today + all Terminal lançamentos, unsigned + paired fiado balance today) − (counts of the literal previous day + paired fiado balance yesterday + Operador + Tarifa Bolão + Tarifa Especial)`. Replayed over the real data it reproduces the stored Diferença Caixa on **220 of 232** Terminal/days (the rest are early test days and later edits). Our §6.12 formula, with fiado represented by a linked cashbox movement for every counter fiado sale and repayment, and Tarifa Bolão/Operador/Tarifa Especial as `In` rows, matches on **227 of 232**; the 5 remaining days follow gaps in the daily chain, where our last-counted-close opening is the safer rule. **This equivalence covers only the characterized historical scenarios**; non-cash repayments and the new custody arrangements never existed in Access and are proven by M9.6–M9.8 journeys instead.
+- **Fiado is the main live divergence:** 160 of the 175 days on which the pre-plan port disagreed with Access are exactly that day's fiado movement — fiado is used daily for bills and games, which the M7.7 counted-stock flag never covered.
+- **Raspadinha rows** are small non-sale exits (typical R$2.50 rows on days stock falls and the difference is ≈ 0), supporting hypothesis A; `Telesena` rows are entered as "Compra" and `Troca de Telesena` as "Troca" by the form, with no `Telesena` rows in the data.
+- **Expenses are paid from the drawer** — salaries, utilities, armored car, taxes: the 32 Access expense types are in daily use on Terminal accounts. Bank accounts have no lançamentos at all.
+- **New Access features** — `TblMovimentacaoBancoHoras` (hour bank with month carry-over and manual "Pagamento/Ajuste de Horas"), `TblItemRel`/`TblRelMensal` (monthly employee report: pay items) and `FrmRelMensal`'s commission `(Tarifa Bolão + Tarifa Especial + Sobra de Bolão + prize) × 18.5%`; the monthly report query counts **only** Sobra de Bolão.
+
+**Still pending (never hard-coded):**
+- **The Operador amount** is interpreted as the CAIXA terminal report total for the operator's period (median R$23,612/day against a median counted cash of R$4,807 — not a cash top-up). Its exact definition, printed label and sign are unconfirmed: the system must accept a signed amount, and whether this report can be negative is open.
+- Any other interpretation named in the M9.6 operation matrix stays marked pending until confirmed.
+
+**Items:**
+- [ ] **5.1** Record the facts above in canonical §9 (answered questions resolved, each with its consumer; Operador's definition/sign and named interpretations explicitly pending), §6.12 (the Access calculation, the replay evidence and its limit) and §5 notes. Spec bump; doc-sync green.
+- [ ] **5.2** Wording corrections across the doc group and catalog: cheques "cleared" → "deposited" (§5 classification table, §6.12, `design/docs/screens.md` open-cheque aging); `Depósito Dinheiro` → into the cofre inteligente; `PIX` → customer payment into the shop's account (`docs/loto_presentation.html` UC stories); §6.12 drops the "both sides" bank claim; §8 lists the new Access tables (`TblItemRel`, `TblRelMensal`, `TblLoteriaEspecial`, `TblMovimentacaoBancoHoras`, `TblVersaoBE/FE`) and their targets (M9.8, M10).
+- [ ] **5.3** Hand-off: the M9.6 Phase 1 operation matrix and session model supersede working answers Q2, Q7 and Q10 and the Q8 counted-stock guidance; 3.2 stays deferred (Q5 named the events only partially); 3.4 stays DEFERRED; 3.7 is carried into M9.6 Phase 2's custody migration and resolution report.
+- [ ] **5.4** Completion notes (closes 4.2): what reality contradicted — cheques paid when deposited, cofre instead of bank, PIX meaning, one-sided bank records, fiado on bills/games, per-person accountability — and what it confirmed.
 
 > **Independent review disposition (2026-10-20):** 3.1, 3.5 and 4.1 accepted. 3.6 requires the onboarding display-order fix; 3.3/3.8 await corrected semantics and repeat review before marker alignment. 3.7 stays open for the hidden prior-only fee opening and AA recovery policy. 4.2 is reopened until final close-out. The review confirmed safe migration guards on PostgreSQL and unchanged financial arithmetic; shop answers remain provisional.
 
@@ -2689,6 +2724,274 @@ Items 3.1–3.4 are documentation and decisions and do not gate the release. Ite
 - Both consistent sale representations and the double-count failure mode are characterized by tests, and the canonical representation is chosen and documented in §6.12.
 - The fiado-in-totals divergence is resolved (M7.7 Phase 5.6) and the opening-side adjustments are resolved by items 3.5–3.8: Tarifa Bolão and Operador are `In` rows and the characterized exact-count scenarios match the explicitly modeled Access opening-side calculation, without a claim of global historical parity.
 - M10's default mapping references this milestone's working answers; M10 does not wait for product confirmation.
+- Phase 5 records the product answers of 2026-10-23 and the new Access file, and hands the flow-alignment plan to M9.6–M9.8.
+
+---
+
+## Flow-alignment plan (owner, 2026-10-26) — principles shared by M9.6, M9.7, M9.8 and M10
+
+The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and, where consolidated cash-handling and accounting practice gives better control, goes beyond the Access flow. It is delivered in four batches, all **before release** (Web/Mobile M12):
+
+| Batch | Scope | Required demonstration | Where |
+|---|---|---|---|
+| **A — Rules and foundation** | Operation matrix; terminal/cashbox/session model with custody separate from review; opening; fiado boundaries; close-form entries; blind count; separation of duties; minimal cofre; seeds; arithmetic input | Shared and separate custody both work through the API | M9.5 Phase 5 · **M9.6** (opening count in Phase 3) · M10 Part A (opening balances) |
+| **B — Real cashier day** | Design blueprints; web flow, then mobile: inline opening, count/Conferir, handover, the counter operations of the day (fiado sale, repayment, cofre deposit), review, approval, corrections | Complete seeded journeys in the running app | Design M4 · Web/Mobile M4–M5 + the Batch B increments of M6 (transaction entry) and M7 (review and approval) |
+| **C — Receivables and reconciliation** | Settlement events; cheques; card batches; cofre → bank; statement matching; financial classification and P&L; shortage tracking | Returns, partial receipts and settlements across locked months | **M9.7** · Web/Mobile M6, M8 |
+| **D — People and migration** | Employee statement; hour bank; special draws; Access import; replay; acceptance | A fresh setup and a historical import both reconcile | **M9.8** · M10 Part B · Web/Mobile M8–M10 |
+
+**Ease of use.** The system supplies known information, links related entries automatically and asks the operator only for physical observations or decisions it cannot infer. Normal operations use the shortest safe path; additional explanations and controls appear when there is a discrepancy or exception.
+
+| Ordinary situation | Operator effort |
+|---|---|
+| Start a prepared cashbox | One prefilled acknowledgment |
+| Record a fiado sale | One operation; the counterpart is generated automatically |
+| Receive a fiado payment | Explicit method selection; related effects automatic |
+| Count | Enter values and press **Conferir** |
+| Hand over matching values | Incoming acknowledgment |
+| Review matching settlement data | Confirm the displayed matches |
+| Encounter a discrepancy | Enter only the additional information needed |
+
+**Accountability.** The shop's flow is the baseline; where consolidated practice gives better control, the plan improves it; no shipped control is weaker than Access's. Every item carries a reason tag: **[MISSING]** (the shop does it, the app does not), **[BETTER]** (improves on the shop's flow), **[KEEP]** (already right or better), **[FIX]** (an assumption of ours was wrong).
+
+**Engineering rules.**
+- Documentation reconciliation belongs to **each** delivered contract change: spec bump, design reconciliation by the assigned design-doc owner, `bash docs/check-loto-doc-sync.sh` green. Nothing is deferred to a final sync phase. The per-phase **catalog reconciliation** (`product.md`, `screens.md`, copy) runs alongside each server phase and is separate from the later **screen blueprints** (Design M4 Phase 9 lanes).
+- Database constraints and migrations are pinned in WebApi.Test; every operation-matrix row gets a golden test.
+- Existing protections are preserved, each with a regression test: branch isolation, account grants, optimistic concurrency (`xmin`/ETag), financial-create idempotency, correction history, immutable recorder identity and protected generated rows.
+- No production data exists before release: migrations target development/staging and say so. A migration never invents history it cannot derive (see M9.6 Phase 2).
+- Each phase is one reviewed commit, green on its own (three suites, OpenAPI snapshot, Shared regeneration when the contract changes, doc-sync).
+
+---
+
+## Milestone 9.6 — Close & Ledger Flow Alignment (plan Batch A)
+
+**Goal:** Make the close-day and ledger model express how the lotérica really works — per-person accountability on shared or separate cashboxes, every fiado counter sale explained in the cashbox, the CAIXA report and service fees entered exactly once per session — and add the controls consolidated cash handling expects: blind count, dual control at handover and separation of duties.
+
+**Scope boundary:** Server contracts, persistence, migrations and spec for plan items A1–A9 (A1 is M9.5 Phase 5; A8's opening count is Phase 3 here; the opening fiado balances and opening receivables are M10 Part A). The §6.12 formula is unchanged: every phase changes *which* rows and counts feed it, never the arithmetic. Screens are Batch B.
+
+**Precondition:** M9.5 Phase 5 items 5.1–5.3 (facts recorded). M7.7, M8 and M11 Phases 4–7 as shipped.
+
+**Execution order.** Phase numbers are the order: the session model and opening foundation come first, then the controls that depend on sessions, then the features adapted to sessions. Item labels (A2–A9) name plan items, not sequence. Phase 8 (A9) has no dependency and may run in parallel with Phase 2.
+
+### Phase 1 — Model and operation matrix (docs only; plan A1)
+
+- [ ] **1.1** Write the **operation matrix** into the spec (§6.12, new §6.19) as the single source for rules, golden tests and reviewer walkthroughs:
+
+  | Operation | Physical effect | Treatment |
+  |---|---|---|
+  | Counted product sold for cash | Stock −V, cash +V (equal value) | Counts explain it, no row **[KEEP]** |
+  | Counted product sold by card/PIX | Stock −V, no cash | Card/PIX cashbox `Out`; the electronic receipt goes to settlement |
+  | Bill or game paid by card/PIX/MarketPlace | The report expects cash that never arrives | Card/PIX/MarketPlace cashbox `Out` |
+  | New counter sale on fiado | Expected cash not received | Fiado sale + generated cashbox `Out` **[FIX]** |
+  | Imported debt, opening balance, cheque → fiado conversion | No new physical effect | Their own operations, **no** cashbox leg |
+  | Fiado repaid in cash | Cash +V | Fiado `In` + generated cashbox `In` |
+  | Fiado repaid without cash | Drawer unchanged | Fiado `In` only |
+  | CAIXA report / Tarifa Bolão / Tarifa Especial | Expected inflow (report amount signed) | Generated entries, one per field per session |
+  | Cash to the cofre | Cash −V | Transfer: cashbox `Out` + cofre `In` **[BETTER]** |
+  | Cheque into the cofre | Cheque moves into custody | Custody transfer; the receivable stays open |
+  | Cofre → bank (cash or cheque) | Cofre −V | Transfer; the bank receipt is **pending** until confirmed |
+  | Expense or prize paid from the drawer | Cash −V | Expense/prize `Out` |
+  | Unsold bolão quota or Federal fraction (Sobra) | Expected cash not received | Sobra `Out` (loss) |
+  | Returned stock (encalhe) or prize paid in product | Stock −V | Product-type `Out` |
+  | Cheque received | Cash replaced by a cheque | Cheque `Out` + cheque receivable |
+  | Initial stock entrusted to an operator | Custody changes | Custody transfer, not income |
+  | Restock paid with drawer cash | Cash −V, stock +V | Counts explain it, no row |
+  | Restock delivered, not paid from the drawer | Stock +V | Stock-received `In`; payment recorded separately; not income |
+  | Shared-cashbox handover | Custody changes | Session submit + incoming acknowledgment |
+
+- [ ] **1.2** Write the **terminal / cashbox / session / custody** model (Phase 2) into §3 and §6.5 before any code: entities, states, invariants, the custody-versus-review separation and every consumer that changes. Spec bump; design-doc owner notified for Batch B.
+- [ ] **1.3** Owner and reviewer acceptance of 1.1–1.2. **No runtime phase starts before it.**
+
+### Phase 2 — Terminal, cashbox, session and custody (plan A3) **[MISSING]** + **[BETTER]**
+
+*Why:* the shop holds each person accountable for their own terminal report, and both shared and separate cashboxes occur. Access assumes one person per terminal; our single close per Terminal/day cannot express either arrangement.
+
+- [ ] **2.1** **Model.** The **cashbox** is today's Terminal account (custody of cash and counted products) and owns the paired fiado account. A light **Terminal** entity is the physical CAIXA terminal, referenced by cashboxes, and is the report reference only. A **session** (today's `DailyClose`) is one person's period on one cashbox, with a **custody state** (`Active` → `HandedOver` / `Finished`) separate from its **review status** (Draft/Submitted/Approved/Rejected).
+- [ ] **2.2** **Invariants.** One active custody session per cashbox — a filtered unique constraint plus account coordination, so concurrent starts resolve to one. Reopening, rejecting or recalling an earlier session's closing for correction never reactivates its custody and never blocks today's session. The per-day unique index `IX_DailyCloses_BranchId_AccountId_Date` (`DailyCloseConfiguration.cs`) is replaced by session identity.
+- [ ] **2.3** **Arrangements.** Shared cashbox: sequential sessions, each opening from the previous acknowledged handover. Separate cashboxes: parallel sessions on different cashboxes of the same Terminal.
+- [ ] **2.4** **Accountable session on transactions.** Every cashbox transaction carries its session, set by the server to the active session — also when a manager records it. Historical manager entries name their session explicitly and never open one silently. Fiado-account and bank rows carry none.
+- [ ] **2.5** **Handover.** The leaving operator counts, presses Conferir (Phase 4) and submits. The incoming operator starts custody with **Conferir abertura e iniciar**, or **Abertura diferente**, or through an explicit, audited manager exception. **Abertura diferente:** the incoming operator enters only the differing items; the discrepancy is kept as a **handover discrepancy** for manager review, without blaming either operator; work continues under the incoming operator's acknowledged opening. The outgoing count is never replaced and no transaction is generated to erase the difference. A handover discrepancy stays **unattributed** until a manager reviews it and explicitly attributes it — to the outgoing operator, the incoming operator, or neither — with a reason and an audit event; only an attributed discrepancy ever counts toward a person (M9.7 Phase 7, M9.8 Phase 1).
+- [ ] **2.6** **Opening chain and corrections.** A session opens from the previous session of the same cashbox (its acknowledged handover, or the last counted closing across date gaps — safer than Access's literal previous day). A historical correction affects the next dependent session of the **same cashbox** (today's successor rule, per session).
+- [ ] **2.7** **Consumers moved to sessions** (each named in its test plan): close commands (open, item save, Conferir, submit, approve/reject, recall, reopen); the ledger guard and freeze (per session); the submit-gap check; the Work Queue (blockers, open custody, handover discrepancies); month-lock readiness (every session approved); cash-variance summary, monthly financial report and management overview (per session, attributed to its person; daily summaries list sessions side by side and **never add successive closing counts together**); account assignments and workstation selection; generated clients (Shared regeneration).
+- [ ] **2.8** **Migration — explicit custody mapping.** A close that is Approved or Submitted with no later activity becomes a `Finished` session; existing cashbox rows get their session. **Ambiguous Drafts, and movements without a corresponding close, are listed in a resolution report, never guessed.** Development fixtures may instead be reset and reseeded, documented as such. The migration never invents custody history. Carries M9.5 3.7's open transition limitation.
+- [ ] **2.9** Tests: WebApi.Test for the constraints, the migration (prior-schema rows), concurrency of starts and handovers, both arrangements end to end through the API and every preserved protection; UseCases.Test for the state rules.
+
+### Phase 3 — Opening count and inline opening (plan A8, the opening half) **[KEEP]** + **[BETTER]**
+
+*Why:* every person must explicitly accept what they receive; a zero opening must never be assumed. The opening count is scheduled here, right after the session model, because the inline opening consumes it (formerly M10 Part A; moved to break the M10 ↔ M9.6 loop).
+
+- [ ] **3.0** **Opening count** (*saldo de implantação*): a Manager/Admin records, per cashbox, the counted value of each product as of the go-live date. It becomes the **proposed opening** of the cashbox's first session and carries **no** variance of its own; it is not a session in the variance summary, Work Queue or month-close readiness. A cashbox with a prior counted session, or an imported one (M10 Part B), proposes that instead. The opening count joins the owner setup checklist.
+- [ ] **3.1** **Inline opening.** With no active session, the operator may start the first operation immediately; before its financial effects commit, the system shows one prefilled acknowledgment — **Conferir abertura e iniciar** — with the cashbox, the proposed opening and the caller as the responsible operator. **Abertura diferente** is the exception path (Phase 2.5 rules). Opening the session and the first operation commit **atomically**.
+- [ ] **3.2** **Zero opening only when explicitly acknowledged**, never assumed. The proposed opening comes from the previous session or the opening count (3.0). This supersedes the 2026-10-21 rule "transactions are not refused before an opening count": operations are not refused, they start the session through this acknowledgment.
+- [ ] **3.3** The acknowledgment is **not offered** to a caller without a grant on that cashbox; concurrent starts of the same cashbox resolve to one active session.
+- [ ] **3.4** Tests: opening count recorded and proposed, atomic open + first operation (failure leaves neither), explicit zero, grant refusal, concurrent starts.
+
+### Phase 4 — Blind count with Conferir (plan A5) **[BETTER]** *(owner decision 2026-10-24)*
+
+*Why:* counting without seeing the expected amount prevents "counting to the number"; recording every attempt shows the manager what actually happened.
+
+- [ ] **4.1** **Flow:** count → **Conferir** → see the calculation → submit or **Recontar**. Only the expected closing and the difference are hidden until Conferir; opening values stay visible.
+- [ ] **4.2** **Conferir event.** Each Conferir records its count, the authoritative server calculation and the ledger version it used. Later changes never overwrite it. Conferir is idempotent: a retry or double click creates no second event. **Recontar** explicitly starts a new attempt, even if the values end up identical; every attempt is visible to the manager.
+- [ ] **4.3** **Autosave** preserves the work, never reveals the difference and never creates a count event.
+- [ ] **4.4** **After Conferir:** editing a value marks the result **outdated**; a ledger change produces a revised calculation **marked unconfirmed** — never presented as a confirmed discrepancy, because the counted amount may no longer describe the cashbox (count R$100, then receive R$20 more). An unsuccessful Conferir preserves everything typed.
+- [ ] **4.5** **Submit requires a Conferir against the current ledger version.** The ordinary Conferir → Submit stays one step; an additional confirmation appears only when the ledger changed in between.
+- [ ] **4.6** Replaces the live-preview requirement of the close-day catalog entry (`design/docs/screens.md`, "Live variance explanation"): `variance-preview` is retired or restricted accordingly — named contract change.
+- [ ] **4.7** Tests: idempotent Conferir, recount events, autosave invisibility, outdated/unconfirmed states, submit gate on ledger version.
+
+### Phase 5 — Separation of duties (plan A6) **[BETTER]**
+
+*Why:* checker ≠ maker is the most basic financial control; Access has none.
+
+- [ ] **5.1** The approver cannot be the recorder, submitter or custodian of a session.
+- [ ] **5.2** **Aprovar como único gestor** — an explicit action available only when the branch has a single active Manager/Admin; it requires a reason and writes an audit event. No silent exemption.
+- [ ] **5.3** **Aprovar dia do caixa** approves several sessions at once and applies every check to each included session.
+- [ ] **5.4** Tests per rule, including a batch with one ineligible session.
+
+### Phase 6 — Fiado boundaries (plan A2) **[FIX]** + **[KEEP]**
+
+*Why fix:* fiado covers bills and games, which the CAIXA report counts as cash received; without the linked movement the operator shows a shortage on most real days (M9.5 Phase 5). *Why keep pairing* instead of Access's balance-in-totals: it reproduces Access in the characterized scenarios, the movement freezes with the session and is cancelled only with its source and a reason, the operator sees it in their own list, and non-cash repayments stay expressible.
+
+- [ ] **6.1** Only a **new counter sale on fiado** generates the linked cashbox `Out`, on the active session of the paired cashbox. Imported debts, opening balances and cheque → fiado conversions (M9.7) use their own operations and generate **no** cashbox leg.
+- [ ] **6.2** `HandsOutCountedStock` is removed from the create and preview contracts; the system type and `TransactionGenerationKind.FiadoCountedStockSale` become a plain fiado sale. A sale on an unpaired fiado account is refused (existing 409). Named contract change; Shared regeneration.
+- [ ] **6.3** A cashbox is created with its paired fiado account by default; the owner setup checklist flags a cashbox without one.
+- [ ] **6.4** Repayment methods: **Dinheiro** (`CountedCash`) and **PIX** (`NonCash`) are seeded initial options; **no default** — the method stays an explicit choice (M7.7 decision 1.3 amendment iii); admins may add other methods of either kind.
+- [ ] **6.5** Tests: every matrix fiado row; conversion and import paths never pair; finalize/cancel together; preserved protections.
+
+### Phase 7 — Close-form entries (plan A4) **[MISSING]** + **[BETTER]**
+
+*Why missing:* operators type the CAIXA report and the fees at closing today. *Why better:* as generated ledger entries they are reportable and auditable, and they exist exactly once per session — a free transaction can be forgotten or entered twice. Extends M9.5 3.6.
+
+- [ ] **7.1** The count save carries three fields: **Relatório do terminal** (formerly Operador; a **signed** amount — positive writes an `In`, negative an `Out`), **Tarifa Bolão** and **Tarifa Especial**. The server maintains one generated, system-owned entry per non-zero field in that session (new `SystemRole`/`GenerationKind` values); manual creates of these types are refused.
+- [ ] **7.2** Acceptance: the preview never writes; one entry per field per session; repeated or concurrent saves never duplicate (a unique constraint on session + field); changing a field to zero cancels its effect while keeping its audit history; edits only while the session is Draft.
+- [ ] **7.3** Seeds: **Tarifa Especial** under Receita with a new `MonthlyFinancialRole.SpecialDrawServiceFee`; "Operador" renamed **Relatório do terminal**. Migration converts the ordinary M9.5 rows (development/staging).
+- [ ] **7.4** Tests per acceptance rule; the replay scenarios of M9.5 Phase 5 as golden cases.
+
+### Phase 8 — Restricted arithmetic money input (plan A9) **[MISSING]** *(may run in parallel with Phase 2)*
+
+*Why:* Access lets operators type `100+50+20` in any value field and they use it; Access evaluates it with `Eval`, which we must not copy.
+
+- [ ] **8.1** A restricted parser in `@loto/core` (digits, `,` `.` `+` `−` `×` `÷`, parentheses; nothing executed), BRL rounding to 2 decimals, the evaluated result shown before acceptance; the server receives only the resulting number. Design pattern recorded for Batch B.
+- [ ] **8.2** Tests: grammar, rounding, rejection of anything else.
+
+### Phase 9 — Minimal cofre and seeds (plan A7, A8 seeds) **[BETTER]** + **[MISSING]**
+
+*Why cofre now:* the Batch B cashier day includes a cofre deposit; shipping a one-sided deposit and replacing it in M9.7 would be throwaway work. *Why seeds:* a branch starting without the import must be able to record what the shop pays from the drawer.
+
+- [ ] **9.1** `AccountType.Safe` (cofre) and the cashbox → cofre transfer: one operation, two linked legs, the pairing machinery's atomicity and protections. **Depósito Dinheiro** keeps the same button and writes both legs.
+- [ ] **9.2** Seed the 32 Access expense types under Despesas Administrativas/Pessoal/Financeiras/Comerciais, the repayment methods (6.4), Tarifa Especial and the renames (7.3).
+- [ ] **9.3** Tests: transfer atomicity and session attribution; seed contents.
+
+### Phase 10 — Spec sync and close-out
+
+- [ ] **10.1** Each phase's contract change already carried its spec bump and design reconciliation; this phase verifies the whole group, runs all three suites, the OpenAPI snapshot and the doc-sync checker, and records the API demonstration: **shared and separate custody both work through the API**.
+
+### Done criteria
+
+- The operation matrix and the session/custody model are canonical and every matrix row has a golden test.
+- Both custody arrangements, handover with and without discrepancy, inline opening, blind count, separation of duties, fiado boundaries and close-form entries work through the API with all preserved protections green.
+- Existing data migrated with explicit custody mapping and a resolution report, or development fixtures reset — never invented history.
+
+---
+
+## Milestone 9.7 — Receivables, Bank & Reconciliation (plan Batch C)
+
+**Goal:** Track money after it leaves the cashbox — cheques, card receivables, cofre and bank — with settlement events that never rewrite locked history, reconcile the bank statement against what the system expected, and report the business by financial class.
+
+**Scope boundary:** Server contracts, persistence, migrations and spec for plan items C1–C7. Screens are Web/Mobile M6/M8.
+
+**Precondition:** M9.6 complete (sessions, cofre account type, transfer machinery).
+
+### Phase 1 — Settlement events and frozen classification (C1) **[BETTER]**
+
+*Why:* a deposit, payout or bounce happens after the original sale, often after its month is locked; editing the original row would break the lock and lose history.
+
+- [ ] **1.1** A deposit, card payout, return, re-presentation or conversion is a **new event**; the original row — even in a locked month — is never edited. A receivable's status is derived from its events; a partial settlement leaves a visible remainder. Every command is idempotent.
+- [ ] **1.2** Two dates: `OccurredOn` (when it happened; may be in a locked month) and `PostedOn` (always an open period). Reports: operational history shows `OccurredOn`; posted financial reports use `PostedOn`; receivable reports state their cutoff basis (default `PostedOn`, so a frozen report stays reproducible) and show both dates; a late posting is explained in plain language.
+- [ ] **1.3** **Frozen classification.** Every posted financial entry keeps a classification snapshot taken at posting (monthly-financial role, settlement instrument, financial class). Editing today's configuration cannot reclassify locked history; locked-period reports are fixed; open-period reports may change as postings arrive, and an open-period reclassification is an explicit, audited action. **Named contract change:** replaces the shipped M11 behavior where a type change re-labels past months' report figures, locked ones included (§3.10; `design/docs/screens.md`, Categories & Transaction Types).
+- [ ] **1.4** **`PaidAt` migration.** Existing `PaidAt` values become reconstructed historical settlement events with `OccurredOn = PostedOn = PaidAt`, marked migrated — never a new payment or a duplicate bank receipt. Afterwards nothing writes `PaidAt` directly. Any unavailable posting date is documented migration provenance.
+- [ ] **1.5** Tests: event derivation through a report cutoff, partial remainders, idempotent retries, a settlement crossing a locked month, a reclassification attempt on a locked month.
+
+### Phase 2 — Cheques (C2) **[KEEP]** + **[MISSING]** + **[BETTER]**
+
+- [ ] **2.1** Keep single cheques and pre-dated plans, and atomic plan finalization.
+- [ ] **2.2** **Custody vs deposit.** Moving a cheque into the cofre is a custody transfer (receivable still open). **Depositar** (batch) is the bank deposit — the "paid" event — and records a **pending** bank receipt; statement reconciliation (Phase 5) confirms that existing receipt and never creates a duplicate.
+- [ ] **2.3** **Cheque devolvido** — a linked event with the cheque's client, the next expected deposit date and an optional bank return reason (alínea) → **Reapresentar** or **Converter em fiado**. Conversion requires an identified client, closes the cheque receivable and opens the fiado debt in one commit (never both outstanding), and writes no cashbox leg.
+- [ ] **2.4** Tests for each path, including a return after the deposit month is locked.
+
+### Phase 3 — Card settlement batches (C3) **[BETTER]**
+
+- [ ] **3.1** Card receivables → a settlement **batch** with its own id, provider and receiving account (date and brand are attributes) → a pending net bank receipt, confirmed by reconciliation. Calendar versus business-day timing is configured per provider.
+- [ ] **3.2** Fees come from the provider's settlement data or explicit manager confirmation. **An unexplained difference stays unmatched; it is never automatically classified as `Tarifa cartão`.**
+- [ ] **3.3** Tests: full and partial batches, explained and unexplained differences.
+
+### Phase 4 — Cofre → bank and bank accounts (C4) **[BETTER]**
+
+- [ ] **4.1** **Recolhimento** (cofre → bank, cash or cheques) with a pending bank receipt; CAIXA prize reimbursement and bank fees as typed bank movements; internal transfers never counted as income or expense.
+- [ ] **4.2** Tests for each movement and its pending/confirmed state.
+
+### Phase 5 — Statement reconciliation (C5) **[BETTER]**
+
+*Why:* the shop said this reconciliation is not done yet; it is the only way to prove that money that left the cashbox arrived.
+
+- [ ] **5.1** OFX import; a re-imported statement is detected by statement and line identity.
+- [ ] **5.2** The system proposes matches against **existing** pending receipts and expected movements (recolhimentos, card batches, PIX/MarketPlace credits, cheque deposits and returns, reimbursements). Confirmation applies to the displayed matches and amounts under a version check; unmatched items are kept; a matched line confirms an entry and never creates a second one.
+- [ ] **5.3** PIX and MarketPlace become settlement instruments so their bank credits are expected.
+- [ ] **5.4** Tests: proposal, confirmation with concurrent change, duplicate import, unmatched retention.
+
+### Phase 6 — Financial classification and P&L (C6) **[BETTER]**
+
+*Why:* a busy drawer is not business income; the manager needs reports that explain the business.
+
+- [ ] **6.1** Five financial classes: CAIXA and client money handled; the shop's own fees and income (Tarifa Bolão, Tarifa Especial…); operating expenses and unsold-product losses; internal transfers; cash differences.
+- [ ] **6.2** Monthly P&L by `PostedOn`, read from the frozen classification (1.3).
+- [ ] **6.3** Tests: classification of every matrix row; locked-month stability.
+
+### Phase 7 — Shortage tracking (C7) **[BETTER]**
+
+- [ ] **7.1** Per person per month: shortages and overages from the person's official session differences, plus handover discrepancies **only after a manager has attributed them** to that person (M9.6 Phase 2.5); a configurable threshold and a Work Queue alert over those figures. **Unattributed handover discrepancies are listed separately** — never in personal totals or threshold alerts. Informational only — never an automatic deduction.
+- [ ] **7.2** Tests.
+
+### Phase 8 — Spec sync and close-out
+
+- [ ] **8.1** Whole-group verification and the demonstration: **returns, partial receipts and settlements across locked months**.
+
+### Done criteria
+
+- Every receivable lifecycle is event-based, idempotent and lock-safe; locked reports never change.
+- Statement reconciliation confirms existing entries and never duplicates them.
+- The P&L and shortage reports read frozen classifications.
+
+---
+
+## Milestone 9.8 — People: Employee Statement & Hour Bank (plan Batch D, server part)
+
+**Goal:** Bring the Access monthly employee controls into the app — the employee statement with pay items and commission, the hour bank with carry-over and adjustments, and the special-draws catalog — with configuration instead of hard-coded rules.
+
+**Scope boundary:** Server contracts, persistence and spec for plan items D1–D2. Screens are Web/Mobile M8–M10.
+
+**Precondition:** M9.6 (sessions, Tarifa Especial) and M9.7 Phase 7 (shortages).
+
+### Phase 1 — Employee statement (D1) **[MISSING]** + **[BETTER]**
+
+*Why missing:* the owner pays people from Access's monthly report today. *Why better:* rules become configurable and effective-dated instead of a hard-coded 18.5%.
+
+- [ ] **1.1** Per person and month: sessions, approved differences, handover discrepancies attributed to the person (unattributed ones never appear), hours and pay items (configurable additions and deductions; Access defaults: Salário, VT/VA, Comissão, Dif. Caixa, Arredondamento, Comissão extra, Horas extras, Vale).
+- [ ] **1.2** **Commission rules** are configurable and **effective-dated**; Access's rule — `(Tarifa Bolão + Tarifa Especial + Sobra de Bolão + entered prize) × 18.5%` — is one configuration, not a universal rule.
+- [ ] **1.3** A recorded cash difference never becomes a payroll deduction automatically; any deduction is a manager-entered pay item under the owner's written policy.
+- [ ] **1.4** **Special-draws catalog** (name, modality, period, contest, prize) totals Tarifa Especial per draw.
+- [ ] **1.5** Printable statement; tests including a rule change mid-history.
+
+### Phase 2 — Hour bank (D2) **[MISSING]**
+
+- [ ] **2.1** The balance carries over month to month; "Pagamento" and "Ajuste" de horas are manager entries with a reason, kept separate from attendance records (TimeEntry) and included in the time-entry balance report.
+- [ ] **2.2** Tests: carry-over across months and policy changes, adjustments, lock interaction.
+
+### Phase 3 — Spec sync and close-out
+
+- [ ] **3.1** Whole-group verification; employee statement and hour bank reconcile on a seeded month.
+
+### Done criteria
+
+- The employee statement and hour bank reproduce the Access monthly report on seeded data, with effective-dated configuration and no automatic deductions.
 
 ---
 
@@ -2700,22 +3003,22 @@ Items 3.1–3.4 are documentation and decisions and do not gate the release. Ite
 
 **Scope boundary:** Branch-scoped go-live data only. Not a recurring sync — the import is a one-time cutover per branch. No variance-formula change.
 
-**Precondition:** All entity milestones (2–6) are complete so the target schema exists; **M7.7 is complete** (imported data must be validated against the final integrity contracts — close/ledger rules, month lock, pairing, settlement semantics — not the pre-M7.7 ones); M9.5 items 3.5–3.8 are shipped, so Access `prod 7`/`prod 12` have a target. Detailed phases are written when the milestone starts.
+**Precondition:** All entity milestones (2–6) are complete so the target schema exists; **M7.7 is complete** (imported data must be validated against the final integrity contracts — close/ledger rules, month lock, pairing, settlement semantics — not the pre-M7.7 ones); M9.5 items 3.5–3.8 are shipped, so Access `prod 7`/`prod 12` have a target. **Flow-alignment plan (2026-10-26):** the opening count itself moved to M9.6 Phase 3 (scheduled with the inline opening that consumes it). Part A needs M9.6 Phases 2, 3 and 6 (sessions, opening count, fiado boundaries); Part B needs M9.6–M9.8, because it imports onto the session, settlement, cofre, employee-statement and hour-bank models. Detailed phases are written when the milestone starts.
 
-**Release split:** Part A (opening count) ships with the release — without it, each Terminal's first close opens at zero and its official variance is the whole drawer, which then stays in the variance summary and month-close checks. Part B (Access import) ships when ready, before or after release.
+**Release split (updated 2026-10-26):** both parts ship **before release**. Part A is plan item A8's go-live remainder (Batch A); Part B is plan Batch D, together with M9.8.
 
-**Key behaviors — Part A, opening count:**
+**Key behaviors — Part A, go-live opening balances:**
 
-- A Manager/Admin records, per Terminal, the counted value of each product as of the go-live date. It becomes the opening of the Terminal's first close and carries **no** variance of its own; it is not a close in the variance summary, Work Queue or month-close readiness.
-- **Owner decision (2026-10-21):** transactions are **not** refused on a Terminal without an opening count — a Terminal may legitimately start at zero, and fiado operations already write automatic legs on the paired Terminal. Instead, the Terminal's first close is refused until an opening count (possibly an explicit all-zero one) exists, so "never set" and "real zero" stay distinguishable. A Terminal that already has a prior counted close, or an imported one (Part B), needs no opening count. The phase plan decides the refusal's error key and whether the opening count joins the owner setup checklist (`design/docs/screens.md` currently leaves it to this milestone).
-- Today's workaround is a backdated counted close before go-live; it works, but persists the whole drawer as an official variance — the reason Part A exists.
-- Opening fiado balances and still-open cheque plans already have entry paths (a Tab `Out` row per client; the cheque-plan create) and need only menu guidance, not new endpoints.
+- **Opening count** — delivered by M9.6 Phase 3 (see there). **Rule (plan A8, supersedes the owner decision of 2026-10-21):** the operator may start the first operation immediately; before its financial effects commit, the prefilled **Conferir abertura e iniciar** acknowledgment opens the session from the opening count, atomically with that first operation; a **zero opening exists only when explicitly acknowledged**. Today's workaround — a backdated counted close before go-live — persists the whole drawer as an official variance, which is why the opening count exists.
+- **Opening fiado balances** — a dedicated operation, not the ordinary transaction path: one opening debt per client as of the go-live date, marked as opening, on the client's fiado account, entering balance, FIFO and aging. It generates **no** cashbox movement and touches no session, because nothing physically left a cashbox (M9.6 operation matrix: imported debt / opening balance).
+- **Opening receivables** — still-open cheques (single or plan installments) at go-live are recorded through a dedicated opening operation with their due dates and, when known, the client: an open receivable classified as a cheque, with **no** cashbox `Out` and no session effect. Their later deposit, return or conversion uses the M9.7 settlement events.
+- A guided go-live menu and the owner setup checklist walk the manager through the opening count, opening balances and opening receivables, or point to the import (Part B), which produces all three from Access.
 
 **Key behaviors — Part B, Access import:**
 
 - Upload of the Access export tables, then an **admin mapping step**: each legacy `tipo` → a TransactionType (or skip), each legacy `prod` → a Product, an `In` type (`prod 7` Tarifa Bolão, `prod 12` Operador — M9.5 3.6) or skip (`prod 1/8/9/10` by default — M9.5 2.4), each legacy `conta` → an Account. Defaults come from the M9.5 working answers.
 - **Dry run before commit:** per Terminal/day, the recalculated variance beside the difference Access showed, with every mismatch, data-quality flag and skipped row listed. Nothing is written until the admin confirms.
-- Map legacy Access IDs to new Guid-based entities; preserve historical transactions, daily closes and time entries; the last imported counted close becomes the opening (Part A is then not needed for that Terminal).
+- Map legacy Access IDs to new Guid-based entities; preserve historical transactions, daily closes and time entries; the last imported counted session becomes the proposed opening (no opening count is needed for that cashbox).
 - Handle legacy data quality issues (missing fields, orphaned references); validate against current business rules and flag violations for manual review — never silently correct.
 - Import is branch-scoped: each legacy database maps to one `Branch`; a re-run of the same import is idempotent.
 - A menu screen explains which Access tables to export and how, what each mapping means, and how to read the dry run.
@@ -2727,6 +3030,15 @@ Items 3.1–3.4 are documentation and decisions and do not gate the release. Ite
 - **Test-like rows.** `lco_id 5` (`teste1`) and `TblEstoque` `est_id 42` (Tarifa Bolão R$2,345,657.00) show the export mixes test data; the import must let the admin exclude rows or date ranges.
 - **IDs.** `TblTipoCategoria.csv` and `TblProduto.csv` confirm the §5 `tipo_id`/`prod_id` mapping used by the defaults (M9.5 working answers).
 
+**Updated for the real data file (`../exportMestre`, LoteriaMestre.accdb BE/FE 1.5.0; plan item D3):**
+
+- **Source.** Re-export with `../exportMestre/tools/export_mestre.sh <file.accdb> <out-dir>` (mdbtools + python3, read-only): tables, schema, saved queries (union queries rebuilt from `MSysQueries`), VBA form/report/module code and control listings decoded from `MSysAccessStorage`. One new folder per received file; never overwrite `../export`, which earlier milestones cite.
+- **Mappings to add:** `prod 14` Tarifa Especial → the M9.6 close-form entry; fiado rows recorded directly on Terminal accounts (`id_tipo 2` on a Terminal, 23 rows) — flag for review, never pair retroactively; single cheques (no client, `lco_origem` empty) and plans (`lco_origem`); the 32 expense types on Terminal accounts; `TblMovimentacaoBancoHoras` (Ponto rows → TimeEntry balance; Pagamento/Ajuste → M9.8 hour-bank entries); `TblItemRel`/`TblRelMensal` → M9.8 pay items (`rel_data` holds a month number without a year — flag as ambiguous); `TblLoteriaEspecial` → the special-draws catalog; `TblLogExclusao` → read-only deletion history.
+- **Custody.** Imported days become sessions through M9.6 Phase 2.8's explicit custody mapping; the last imported counted session proposes the opening. Access has one person per Terminal (accounts named after operators, `TblUsuario.con_id`), so each imported Terminal/day maps to one `Finished` session.
+- **Dry run.** The historical replay (plan D4) is a reproducible script in the repository that reads the export from outside it and reports, per cashbox/day, the Access difference, our recalculated difference and every explained exception (date-chain gaps, positive rows, test-like rows, later edits). Its aggregates are evidence, not the acceptance test.
+
+**Plan acceptance journeys (D5) — the Batch D demonstration, "a fresh setup and a historical import both reconcile":** an ordinary day; a shared handover; Abertura diferente; separate cashboxes; a ledger change after Conferir; an explicit zero opening; a non-cash repayment; a cheque into the cofre, deposited, returned and converted; a partial card batch; a settlement crossing a locked month; a reclassification attempt on a locked month; a fresh setup; an imported history.
+
 ---
 
 ## Milestone 11 — Post-MVP Reporting Surface
@@ -2736,6 +3048,8 @@ Items 3.1–3.4 are documentation and decisions and do not gate the release. Ite
 **Scope boundary:** Read-only reporting endpoints, the additive whole-set totals the overview needs, the classification metadata named in Phases 4 and 6 (each an explicit, tested migration), and their spec/catalog sync. No new ledger semantics, no financial writes, and no job queue, push stream, cache, materialized balance or summary table. M8 onboarding, M9 deployment and M10 import are not on this path: no section reads data they create.
 
 **Precondition:** M7.7 (variance integrity and fiado semantics) and M9.5 (verified type/product meanings) stay this milestone's preconditions and gate its close-out (Phase 8). Each runtime phase names the exact earlier items it consumes, and Phase 1.9 records the evidence for any phase that starts before the whole precondition closes. No runtime phase starts before Phase 1 is reviewed.
+
+> **Flow-alignment plan impact (2026-10-26).** The product answers (M9.5 Phase 5) change three M11 inputs, each reworked in its owning milestone rather than here: per-session attribution replaces per-Terminal/day close figures (M9.6 Phase 2.7); Tarifa Especial gets its own monthly role (M9.6 Phase 7.3); and the shipped query-time classification — a type change re-labels past months, locked ones included — is replaced by frozen posting-time classification (M9.7 Phase 1.3). Upcoming settlements and open-cheque aging move onto settlement events (M9.7 Phases 1–3). M11's shipped endpoints stay as recorded until those phases change them.
 
 **Owner schedule (2026-10-16):** this plan → the remaining M7.7 items and the M9.5 evidence this plan names → source-report Phases 2–6, one reviewed phase at a time → overview Phase 7 → close-out and real captures Phase 8 → design D13/D14 → the design M1 comparison resumes. Shared M2 is not made to wait for M11; it regenerates its client when these contracts land.
 
