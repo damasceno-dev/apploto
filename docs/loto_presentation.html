@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v57
+Spec revision: v58
 -->
 <html lang="en">
 <head>
@@ -242,6 +242,18 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">Next &#9654;</button>
 </nav>
 
+<details id="flow-foundation" style="position:fixed;top:12px;right:12px;z-index:1000;max-width:620px;max-height:78vh;overflow:auto;background:#202020;color:#f2f0e9;padding:14px;border:1px solid #777;border-radius:8px;font:14px/1.5 system-ui">
+<summary>v58 candidate · operation and session foundation (pending review)</summary>
+<p><b>Shipped:</b> AccountType.Terminal owns its paired Tab; one DailyClose/account/day, flag-based fiado pairing, ordinary fee/report In, unrestricted variance-preview, current PaidAt, query-time classification. No new DTO, route, entity or generated client ships here.</p>
+<p><b>Proposed M9.6:</b> existing Account = caixa; distinct physical Terminal = CAIXA report reference; DailyClose.Id = stable turno identity. Parallel cashboxes may share one Terminal; shared cashbox custody is sequential. Custody Active → HandedOver/Finished is independent of Draft/Submitted/Approved/Rejected review. Historical correction never reacquires custody.</p>
+<p>Count stock at purchase cost, selling for the same value. Cash sale/restock funded by drawer is an equal-value exchange, no row. New counter fiado sale creates paired Out; opening/import/conversion does not. Required repayment method has no default, NonCash never changes counted cash. Report expectation, tender offset and fees are represented once; report inclusion remains a named premise.</p>
+<p><b>Controls pending:</b> explicit opening/zero acknowledgment; first operation atomic with start (P3); blind count with immutable Conferir/recount attempts unique per server token even across different request keys (P4); duties and atomic batch approval (P5); signed report and two fee fields (P7); cashbox→Safe protected atomic legs (P9). Outgoing and incoming counts are independent; every opening mismatch starts unattributed against SessionOpeningId (HandoverId optional), including Finish→Start and initial-count differences; manager reason/audit assigns outgoing/incoming/neither only where that person is evidenced; never an automatic payroll deduction.</p>
+<p><b>Example:</b> opening 1,000, report-covered bill paid PIX 240: closing 1,000, In 240/Out 240 → difference 0, debt 0. Fiado alternative: same counts and legs, client debt 240. Report inclusion is conditional. Handover or Finish→Start 1,100 → acknowledged 1,080 keeps −20 as an opening discrepancy, initially unattributed; next session opens 1,080 with zero session variance. No new month-lock blocker is introduced by an unattributed discrepancy.</p>
+<p><b>Corrected facts:</b> cheque paid = deposited; deposit cash = cofre inteligente; PIX = customer bill/game tender; bank records currently one-sided. Tarifa Especial and cheque counts are bounded export inferences. Legacy 220/232 and proposed 227/232 replay totals are reported evidence, not reproduced tests; lack of a method field does not prove no noncash occurred. Operador definition/printed label/sign remains pending; signed support is an app choice.</p>
+<p><b>Later C/D:</b> settlement events OccurredOn/open PostedOn, partial/as-of remainder, pending bank receipt confirmed once, posting classification frozen, PaidAt migration without second payment, configurable effective-dated commission and dedicated opening obligations. Migration needs explicit custody mapping; no blanket Finished, guessed actors/times, compensation or erased AA history.</p>
+<p>Canonical acceptance: <a href="loto-specs.md#619-operation-matrix--proposed-m96-11-acceptance-source" style="color:#f5ae69">§6.19 matrix O01–O22 and E01–E15</a>, §3.30 model, §6.20 commands, §6.21 consumers, §6.22 migration, §9 provenance. M9.6 1.3 owner + independent reviewer gate remains open; design markers aligned to v58 at the owner’s explicit request on 2026-10-27; final independent acceptance is not inferred. Next runtime P2 only after that gate. Design Lane 2/app acceptance and AA remain separate.</p>
+</details>
+
 <script>
 const ACCENT='#e67e22',DIM='#9c9a92',BORDER='#555';
 
@@ -276,7 +288,7 @@ const SLIDES=[
     {entity:'Account',fields:[{n:'Name',v:'"Jennifer"'},{n:'Type',v:'"Terminal"'}]}
    ]},
   {title:'Creating a Cash Deposit',
-   narrative:'The drawer has accumulated more cash than Jennifer should keep at the counter. She deposits <b>R$2,000</b> of drawer cash with the bank, selecting "Depósito Dinheiro" and entering the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> The cash physically <em>leaves</em> the drawer — on a terminal, Direction records value entering or leaving the operator\'s custody. That is why "Depósito Dinheiro" is seeded under <b>Saídas</b>: at day end the counted drawer is expected to be R$2,000 lighter, and the <b>DailyClose</b> snapshot verifies exactly that.<br><br><b>DueDate = Date + 1 day</b> (SettlementRule NextCalendarDay): the bank credit lands tomorrow.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
+   narrative:'The drawer has accumulated more cash than Jennifer should keep at the counter. She deposits <b>R$2,000</b> of drawer cash into the cofre inteligente, selecting "Depósito Dinheiro" and entering the amount and time. The system creates a Transaction row: <b>Value is always positive</b> (R$2,000), <b>Direction=Out</b>, and TransactionTime records 10:30.<br><br><b style="color:var(--blue)">Why Out?</b> The cash physically <em>leaves</em> the drawer — on a terminal, Direction records value entering or leaving the operator\'s custody. That is why "Depósito Dinheiro" is seeded under <b>Saídas</b>: at day end the counted drawer is expected to be R$2,000 lighter, and the <b>DailyClose</b> snapshot verifies exactly that.<br><br><b>Shipped seed:</b> DueDate = Date + 1 day (NextCalendarDay). This is current configuration, not evidence of bank arrival: Q6 says custody moves to the cofre. M9.6 P9 adds its atomic Safe leg; M9.7 C4 later moves Safe to bank.<br><br>Every transaction also tracks <b>authorship</b>: <b>RecordedByOperatorId</b> (which operator\'s context — their terminal) and <b>CreatedByUserId</b> (who actually created the record). Here Jennifer is at her own terminal — both fields point to her, the normal case when the operator is working their own shift. In UC3, we\'ll see what happens when someone <em>covers</em> for another operator.',
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -327,7 +339,7 @@ const SLIDES=[
     {entity:'TransactionType',fields:[{n:'Name',v:'"PIX"'},{n:'CategoryId',v:'→ Saídas',hl:'hl'},{n:'SettlementRule',v:'SameDay'},{n:'RequiresTabAccountAndClient',v:'false'}]}
    ]},
   {title:'Creating a PIX Payment',
-   narrative:'A customer needs cash. They send <b>R$800</b> by PIX to the lotérica\'s account, and Jennifer hands them R$800 from the drawer — a <em>saque via PIX</em>. Value is still positive (R$800) — <b>Lotero always stores positive values</b>, using Direction to determine the sign. Direction=Out because the cash leaves the drawer; the PIX credit compensates the house on the bank side.<br><br><b>PIX is instant</b> — DueDate equals Date (same day). Compare with the cash deposit from UC1, where the bank credit lands the next day (DueDate = Date + 1). A create request has no <code>PaidAt</code>: every new row starts unpaid, and settlement is recorded later by an edit (<code>PUT /transaction/{id}</code>).',
+   narrative:"A customer pays a bill or game of <b>R$800 by PIX</b> into the shop account (product Q6). No counted cash moves. The ordinary PIX Out offsets expected cash in the CAIXA report, under an <b>explicit report-inclusion premise</b> (§6.19 O04). Exact report content is still pending Q9; this is not a cash withdrawal. Shipped PIX uses SameDay, positive Value and Out direction; create has no PaidAt. Current PaidAt edits do not prove bank matching. M9.7 adds settlement events and statement reconciliation.",
    activeTables:['Category','TransactionType','Transaction','Account'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -447,7 +459,7 @@ const SLIDES=[
     {entity:'Transaction #3',fields:[{n:'Id',v:'"tx-003"'},{n:'Value',v:'"R$ 1,000.00"'},{n:'Description',v:'"CH PRE (3/3)"'},{n:'DueDate',v:'"2025-07-15"'},{n:'OriginTransactionId',v:'→ tx-001',hl:'hl'},{n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Maria'}]}
    ]},
   {title:'Receivables Tracking',
-   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque clears (deposited at CEF), <b>PaidAt is set</b> by an edit of that installment (creates never carry it). The other two remain as receivables — money expected in the future.',
+   narrative:'The three-date model shines here: each installment has a <b>different DueDate</b>. The owner can query "what cheques are due this month?" by filtering DueDate range with PaidAt IS NULL.<br><br>When the first cheque is deposited at CEF (Q2; not a clearing guarantee), <b>PaidAt is set</b> by an edit of that installment (creates never carry it). The other two remain as receivables — money expected in the future.',
    activeTables:['Tx1','Tx2','Tx3'],
    activeArrows:[],
    data:[
@@ -603,7 +615,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 1: Depósito Dinheiro (Out, R$2,000)',
-   narrative:'At 10:30 the drawer is heavy, so Jennifer deposits <b>R$2,000</b> of drawer cash with the bank. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because the cash <em>physically leaves</em> the drawer — at day end the count is expected to be R$2,000 lighter. <b>DueDate = Date + 1 day</b> (SettlementRule=NextCalendarDay): the bank credit lands tomorrow.<br><br>Same mechanics as UC1, now in context of the full day.',
+   narrative:'At 10:30 the drawer is heavy, so Jennifer deposits <b>R$2,000</b> of drawer cash into the cofre inteligente. TransactionType = "Depósito Dinheiro" under <b>Saídas</b> (Out).<br><br>Direction=Out because the cash <em>physically leaves</em> the drawer — at day end the count is expected to be R$2,000 lighter. <b>DueDate = Date + 1 day</b> is the shipped seed rule; bank arrival is not established. Q6 confirms the cofre destination; the protected two-leg transfer is pending M9.6 P9.<br><br>Same mechanics as UC1, now in context of the full day.',
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -615,7 +627,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 2: PIX (Out, R$800)',
-   narrative:'At 14:15 a customer withdraws <b>R$800</b> via PIX — they transfer to the lotérica\'s account and Jennifer hands them cash from the drawer (<em>saque via PIX</em>). TransactionType = "PIX" under <b>Saídas</b> (Out).<br><br><b>PIX is instant</b> — DueDate equals Date (same-day settlement). Compare with the cash deposit\'s next-day DueDate. This difference matters for receivables tracking: the owner can query "what settles today vs tomorrow."',
+   narrative:"A customer pays a bill or game of <b>R$800 by PIX</b> into the shop account (product Q6). No counted cash moves. The ordinary PIX Out offsets expected cash in the CAIXA report, under an <b>explicit report-inclusion premise</b> (§6.19 O04). Exact report content is still pending Q9; this is not a cash withdrawal. Shipped PIX uses SameDay, positive Value and Out direction; create has no PaidAt. Current PaidAt edits do not prove bank matching. M9.7 adds settlement events and statement reconciliation.",
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -627,7 +639,7 @@ const SLIDES=[
     ]}
    ]},
   {title:'Transaction 3: Sobra de Bolão (Out, R$200)',
-   narrative:'At 16:00, Jennifer records a <b>R$200</b> loss for unsold lottery-pool quotas kept by the shop (working Q4, pending shop question 4) (<em>Sobra de Bolão</em>) on the Terminal. This is under <b>Despesas Comerciais</b> (Out) — a different Category from the previous two (which were under Saídas).<br><br>All three transactions are Direction=Out — typical for a terminal: recorded rows are value <em>leaving</em> the operator\'s custody (deposits to the bank, cash-outs, payouts). No counter sales appear in this day\'s ledger — in this story they ride the counted stock/cash swap. The rule that matters: each value is represented <em>exactly once</em>, as a row or in the count, never both (§6.12).<br><br><b>Running total: 3 transactions, R$3,000 Out</b> (2,000 + 800 + 200).',
+   narrative:"Jennifer records <b>R$200 Sobra de Bolão</b>, a confirmed commercial loss (Q4). The three explicit Out rows total 3,000: Safe deposit 2,000, customer PIX 800 and Sobra 200. For this <b>conditional calculator example</b>, assume the CAIXA report includes the PIX bill and Sobra expectation, total <b>In 1,000</b>, and excludes fees. Then net flow is −2,000, not −3,000. Actual report inclusion remains pending Q9; never invent this 1,000 to force parity. The published ordinary Operador In command can represent this illustrative positive report; generated per-session fields are future P7.",
    activeTables:['Category','TransactionType','Transaction'],
    activeArrows:['cat-tt','tt-tx','tx-acc'],
    data:[
@@ -638,36 +650,36 @@ const SLIDES=[
      {n:'RecordedByOperatorId',v:'→ Jennifer'},{n:'CreatedByUserId',v:'→ Jennifer'}
     ]},
     {entity:'Day Summary',fields:[
-     {n:'TotalTransactions',v:'"R$ 3,000.00"  (2,000 + 800 + 200)',hl:'hl'}
+     {n:'Net flow',v:'"−R$ 2,000.00" (1,000 In − 3,000 Out; conditional R)',hl:'hl'}
     ]}
    ]},
   {title:'Opening-side inflows: fee and Operador (working Q3/Q9)',
-   narrative:'Under the owner-adopted working answers, <b>Tarifa Bolão</b> is today’s fee and <b>Operador</b> is today’s expected inflow. Their exact shop meaning still awaits questions 3 and 9. Enter actual amounts through the existing transaction flow: <b>Receita / In</b> and <b>Entradas / In</b>, both SameDay, no Tab or client. No fee rate or mandatory daily row is generated. Neither belongs in the fresh product count; physical cash stays in Dinheiro.<br><br>Separate exact-count example: physical opening 2,000; fee today 120, yesterday 100 already in opening cash; ordinary Out 40; physical closing 2,080. Old counted-fee representation gives <b>+140</b>; the explicit Access opening-side model and the corrected In representation give <b>0</b>. With Operador 350 alone, old +350; combined, old +490; corrected zero. Access DSum ignored sign and the export contains positive/misclassified/test-like rows: this is not global historical parity.<br><br>Ordinary cash sales are count-only under working Q5, pending question 5. Existing-branch migration requires reviewed IDs; unlocked retained fee counts block retirement under gap AA. Locked history and opening chains are preserved. M10 import/opening remains pending; the M11 monthly financial report reads the fee from rows of the type marked <b>BolaoServiceFee</b> (v56). The following Jennifer story assumes no fee or Operador inflow.',
+   narrative:"Q3 confirms <b>Tarifa Bolão</b> as the daily service fee. <b>Operador</b> is interpreted as the CAIXA report expectation; exact definition, printed label, sign and overlap with fees remain pending Q9. Shipped entries are ordinary SameDay In types; M9.6 P7 proposes three protected fields, adding <b>Tarifa Especial</b> (export inference), signed report positive In/negative Out, and zero-cancellation history. Negative report support is a design decision, not observed legacy report evidence.<br><br>Existing characterization: physical opening 2,000; fee 120, previous fee 100 already in opening cash; Out 40, count 2,080 → old +140, corrected 0. Report 350 alone gives old +350; together old +490. This is bounded arithmetic. AA/identity mapping/first-transition −100 stay open. The day example assumes report 1,000 and fees zero, conditionally; the full independent examples are canonical §6.19.",
    activeTables:['TransactionType','Category','Transaction'],
    activeArrows:[],
    data:[{entity:'Representation',fields:[{n:'Tarifa Bolão',v:'Receita · In · SameDay'},{n:'Operador',v:'Entradas · In · SameDay (editable label pending Q9)'},{n:'Count',v:'Physical assets only; no fee/Operador slot'}]}]},
   {title:'Close Day: Physical Count',
-   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. As she types, <code>POST /dailyclose/{id}/variance-preview</code> sends those unsaved candidates through the same calculator Submit uses, so the displayed <b>−R$20</b> updates before any save and preview never persists. Her first successful complete item-save atomically stamps <code>ItemsFirstRecordedAt</code>, <code>RecordedByUserId</code>, and <code>RecordedByOperatorId</code>; even an explicit empty save counts and claims the recorder. An elevated-opened close starts unclaimed, so the first account-scoped Member to save may claim it; account coordination makes that first claim win. Retry, Notes-only, and correction saves never reassign the recorder. The <code>xmin</code> Version prevents a stale tab from overwriting values or Notes.<br><br><b>TotalClosing = R$2,780</b> (R$1,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged. Jennifer does <b>not</b> enter Diferença Caixa — the system persists it only on submit. A true later change reports and demotes only the next eligible official successor for opening recheck; identical, reordered, retry, and Notes-only saves do not cascade.',
+   narrative:'At end of day, Jennifer counts what\'s <b>physically</b> in the drawer and enters closing values for each <b>Product</b>. As she types, <code>POST /dailyclose/{id}/variance-preview</code> sends those unsaved candidates through the same calculator Submit uses, so the displayed <b>−R$20</b> updates before any save and preview never persists. Her first successful complete item-save atomically stamps <code>ItemsFirstRecordedAt</code>, <code>RecordedByUserId</code>, and <code>RecordedByOperatorId</code>; even an explicit empty save counts and claims the recorder. An elevated-opened close starts unclaimed, so the first account-scoped Member to save may claim it; account coordination makes that first claim win. Retry, Notes-only, and correction saves never reassign the recorder. The <code>xmin</code> Version prevents a stale tab from overwriting values or Notes.<br><br><b>TotalClosing = R$3,780</b> (R$2,980 + R$500 + R$300). Telesena and Raspadinha inventory is unchanged. Jennifer does <b>not</b> enter Diferença Caixa — the system persists it only on submit. A true later change reports and demotes only the next eligible official successor for opening recheck; identical, reordered, retry, and Notes-only saves do not cascade.',
    activeTables:['Product','DailyCloseItem','DailyClose'],
    activeArrows:['prod-dci','dci-dc'],
    data:[
-    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 1,980.00"'}]},
+    {entity:'DailyCloseItem #1',fields:[{n:'ProductId',v:'→ Dinheiro'},{n:'Value',v:'"R$ 2,980.00"'}]},
     {entity:'DailyCloseItem #2',fields:[{n:'ProductId',v:'→ Telesena'},{n:'Value',v:'"R$ 500.00"'}]},
     {entity:'DailyCloseItem #3',fields:[{n:'ProductId',v:'→ Raspadinha'},{n:'Value',v:'"R$ 300.00"'}]},
     {entity:'Totals',fields:[
-     {n:'TotalClosing',v:'"R$ 2,780.00"  (1,980 + 500 + 300)',hl:'hl'},
+     {n:'TotalClosing',v:'"R$ 3,780.00"  (2,980 + 500 + 300)',hl:'hl'},
      {n:'ItemsFirstRecordedAt',v:'first successful save',hl:'hl-blue'},
      {n:'RecordedByUserId / OperatorId',v:'→ Jennifer (immutable recorder)',hl:'hl-blue'}
     ]}
    ]},
   {title:'Submit: CashVariance Calculation',
-   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 2,780.00 − R$ 5,800.00 − (R$ 0.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, cheque-plan finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
+   narrative:'Jennifer marks the DailyClose as <b>Submitted</b>. Submit first acquires the shared transaction-scoped <code>(BranchId, AccountId)</code> coordination key, then requires a recorded count, no same-day Draft rows, and no intervening active-transaction date without a counted close. It stamps the current <code>SubmittedByUserId</code>/<code>SubmittedByOperatorId</code> without changing Jennifer\'s immutable recorder identity — if Maria submitted on Jennifer\'s behalf, Maria would be the submitter while Jennifer would remain the recorder and correction owner. Only then does it compute <b>CashVariance</b> (§6.12):<br><br><b style="color:var(--accent)">CashVariance = TotalClosing − TotalOpening − (Active In − Active Out)</b><br>= R$ 3,780.00 − R$ 5,800.00 − (R$ 1,000.00 − R$ 3,000.00) = <b style="color:#ef5350">−R$ 20.00</b><br><br>Only non-soft-deleted transactions with Status=Active participate. The system persists <b>Diferença Caixa</b>, then freezes create, installment create, finalize, cheque-plan finalize, and cancel for this account/day. Every official read keeps showing the exact persisted number Maria reviews; live recomputation is divergence-only.',
    activeTables:['DailyClose','DailyCloseItem'],
    activeArrows:['dci-dc'],
    data:[
     {entity:'CashVariance Calculation (§6.12)',fields:[
-     {n:'TotalClosing',v:'"R$ 2,780.00"  (1,980 + 500 + 300)'},{n:'− TotalOpening',v:'"R$ 5,800.00"  (5,000 + 500 + 300)'},
-     {n:'− TotalTransactions',v:'"−R$ 3,000.00"  (0 In − 3,000 Out)'},{n:'= CashVariance',v:'"−R$ 20.00"',hl:'hl-red'}
+     {n:'TotalClosing',v:'"R$ 3,780.00"  (2,980 + 500 + 300)'},{n:'− TotalOpening',v:'"R$ 5,800.00"  (5,000 + 500 + 300)'},
+     {n:'− TotalTransactions',v:'"−R$ 2,000.00"  (1,000 In − 3,000 Out)'},{n:'= CashVariance',v:'"−R$ 20.00"',hl:'hl-red'}
     ]},
     {entity:'DailyCloseItem #4 (system-calculated)',fields:[{n:'ProductId',v:'→ Diferença Caixa'},{n:'Value',v:'"−R$ 20.00"',hl:'hl-red'}]},
     {entity:'DailyClose (updated)',fields:[
@@ -795,7 +807,7 @@ function renderIntro(s,i){
       <div class="intro-col">
         <div class="intro-card">
           <h3 class="blue-color">A Typical Day</h3>
-          <p>An operator sits at a terminal all day: lottery sales, bill payments, PIX and card cash-outs, cash deposits to the bank, and credit sales to regular customers (<em>fiado</em>). The money that moves through the operator&#39;s custody must be recorded, classified, and tracked through settlement.</p>
+          <p>An operator sits at a terminal all day: lottery sales, bill payments, customer bill/game payments by PIX or card, drawer-cash deposits into the cofre inteligente, and credit sales to regular customers (<em>fiado</em>). The money that moves through the operator&#39;s custody must be recorded, classified, and tracked through settlement.</p>
         </div>
         <div class="intro-card">
           <h3 class="teal-color">The Owner's View</h3>
@@ -845,7 +857,7 @@ function renderIntro(s,i){
             <tr><th>Field</th><th>Meaning</th><th>Example</th></tr>
             <tr><td><code>Date</code></td><td>When it happened</td><td>March 15</td></tr>
             <tr><td><code>DueDate</code></td><td>When payment is expected</td><td>March 17 (credit card +2 business days)</td></tr>
-            <tr><td><code>PaidAt</code></td><td>When money actually arrived</td><td><em>null</em> = still pending</td></tr>
+            <tr><td><code>PaidAt</code></td><td>Current payment marker; cheque = deposited (Q2)</td><td><em>null</em> = still pending</td></tr>
           </table>
           <p style="margin-top:10px">This enables receivables tracking ("money expected this week"), aging reports, and reconciliation with CEF settlement reports.</p>
         </div>

@@ -2,7 +2,7 @@
 
 > **Design M4 · D04 (2026-10-20), review pending.** Feeds **Web/Mobile M6**. Semantics: catalog entries [Transaction — Create](../../docs/screens.md#transaction--create-fast-entry), [Transaction — Edit](../../docs/screens.md#transaction--edit-correction--audit), [Transactions list](../../docs/screens.md#transactions-list), [Installment plan](../../docs/screens.md#installment-pre-dated-cheque-plan), [Client statement](../../docs/screens.md#client-statement-extrato-de-fiado), [Receber pagamento](../../docs/screens.md#receber-pagamento). Contracts: M3–M7 ledger, M7.7 Phases 5 (fiado, pairing, generated movements), 6 (idempotency, `If-Match`), 7.6.2 (atomic plan finalize), 7.6.3 (type filter) — all shipped. No remainder; open product questions (which fiado sales move counted stock, mixed tender) stay with the operator's explicit choice and the server, not with this layout.
 
-The ledger has three dates and the screens must never blur them: **Data da transação** (`Date`, the business day), **Vencimento** (`DueDate`, when it settles) and **Pagamento** (`PaidAt`, when a cheque or card actually cleared). Every form and table labels them separately, and fiado debt is never read from a row's `PaidAt` — it comes from the server's branch-wide FIFO statement.
+The ledger has three dates and the screens must never blur them: **Data da transação** (`Date`, the business day), **Vencimento** (`DueDate`, when it settles) and **Pagamento** (`PaidAt`, the current payment marker: cheque deposited under product Q2, or card paid; not proof of clearing or bank reconciliation). Every form and table labels them separately, and fiado debt is never read from a row's `PaidAt` — it comes from the server's branch-wide FIFO statement.
 
 ## Transaction — Create (fast entry)
 
@@ -15,7 +15,7 @@ The ledger has three dates and the screens must never blur them: **Data da trans
 
 ### Opening-side inflows (canonical v55)
 
-The configured Tarifa Bolão and Operador types are ordinary Terminal In entries under working Q3/Q9. Enter the actual amount and use the existing scoped create, preview, idempotent retry and lock rules; no automatic fee or special command is introduced. Their default names are not stable identities. When entered from Close day, preserve its input and return context as in the [fee-entry guidance](operator-day.md#fee-entry-and-historical-opening-canonical-v55). For ordinary cash sales, working Q5 is count-only: do not also record a product Out for the same stock/cash swap. M10 import and M11 financial classification are not implemented by this form.
+The configured Tarifa Bolão and Operador types remain shipped ordinary Terminal In entries. Product Q3 confirms the daily service fee; only Q9 report definition, printed label, sign and inclusion remain pending here. Enter the actual amount and use the existing scoped create, preview, idempotent retry and lock rules; no automatic fee or special command is introduced. Their default names are not stable identities. When entered from Close day, preserve its input and return context as in the [fee-entry guidance](operator-day.md#fee-entry-and-historical-opening-canonical-v55). Product Q5 confirms equal purchase/sale value and count-only ordinary cash sales: do not also record a product Out for the same stock/cash swap. Q3/Q5 are confirmed product facts (2026-10-23); this v58 candidate factual correction adds no future M9.6 P7 generated field or command. M10 import and M11 financial classification are not implemented by this form.
 
 ### States
 
