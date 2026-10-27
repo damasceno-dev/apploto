@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import { FormatProvider } from '@/components/ui/format-port';
 import type { SessionSnapshot } from '@/lib/bff-protocol';
+import { coreFormat } from '@/lib/core-format';
 import { useBranchClock } from './clock/use-branch-clock';
 import { ScopedQueryProvider } from './query/scoped-query-provider';
 import { BranchSessionProvider, SessionProvider, useSession } from './session/session-provider';
 
-/** App-wide client providers: the identity session, then its query scope. */
+/** App-wide client providers: `@loto/core` formatting, the identity session, then its query scope. */
 export function AppProviders({
   session,
   fixtures,
@@ -17,9 +19,11 @@ export function AppProviders({
   readonly children: ReactNode;
 }) {
   return (
-    <SessionProvider initial={session} fixtures={fixtures}>
-      <ScopedSubtree>{children}</ScopedSubtree>
-    </SessionProvider>
+    <FormatProvider format={coreFormat}>
+      <SessionProvider initial={session} fixtures={fixtures}>
+        <ScopedSubtree>{children}</ScopedSubtree>
+      </SessionProvider>
+    </FormatProvider>
   );
 }
 

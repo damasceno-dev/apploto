@@ -1,7 +1,14 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { DomainText, StatusBadge, GeneratedMarker } from '@/components/ui/badge';
+import {
+  asCents,
+  formatSignedBrl,
+  formatSignedDuration,
+  generatedMovementMarker,
+  presentFiadoBalance,
+} from '@loto/core';
+import { DomainText, StatusBadge, GeneratedMarker, domainLabels } from '@/components/ui/badge';
 import {
   breakpointTokens,
   domainColors,
@@ -63,79 +70,35 @@ export const motionClasses: Record<(typeof transitionTokens)[number], string> = 
   skeleton: 'motion-skeleton',
 };
 
-/** copy §5 labels as gallery reference strings; the official maps arrive with `@loto/core`. */
-export const fixtureLabels: Record<string, Record<string, string>> = {
-  'transaction-status': { Draft: 'Rascunho', Active: 'Ativa', Cancelled: 'Cancelada' },
-  'daily-close-status': {
-    Draft: 'Rascunho',
-    Submitted: 'Enviado',
-    Approved: 'Aprovado',
-    Rejected: 'Rejeitado',
+/**
+ * The text each domain token shows in the gallery: copy §5 labels from `@loto/core` for enum
+ * domains, and core-formatted example figures for the signed ones (falta/sobra, fiado, banco de horas).
+ */
+const signedExamples: Record<string, Record<string, string>> = {
+  'cash-variance': {
+    shortage: `${formatSignedBrl(asCents(-1200))} · falta`,
+    surplus: `${formatSignedBrl(asCents(350))} · sobra`,
+    zero: formatSignedBrl(asCents(0)),
   },
-  'aging-bucket': {
-    Current: 'Em dia',
-    Days0To30: '0–30 dias',
-    Days31To60: '31–60 dias',
-    Days61To90: '61–90 dias',
-    Days91Plus: 'Mais de 90 dias',
-  },
-  'time-entry-status': {
-    Present: 'Presente',
-    DayOff: 'Folga',
-    Sunday: 'Domingo',
-    Holiday: 'Feriado',
-    Vacation: 'Férias',
-    JustifiedAbsence: 'Falta justificada',
-    UnjustifiedAbsence: 'Falta injustificada',
-  },
-  'installment-plan-status': {
-    Draft: 'Rascunho',
-    Active: 'Ativo',
-    Mixed: 'Misto',
-    Cancelled: 'Cancelado',
-  },
-  'invitation-status': {
-    Pending: 'Pendente',
-    Accepted: 'Aceito',
-    Declined: 'Recusado',
-    Expired: 'Expirado',
-  },
-  'mail-delivery-status': {
-    Pending: 'Envio pendente',
-    Sent: 'Enviado ao servidor de e-mail',
-    Failed: 'Falha no envio',
-  },
-  'operator-link-request-status': { Pending: 'Pendente', Resolved: 'Resolvida' },
-  'review-event-type': {
-    Rejected: 'Rejeitado na conferência',
-    OpeningChanged: 'Abertura alterada',
-  },
-  'settlement-instrument': {
-    None: 'Sem classificação',
-    Cheque: 'Cheque',
-    CreditCard: 'Cartão de crédito',
-    DebitCard: 'Cartão de débito',
-  },
-  'monthly-financial-role': {
-    None: 'Nenhuma',
-    BolaoServiceFee: 'Tarifa de bolão',
-    CommercialLeftover: 'Sobra (perda comercial)',
-  },
-  'overview-section-status': {
-    Ready: 'Atualizado',
-    Empty: 'Nada no período',
-    NotConfigured: 'Não configurado',
-  },
-  direction: { In: 'Entrada', Out: 'Saída' },
-  'cash-variance': { shortage: '−R$ 12,00 · falta', surplus: '+R$ 3,50 · sobra', zero: 'R$ 0,00' },
   'fiado-balance': {
-    debt: 'R$ 80,00 · em aberto',
-    settled: 'quitado',
-    credit: '+R$ 10,00 · crédito do cliente',
+    debt: presentFiadoBalance(asCents(8000)).text,
+    settled: presentFiadoBalance(asCents(0)).text,
+    credit: presentFiadoBalance(asCents(-1000)).text,
   },
-  'hour-balance': { positive: '+2h 15min', negative: '−2h 15min', zero: '0h 00min' },
-  'generated-movement': { automatic: 'Automática' },
+  'hour-balance': {
+    positive: formatSignedDuration(2.25),
+    negative: formatSignedDuration(-2.25),
+    zero: formatSignedDuration(0),
+  },
+  'generated-movement': { automatic: generatedMovementMarker },
 };
+
+function tokenLabel(group: string, value: string): string {
+  const labels = (domainLabels as Record<string, Readonly<Record<string, string>> | undefined>)[
+    group
+  ];
+  return labels?.[value] ?? signedExamples[group]?.[value] ?? value;
+}
 
 const textDomains = new Set(['direction', 'cash-variance', 'fiado-balance', 'hour-balance']);
 
@@ -182,8 +145,8 @@ export function TokenSections() {
         contract="design/tokens/colors.json (domain) · badge.md"
       >
         <p className="type-helper text-text-muted">
-          Rótulos de exemplo da cópia §5; os mapas oficiais chegam com o{' '}
-          <code className="type-code">@loto/core</code> (Shared M3).
+          Rótulos da cópia §5 pelos mapas do <code className="type-code">@loto/core</code>; os
+          valores com sinal são exemplos formatados pelo mesmo pacote.
         </p>
         <ThemePair>
           {() => (
@@ -196,7 +159,7 @@ export function TokenSections() {
                   </span>
                   <div className="flex flex-wrap gap-inline-sm">
                     {Object.keys(domain.values).map((value) => {
-                      const label = fixtureLabels[group]?.[value] ?? value;
+                      const label = tokenLabel(group, value);
                       if (group === 'generated-movement')
                         return <GeneratedMarker key={value}>{label}</GeneratedMarker>;
                       if (textDomains.has(group)) {

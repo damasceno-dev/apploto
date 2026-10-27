@@ -3,6 +3,7 @@
 // time) from one server capture. They stay calendar values: this module never builds a `Date`,
 // never applies a device timezone and never advances time on its own.
 import type { ResponseGetCurrentBranchSummaryJson } from '@loto/api';
+import { calendarDateParts, parseCalendarDate as parseIsoDate } from '@loto/core';
 
 export interface CalendarDate {
   readonly year: number;
@@ -27,15 +28,12 @@ export interface BranchClock {
   readonly branchId: string;
 }
 
-const datePattern = /^(\d{4})-(\d{2})-(\d{2})$/;
 const dateTimePattern = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,7})?)?$/;
 
+/** The parts of a real calendar date (`@loto/core` validation), or null. */
 export function parseCalendarDate(value: string): CalendarDate | null {
-  const match = datePattern.exec(value);
-  if (!match) return null;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null;
-  return { year, month, day };
+  const date = parseIsoDate(value);
+  return date === null ? null : calendarDateParts(date);
 }
 
 /** Parses the offset-free wall time; a value with an offset or `Z` is rejected, not converted. */
@@ -64,9 +62,4 @@ export function toBranchClock(response: ResponseGetCurrentBranchSummaryJson): Br
 
 export function sameDate(left: CalendarDate, right: CalendarDate): boolean {
   return left.year === right.year && left.month === right.month && left.day === right.day;
-}
-
-function daysInMonth(year: number, month: number): number {
-  if (month === 2) return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0) ? 29 : 28;
-  return [4, 6, 9, 11].includes(month) ? 30 : 31;
 }

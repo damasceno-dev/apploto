@@ -14,13 +14,29 @@ import {
   TimeEntryStatus,
   TransactionStatus,
 } from '@loto/api';
+import {
+  agingBucketLabels,
+  dailyCloseReviewEventTypeLabels,
+  dailyCloseStatusLabels,
+  directionLabels,
+  enumLabel,
+  installmentPlanStatusLabels,
+  invitationStatusLabels,
+  mailDeliveryStatusLabels,
+  monthlyFinancialRoleLabels,
+  operatorLinkRequestStatusLabels,
+  overviewSectionStatusLabels,
+  settlementInstrumentLabels,
+  timeEntryStatusLabels,
+  transactionStatusLabels,
+} from '@loto/core';
 import { cn } from '@/lib/cn';
 import { domainColors } from '@/theme/tokens.generated';
 import { VisuallyHidden } from './visually-hidden';
 
 // Badge (design/specs/components/badge.md): a small rectangle that names a state in text; color is
 // a second signal. Domain colors come from the generated token names, looked up by the exact enum
-// string the API returned. The pt-BR label is the caller's (copy §5 — `@loto/core` maps, Shared M3).
+// string the API returned. The pt-BR label is copy §5's, from `@loto/core`'s maps by default.
 
 /** The backend enum behind each domain color group (OpenAPI enums, generated in `@loto/api`). */
 export const domainEnums = {
@@ -40,6 +56,25 @@ export const domainEnums = {
 } as const;
 
 export type EnumDomain = keyof typeof domainEnums;
+
+/** copy §5 labels per domain (`@loto/core`); keyed by the same generated enums as the colors. */
+export const domainLabels: {
+  readonly [D in EnumDomain]: Readonly<Record<DomainValue<D> & string, string>>;
+} = {
+  'transaction-status': transactionStatusLabels,
+  'daily-close-status': dailyCloseStatusLabels,
+  direction: directionLabels,
+  'aging-bucket': agingBucketLabels,
+  'time-entry-status': timeEntryStatusLabels,
+  'installment-plan-status': installmentPlanStatusLabels,
+  'invitation-status': invitationStatusLabels,
+  'mail-delivery-status': mailDeliveryStatusLabels,
+  'operator-link-request-status': operatorLinkRequestStatusLabels,
+  'review-event-type': dailyCloseReviewEventTypeLabels,
+  'settlement-instrument': settlementInstrumentLabels,
+  'monthly-financial-role': monthlyFinancialRoleLabels,
+  'overview-section-status': overviewSectionStatusLabels,
+};
 export type DomainValue<D extends EnumDomain> =
   (typeof domainEnums)[D][keyof (typeof domainEnums)[D]];
 
@@ -77,8 +112,9 @@ function isKnown(group: string, value: string): readonly string[] | null {
 }
 
 /**
- * An enum status or severity bucket (`dom.<group>.<value>`). An unknown future value renders its
- * raw text in the neutral variant and is reported as a contract mismatch — never a guessed color.
+ * An enum status or severity bucket (`dom.<group>.<value>`), labelled from copy §5 unless the caller
+ * passes its own text. An unknown future value renders its raw text in the neutral variant and is
+ * reported as a contract mismatch — never a guessed color or label.
  * Where no column header names it, pass `context` (**Situação**) for visually hidden context.
  */
 export function StatusBadge<D extends FilledDomain>({
@@ -92,8 +128,8 @@ export function StatusBadge<D extends FilledDomain>({
 }: {
   readonly domain: D;
   readonly value: DomainValue<D> | (string & {});
-  /** The pt-BR label for `value` (copy §5). */
-  readonly children: ReactNode;
+  /** Overrides the copy §5 label (`@loto/core`) only where a screen's copy expands it. */
+  readonly children?: ReactNode;
   readonly context?: string;
   /** Dense tables only: a leading dot that aids scanning. */
   readonly dot?: boolean;
@@ -102,7 +138,8 @@ export function StatusBadge<D extends FilledDomain>({
 }) {
   const raw = String(value);
   const parts = isKnown(domain, raw);
-  if (parts === null) {
+  const label = enumLabel(domainLabels[domain], raw);
+  if (parts === null || !label.known) {
     onUnknown?.(domain, raw);
     return (
       <FeedbackBadge kind="neutral" context={context} className={className}>
@@ -121,7 +158,7 @@ export function StatusBadge<D extends FilledDomain>({
       {dot ? (
         <span aria-hidden="true" className="size-[0.375rem] shrink-0 rounded-dot bg-(--badge-fg)" />
       ) : null}
-      {children}
+      {children ?? label.label}
     </span>
   );
 }

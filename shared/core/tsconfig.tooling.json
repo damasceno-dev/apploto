@@ -1,0 +1,8 @@
+{
+  // Vitest suites and config (Node 26): they may read source files for the boundary test.
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["test", "vitest.config.ts"]
+}

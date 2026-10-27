@@ -1,6 +1,13 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import {
+  formatBrlWire,
+  formatDate,
+  parseCalendarDate,
+  transactionStatusLabels,
+  type CalendarDate,
+} from '@loto/core';
 import { FeedbackBadge, GeneratedMarker, ModeBadge, StatusBadge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, ChecklistItem } from '@/components/ui/card';
@@ -30,35 +37,35 @@ import {
 } from '@/components/ui/table';
 import { Example, Section, ThemePair } from './gallery-kit';
 
+// Illustrative rows (labelled **Dados de exemplo**), formatted by `@loto/core` like API data.
+const day = (iso: string) => formatDate(parseCalendarDate(iso) as CalendarDate);
+
 const rows = [
   {
     id: '1',
-    date: '24/09/2026',
+    date: day('2026-09-24'),
     type: 'Venda de bolão',
     account: 'Terminal 2',
-    value: 'R$ 943,10',
+    value: formatBrlWire(943.1),
     status: 'Active',
-    label: 'Ativa',
     generated: false,
   },
   {
     id: '2',
-    date: '24/09/2026',
+    date: day('2026-09-24'),
     type: 'Recebimento de fiado',
     account: 'Terminal 2',
-    value: 'R$ 80,00',
+    value: formatBrlWire(80),
     status: 'Draft',
-    label: 'Rascunho',
     generated: true,
   },
   {
     id: '3',
-    date: '23/09/2026',
+    date: day('2026-09-23'),
     type: 'Saque de prêmio com descrição longa para testar a quebra de linha',
     account: 'Banco do Brasil',
-    value: 'R$ 2.437,00',
+    value: formatBrlWire(2437),
     status: 'Cancelled',
-    label: 'Cancelada',
     generated: false,
   },
 ] as const;
@@ -167,10 +174,10 @@ export function DataSections() {
             items={[
               {
                 label: 'Total do fechamento',
-                figure: { kind: 'value', value: 'R$ 2.437,00' },
+                figure: { kind: 'value', value: formatBrlWire(2437) },
                 caption: 'ainda não enviada',
               },
-              { label: 'Total da abertura', figure: { kind: 'value', value: 'R$ 2.199,00' } },
+              { label: 'Total da abertura', figure: { kind: 'value', value: formatBrlWire(2199) } },
               { label: 'Entradas', figure: { kind: 'unavailable', retry: () => undefined } },
               { label: 'Saídas', figure: { kind: 'loading' } },
             ]}
@@ -194,7 +201,7 @@ export function DataSections() {
               { label: 'Enviado por', value: null },
             ],
             [
-              { label: 'Abertura', value: 'R$ 2.199,00 · calculado pelo sistema' },
+              { label: 'Abertura', value: `${formatBrlWire(2199)} · calculado pelo sistema` },
               { label: 'Situação', value: 'Período bloqueado até 31/08/2026', restriction: true },
             ],
           ]}
@@ -314,9 +321,7 @@ export function DataSections() {
                       <Td>{row.account}</Td>
                       <Td align="end">{row.value}</Td>
                       <Td>
-                        <StatusBadge domain="transaction-status" value={row.status}>
-                          {row.label}
-                        </StatusBadge>
+                        <StatusBadge domain="transaction-status" value={row.status} />
                       </Td>
                       <Td sticky="end">
                         <span className="flex flex-wrap gap-inline-sm">
@@ -349,7 +354,7 @@ export function DataSections() {
                     accessibleName={`Abrir ${row.type} ${row.value}`}
                   />
                 }
-                secondary={`${row.account} · ${row.value} · ${row.label}`}
+                secondary={`${row.account} · ${row.value} · ${transactionStatusLabels[row.status]}`}
                 trailing={
                   <Button variant="text" size="small">
                     Conferir

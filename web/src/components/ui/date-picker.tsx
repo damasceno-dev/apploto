@@ -9,6 +9,7 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react';
+import { MAX_CALENDAR_YEAR, MIN_CALENDAR_YEAR } from '@loto/core';
 import { cn } from '@/lib/cn';
 import { Button } from './button';
 import {
@@ -50,6 +51,16 @@ interface CalendarProps {
   readonly labelledBy?: string;
 }
 
+/** The date `move` computes, or null when it leaves the supported years 0001–9999. */
+function withinCalendar(move: () => CalendarDate): CalendarDate | null {
+  try {
+    return move();
+  } catch (error) {
+    if (error instanceof RangeError) return null;
+    throw error;
+  }
+}
+
 function outside(date: CalendarDate, min?: CalendarDate | null, max?: CalendarDate | null) {
   return (
     (min != null && compareDates(date, min) < 0) || (max != null && compareDates(date, max) > 0)
@@ -85,6 +96,13 @@ export function Calendar({
     moved.current = true;
   }, [focused]);
 
+  // The supported calendar is 0001-01-01 … 9999-12-31 (`@loto/core`): a move past either end stays
+  // where it is instead of throwing.
+  const moveMonth = (months: number) => {
+    const date = withinCalendar(() => addMonths(focused, months));
+    if (date !== null) setFocused(date);
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLTableElement>) => {
     const step: Record<string, () => CalendarDate> = {
       ArrowLeft: () => addDays(focused, -1),
@@ -99,7 +117,8 @@ export function Calendar({
     const next = step[event.key];
     if (next !== undefined) {
       event.preventDefault();
-      setFocused(next());
+      const date = withinCalendar(next);
+      if (date !== null) setFocused(date);
     } else if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
@@ -121,7 +140,7 @@ export function Calendar({
           iconOnly
           aria-label="Mês anterior"
           icon={<ChevronLeftIcon />}
-          onClick={() => setFocused(addMonths(focused, -1))}
+          onClick={() => moveMonth(-1)}
         />
         <h3 id={headingId} aria-live="polite" className="type-label text-text-primary">
           {format.monthYear(year, month)}
@@ -131,7 +150,7 @@ export function Calendar({
           iconOnly
           aria-label="Próximo mês"
           icon={<ChevronRightIcon />}
-          onClick={() => setFocused(addMonths(focused, 1))}
+          onClick={() => moveMonth(1)}
         />
       </div>
       <table
@@ -276,10 +295,13 @@ export function DateField({
   // Disabled (its own prop or its FormField) covers the whole composite: the text field and the
   // calendar alike. Without an anchor date the calendar waits but stays reachable (its reason).
   const disabled = control.disabled === true;
-  const calendarReady = anchorDate !== null && !disabled;
+  // Read-only covers the composite too: the value can be read and copied, never changed — neither
+  // by typing nor through the calendar, which does not open.
+  const readOnly = control.readOnly === true;
+  const calendarReady = anchorDate !== null && !disabled && !readOnly;
 
   const commit = () => {
-    if (disabled) return;
+    if (disabled || readOnly) return;
     const typed = text.trim();
     if (typed.length === 0) {
       onInvalidChange?.(false);
@@ -319,9 +341,9 @@ export function DateField({
           aria-label="Abrir calendário"
           aria-haspopup="dialog"
           aria-expanded={open}
-          disabled={disabled || undefined}
-          aria-disabled={(!disabled && anchorDate === null) || undefined}
-          title={!disabled && anchorDate === null ? 'Carregando…' : undefined}
+          disabled={disabled || readOnly || undefined}
+          aria-disabled={(!disabled && !readOnly && anchorDate === null) || undefined}
+          title={!disabled && !readOnly && anchorDate === null ? 'Carregando…' : undefined}
           onClick={() => {
             if (calendarReady) setOpen((current) => !current);
           }}
@@ -345,6 +367,9 @@ export function DateField({
           onSelect={(date) => {
             if (!calendarReady) return;
             onInvalidChange?.(false);
+            // Reconcile the text with the choice explicitly: choosing the current value again
+            // changes no prop, so the sync above would leave invalid typed text on screen.
+            setText(format.date(date));
             onValueChange(date);
             close();
           }}
@@ -490,12 +515,17 @@ export function DayStepper({
   const id = useId();
   const [invalid, setInvalid] = useState(false);
   const atMax = max !== null && compareDates(value, max) >= 0;
+  // At 0001-01-01 / 9999-12-31 there is no previous / next calendar day to step to.
+  const previous = withinCalendar(() => addDays(value, -1));
+  const next = withinCalendar(() => addDays(value, 1));
   return (
     <div className="flex flex-wrap items-start gap-inline-sm">
       <Button
         variant="secondary"
-        disabled={disabled}
-        onClick={() => onValueChange(addDays(value, -1))}
+        disabled={disabled || previous === null}
+        onClick={() => {
+          if (previous !== null) onValueChange(previous);
+        }}
       >
         Dia anterior
       </Button>
@@ -521,9 +551,11 @@ export function DayStepper({
       </div>
       <Button
         variant="secondary"
-        disabled={disabled || atMax}
+        disabled={disabled || atMax || next === null}
         disabledReason={!disabled && atMax ? nextUnavailableReason : undefined}
-        onClick={() => onValueChange(addDays(value, 1))}
+        onClick={() => {
+          if (next !== null) onValueChange(next);
+        }}
       >
         Próximo dia
       </Button>
@@ -605,6 +637,7 @@ export function MonthField({
               iconOnly
               aria-label="Ano anterior"
               icon={<ChevronLeftIcon />}
+              disabled={year === null || year <= MIN_CALENDAR_YEAR}
               onClick={() => setYear((year ?? 0) - 1)}
             />
             <span aria-live="polite" className="type-label tabular-nums">
@@ -615,6 +648,7 @@ export function MonthField({
               iconOnly
               aria-label="Próximo ano"
               icon={<ChevronRightIcon />}
+              disabled={year === null || year >= MAX_CALENDAR_YEAR}
               onClick={() => setYear((year ?? 0) + 1)}
             />
           </div>

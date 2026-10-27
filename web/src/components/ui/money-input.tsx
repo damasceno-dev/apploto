@@ -9,6 +9,7 @@ import {
   type ComponentPropsWithoutRef,
   type ReactNode,
 } from 'react';
+import { normalizeMoneyDigits } from '@loto/core';
 import { cn } from '@/lib/cn';
 import { useFormat } from './format-port';
 import { controlChrome, useControlProps } from './input';
@@ -26,10 +27,12 @@ export const blankMoney: MoneyValue = Object.freeze({ kind: 'blank' });
 
 export type MoneyChangeSource = 'typing' | 'paste' | 'clear';
 
-/** Leading zeros carry nothing: `'005'` is 5 cents; `'0'` (a typed zero) stays a recorded zero. */
-export function normalizeDigits(digits: string): string {
-  const trimmed = digits.replace(/^0+/, '');
-  return trimmed.length === 0 ? '0' : trimmed;
+/**
+ * Leading zeros carry nothing: `'005'` is 5 cents; `'0'` (a typed zero) stays a recorded zero.
+ * Null beyond numeric(14,2)'s 14 digits (`@loto/core`): the edit is refused, never truncated.
+ */
+export function normalizeDigits(digits: string): string | null {
+  return normalizeMoneyDigits(digits);
 }
 
 export interface MoneyInputProps extends Omit<
@@ -63,6 +66,9 @@ export function MoneyInput({
     'aria-describedby': [props['aria-describedby'], spokenId].filter(Boolean).join(' '),
   });
   const display = value.kind === 'blank' ? '' : format.moneyDigits(value.digits);
+  // A read-only (or disabled) amount is shown and announced but never edited, by any path: typing,
+  // the change fallback or paste (browsers still deliver `paste` to a read-only input).
+  const locked = control.readOnly === true || control.disabled === true;
 
   // Keep the caret at the end after every re-format (separators move as digits are added).
   useLayoutEffect(() => {
@@ -75,16 +81,20 @@ export function MoneyInput({
   // Edits are applied to the digit string, right to left: a typed digit is appended (or starts over
   // when the whole value was selected); any deletion removes the last digit, and removing the last
   // one returns to blank. Native `beforeinput` carries the intent; `onChange` is the fallback.
-  const latest = useRef({ value, onValueChange });
+  const latest = useRef({ value, onValueChange, locked });
   useEffect(() => {
-    latest.current = { value, onValueChange };
+    latest.current = { value, onValueChange, locked };
   });
   useEffect(() => {
     const element = input.current;
     if (element === null) return;
     const onBeforeInput = (event: InputEvent) => {
       if (event.inputType === 'insertFromPaste' || event.inputType === 'insertFromDrop') return;
-      const { value: current, onValueChange: emit } = latest.current;
+      const { value: current, onValueChange: emit, locked: frozen } = latest.current;
+      if (frozen) {
+        event.preventDefault();
+        return;
+      }
       const whole =
         element.value.length > 0 &&
         element.selectionStart === 0 &&
@@ -94,7 +104,9 @@ export function MoneyInput({
         const typed = (event.data ?? '').replace(/\D/g, '');
         if (typed.length === 0) return;
         const base = whole || current.kind === 'blank' ? '' : current.digits;
-        emit({ kind: 'amount', digits: normalizeDigits(base + typed) }, 'typing');
+        const next = normalizeDigits(base + typed);
+        // Past R$ 999.999.999.999,99 the keystroke changes nothing.
+        if (next !== null) emit({ kind: 'amount', digits: next }, 'typing');
       } else if (event.inputType.startsWith('delete')) {
         event.preventDefault();
         if (current.kind === 'blank') return;
@@ -110,22 +122,24 @@ export function MoneyInput({
   }, []);
 
   const accept = (text: string) => {
+    if (locked) return;
     const digits = text.replace(/\D/g, '');
     if (digits.length === 0) {
       if (value.kind !== 'blank') onValueChange(blankMoney, 'clear');
       return;
     }
     const next = normalizeDigits(digits);
-    if (value.kind === 'amount' && value.digits === next) return;
+    if (next === null || (value.kind === 'amount' && value.digits === next)) return;
     onValueChange({ kind: 'amount', digits: next }, 'typing');
   };
 
   const paste = (event: ClipboardEvent<HTMLInputElement>) => {
     event.preventDefault();
+    if (locked) return;
     const digits = format.moneyFromText(event.clipboardData.getData('text'));
     // Text that is not a BRL amount changes nothing (no guessed value).
-    if (digits !== null)
-      onValueChange({ kind: 'amount', digits: normalizeDigits(digits) }, 'paste');
+    const next = digits === null ? null : normalizeDigits(digits);
+    if (next !== null) onValueChange({ kind: 'amount', digits: next }, 'paste');
   };
 
   return (

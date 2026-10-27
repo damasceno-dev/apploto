@@ -3,6 +3,7 @@
 import {
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ComponentPropsWithoutRef,
@@ -253,10 +254,35 @@ export function SearchInput({
   );
 }
 
+const isDigit = (char: string) => char >= '0' && char <= '9';
+
+/** The separators each typing mask generates (formatting §6). */
+const maskSeparators: Readonly<Record<IdentifierKind, string>> = {
+  cpf: '.-',
+  cnpj: './-',
+  cep: '-',
+  phone: '() -',
+};
+const digitCount = (text: string) => [...text].filter(isDigit).length;
+
+/** The caret index just after the `digits`-th digit of `text` (0 → the start). */
+function caretAfterDigits(text: string, digits: number): number {
+  if (digits <= 0) return 0;
+  let seen = 0;
+  for (let index = 0; index < text.length; index += 1) {
+    if (isDigit(text[index] as string)) seen += 1;
+    if (seen === digits) return index + 1;
+  }
+  return text.length;
+}
+
 /**
- * CPF, CNPJ, phone or CEP (formatting §6). The mask is presentational and comes from the format
- * port (`@loto/core`): a value that does not fit renders verbatim, never truncated or padded. The
- * screen submits `identifierDigits` where the contract expects digits.
+ * CPF, CNPJ, phone or CEP (formatting §6). The input mask auto-punctuates as digits arrive
+ * (`identifierInput` from the format port, `@loto/core`); text the mask cannot hold renders
+ * verbatim, never truncated or padded. The caret stays after the same digit when punctuation is
+ * added or moves, and deleting a punctuation mark deletes the digit beside it (otherwise the mask
+ * would put it straight back). The screen submits `identifierDigits` where the contract expects
+ * digits.
  */
 export function IdentifierInput({
   kind,
@@ -269,13 +295,67 @@ export function IdentifierInput({
   readonly onValueChange: (value: string) => void;
 }) {
   const format = useFormat();
+  const input = useRef<HTMLInputElement>(null);
+  // Digits before the caret to restore once the masked text renders (null: leave the caret alone).
+  const caret = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    const element = input.current;
+    const digits = caret.current;
+    caret.current = null;
+    if (element === null || digits === null || document.activeElement !== element) return;
+    const at = caretAfterDigits(element.value, digits);
+    element.setSelectionRange(at, at);
+  });
+
   return (
     <Input
       {...props}
+      ref={input}
       inputMode={kind === 'cpf' || kind === 'cep' ? 'numeric' : kind === 'phone' ? 'tel' : 'text'}
       autoComplete={kind === 'phone' ? 'tel' : kind === 'cep' ? 'postal-code' : 'off'}
       value={value}
-      onChange={(event) => onValueChange(format.identifier(kind, event.target.value))}
+      onChange={(event) => {
+        let raw = event.target.value;
+        let at = event.target.selectionStart ?? raw.length;
+        const inputType = (event.nativeEvent as InputEvent).inputType ?? '';
+        // One generated mask separator was deleted: delete the adjacent digit instead, or the mask
+        // would put the separator straight back. Only when the previous text was exactly the mask
+        // of its digits — removing an invalid character or editing passthrough text (overlong,
+        // letters) keeps every digit.
+        const digitsOnly = (text: string) => [...text].filter(isDigit).join('');
+        let removed = 0;
+        while (removed < raw.length && raw[removed] === value[removed]) removed += 1;
+        if (
+          inputType.startsWith('delete') &&
+          raw.length === value.length - 1 &&
+          maskSeparators[kind].includes(value[removed] ?? '') &&
+          format.identifierInput(kind, digitsOnly(value)) === value
+        ) {
+          const forward = inputType === 'deleteContentForward';
+          let index = -1;
+          if (forward) {
+            for (let i = at; i < raw.length; i += 1)
+              if (isDigit(raw[i] as string)) {
+                index = i;
+                break;
+              }
+          } else {
+            for (let i = at - 1; i >= 0; i -= 1)
+              if (isDigit(raw[i] as string)) {
+                index = i;
+                break;
+              }
+          }
+          if (index >= 0) {
+            raw = raw.slice(0, index) + raw.slice(index + 1);
+            if (!forward) at = index;
+          }
+        }
+        const next = format.identifierInput(kind, raw);
+        if (next !== event.target.value) caret.current = digitCount(raw.slice(0, at));
+        onValueChange(next);
+      }}
     />
   );
 }

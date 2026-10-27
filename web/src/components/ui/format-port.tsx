@@ -1,33 +1,23 @@
 'use client';
 
 import { createContext, useContext, type ReactNode } from 'react';
+import { parseCalendarDate, type CalendarDate, type IdentifierKind } from '@loto/core';
 
-/** A business calendar date exactly as the API sends it: `YYYY-MM-DD`, never a JS `Date`. */
-export type CalendarDate = string & { readonly __calendarDate: true };
-
-const calendarPattern = /^(\d{4})-(\d{2})-(\d{2})$/;
+// Calendar dates and identifier kinds are `@loto/core`'s own types (one calendar validation for
+// web and mobile): `YYYY-MM-DD` strings, never a JS `Date`.
+export type { CalendarDate, IdentifierKind } from '@loto/core';
 
 /** Accepts only a real calendar date string (no time, no zone); never constructs a `Date`. */
-export function asCalendarDate(value: string): CalendarDate | null {
-  const match = calendarPattern.exec(value);
-  if (match === null) return null;
-  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  if (month < 1 || month > 12 || day < 1 || day > daysInMonth(year, month)) return null;
-  return value as CalendarDate;
-}
+export const asCalendarDate: (value: string) => CalendarDate | null = parseCalendarDate;
 
-export function daysInMonth(year: number, month: number): number {
-  if (month === 2) return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 29 : 28;
-  return [4, 6, 9, 11].includes(month) ? 30 : 31;
-}
-
-export type IdentifierKind = 'cpf' | 'cnpj' | 'phone' | 'cep';
+export { daysInMonth } from '@loto/core';
 
 /**
- * The presentation formatting the components need, as one narrow port. Its implementation belongs
- * to `@loto/core` (formatting §2, §4, §6, §7 — Shared M3), which does not exist yet. Web provides
- * **no** fallback: until M4 wires core here, a component that needs formatting fails loudly instead
- * of guessing. Tests pass explicit doubles; the gallery passes labelled fixture tables.
+ * The presentation formatting the components need, as one narrow port (formatting §2, §4, §6, §7).
+ * The app's implementation is `coreFormat` (`@/lib/core-format`, over `@loto/core`), provided at the
+ * root by `AppProviders`. There is no Web-local formatter or fallback: without a provider a
+ * component fails loudly instead of guessing. Unit tests pass an explicit double to prove a
+ * component renders the port's answer.
  */
 export interface PresentationFormat {
   /** Integer count, dot-grouped (§7): `1.234`. */
@@ -54,6 +44,11 @@ export interface PresentationFormat {
   readonly weekdayShort: (weekday: number) => string;
   /** Presentational mask (§6); a value that does not fit renders verbatim. */
   readonly identifier: (kind: IdentifierKind, value: string) => string;
+  /**
+   * The text while typing (§6 "input mask auto-punctuates"): punctuation added as digits arrive
+   * (`5299` → `529.9`); unsupported or overlong text verbatim.
+   */
+  readonly identifierInput: (kind: IdentifierKind, text: string) => string;
   /** What is submitted where the contract expects digits only (§6). */
   readonly identifierDigits: (kind: IdentifierKind, value: string) => string;
 }
@@ -75,7 +70,7 @@ export function useFormat(): PresentationFormat {
   const format = useContext(FormatContext);
   if (format === null) {
     throw new Error(
-      'No PresentationFormat: wire @loto/core formatters (Shared M3) through FormatProvider.',
+      'No PresentationFormat: render inside FormatProvider (AppProviders provides coreFormat).',
     );
   }
   return format;

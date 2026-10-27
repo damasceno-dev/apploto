@@ -1,85 +1,31 @@
 // Calendar arithmetic for the date controls: integers over `YYYY-MM-DD` strings. No JS `Date`, no
 // device clock and no time zone — a business date is a calendar value (formatting §4), and "today"
 // is whatever the branch clock says (`GET /branch/current`), passed in by the screen.
-import { asCalendarDate, daysInMonth, type CalendarDate } from './format-port';
+import {
+  addDays,
+  addMonths,
+  calendarDateFromParts,
+  calendarDateParts,
+  compareCalendarDates,
+  daysInMonth,
+  weekdayOf,
+  type CalendarDate,
+  type CalendarParts,
+} from '@loto/core';
 
-export interface CalendarParts {
-  readonly year: number;
-  readonly month: number;
-  readonly day: number;
-}
+// The calendar arithmetic itself is `@loto/core`'s (one implementation for web and mobile); these
+// names are the components' existing API over it.
+export type { CalendarParts };
+export { addDays, addMonths, weekdayOf };
 
-export function partsOf(date: CalendarDate): CalendarParts {
-  return {
-    year: Number(date.slice(0, 4)),
-    month: Number(date.slice(5, 7)),
-    day: Number(date.slice(8, 10)),
-  };
-}
+export const partsOf: (date: CalendarDate) => CalendarParts = calendarDateParts;
 
-export function calendarDate(year: number, month: number, day: number): CalendarDate {
-  const text = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  const date = asCalendarDate(text);
-  if (date === null) throw new RangeError(`Not a calendar date: ${text}`);
-  return date;
-}
-
-/** 0 = domingo … 6 = sábado (Sakamoto's method; Brazilian calendars start the week on Sunday). */
-export function weekdayOf(date: CalendarDate): number {
-  const offsets = [0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4];
-  let { year } = partsOf(date);
-  const { month, day } = partsOf(date);
-  if (month < 3) year -= 1;
-  return (
-    (year +
-      Math.floor(year / 4) -
-      Math.floor(year / 100) +
-      Math.floor(year / 400) +
-      (offsets[month - 1] ?? 0) +
-      day) %
-    7
-  );
-}
-
-export function addDays(date: CalendarDate, days: number): CalendarDate {
-  let { year, month, day } = partsOf(date);
-  let remaining = days;
-  while (remaining !== 0) {
-    if (remaining > 0) {
-      const room = daysInMonth(year, month) - day;
-      if (remaining <= room) {
-        day += remaining;
-        remaining = 0;
-      } else {
-        remaining -= room + 1;
-        day = 1;
-        [year, month] = month === 12 ? [year + 1, 1] : [year, month + 1];
-      }
-    } else if (-remaining < day) {
-      day += remaining;
-      remaining = 0;
-    } else {
-      remaining += day;
-      [year, month] = month === 1 ? [year - 1, 12] : [year, month - 1];
-      day = daysInMonth(year, month);
-    }
-  }
-  return calendarDate(year, month, day);
-}
-
-/** The same day `months` later or earlier, clamped to the target month's length. */
-export function addMonths(date: CalendarDate, months: number): CalendarDate {
-  const { year, month, day } = partsOf(date);
-  const index = year * 12 + (month - 1) + months;
-  const nextYear = Math.floor(index / 12);
-  const nextMonth = (index % 12) + 1;
-  return calendarDate(nextYear, nextMonth, Math.min(day, daysInMonth(nextYear, nextMonth)));
-}
+/** Throws `RangeError` for an impossible date. */
+export const calendarDate: (year: number, month: number, day: number) => CalendarDate =
+  calendarDateFromParts;
 
 /** ISO calendar strings order lexicographically. */
-export function compareDates(a: CalendarDate, b: CalendarDate): number {
-  return a < b ? -1 : a > b ? 1 : 0;
-}
+export const compareDates: (a: CalendarDate, b: CalendarDate) => number = compareCalendarDates;
 
 /** The weeks of a month for a grid: each week Sunday..Saturday, `null` outside the month. */
 export function monthWeeks(year: number, month: number): (CalendarDate | null)[][] {

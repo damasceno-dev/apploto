@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { asCents, formatBrl, formatBrlWire, MAX_CENTS } from '@loto/core';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { Checkbox, Radio, RadioGroup, Switch } from '@/components/ui/choice';
 import {
@@ -62,6 +63,7 @@ export function InputSections() {
   const [notes, setNotes] = useState('Contagem parcial: 3 maços');
   const [search, setSearch] = useState('');
   const [cpf, setCpf] = useState('');
+  const [readOnlyChanges, setReadOnlyChanges] = useState(0);
   const [count, setCount] = useState<MoneyValue>(blankMoney);
   const [amount, setAmount] = useState<MoneyValue>({ kind: 'amount', digits: '94310' });
   const [account, setAccount] = useState<string | null>(null);
@@ -155,7 +157,7 @@ export function InputSections() {
           </FormField>
           <ReadOnlyField
             label="Abertura"
-            value="R$ 2.199,00"
+            value={formatBrlWire(2199)}
             reason="calculado pelo sistema"
             align="end"
           />
@@ -203,7 +205,10 @@ export function InputSections() {
               resultsAnnouncement={`${filtered.length} clientes encontrados`}
             />
           </FormField>
-          <FormField label="CPF" helper="Máscara pela porta de formatação (fixture)">
+          <FormField
+            label="CPF"
+            helper="Máscara aplicada com 11 dígitos; outro tamanho fica como digitado"
+          >
             <IdentifierInput kind="cpf" value={cpf} onValueChange={setCpf} />
           </FormField>
           <FormField label="Indisponível" disabledReason="Somente o gerente altera">
@@ -228,10 +233,9 @@ export function InputSections() {
         contract="design/specs/components/money-input.md"
       >
         <p className="type-helper text-text-muted">
-          Exibição, valor falado e colagem vêm da porta de formatação. Aqui ela é uma tabela de
-          exemplos (0, 5, 1234, 94310, 243700 centavos); fora dela os centavos aparecem crus — não é
-          um fluxo de valores real. A ligação ao <code className="type-code">@loto/core</code> é o
-          critério 7.4.
+          Exibição, valor falado e colagem vêm do <code className="type-code">@loto/core</code> pela
+          porta de formatação: qualquer valor até {formatBrl(asCents(MAX_CENTS))}; o 15º dígito é
+          recusado.
         </p>
         <FormGrid>
           <FormField
@@ -248,13 +252,26 @@ export function InputSections() {
           >
             <MoneyInput value={amount} onValueChange={setAmount} />
           </FormField>
+          <FormField label="Valor conferido" helper="Somente leitura: não muda ao digitar ou colar">
+            <MoneyInput
+              readOnly
+              value={{ kind: 'amount', digits: '1234' }}
+              onValueChange={() => setReadOnlyChanges((count) => count + 1)}
+            />
+          </FormField>
           <div className="flex flex-col gap-stack-xs">
             <span className="type-label">Abertura (somente leitura)</span>
-            <ReadOnlyAmount amount="R$ 2.199,00" provenance="calculado pelo sistema" />
+            <ReadOnlyAmount amount={formatBrlWire(2199)} provenance="calculado pelo sistema" />
           </div>
         </FormGrid>
         <p className="type-helper text-text-secondary" data-testid="money-state">
           Estado relatado: {count.kind === 'blank' ? 'blank' : `amount:${count.digits}`}
+        </p>
+        <p className="type-helper text-text-secondary" data-testid="readonly-changes">
+          Alterações no valor somente leitura: {readOnlyChanges}
+        </p>
+        <p className="type-helper text-text-secondary" data-testid="amount-state">
+          Valor relatado: {amount.kind === 'blank' ? 'blank' : `amount:${amount.digits}`}
         </p>
       </Section>
 
@@ -338,6 +355,14 @@ export function InputSections() {
               onInvalidChange={setDateInvalid}
               today={fixtureToday}
               max={fixtureToday}
+            />
+          </FormField>
+          <FormField label="Data registrada" helper="Somente leitura: o calendário não abre">
+            <DateField
+              readOnly
+              value={fixtureToday}
+              onValueChange={() => setReadOnlyChanges((count) => count + 1)}
+              today={fixtureToday}
             />
           </FormField>
           <FormField label="Mês de referência">

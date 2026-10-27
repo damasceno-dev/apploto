@@ -540,3 +540,99 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - Pure TS only — no Intl-locale surprises across platforms without a pinned strategy (decide `Intl` vs hand-rolled per formatter in-phase, using the Hermes `Intl` behavior measured in Mobile M1 Phase 4, and record the decision).
 
 **Precondition:** Milestone 2 (generated enum types) and Design M0 Phase 2 (the formatting spec).
+
+### Plan, gate and boundaries (written before code, 2026-10-26)
+
+Baseline: `Project-app` on `paralell/app` at `e746caa`, clean; approved flow-alignment plan read read-only from `Project/main` at `a34438a` (server M9.6 Phase 8 = plan A9, the restricted arithmetic parser, which lives here). Inputs read in full: `design/specs/formatting-ptbr.md`, `design/specs/copy-guidelines.md` (§5: 25 enum maps), the 25 generated enum types, the MoneyInput/Input/DatePicker/Badge/SaveStatus/Pagination specs, Web M3 (phase map, 7.4, round-1 fixes) and every `PresentationFormat` consumer, and Mobile M1's actual status.
+
+- **Native gate (unchanged).** Mobile M1 4.1/4.2 has **no measured Hermes output** on either platform. This milestone therefore separates three states per helper: **implemented** (code + Node tests), **web-verified candidate** (also exercised in Next SSR and Chrome through the Web adapter), and **native strategy accepted** (needs the Hermes readings and an independent decision). Nothing here reaches the third state. Helpers that use no engine locale facility are hand-rolled and deterministic; their native *execution* is still unproven. The only engine-dependent formatter is the UTC-instant conversion (IANA zone data via `Intl.DateTimeFormat` with an explicit `timeZone`), recorded as a **web-verified candidate, provisional for native**.
+- **No financial outcome on the client.** Helpers format, parse input and validate identifiers. They never sum or net balances, compute variance, FIFO, fees or credit, and never round an API figure: an API amount with more than two decimals is a contract violation and throws instead of being rounded.
+- **Money inputs are explicit.** Integer cents are the branded `Cents` type; a JSON wire number is passed only to the `…Wire` functions. An untagged number never decides between the two. The range is `numeric(14,2)`: |cents| ≤ 99 999 999 999 999 (12 integer digits), exact in a JS safe integer. *(Refines the 2026-06-10 line "`formatBrl` accepts cents or a wire `number`": it does, through two named entries, `formatBrl(cents)` and `formatBrlWire(value)`.)*
+- **Purity boundary.** `src` compiles with `lib: ["es2022"]` and `types: []` (no DOM, no Node, no `process`), imports only relative modules plus `import type` from `@loto/api`'s root entry, reads no clock, environment, storage, device locale or time zone, and keeps no mutable locale state. A boundary test enforces this on the source text.
+- **Out of scope.** Web M4 screens, any cashier/handover/reconciliation page, future `Session`/`Safe` enum values (labels follow the **current** generated enums only) (progressive identifier punctuation, first listed here, was implemented in review round 1 — see 4.3), and the universal money-field UX (Design 4.9.7).
+
+### Phase 1 — Contract inventory and API map
+
+- [x] **1.1** Every formatting/copy row mapped to one public helper with its input/output units, invalid/empty handling, test and native-evidence state (table below).
+- [x] **1.2** Public entry: `@loto/core` (`.` only). No deep import, no build layer; `@loto/api` is a type-only workspace dependency.
+
+| Contract row | Helper (input → output) | Invalid / empty | Tests | Native state |
+|---|---|---|---|---|
+| §2 money display | `formatBrl(Cents)`, `formatBrlWire(number)`, `formatBrlAmount` → `R$ 1.234,56` | negative, >2 decimals, non-finite, out of range → `RangeError` | `brl.test.ts` (code points, 12-digit max, wire round-trip ×2000) | hand-rolled; Hermes not executed |
+| §2 input / paste | `parseBrl(text)` → cents; entry digits (`normalizeMoneyDigits` …) | `empty` / `malformed` / `signed` / `out-of-range`; 15th digit → null | `brl.test.ts` (38 cases, round-trip ×2000) | hand-rolled; Hermes not executed |
+| §3 signed variance/deltas | `formatSignedBrl(Cents)`, `…Wire` → `+R$`/`−R$`/`R$ 0,00` | `-0` → unsigned zero | `brl.test.ts` | hand-rolled; Hermes not executed |
+| §3 fiado balance | `presentFiadoBalance(Cents)`, `…Wire` → `{ kind, signedCents, amount, label, text }` | as money | `spoken-fiado.test.ts` | hand-rolled; Hermes not executed |
+| MoneyInput spoken value | `spellBrl(Cents)`, `spellSignedBrl` | negative → `RangeError` (unsigned) | 32 hand-written sentences up to the maximum | hand-rolled; Hermes not executed |
+| A9 arithmetic input | `evaluateMoneyExpression(text, options)` → typed outcome, cents | 9 error codes, `incomplete`, `empty` | `money-expression.test.ts` (fixed + integer oracle ×1500 + adversarial) | BigInt; Hermes not executed |
+| §4 date-only | `CalendarDate`, `parseCalendarDate`, `formatDate`, `parseDateInput`, long/weekday/month names, `addDays`/`addMonths` | null (parse) / `RangeError` (display) | `dates.test.ts` (UTC-calendar oracle ×3000, leap/month/year edges) | hand-rolled; Hermes not executed |
+| §4 wall clock | `formatWallTime`, `formatWallDateTime` | offset/`Z`/impossible → `RangeError` | `dates.test.ts` | hand-rolled; Hermes not executed |
+| §4 UTC instant | `formatInstant*(value, timeZone)`, `parseInstant` | offset-free/impossible → null/`RangeError`; unknown zone → `RangeError` | 15 zone cases incl. DST start/end, +05:30, +12:45; both calendar ends | **`Intl` with explicit zone: web-verified candidate (Node, Chrome), provisional for native** |
+| §5 durations | `formatDuration(h)`, `formatSignedDuration(h)` | negative unsigned / non-finite → `RangeError` | half-minute edges, integer oracle ×2000 | hand-rolled; Hermes not executed |
+| §6 masks/validation | `formatIdentifier(kind, v)`, `maskIdentifierInput(kind, text)`, `identifierDigits`, `isValidCpf`/`isValidCnpj` | verbatim passthrough; repeated digits false | `numbers-identifiers.test.ts` | hand-rolled; Hermes not executed |
+| §7–§8 numbers/absent | `formatCount`, `formatDecimal`, `formatPercent`, `formatInstallment`, `EM_DASH`, `formatOptional` | non-integer count / bad position → `RangeError` | `numbers-identifiers.test.ts` | hand-rolled; Hermes not executed |
+| copy §5 (25 maps) | `…Labels`, `enumLabels`, `enumLabel` | unknown → `{ known: false, label: raw }` | `labels.test.ts` (generated keys, copy text) | data only |
+
+### Phase 2 — BRL, spoken money and fiado presentation
+
+- [x] **2.1** `Cents` brand and wire boundary: `asCents`, `centsFromWire` (exact, rejects non-finite, >2 decimals, out of range, `-0` → 0), `wireFromCents` (the JSON number whose shortest text has ≤2 decimals).
+- [x] **2.2** Displays (formatting §2–§3): `formatBrl`/`formatBrlWire` (unsigned; a negative value throws rather than hiding its sign), `formatBrlAmount` (no unit, for MoneyInput), `formatSignedBrl`/`formatSignedBrlWire` (`+R$`, `−R$` U+2212, unsigned zero); U+00A0 after `R$`.
+- [x] **2.3** Input: `parseBrl` (paste: optional `R$`, surrounding spaces, strict dot grouping, 1–2 decimals; signs, other symbols and >12 integer digits rejected by category) and the cents-digit model (`normalizeMoneyDigits`, `centsFromMoneyDigits`, `moneyDigitsFromCents`, `formatMoneyDigits`, 14-digit cap).
+- [x] **2.4** `presentFiadoBalance`/`…Wire`: `> 0` debt unsigned · **em aberto**; `0` **quitado**; `< 0` absolute value with explicit `+` · **crédito do cliente**; the signed API value is preserved and nothing is summed.
+- [x] **2.5** Spoken money `spellBrl` (and `spellSignedBrl`): pt-BR cardinal words, *real/reais*, *centavo(s)*, *de reais* after exact millions/billions, up to 999 999 999 999,99; hand-rolled (one contract for both platforms).
+
+### Phase 2b — Restricted arithmetic money input (server M9.6 Phase 8 / plan A9)
+
+- [x] **2b.1** `evaluateMoneyExpression(text, { allowNegative })`: tokenizer + recursive descent, nothing executed. Grammar, aliases, whitespace, precedence, unary signs, exact rational arithmetic, final half-away-from-zero rounding to cents and limits documented in `shared/AGENTS.md`.
+- [x] **2b.2** Typed results: `empty`, `incomplete` (in-progress text), `invalid` with an error code and position, `ok` with `cents`, `rounded` and `operators`; the app owns the pt-BR messages and sends only the resulting number.
+- [x] **2b.3** Tests with independent expected values: sums, grouping/decimal commas, precedence/parentheses, unary signs, division and rounding edges, maximum magnitude, malicious and overlong input.
+
+### Phase 3 — Calendar, wall clock, instants, durations and numbers
+
+- [x] **3.1** `CalendarDate` brand (`YYYY-MM-DD`, years 0001–9999, real calendar validation), parts, leap years, weekday, `addDays`/`addMonths` (clamped), compare — integer arithmetic, no `Date`.
+- [x] **3.2** Displays: `formatDate`, `parseDateInput` (`dd/MM/yyyy`), long date, weekday long/short, month name, `formatMonthYear`, `formatMonthField`, `formatDateWithWeekday` (calendar cell name).
+- [x] **3.3** Wall clock (rendered exactly as returned, offsets rejected): `formatWallTime`, `formatWallDateTime`.
+- [x] **3.4** UTC instants: `formatInstant`/`formatInstantDate`/`formatInstantTime(value, timeZone)` — the caller supplies the device zone (formatting §4); an offset-free value is rejected (it is a wall clock), and so is a conversion whose local date leaves 0001–9999 AD (review round 1).
+- [x] **3.5** Durations `formatDuration`/`formatSignedDuration` from the decimal hours' exact decimal text: minutes = round(|h| × 60) half away from zero, sign reapplied.
+- [x] **3.6** `formatCount`, `formatDecimal`, `formatPercent`, `formatInstallment`, `EM_DASH`/`formatOptional` (absent ≠ zero).
+
+### Phase 4 — Identifiers and enum labels
+
+- [x] **4.1** `formatIdentifier`/`formatCpf`/`formatCnpj`/`formatPhone`/`formatCep` with verbatim passthrough, `identifierDigits` (strips mask punctuation only).
+- [x] **4.2** `isValidCpf`/`isValidCnpj` (check digits; repeated-digit sequences rejected). Numeric CNPJ only — see the open note.
+- [x] **4.3** Progressive input mask `maskIdentifierInput(kind, text)` (formatting §6 "input mask auto-punctuates"): punctuation added as digits arrive, phone landline shape up to 10 digits and mobile at 11, a complete value equal to the display mask, unsupported or overlong text verbatim. *(Planned as open; implemented in review round 1.)*
+- [x] **4.4** 25 exhaustive maps keyed by the generated enums (`Record<Enum, string>`; a new value fails typecheck and the coverage test) plus `enumLabel` (unknown → raw value, `known: false`) and the **Automática** marker.
+
+### Phase 5 — Tests, boundary and docs
+
+- [x] **5.1** Vitest (same pinned versions as `@loto/api`) with fixed contract examples, boundaries, seeded property checks with independent oracles, and code-point assertions.
+- [x] **5.2** Boundary test (imports, globals, `Intl` use limited to the instant module, no clock/locale reads) and a public-export snapshot.
+- [x] **5.3** `shared/AGENTS.md` and this milestone record the API, the strategy table and the native evidence state.
+
+### Phase 6 — Web verification (Web M3 7.4, owned and recorded by Web)
+
+- [x] **6.1** Web adapter over core, real gallery data outside the old fixtures, Node/SSR/Chrome runs — evidence in Web M3. Hermes execution remains open (Mobile M1 4.1/4.2).
+
+### M3 implementation evidence (2026-10-26; implementer-checked, awaiting independent review)
+
+Ticks mean **implemented and checked by the implementer**. Nothing here is independently accepted, and no native strategy is accepted: Shared M3's native acceptance stays open until Mobile M1 4.1/4.2 measure Hermes and an owner decides.
+
+- **Baseline/final.** Start: `paralell/app` at `e746caa`, clean. End: same HEAD with this batch uncommitted. Plan reference `Project/main` `a34438a` read only; no other checkout edited.
+- **Server M9.6 Phase 8 (plan A9) parser** is implemented here as `evaluateMoneyExpression` (contract in `shared/AGENTS.md`); the server owner records its own criteria 8.1/8.2 after independent acceptance and integration. The "design pattern recorded for Batch B" part of 8.1 is Design 4.9.7's, not this milestone's; the Web gallery carries only a labelled demonstration.
+- **Package changes.** `@loto/core` gains `dependencies: { "@loto/api": "workspace:*" }` (type-only use) and devDependencies `vitest 5.0.3`, `vite 8.3.2`, `@types/node 26.6.4` (the versions `@loto/api` already pins; no new resolution). The lockfile adds that importer; pnpm 10.34.6 also re-resolved two optional-peer annotations on reinstall (`next`/`styled-jsx` lose the optional `@babel/core` peer key, `@react-native/metro-config` lists `bufferutil`/`utf-8-validate` as transitive peers) — no package version changed, a second install is a no-op and `pnpm install --frozen-lockfile` passes.
+- **Checks (2026-10-26, Node v26.6.0, pnpm 10.34.6).** `pnpm install --frozen-lockfile`; `pnpm -r typecheck`; `pnpm -r lint` (one new **warning**, see open items); `pnpm format:check`; `pnpm -r test`: Shared api 103, **core 265**, Web 9 + 232 Vitest, Mobile 7 — all passed. `@loto/api` `generate:check` (287 files) and `export:check` (sha256 `8f420211…2abbd`, 93 paths, 123 operations, 214 schemas) passed: no regeneration, no contract change. Doc sync green at v57 (34/34 regressions), design token/contrast (1,164 pairs, 40 negatives) and design-doc checks (25 enums labelled, 14 negatives) passed read-only.
+- **Runtime evidence by environment.** Node (Vitest): every helper. Next SSR + Chrome: through the Web adapter and gallery (Web M3 7.4 evidence) — identical server/browser text with U+00A0/U+2212, no hydration warning, instants in an explicit zone server-side and in the device zone (São Paulo, Kolkata, New York) after hydration. **Metro + Hermes compiler:** `expo export --platform all` into a scratch directory compiled all 13 core modules into the iOS and Android `.hbc` bundles (source maps list them) and Mobile's bundle check passed — a **compile** proof only. **Hermes execution: not run.** Host recheck (read-only): Xcode is selected with an iOS 17.2 simulator runtime but no booted device; no `adb`/emulator on PATH; only `hermesc` (compiler) is installed, no Hermes VM. Nothing was installed or reconfigured.
+- **Engineering choices recorded.** Unsigned helpers throw on a negative instead of dropping its sign; wire values with >2 decimals throw rather than round; `catorze` (not *quatorze*); long dates keep the contract's `1 de outubro` (no ordinal); durations are not dot-grouped (`1000h 00min`); paste accepts no sign; expression literals share the paste grammar (≤ 2 decimals, dot never decimal).
+
+**Independent review round 1 (2026-10-27) — six findings, all accepted and corrected; awaiting the same reviewer's recheck.** The reviewer reproduced the gates above independently and checked 500 further expressions against an exact-fraction oracle. Core-owned findings (the four Web-owned ones are in Web M3 7.4):
+
+| Finding | Correction | Regression |
+|---|---|---|
+| P3-5 — progressive CPF punctuation unimplemented (formatting §6) | `maskIdentifierInput` (4.3) for CPF, CNPJ, CEP and phone; display formatters keep exact-count passthrough. Web's IdentifierInput uses it with caret preservation | 24 typed-prefix cases, verbatim/overlong cases, seeded idempotence and "complete = display mask" (×400 per kind) |
+| P3-6 — a converted instant lost its era (`0001-01-01T00:00:00Z` in `Etc/GMT+1` printed `31/12/0001 23:00`, really 1 BC) | `Intl` parts now include the era; a local date outside 0001–9999 AD throws `RangeError` | both ends: 1 BC and year 10000 rejected, 01/01/0001 and 31/12/9999 accepted in UTC and an adjacent zone |
+
+Core after the round: 292 tests (was 265).
+
+**Open items (not implemented, explicit):**
+- Alphanumeric CNPJ: renders verbatim and fails `isValidCnpj`; formatting §6 defines numeric CNPJ only — a product/design decision if the shop's clients present the new format.
+- Native: Hermes execution of every helper, the `Intl` time-zone path and BigInt; the final per-formatter native strategy decision (input: Mobile M1 4.1/4.2).
+- Mobile follow-ups for its owner (mobile is read-only in this batch): `mobile/src/app/index.tsx` keeps an `eslint-disable import/namespace` comment that is now unused (lint warning, not an error) and `tooling/check-bundles.mjs` still prints "Core is an empty runtime namespace" although the bundles now contain core.

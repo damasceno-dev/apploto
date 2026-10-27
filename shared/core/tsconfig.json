@@ -1,4 +1,10 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Runtime source: no Node or bundler globals, so `process.env` and `import.meta.env` cannot
+    // compile. The default libs stay because the type-only `@loto/api` import is checked with them;
+    // test/boundary.test.ts recompiles core's own files against `es2022` alone (no DOM).
+    "types": []
+  },
   "include": ["src"]
 }

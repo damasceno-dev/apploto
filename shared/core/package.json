@@ -6,9 +6,18 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tooling.json",
     "lint": "eslint .",
     "format": "prettier --write . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
-    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore"
+    "format:check": "prettier --check . --ignore-path ../../.gitignore --ignore-path ../../.prettierignore",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@loto/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "vite": "8.3.2",
+    "vitest": "5.0.3"
   }
 }
