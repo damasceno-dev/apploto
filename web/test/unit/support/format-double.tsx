@@ -27,6 +27,7 @@ export const formatDouble: PresentationFormat = {
   monthName: (month) => `m${month}`,
   weekdayShort: (weekday) => `s${weekday}`,
   identifier: (kind, value) => `${kind}<${value}>`,
+  identifierInput: (kind, value) => `${kind}<${value}>`,
   identifierDigits: (_kind, value) => value.replace(/\D/g, ''),
 };
 

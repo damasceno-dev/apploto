@@ -71,10 +71,11 @@ test('renders every token category and all 25 component families of the contract
     'tokens-tipografia',
     'tokens-espacos',
     'tokens-layout',
+    'formatacao',
   ]) {
     await expect(page.locator(`section#${id}`), id).toHaveCount(1);
   }
-  // No request leaves the gallery: everything is fixture data.
+  // No request leaves the gallery: everything is example data formatted locally by @loto/core.
   const requests: string[] = [];
   page.on('request', (request) => {
     if (!/\/_next\/|\/styleguide|favicon/.test(new URL(request.url()).pathname))
@@ -323,7 +324,7 @@ test.describe('keyboard flows', () => {
     await row.getByRole('checkbox').click({ force: true });
     expect(new URL(page.url()).searchParams.get('transacao')).toBeNull();
     // Drag to select the value text: a selection never navigates.
-    const value = row.getByRole('cell', { name: 'R$ 943,10', exact: true });
+    const value = row.getByRole('cell', { name: 'R$\u00a0943,10', exact: true });
     const box = await value.boundingBox();
     if (box) {
       await page.mouse.move(box.x + 2, box.y + box.height / 2);
@@ -335,7 +336,7 @@ test.describe('keyboard flows', () => {
     await page.evaluate(() => window.getSelection()?.removeAllRanges());
     // Keyboard users reach the explicit, named link; a plain row click activates the same link.
     await expect(
-      row.getByRole('link', { name: 'Abrir transação 24/09/2026 R$ 943,10 Terminal 2' }),
+      row.getByRole('link', { name: 'Abrir transação 24/09/2026 R$\u00a0943,10 Terminal 2' }),
     ).toBeVisible();
     await row.getByText('Terminal 2', { exact: true }).click();
     await expect.poll(() => new URL(page.url()).searchParams.get('transacao')).toBe('1');
@@ -347,6 +348,9 @@ test.describe('automated accessibility scan (supplement)', () => {
     test(`no WCAG A/AA violations axe can detect — ${theme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: theme });
       await page.goto('/styleguide');
+      // Scan the hydrated page: the device-zone audit time is filled only after hydration, and
+      // effects such as a checkbox's `indeterminate` property have run by then.
+      await expect(page.getByTestId('fmt-instant-device')).not.toBeEmpty();
       await page.addScriptTag({ path: axePath });
       const violations = await page.evaluate(async () => {
         const axe = (

@@ -440,12 +440,12 @@ Inputs read: tokens and their README (all eight files), the 25-spec component in
 - [x] **7.1** Vitest/Testing Library: adapter resolution and every rejection, the lint negatives, theme, and each family's variants, states, focus and keyboard behavior.
 - [x] **7.2** Playwright (no API needed): gallery in both themes, first paint/reload/system change, 375px, 200% text, reduced motion, dialog/menu/tabs/listbox/calendar keyboard flows, nested overlays, row link versus nested actions, plus an automated accessibility scan as a supplement.
 - [x] **7.3** Docs: consumption rules, commands and evidence in `web/AGENTS.md` and below; build/bundle checks green.
-- [ ] **7.4** _(blocked by Shared M3)_ MoneyInput, DatePicker and masked-identifier wiring to the accepted `@loto/core` formatters and the spoken money value; Badge labels from core's maps. Not claimable until core exports exist and are accepted.
+- [x] **7.4** MoneyInput, DatePicker and masked-identifier wiring to the `@loto/core` formatters and the spoken money value; Badge labels from core's maps. *(Implemented 2026-10-26 against the Shared M3 helpers, which are implementer-checked and await independent review; web-verified only — see the 7.4 evidence below.)*
 
 
 ### M3 criterion map, evidence and limits (2026-10-22; review round 1 corrected, awaiting re-verification)
 
-Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot markers v57, `@loto/core` still `export {}`). Ticks mean **implemented and checked by the implementer**; nothing here is independently accepted, and **7.4 stays open**, so Web M3 is not complete.
+Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot markers v57, `@loto/core` still `export {}`). Ticks mean **implemented and checked by the implementer**; nothing here is independently accepted, and Web M3 is not complete until an independent review accepts the round-1 corrections and 7.4 *(7.4 was open when this was written; it is implemented in the 7.4 evidence section below)*.
 
 | Criteria | Artifact | Meaningful check |
 |---|---|---|
@@ -479,9 +479,48 @@ Baseline as for the D-M2-1 work (`paralell/app` at `e541a32`, design snapshot ma
 | P2 — replacing a toast charged the old budget to the new one; closing while focused left a pause that never ended | Unread time is per message id (a message that leaves charges nothing); pause (hover/focus) belongs to a message id and leaves with it | Replacement after 4 s: the next stays 5 s; close while focused, then a new toast expires on time; a hovered toast resumes with its unread time |
 | P3 — at 375 px a picker inside a dialog opened a second modal | Dialog provides an in-dialog context; below a dialog the calendar surfaces, SearchableSelect, Menu and FilterBar use the popover layer / inline fields instead of a sheet | jsdom at compact width: calendar, searchable list and menu inside a dialog leave one `<dialog>`; Chrome at 375 px: one `dialog:modal` and one `:popover-open` for the calendar and the listbox |
 
-**Not covered / open.** 7.4 (core wiring) is blocked by Shared M3. No real screen-reader pass was executed (axe is a supplement); the browser's default-font-size setting was not emulated (200% zoom via half-width viewport and a doubled root size were); only Chrome was driven; native/mobile is out of scope; touch was checked as coarse-pointer sizing in code, not on a device. The gallery's month/day labels and amounts are fixture tables; outside them values appear unformatted by design.
+**Not covered / open (2026-10-22).** 7.4 (core wiring) was blocked by Shared M3 then; it is implemented in the section below. No real screen-reader pass was executed (axe is a supplement); the browser's default-font-size setting was not emulated (200% zoom via half-width viewport and a doubled root size were); only Chrome was driven; native/mobile is out of scope; touch was checked as coarse-pointer sizing in code, not on a device. The gallery's month/day labels and amounts were fixture tables then; since 7.4 they come from core.
 
 **Contract/dependency impact.** No API, Shared, design or canonical-doc change. New devDependency `axe-core 4.14.0` (already resolved in the workspace; lockfile adds only the importer entry). Cross-area suggestion for the design lane, not acted on: the Badge spec could say how a scoped (pinned-theme) region references domain colors, and the shell blueprint's route map could show the `/f/{branchId}` prefix the owner decided.
+
+### 7.4 core wiring evidence (2026-10-26; implementer-checked, awaiting independent review)
+
+Baseline `paralell/app` at `e746caa` (clean); Shared M3 helpers from the same batch. The five round-1 corrections are unchanged and their regressions (`test/unit/ui/review-round-1.test.tsx`) pass on the new code; Web M2/D-M2-1 acceptance is not reopened.
+
+| Area | Change | Check |
+|---|---|---|
+| Port | `src/lib/core-format.ts` (`coreFormat`, frozen) implements all 13 callbacks with core; `AppProviders` provides it for every route. `galleryFixtureFormat` deleted; the gallery uses the root provider | `core-wiring.test.tsx`: every callback on non-fixture values; provider wired; fixture file gone |
+| Calendar | `CalendarDate`/`asCalendarDate`/`daysInMonth` and `calendar.ts` arithmetic re-exported from core (same names and branded type); `branch-clock.ts` validates through core | existing calendar/picker/branch-clock suites unchanged and green; jsdom with core: typed `29/02/2028` accepted, `29/02/2027` invalid and kept, pt-BR headings/weekdays/day names across 31/12/2030 → 01/2031 with the branch-clock today and bound |
+| MoneyInput | 14-digit cap from core on typing, fallback and paste; display, spoken value and paste from core | jsdom and Chrome keystrokes: `4815162342` → `48.151.623,42` with the full spoken sentence, typed zero → **zero reais**, leading zero, 15th digit refused, Backspace to blank, `R$ 31.415,92` paste, signed/`1.5`/13-digit pastes ignored, read-only amount |
+| Identifier, counts | CPF masks at 11 digits, verbatim otherwise; Pagination/Stepper counts dot-grouped | jsdom and Chrome |
+| Badge | `domainLabels` (13 domains, typed against the generated enums); default label from core | every value of every domain renders its copy §5 label; unknown stays raw and uncolored |
+| Instants | `AuditInstant`/`useDeviceTimeZone` (device zone after hydration, or explicit zone in SSR) | Chrome: server HTML carries the explicit-zone time and an empty device-zone `<time>`; after hydration São Paulo 14:30, Kolkata 23:00, New York 13:30 for one instant; no console/hydration error |
+| Gallery | **Formatação** section (money, signed, fiado, spoken, dates, wall clock, instants, durations, counts, identifiers, absent vs zero, the 25 maps) and the arithmetic demonstration; example rows/figures formatted by core | `e2e-styleguide/core-format.spec.ts` (11 tests) |
+
+| Check (2026-10-26) | Result |
+|---|---|
+| `pnpm --filter @loto/web test` | 9 tooling + 232 Vitest (18 files; 13 new in `core-wiring.test.tsx`) — before review round 1 |
+| `LOTO_API_BASE_URL=http://127.0.0.1:59999 pnpm --filter @loto/web build` (fresh `.next`) | Passed with the bundle check; no `/styleguide` or `/e2e` route; client assets contain no API variable/URL, `__Host-loto-b`/`-rt` cookie names, gallery text or fixture |
+| `pnpm --filter @loto/web test:styleguide` (fresh `.next-styleguide`, Chrome) | 26/26 (15 existing + 11 core-format), axe-core 4.14.0 clean in Claro and Escuro; the core-format spec also passed 3× repeated |
+| `pnpm --filter @loto/web test:e2e` (own disposable PostgreSQL/Mailpit/API, Chrome) | 20/20; owned containers removed. Docker Desktop was started for the run and quit afterwards |
+
+**Corrections made while verifying.** The axe scan and the new interaction tests now wait for hydration: with the larger page, a scan could run before the indeterminate checkbox's `indeterminate` property is set, and axe then reports `aria-conditional-attr` on its server-rendered `aria-checked="mixed"`. That pre-hydration state is inherent to a native checkbox (no HTML attribute exists for `indeterminate`); recorded for review, not changed. The gallery's example amounts previously used an ASCII space after `R$`; they are now formatted by core (U+00A0), and the two existing table assertions name that code point.
+
+**Independent review round 1 of 7.4 (2026-10-27) — all four Web findings accepted and corrected; awaiting the same reviewer's recheck.** (The two core findings are in Shared M3.) Each regression in `test/unit/ui/review-round-2.test.tsx` was run against the pre-fix components and failed (8 of 12; the extreme-navigation ones once they record jsdom's swallowed handler errors), then passed.
+
+| Finding | Correction | Regression |
+|---|---|---|
+| P2-1 — a read-only MoneyInput changed on paste | `locked` (read-only or disabled) guards `beforeinput`, the `onChange` fallback and paste | jsdom: paste, typed digit, deletion and change emit nothing for `readOnly` and for `disabled`, editable control still pastes; Chrome: real paste and keys on a read-only gallery field leave `12,34` and zero changes |
+| P2-2 — a read-only DateField's calendar chose dates | read-only covers the composite: the calendar button is disabled, `commit` and selection are gated | jsdom: no grid opens, no value emitted; Chrome: gallery **Data registrada** |
+| P2-3 — reselecting the current date left invalid text with no error | every calendar choice rewrites the text explicitly | jsdom and Chrome: 20/02/2024 → `99/99/9999` → 20/02/2024 again shows `20/02/2024` and no error |
+| P3-4 — navigation past 0001-01-01 threw `RangeError` | calendar keys and month buttons stay put at either end (`withinCalendar`); DayStepper's previous/next and MonthField's year buttons are disabled at 0001/9999 (same defect class, found while fixing) | jsdom: all backward moves at 0001-01-01 and forward moves at 9999-12-31 stay with no uncaught error, stepper and month field bounded; Chrome: 01/01/0001 + ArrowLeft/Up/PageUp/Home with no page error |
+| (Shared P3-5) progressive CPF | IdentifierInput uses `identifierInput` with caret restore; deleting a generated mask separator deletes the neighbouring digit (round 2: only when the previous text was exactly the mask of its digits) | jsdom: step-by-step CPF, Backspace/Delete over separators, mid-value insert keeps the caret, phone shape change at 11 digits; Chrome: real typing and Backspace |
+
+**Recheck round 2 (2026-10-27) — two findings, both accepted and corrected.** P2: deleting an invalid character from `529.98a` also removed the `8`, because any removed non-digit was treated as mask punctuation (an alphanumeric CNPJ and an overlong CPF were affected the same way). The separator-aware deletion now applies only when exactly one character was removed, that character is one of the kind's generated separators, and the previous text equals the mask of its own digits; otherwise the edit is kept as typed. Regressions (jsdom, both shown failing on the round-1 handler, and Chrome): `529.98a` + Backspace → `529.98`, a letter removed with Delete mid-text, Backspace over an alphanumeric CNPJ's slash removes only the slash, and removing a dot from an overlong CPF keeps all 12 digits. P4: the stale "progressive CPF" open item in this milestone's "Not covered / open" paragraph is removed; alphanumeric CNPJ and the native limitations stay. Checks after round 2: workspace frozen install/typecheck/lint/format (the one mobile warning), tests Shared api 103, core 292, Web 9 + 246 Vitest, Mobile 7; production build with bundle check; `test:styleguide` 31/31 (the new and existing CPF scenarios also 3× repeated). The real-stack e2e (20/20 after round 1) was not re-run: the change is confined to IdentifierInput's change handler, which no e2e flow uses.
+
+Checks after the round-1 corrections (2026-10-27): workspace frozen install/typecheck/lint/format (still the one mobile warning); tests Shared api 103, core 292, Web 9 + 244 Vitest (19 files), Mobile 7; production build with bundle check (no gallery/e2e route, no API URL or cookie names in client assets); `test:styleguide` 30/30 (15 existing + 15 core-format; the round-2 and CPF scenarios also 3× repeated); real-stack `test:e2e` 20/20 on a disposable stack (Docker started for it and quit after). Not re-run because untouched: `generate:check`/`export:check`, design and doc-sync checks, the mobile export.
+
+**Not covered / open.** No real screen-reader or physical-touch pass; only Chrome; the restricted-arithmetic demonstration is gallery-only (no screen adopts it before Design 4.9.7); native execution (Hermes) is Mobile's. The Shared M3 open item on alphanumeric CNPJ (verbatim display, fails validation) applies here too.
 
 ---
 
