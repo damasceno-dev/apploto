@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { AppState, Text, View } from 'react-native';
 import NetInfo from '@react-native-community/netinfo';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   QueryClient,
   QueryClientProvider,
@@ -183,7 +184,11 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
   if (!runtime.engine)
     return (
       <View className="flex-1">
-        <Text accessibilityRole="alert">{runtime.error}</Text>
+        <SafeAreaView edges={['top', 'left', 'right']} className="px-4">
+          <Text accessibilityRole="alert" className="text-helper text-sem-feedback-danger-fg">
+            {runtime.error}
+          </Text>
+        </SafeAreaView>
         {__DEV__ ? children : null}
       </View>
     );

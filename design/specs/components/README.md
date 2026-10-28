@@ -1,6 +1,6 @@
 # Lotero component contract
 
-> **Status:** Design M3, authored 2026-10-20 (D04); independent review pending. Web (Web M3) and mobile (Mobile M3) each implement these components in their own code — same anatomy, states, token mapping and accessibility, platform-appropriate interaction. Nothing here is runtime code.
+> **Status:** Design M3, authored 2026-10-20 (D04); accepted as recorded in Design M3 3.5.2 (owner close-out 2026-10-22 after independent semantic review). Running-code proof is 3.5.3, owned by the apps. Web (Web M3) and mobile (Mobile M3) each implement these components in their own code — same anatomy, states, token mapping and accessibility, platform-appropriate interaction. Nothing here is runtime code.
 
 A component spec answers four questions for both apps: what the parts are, which tokens paint them in each theme, how every state looks and behaves, and how keyboard, touch, screen-reader and enlarged-text users reach the same result. Semantics stay where they are authored: the [screen catalog](../../docs/screens.md) owns what each screen does and its [cross-screen patterns](../../docs/screens.md#cross-screen-patterns) own recovery, errors and concurrency; [copy](../copy-guidelines.md) owns words and [formatting](../formatting-ptbr.md) owns values. A component spec refers to those authorities instead of restating them, so there is one rule in one place.
 

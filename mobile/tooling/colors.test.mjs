@@ -113,3 +113,26 @@ test('project lint rejects imported palette definitions used by styles and inter
   const messages = [palette, consumer].flatMap((source) => lint(source));
   assert.equal(messages.filter((message) => message.ruleId === 'loto/raw-color').length, 1);
 });
+
+test('reject primitive palette references in classes, token paths and variables; accept sem/dom names', () => {
+  for (const code of [
+    'const x = <View className="bg-blue-600" />;',
+    'const x = <View className="p-4 active:text-red-700/50" />;',
+    "const path = 'color.primitive.teal.400';",
+    "const style = { '--color-night-950': 'x' };",
+    "const t = 'themes.light.primitive';",
+  ]) {
+    const messages = lint(code);
+    assert.ok(
+      messages.some((message) => message.messageId === 'primitive'),
+      code,
+    );
+  }
+  for (const code of [
+    'const x = <View className="bg-sem-surface-default text-dom-cash-variance-shortage-fg" />;',
+    'const x = <Text>Fechar caixa azul</Text>;',
+  ])
+    assert.deepEqual(lint(code), [], code);
+  assert.match(checkCss('.a { @apply bg-teal-400; }', 'x.css').join(), /primitive/);
+  assert.match(checkCss('.a { --color-blue-600: 1; }', 'x.css').join(), /primitive/);
+});

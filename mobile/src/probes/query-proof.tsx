@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useGetBranchMyBranches } from '@loto/api/queries';
-import { Text } from 'react-native';
+import { AppText as Text } from '../ui/text';
 import { createApiClient } from '@loto/api';
 
 let tokenReads = 0;

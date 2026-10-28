@@ -1,33 +1,40 @@
 import { Role, createApiClient } from '@loto/api';
 import { getGetBranchMyBranchesQueryKey, useGetBranchMyBranches } from '@loto/api/queries';
 import * as core from '@loto/core';
-import { ScrollView, Text } from 'react-native';
+import { useState } from 'react';
+import { ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// Metro removes this require dependency from production when it folds __DEV__.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+import { spacing } from '@/theme/style';
+import { AppText } from '@/ui/text';
+// Metro removes these require dependencies from production when it folds __DEV__.
+/* eslint-disable @typescript-eslint/no-require-imports */
 const DevPanel = __DEV__ ? require('../probes/dev-panel').DevPanel : () => null;
+const DevGallery = __DEV__ ? require('../probes/gallery').ComponentGallery : null;
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 export default function HomeScreen() {
+  const [gallery, setGallery] = useState(false);
+  if (DevGallery !== null && gallery) return <DevGallery onClose={() => setGallery(false)} />;
   return (
-    <SafeAreaView className="flex-1">
+    <SafeAreaView style={{ flex: 1 }}>
       <ScrollView
         keyboardDismissMode="on-drag"
         keyboardShouldPersistTaps="handled"
-        contentContainerClassName="gap-4 p-6"
+        contentContainerStyle={{ gap: spacing.stack.md, padding: spacing.page['block-start'] }}
       >
-        <Text accessibilityRole="header" className="text-2xl font-semibold">
+        <AppText variant="page-title" accessibilityRole="header">
           Lotero
-        </Text>
-        <Text>Estrutura inicial do aplicativo.</Text>
-        <Text>
+        </AppText>
+        <AppText>Estrutura inicial do aplicativo.</AppText>
+        <AppText>
           API: {typeof createApiClient} · {Object.keys(Role).length} tipos de perfil.
-        </Text>
-        <Text>
+        </AppText>
+        <AppText>
           Consultas: {typeof useGetBranchMyBranches} · {getGetBranchMyBranchesQueryKey().length}{' '}
           chave.
-        </Text>
-        <Text>Core: {Object.keys(core).length} exportações.</Text>
-        <DevPanel />
+        </AppText>
+        <AppText>Core: {Object.keys(core).length} exportações.</AppText>
+        <DevPanel onOpenGallery={() => setGallery(true)} />
       </ScrollView>
     </SafeAreaView>
   );

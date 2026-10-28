@@ -359,172 +359,29 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
   - There is no `dist/`.
 
 
-> **S06 delivery note (2026-10-17; completed 2026-10-18): Phases 1–5 implemented and validated.** Checkout `Project`, branch `main`, baseline `ba63552`. That commit integrates the server input `763edd7` (SV22 H3/H4) and `940bca7` (its landing record), spec `v52`; `git diff 940bca7 HEAD -- server docs` is empty. Pre-existing design WIP (`design/docs/milestones.md`, `design/docs/decisions.md`, `design/references/claude/`) is untouched and outside this delivery. Nothing is staged or committed.
->
-> **Still unchecked, with reasons:**
-> - Items 1.3, 3.3 and 3.4 closed after the first fix batch, and 2.3, 3.2, 3.5 and 3.7 after the second (below).
-> - **1.6** needs an authorized commit. The document's commit must record its real hash; none is invented here.
-> - **5.2** is defined "from a fresh clone", which needs that commit. Its checks have already passed in a disposable fresh-clone equivalent (below), and they are repeated once the commit exists.
->
-> **Phase 1 — contract input**
-> - **1.1 tripwire passed** (verified before anything was generated). The snapshot and the exported document carry `/report/manager-queue` and `ResponseManagerQueue{,Backlog,Close,NotSubmitted}Json`, and have 0 `dashboard` mentions.
-> - The document itself shows:
->   - response numbers are `number`/`integer`, while request numbers stay `number|string` (for example `RequestCreateTransactionJson.value`);
->   - per-operation `security`: `[]` ×3, `IdentityBearer` ×3, `BranchBearer` ×95 (46 any role, 49 with role names), with no document-wide requirement;
->   - `Idempotency-Key` is required on `POST /transaction`, `/transaction/installment` and `/transaction/fiado-payment`; `If-Match` is required on guarded mutations; `ETag` is declared on versioned responses.
-> - The spec group and both design markers are at `v52`, and `bash docs/check-loto-doc-sync.sh` is green.
-> - **1.2.** The H1/H2 landing (`26fb2bb`) and the H3/H4 landing (`763edd7`) are recorded above.
-> - **1.2 H2 regression:** with no `ConnectionStrings__*`, `Token__*` or `ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT`, `dotnet build server/server.sln --no-incremental` exits 0 and writes no OpenAPI document. User configuration was not changed.
-> - **1.3** `scripts/export-openapi.ts` (Node 26 type stripping) runs on **every** export:
->   - `dotnet build … -c Release --no-incremental -p:OpenApiGenerateDocuments=true -p:OpenApiDocumentsDirectory=<fresh mkdtemp dir>`;
->   - the child gets an environment with the real `ConnectionStrings__*`, `Token__*`, `ASPNETCORE_*` and `DOTNET_ENVIRONMENT` stripped, and only inert values injected (`Host=openapi-export.invalid`, a non-secret signing key);
->   - the `server.API.json` bytes are copied unmodified, and only the owned temp directory is removed.
->   - A fake `dotnet` recorded the child environment while the parent held a "real" connection string, signing key and `Development`; the child saw only the inert values.
->   - Failure proofs (each exit 1):
->     - a build that exits 0 but writes no document (the committed file stays untouched);
->     - a failing build;
->     - a missing SDK;
->     - a drifted document;
->     - a missing committed document.
-> - **1.4** Exports from `shared/api` and from the repository root are byte-identical: sha256 `6fd6f2441c38fdc76b3289afd147b2d7c04170213af368e3d7d9a00545d37ea7` (the same as the server's SV22 export). The document is OpenAPI 3.1.1, 73 paths, 101 operations, 166 schemas, with no `servers`.
->   - Parity: the document equals this checkout's WebApi.Test host Development `/openapi/v1.json` once the runtime-only `servers` (`http://localhost/`) is excluded. A disposable harness outside the repo dumped the runtime document.
-> - **1.5** `export:check` re-exports to a temp file and compares bytes. It passes from both directories and needs the .NET 10 SDK (here 10.0.201); server M9 CI can adopt it.
->
-> **Phase 2 — generated models and raw functions**
-> - **2.1 Orval `8.39.0`**, published 2026-09-30, engines `node >=22.18.0`. It is the newest 8.x at least 14 days old on 2026-10-17: `8.40.0` (2026-10-04) and the plan's `8.43.0` (2026-10-14) do not qualify.
-> - Behavior verified in the installed 8.39.0 source:
->   - it normalizes `headers: outputOptions.headers ?? false`;
->   - it formats only through `output.formatter` (the `prettier` flag is not read);
->   - the fetch client's `forceSuccessResponse` and `includeHttpResponseReturnType` type only the 2xx variants as `{ data, status, headers }`;
->   - a mutator file that exports `ErrorType` sets the hooks' `TError`.
-> - Lockfile audit: only additions. No pre-existing package was upgraded or removed (`ajv@8`, `path-key@4` and `json-schema-traverse@1` sit beside the existing versions), and ESLint's lockfile key now records Orval's optional `jiti` peer. Orval's optional `zod` peer was resolved automatically to `4.6.7`.
-> - **2.2** `orval.config.ts` takes the committed document as its only input:
->   - the `fetch` client, `tags-split` mode, models in `src/generated/model/` and raw functions in `src/generated/endpoints/`;
->   - the `src/client/fetch.ts#apiFetch` mutator, `headers: true`, `clean: true` and `useDates: false`;
->   - `formatter: 'prettier'` with the root `.prettierrc`.
->   - No operation has an `operationId`, so names come from method and path (for example `postTransaction`, `putTransactionTransactionId`).
-> - **2.3/2.4.** The mutator builds the URL from the injected base, attaches the provider's token and keeps headers. The root entry exports models, raw functions and the client API.
-> - **2.5** `generate` is deterministic: two runs give tree hash `0ba7c11047f220393164af5d8ac74a2a5864abf552c5bb3d7f1240e5c8ec8459` (sha256 of the sorted per-file sha256 list) over 227 files: 194 model, 16 endpoint, 16 query and 1 auth map. *(Superseded by the first fix batch below: the tree and its hash changed, and the hash recipe is now stated explicitly.)*
->   - `generate:check` mirrors the inputs into a fresh temp directory, symlinks the installed tools, generates, and compares all paths and bytes; no git is involved.
->   - It passes from the repository root and from `shared/api`. **All six seeded cases fail** with a precise list: `modified` / `added` (an untracked stale file) / `deleted`, each from both directories. Each was restored, and the restore verified by tree hash.
-> - **2.6–2.8** `src/contract-checks/contract-fidelity.ts` is compiled by `typecheck`:
->   - `TransactionStatus`, `DailyCloseStatus` and `Role` equal their name unions and reject numeric literals, and no generated enum object has a non-string value;
->   - required `token`/`refreshToken` and session `token`/`branch`;
->   - `errorMessages` is required `string[] | null`, and `clientId` is optional and nullable;
->   - `branchLocalDate`/`branchLocalDateTime` are required strings;
->   - response `value`/`version` are `number`, and request `value` is `number | string`;
->   - `Idempotency-Key` is required on `POST /transaction` and `/transaction/installment`, `If-Match` on `PUT /transaction/{transactionId}` and `…/finalize`, and `headers: Headers` (ETag) is on raw results.
->   - Sabotage proofs (restored afterwards): generating with `headers: false` and with `useDates: true` each fails typecheck.
->
-> **Phase 3 — client core**
-> - **3.1** Vitest `5.0.3` (2026-09-30, engines include `>=26.0.0`), with its required peer `vite` `8.3.2` (2026-10-01). Root `test` is `pnpm -r test`.
-> - **3.2–3.6.** Request-scoped clients come from `createApiClient` and pass per call as `{ client }`; `configureApiClient` sets a default, and each call snapshots its client. The rest is as documented in `shared/AGENTS.md`:
->   - typed `ApiConfigurationError`;
->   - the token provider called per request with a generated `authTier`;
->   - `ApiError`, `isOutcomeUncertain`, `toIfMatch`/`parseETag`;
->   - exactly one `fetch` call per invocation.
->   - `src` compiles with `types: []`: seeded `process.env` and `import.meta.env` reads fail to compile.
-> - **Choice recorded:** dispatch starts at the `fetch` invocation, so even a synchronous throw from `fetch` counts as dispatched (the conservative reading). An abort while the token provider is pending settles the call at once without dispatch.
-> - **3.7** 55 tests pass, driving the real generated functions with an injected fake `fetch`. They cover:
->   - provider calls with method/path/tier, the `null` token and URL joining;
->   - concurrent requests with different clients, and a reconfiguration during an in-flight request;
->   - multi-message, `null`, non-JSON and empty error bodies, network failure, malformed 2xx, and a body lost after the status line;
->   - the uncertainty matrix (GET vs POST, 409/401 vs 5xx, abort before dispatch, during the provider and after dispatch, timeout);
->   - header pass-through and `ETag`, and one `fetch` call for 401/409/500/network;
->   - `toIfMatch`/`parseETag` boundaries.
->
-> **Phase 4 — queries entry and boundary**
-> - **4.1** `@tanstack/react-query` `5.104.1` (2026-10-02) is pinned exactly as a devDependency, with peer range `^5.104.1`. `react`/`@types/react` `19.3.0` are pinned for typechecking only. No `QueryClient` is created.
-> - **4.2** A second Orval project (`react-query` over `fetch`) writes to `src/generated/queries/`, with the same models and mutator and `headers: true`, `clean: true`.
->   - Spike result: the hooks carry internal generated fetchers that call the same `apiFetch`; they do not import the raw functions.
->   - A first attempt with `useQuery: true` turned writes into query hooks. It was reverted to Orval's defaults (GET → query, others → mutation): 101 hooks, one per operation.
-> - **4.3** Only `@loto/api/queries` exports hooks. `query-fidelity.ts` asserts required header variables for POST `/transaction`, installment and PUT, and that the hooks' default `TError` is `ApiError`. No generated file contains `retry`, and apps keep mutation retries at 0.
-> - **4.4** `scripts/check-boundary.ts` runs inside `lint`. It walks the TypeScript-resolved transitive import graph of `src/index.ts` (218 modules, type-only imports and re-exports included) and fails on React, `@tanstack/*`, `src/queries/**` or `src/generated/queries/**`, plus any generated `retry`.
->   - Seeded proofs, all failing with the import chain and then removed:
->     - a direct type import of `@tanstack/react-query` in a client module;
->     - a re-export of `../queries` hidden behind an innocent intermediate module;
->     - `retry` in generated output.
->
-> **Phase 5 — docs and verification**
-> - **5.1** `shared/AGENTS.md` carries the layout, commands, pins and client contract. The web and mobile M2 plans carry in-repo handoff notes; no external message was sent.
-> - **Fresh-clone-equivalent verification:** HEAD's tracked files from `git archive`, plus only this task's 261 changed/new paths (no `design/` WIP), in a disposable directory that is not a git repository. There:
->   - `pnpm install --frozen-lockfile`;
->   - `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check` and `pnpm -r test` (55/55);
->   - `generate:check` from the root and from `shared/api`, and `export:check` (`6fd6f244…`).
->
->   All exit 0. There is no `dist/` and no environment read under `shared/*/src`. Node `v26.6.0`, pnpm `10.34.6`, .NET SDK `10.0.201`.
-> - **First fix batch (2026-10-17).** Five transport/export defects that the original 55 tests did not exercise were fixed.
->   1. **Required financial headers could be overridden.** Orval 8.39.0 always merges `options.headers` after the generated header arguments (raw and query outputs). Its only switch, `requestOptions: false`, would also remove `signal` and the per-call `client`. Fixed at the wrapper boundary, with no edit to generated code:
->      - the caller-facing options type is `ApiRequestOptions` (`headers?: never`), exposed as the mutator's last overload, so `options.headers` is a compile-time error in both outputs (`contract-fidelity.ts`, `query-fidelity.ts`);
->      - codegen now emits each operation's declared header parameters in `src/generated/operations/operations.ts` (which replaces `auth/operation-auth-tiers.ts`);
->      - before dispatch, the mutator refuses (`ApiError` kind `invalid-request`) any header the operation does not declare (besides `Content-Type` with a body) and any name repeated in another casing, so `If-Match: "7", "99"` can no longer be produced.
->      - **Residual:** a caller that bypasses the types and repeats a declared header in exactly the same casing still replaces the value. Orval erases that before the mutator sees it, and only editing generated output could change it.
->   2. **A `null` token did not guarantee no `Authorization`.** The provider is now the only source: any caller-supplied `Authorization` (record, `Headers` or tuple form) is refused before the provider runs.
->   3. **The export's environment filter was case-sensitive.** `isServerConfiguration` now matches case-insensitively, treats `:` like `__`, and covers `DOTNET_`/`ASPNETCORE_`-prefixed keys and the `SQLCONNSTR_`/`SQLAZURECONNSTR_`/`MYSQLCONNSTR_`/`POSTGRESQLCONNSTR_`/`CUSTOMCONNSTR_` prefixes. The canonical inert values are injected afterwards. A fake SDK given mixed-case "real" markers received only the inert values.
->   4. **An abort between the provider resolving and `fetch` was reported as dispatched.** Cancellation is now rechecked after the provider settles; everything from that check to the `fetch` invocation is synchronous.
->   5. **Provider failures escaped untyped.** A synchronous throw and an asynchronous rejection both become `ApiError` kind `token-provider` (`cause` kept, `dispatched: false`, never uncertain). Hooks' `TError` (`ApiError`) is now true for them.
->   - **Regressions:** 30 new tests (85 in total):
->     - case collisions through record, `Headers` and tuple options, in the raw and query outputs;
->     - undeclared headers and `Authorization`;
->     - exact header bytes;
->     - the provider-resolution/abort window;
->     - sync and async provider failures;
->     - 16 server-configuration aliases plus 6 preserved names, and the exact child environment.
->   - **Sabotage proof (sources restored):**
->     - removing header validation fails 3 tests;
->     - removing the final abort check fails 1;
->     - removing provider normalization fails the rejecting-provider case (the sync path has its own guard);
->     - a case-sensitive filter fails 12.
->   - **Refreshed evidence:**
->     - Tree hash, recipe: sha256 over the UTF-8 lines `<file-sha256>  <relative-path>\n` for every file under `src/generated/`, sorted by relative path. Result `c9311da46da88554b4fca9bb0d6d2f2ce403e4fe506be9986ccba109d3ed0433` over 227 files (194 model, 16 endpoint, 16 query, 1 operation map), identical after regeneration.
->     - The six `generate:check` negatives fail again from both directories.
->     - `export:check` passes at `6fd6f244…7ea7` (the input bytes are unchanged).
->     - Frozen install, `pnpm -r typecheck/lint/test` (85/85) and `pnpm format:check` pass. The boundary check walks 218 modules.
-> - **Second fix batch (2026-10-18).** The null-token, export-environment, abort-window and provider-error fixes closed **1.3, 3.3 and 3.4**. Two header defects remained, and **3.2** was reopened.
->   1. **Exact-case options headers still replaced financial arguments.** The first batch's type-only restriction could not stop JavaScript or type-asserted callers, because Orval's merge erased the generated value before the mutator ran.
->      - The fix moves the boundary into generation: `scripts/header-boundary.ts` wraps Orval's own `fetch` and `react-query` builders through the documented function-valued `client` option, passing the built-in client name back so the query module still emits React hooks.
->      - It rewrites only the header merge: `headers: { …generated, ...getHeaders(options?.headers) }` becomes `headers: { …generated }, callerHeaders: options?.headers`. That covers all 88 sites (70 body-only, 16 body + declared headers, 2 declared headers only).
->      - Diffing the regenerated tree against the first-batch tree shows exactly those 88 rewrites and nothing else. Any unrecognized merge fails generation.
->      - With both sources intact, the mutator refuses (`invalid-request`, before dispatch, never uncertain) a caller header that names a generated or declared header (`Idempotency-Key`, `If-Match`, `Content-Type`) with a different value in **any** casing. An equal value is allowed.
->      - The first batch's residual is gone. Without the boundary the mutator refuses every financial request (fail-safe; proved by sabotage) rather than allowing overrides.
->   2. **Ordinary headers were refused.** `ApiRequestOptions` is `RequestInit` without `method`/`body` again, so `headers` is allowed, and ordinary caller headers pass through unchanged in record, `Headers` and tuple forms, in both outputs. A caller `Authorization` and case-duplicated names are still refused.
->   - **Supersedes in the first-batch note:** "options cannot carry headers", the undeclared-header refusal and the residual.
->   - **Regressions:** 91 tests in total:
->     - exact- and other-case conflicts for `Idempotency-Key`, `If-Match` and `Content-Type` in the raw and query outputs;
->     - ordinary pass-through (record, `Headers`, tuple, raw, query and GET) with the exact header list sent;
->     - equal-value non-conflict;
->     - caller `Authorization` and case duplicates;
->     - `header-boundary.test.ts`: the three rewrite shapes, a loud failure on an unknown shape, and the committed tree has 0 lossy merges and 88 separated ones.
->   - The compile-time gates now assert that ordinary `headers` compile and a `body` does not, in both outputs.
->   - **Sabotage (restored):**
->     - plain Orval clients make every financial request refuse (fail-safe, 8+ failures);
->     - ignoring conflicts in the mutator fails 2 tests;
->     - dropping ordinary headers fails 1.
->   - The same sabotage exposed a real gap, now fixed: `generate:check`'s mirror did not copy `scripts/header-boundary.ts`.
->   - **Refreshed evidence:**
->     - tree hash (same recipe) `d2f91f08604268fd4d67539fce3eadd88611ec307f375312cd0ed7138da20fe7` over 227 files, identical after regeneration;
->     - the six `generate:check` negatives fail from both directories;
->     - `export:check` passes at `6fd6f244…7ea7`;
->     - frozen install, `pnpm -r typecheck/lint/test` (91/91) and `pnpm format:check` pass, and the boundary walk covers 218 modules.
-> - **Status (2026-10-18).** The second batch's header fixes are complete: the generation-time header boundary, ordinary caller-header pass-through, and refusal of conflicting financial headers and caller `Authorization`. **2.3, 3.2, 3.5 and 3.7 are closed**, so every implementation item 1.1–5.1 is checked.
->   - **Remaining:** 1.6 needs the authorized source commit, recorded with its real hash in a follow-up (never in the same commit). 5.2 needs the done criteria repeated from an actual fresh clone of that commit.
->   - **Final evidence:**
->     - input sha256 `6fd6f2441c38fdc76b3289afd147b2d7c04170213af368e3d7d9a00545d37ea7` (server `763edd7`, spec `v52`);
->     - generated tree `d2f91f08604268fd4d67539fce3eadd88611ec307f375312cd0ed7138da20fe7` (227 files);
->     - 91/91 tests, recursive typecheck/lint/format, `generate:check` from both directories, and `export:check`.
-> - **Not claimed:** behavior under Hermes/Metro or Next is untested here (Web/Mobile M1/M2 prove it). `Scalar.AspNetCore` floats (`Version="*"`) on the server, a restore-reproducibility risk the server owner already knows about.
+### Delivered state and verification
 
+**Status:** Complete. Phases 1–5 landed in `d095262` (server input `763edd7`, spec v52); later regenerations follow each landed server contract.
 
-> **S06 actual-commit close-out (2026-10-18; SV10/SV11 Stage 0).** Source/landing commit `d095262488523d949032011ec67e6638013acf5f` includes the final implementation and the older design candidate (the latter is committed, with no implied visual approval). A disposable **local Git clone of that exact commit**, `/private/tmp/loto-s06-d095262-acceptance`, was checked out detached; no remote fetch/push, user branch change or copy of uncommitted source participated. `pnpm install --frozen-lockfile`, `pnpm -r typecheck`, `pnpm -r lint`, `pnpm format:check`, `pnpm -r test` (**91/91**), root `pnpm --filter @loto/api generate:check`, package `pnpm --dir shared/api generate:check`, and `export:check` from both locations all exited 0. Export uses the documented inert configuration and fresh build recipe. Both generations match all 227 committed files; both exports match input sha256 `6fd6f2441c38fdc76b3289afd147b2d7c04170213af368e3d7d9a00545d37ea7` (server `763edd7`, spec v52). The exact documented hash recipe (sort the **relative path strings** ordinally, then hash UTF-8 `<sha256>  <relative-path>\n` lines relative to `src/generated/`) reproduces `d2f91f08604268fd4d67539fce3eadd88611ec307f375312cd0ed7138da20fe7`. Clone `git status --porcelain` is empty after checks; no dashboard endpoint, runtime environment reads or dist output exists. Thus 1.6 and 5.2 close on the real previously authorized commit, not a self-referential hash for this documentary diff. Earlier pre-commit notes above remain historical evidence.
+- **Export (1.3–1.5):** `scripts/export-openapi.ts` forces a `--no-incremental` Release build into a fresh temp directory, strips real server configuration case-insensitively (connection-string prefixes, `Token`, `ASPNETCORE_`/`DOTNET_`, security-mail and `GoogleIdentity` aliases), injects inert values and copies the document unmodified. Missing, stale or failing exports exit 1. `export:check` compares bytes and needs the .NET 10 SDK.
+- **Generation (2.1–2.8):** Orval 8.39.0 (`fetch` and `react-query`, `tags-split`, `headers: true`, `useDates: false`) over the committed document only. `generate:check` regenerates into a mirror and fails on modified/added/deleted files. Tree hash recipe: sha256 over UTF-8 lines `<file-sha256>  <relative-path>\n` for every file under `src/generated/`, sorted ordinally by relative path. `contract-fidelity.ts` and `query-fidelity.ts` pin enum names, required/nullable fields, numeric directions, required financial headers and `ETag` access.
+- **Client core (3.1–3.7):** per-call `createApiClient` clients and a default from `configureApiClient`; the token provider receives `{ method, path, authTier }`; failures normalize to `ApiError` (provider failures are kind `token-provider`, never dispatched). Dispatch starts at the `fetch` invocation; cancellation is rechecked after the provider settles. `scripts/header-boundary.ts` rewrites Orval's header merge at generation time so caller headers stay separate: a conflicting `Idempotency-Key`/`If-Match`/`Content-Type` in any casing and any caller `Authorization` are refused before dispatch; ordinary headers pass through.
+- **Queries and boundary (4.1–4.4):** `@tanstack/react-query` is a peer (`^5.104.1`); hooks are reachable only through `@loto/api/queries`, with no generated `retry`. `scripts/check-boundary.ts` (inside `lint`) rejects React/TanStack/query modules reachable from the root entry.
+- **1.6 / 5.2:** verified on a local clone of `d095262`: frozen install, recursive typecheck/lint/format, 91/91 tests, `generate:check` from both directories and `export:check` (input `6fd6f244…7ea7`, tree `d2f91f08…20fe7`, 227 files).
 
-> **M8 candidate regeneration (2026-10-18; SV10 + SV11 Phases 1–5).** Actual source baseline remains `d095262488523d949032011ec67e6638013acf5f`, and the later Phases 1–5 candidate, which landed in `9ea777cdb5376f5f6396de65bfba39db41ae91ee` with canonical spec v53. That commit is separate from the S06 landing. The opt-in export and generator produced input SHA-256 `fcfe94155a72246a11c0a103c760524f9f80dd1164f61c75351bef4455de15b9` (87 paths, 118 operations, 186 schemas), and generated tree SHA-256 `a401811614fe34dbb68ff9da383c929e2fd531b46985aa587f9d8c844c43b4e8` over 255 files using the same ordinal relative-path-string recipe above. No generated DTO/client was edited by hand. Required `UserId`, profile/recovery/request/invitation DTOs, nullable own-request wrapper and optional reissue-body fidelity compile against both outputs. The S06 wrapper separates all 110 generated header merges; token isolation, no retry, typed error, abort and import-boundary tests remain intact. Export configuration scrubbing now also removes AccountSecurity/SecurityMail aliases and injects disabled mail/trusted inert defaults. Frozen install, recursive typecheck/lint/format/test (**101/101**), root and `shared/api` `generate:check` and `export:check` all exited 0 on the final candidate; both fresh exports match the exact input hash, both generations match all 255 files. Root boundary traversal covers 243 hook-free modules. Default Release build with server configuration removed exports zero documents. Server delivery and essential migration/SMTP/setup guidance are in [Server M8](../../server/docs/milestones.md#m8-accepted-delivery-and-essential-operations). At this historical Phases 1–5 candidate point, canonical v53/design markers v52 intentionally kept the actual doc-sync gate open; the later v54 close-out is recorded below. No Web/Mobile UI or Shared M3 implementation is implied.
+| Regeneration (source) | Input SHA-256 | Paths / operations / schemas | Generated files | Tests |
+|---|---|---|---|---|
+| S06 landing `d095262` (server `763edd7`, v52) | `6fd6f244…7ea7` | 73 / 101 / 166 | 227 | 91 |
+| Server M8 Phases 1–5 (`9ea777c`, v53) | `fcfe9415…15b9` | 87 / 118 / 186 | 255 | 101 |
+| Server M8 Phases 6–7 (`b96c5d3`, v54) | `e903b801…6d48` | 90 / 120 / 186 | 257 | 103 |
+| Server M11 Phases 4–7 (`18012d5`, v56) | `b2f7dcf0…23c2` | 93 / 123 / 214 | 287 | 103 |
+| Server M8 Phase 8 local subset (v57; current committed document) | `8f420211…abbd` | 93 / 123 / 214 | 287 (tree `5e9f08bd…b536`) | 103 |
 
-> **M8 Phase 6–7 candidate regeneration (2026-10-18; SV11).** Source baseline `9ea777cdb5376f5f6396de65bfba39db41ae91ee` contains the preceding M8 input and an unrelated M9.5 evidence edit; the later `a326b4d` design M1 commit does not alter this generation source. This candidate and its corrections landed in `b96c5d3`. The opt-in export produced input SHA-256 `e903b801be1db602d6e02ec505c4ae2a48888d869f58af7c3af50b26f5e11d48` (**90 paths, 120 operations, 186 schemas**); clean generation produced **257 files**, ordinal relative-path tree SHA-256 `115efe12e51f58f0ae3decd7a4d9b9059386130d076a35320dee07f637dadad6`. Public register, unrestricted branch create and direct member-add operations disappear; platform onboarding/read/reissue, Google challenge/sign-in and the read-only profile capability fields flow from server OpenAPI, never hand-edited clients. The compile-time profile fidelity assertion and exact header-boundary assertion now match the new surface: **108 separated merges**, zero lossy merges. Export child configuration also strips all `GoogleIdentity__` aliases and injects only an inert client id. Frozen install, recursive typecheck/lint/format/test (**103/103**), root/package generation and export checks pass; boundary traversal finds **244** hook-free root modules. A default inert Release build emits zero documents. [Server M8](../../server/docs/milestones.md#m8-accepted-delivery-and-essential-operations) records the delivered backend scope and essential security/migration/setup guidance; neither live Google sign-in testing nor a new S06 landing is claimed. Both design markers now match canonical v54; the actual doc-sync checker exits 0 and its 34 regression scenarios pass. Server items 1.4/5.5 close on that evidence, while 7.2/7.2.2 and Phase 8 provider/launch gates remain open.
+The current document adds the 429 `Retry-After` header declarations to login and the abuse-protected anonymous flows; consumers read `Retry-After` from `ApiError.headers`, and nothing retries automatically. `ResponseOpenChequeAgingGroupJson.originTransactionId` is optional/nullable since the M11 regeneration. No generated file is hand-edited and no `dashboard` path exists.
 
-> **Server M11 Phases 4–7 candidate regeneration (2026-10-20; uncommitted working tree on `main` over `c5dec58`, canonical v56).** The opt-in export produced input SHA-256 `b2f7dcf089f6007a9f964ffdf399723fe3111161d695de77e14d035b177123c2` (**93 paths, 123 operations, 214 schemas**; previously `e903b801…`, 90/120/186). Clean generation produced **287 files**, ordinal relative-path tree SHA-256 `ce104dd469ec88c9b5b4e0e0ca9ce45bc0598a3d15862f36231e55aeaf0234e9`. New operations: `GET /report/upcoming-settlements`, `GET /report/monthly-financial/{year}/{month}` and `GET /report/management-overview` (all BranchBearer Admin/Manager); new enums `SettlementInstrument`, `MonthlyFinancialRole` and `OverviewSectionStatus`; TransactionType requests gain optional `settlementInstrument`/`monthlyFinancialRole` and its response requires both; `ResponseOpenChequeAgingGroupJson.originTransactionId` becomes optional/nullable (a standalone cheque has no plan) — a deliberate typed change consumers must handle. No generated file was edited by hand and no `dashboard` path or schema exists. `generate`, `generate:check`, `export:check`, `typecheck`, `lint` (boundary: generated code sets no retry, hook-free root), `test` (**103/103**) and `format:check` all exited 0. Recording only: this does not land the server contracts.
+Server delivery and essential migration/SMTP/setup guidance for the M8 regenerations are in [Server M8](../../server/docs/milestones.md#m8-accepted-delivery-and-essential-operations).
 
-> **Server M8 Phase 8 local subset candidate regeneration (2026-10-21; uncommitted working tree on `main` over `f424deb`, which contains the M11 input above as `18012d5`; canonical v57).** The opt-in export produced input SHA-256 `8f420211324373556b330be8bd03beb4e787df2b8d0e4e928cf4ed9653d2abbd` (**93 paths, 123 operations, 214 schemas**, unchanged counts; previously `b2f7dcf0…`). The document diff is additive only: `POST /user/login` declares 429 `ResponseErrorJson`, and every 429 response (login, Google challenge/sign-in, reset-password, invitation preview/decline/register) declares a required integer `Retry-After` header (minimum 1). Clean generation produced **287 files**, tree SHA-256 `5e9f08bdb49d5ddd7e83f9adb942700d8873192d74191e5cfd4c13ed7c7fb536` (same recipe; it reproduces `ce104dd4…` on the committed tree). Only `endpoints/user/user.ts` and `queries/user/user.ts` changed: `postUserLoginResponseError` gains the 429 variants. Response headers generate no types; `Retry-After` stays a header consumers read from `ApiError.headers`, and nothing retries automatically. `generate`, `generate:check`, `export:check`, `typecheck`, `lint`, `test` (**103/103**) and `format:check` exited 0; no Node manifest or lockfile changed. Recording only: the landing commit is recorded after authorized landing.
-
+**Not claimed here:** Hermes/Metro and Next behavior (proved by Web/Mobile M1/M2). `Scalar.AspNetCore` floats (`Version="*"`) on the server — a restore-reproducibility risk owned by the server.
 ---
 
 ## Milestone 3 — Core Helpers
@@ -582,7 +439,7 @@ This file is the general milestone list for the `shared/` area. Detailed phases 
 - [x] **3.1** `CalendarDate` brand (`YYYY-MM-DD`, years 0001–9999, real calendar validation), parts, leap years, weekday, `addDays`/`addMonths` (clamped), compare — integer arithmetic, no `Date`.
 - [x] **3.2** Displays: `formatDate`, `parseDateInput` (`dd/MM/yyyy`), long date, weekday long/short, month name, `formatMonthYear`, `formatMonthField`, `formatDateWithWeekday` (calendar cell name).
 - [x] **3.3** Wall clock (rendered exactly as returned, offsets rejected): `formatWallTime`, `formatWallDateTime`.
-- [x] **3.4** UTC instants: `formatInstant`/`formatInstantDate`/`formatInstantTime(value, timeZone)` — the caller supplies the device zone (formatting §4); an offset-free value is rejected (it is a wall clock), and so is a conversion whose local date leaves 0001–9999 AD (review round 1).
+- [x] **3.4** UTC instants: `formatInstant`/`formatInstantDate`/`formatInstantTime(value, timeZone)` — the caller supplies the device zone (formatting §4); an offset-free value is rejected (it is a wall clock), and so is a conversion whose local date leaves 0001–9999 AD.
 - [x] **3.5** Durations `formatDuration`/`formatSignedDuration` from the decimal hours' exact decimal text: minutes = round(|h| × 60) half away from zero, sign reapplied.
 - [x] **3.6** `formatCount`, `formatDecimal`, `formatPercent`, `formatInstallment`, `EM_DASH`/`formatOptional` (absent ≠ zero).
 

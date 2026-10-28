@@ -2,16 +2,20 @@ import { readdir, readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import postcss from 'postcss';
-import { hasArbitraryColor, hasRawColor } from './colors.mjs';
+import { hasArbitraryColor, hasPrimitiveReference, hasRawColor } from './colors.mjs';
 
 export function checkCss(source, filename) {
   const errors = [];
   const root = postcss.parse(source, { from: filename });
   root.walkDecls((decl) => {
+    if (hasPrimitiveReference(decl.prop) || hasPrimitiveReference(decl.value))
+      errors.push(`${filename}:${decl.source.start.line}: primitive token in ${decl.prop}`);
     if (hasRawColor(decl.value))
       errors.push(`${filename}:${decl.source.start.line}: raw color in ${decl.prop}`);
   });
   root.walkAtRules((rule) => {
+    if (hasPrimitiveReference(rule.params))
+      errors.push(`${filename}:${rule.source.start.line}: primitive token in @${rule.name}`);
     if (hasArbitraryColor(rule.params) || hasRawColor(rule.params))
       errors.push(`${filename}:${rule.source.start.line}: raw color in @${rule.name}`);
   });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Button, Platform, Text, View } from 'react-native';
+import { Button, Platform, View } from 'react-native';
+import { AppText as Text } from '../ui/text';
 import Constants from 'expo-constants';
 import expoMetadata from 'expo/package.json';
 import { verifyCore } from './core-verification';

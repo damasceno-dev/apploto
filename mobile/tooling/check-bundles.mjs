@@ -4,16 +4,21 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+// Strings that exist only in DEV technical modules (probes, fault injection, component gallery).
+export const releaseMarkers = [
+  'Medir Intl no Hermes',
+  'DEV fixture response intentionally lost',
+  '/__native-fixture',
+  'Galeria técnica de componentes',
+  'Demonstração técnica: aritmética restrita',
+];
+
 export function assertReleaseBoundary(map, bundle, platform) {
   assert.ok(
     !map.sources.some((source) => /(?:^|\/)(?:mobile\/)?src\/probes\//.test(source)),
     `${platform}: technical probe module in production map`,
   );
-  for (const marker of [
-    'Medir Intl no Hermes',
-    'DEV fixture response intentionally lost',
-    '/__native-fixture',
-  ])
+  for (const marker of releaseMarkers)
     for (const encoding of ['utf8', 'utf16le'])
       assert.ok(
         !bundle.includes(Buffer.from(marker, encoding)),
@@ -44,7 +49,7 @@ async function check(root) {
       const bundle = await readFile(path.join(directory, files[0].slice(0, -4)));
       assertReleaseBoundary(map, bundle, platform);
       console.log(
-        `${platform}: production graph/bytecode contain no technical probes or fault-injection markers.`,
+        `${platform}: production graph/bytecode contain no technical probes, gallery or fault-injection markers.`,
       );
     }
     for (const entry of [
@@ -54,6 +59,8 @@ async function check(root) {
       '/shared/core/src/format/money-expression.ts',
       '/shared/core/src/dates/instant.ts',
       '/shared/core/src/labels/enums.ts',
+      '/mobile/src/theme/provider.tsx',
+      '/mobile/src/ui/feedback.tsx',
     ])
       assert.ok(
         map.sources.some((source) => source.endsWith(entry)),

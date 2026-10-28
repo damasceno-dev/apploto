@@ -10,13 +10,14 @@
     "bundle:ios": "expo export --platform ios --output-dir dist/ios",
     "bundle:android": "expo export --platform android --output-dir dist/android",
     "typecheck": "expo customize tsconfig.json && tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
-    "lint": "eslint . && node tooling/check-css.mjs && node tooling/auth-policy.mjs --check",
+    "lint": "eslint . && node tooling/check-css.mjs && node tooling/auth-policy.mjs --check && node tooling/tokens.mjs --check",
     "test": "node --test tooling/*.test.mjs && jest --runInBand",
     "format": "prettier --write . --ignore-path ../.gitignore --ignore-path ../.prettierignore",
     "format:check": "prettier --check . --ignore-path ../.gitignore --ignore-path ../.prettierignore",
     "native:doctor": "node tooling/native.mjs doctor",
     "native:proof:android": "node tooling/native.mjs proof-android",
-    "generate:auth": "node tooling/auth-policy.mjs"
+    "generate:auth": "node tooling/auth-policy.mjs",
+    "generate:tokens": "node tooling/tokens.mjs"
   },
   "dependencies": {
     "@loto/api": "workspace:*",

@@ -173,6 +173,85 @@ Product screens, physical-device/accessibility acceptance, provider sign-in and 
 
 **Precondition:** Mobile M1, Design M2 + M3, and Web M3 (adapter pattern proven).
 
+**Status:** Implementation of Phases 1–6 is complete and implementer-verified on iOS 26.5 and Android 16 simulators/emulators. Independent review is pending; the physical-device, spoken screen-reader and Impeccable passes listed under *Open gates* did not run.
+
+### Decisions (2026-10-27)
+
+- **Token adapter.** `tooling/token-resolver.mjs` validates `design/tokens/*.json` (file set, groups, keys, whole-value references, missing/group references, cycles, layering, cross-theme, literals in semantic/domain, light/dark parity, value shapes) and `tooling/tokens.mjs` generates `src/theme/token-adapter.ts` — resolved semantic/domain colors per theme (no primitive names), native type roles (letter spacing em → px, `tabular-lining` → `fontVariant`), spacing, radii, shadows (iOS offset/radius/opacity + Android elevation), motion with reduced variants, layers and breakpoints. The generated adapter is the single raw-color exemption; `lint` fails on drift and on any `sem-`/`dom-` class name that does not exist. Tailwind 3 reads the same resolver: semantic/domain colors as CSS variables supplied per theme through NativeWind `vars()`, the 4px scale, radii and type roles. `design/` is never imported at runtime.
+- **Themes.** `ThemeProvider` (root, outside the session providers) reads the stored preference (AsyncStorage key `loto.theme-preference.v1`, presentation only) before any app UI paints; Claro/Escuro also set the OS appearance so native keyboards/pickers match; Sistema follows OS changes and re-reads on resume; reduced motion swaps every transition for its reduced entry; listeners are released on unmount. A failed write keeps the choice for the session and reports it.
+- **Components** live in `src/ui/` (barrel `@/ui`), styled from the theme tokens; NativeWind classes remain available for layout and token colors. Platform choices: overlays are React Native modals; pickers, menus and filters opened inside a dialog render as in-modal layers (one modal trap; Android back closes the topmost layer first); the calendar is an app-owned sheet over core's calendar arithmetic (0001–9999, no `Date`, no OS-picker clipping); time is typed `HH:mm`.
+- **Gallery** `src/probes/gallery/` is reached only through the Metro-folded `__DEV__` require in the home route; production maps/Hermes bytecode are checked for its path and strings.
+
+### Phase 1 — Coverage map and restart documents
+
+- [x] **1.1** Progress-only cleanup of the five area milestones (criterion IDs, ticks, gates and links preserved).
+- [x] **1.2** Component-to-artifact/state/test map below.
+
+### Phase 2 — Token adapter and theme lifecycle
+
+- [x] **2.1** Build-time resolver/validator and generated adapter with drift and invalid-consumption gates; independent malformed-reference, layering, parity and value tests.
+- [x] **2.2** Primitive-reference ban (classes, token paths, variables, CSS) alongside the existing raw-color gate.
+- [x] **2.3** Native unit mapping: OS text scaling, tabular figures, touch minimums with hit slop, shadows/elevation, motion and reduced motion, layers, safe areas, keyboard insets (`ScreenScroll`; Android 15+ edge-to-edge does not resize the window).
+- [x] **2.4** Sistema/Claro/Escuro with persisted override, no app paint before the preference is known, live OS change and resume, credentials untouched.
+
+### Phase 3 — Components
+
+- [x] **3.1** Inputs and forms: Button/link, FormField/Fieldset/FormGrid, TextField (text, e-mail, password, textarea, search), IdentifierInput, MoneyInput, Select (listbox, searchable, no default), DatePicker family, Checkbox/Radio/Switch.
+- [x] **3.2** Data and structure: Badge, Card, SummaryStrip, DetailList, DataTable/GroupedList, FilterBar, Pagination, PageHeader.
+- [x] **3.3** Overlays, navigation and feedback: Overlay (dialog, confirmation, drawer, bottom sheet), Menu, Tabs/SegmentedControl, Disclosure, Stepper, Notice/ErrorSummary/UncertainNotice, ToastProvider, SaveStatus, Skeleton, EmptyState.
+
+### Phase 4 — DEV gallery and visual pass
+
+- [x] **4.1** Gallery of every token category and component family with arbitrary-value inputs, event logs and labelled technical examples; restricted arithmetic demonstrated only there.
+- [x] **4.2** Production exclusion: the bundle gate rejects the gallery by module path and by its strings (UTF-8/UTF-16), with a deliberate-leak negative.
+- [x] **4.3** Screenshot-driven corrections on both OSs (see verification).
+
+### Phase 5 — Tests and native proof
+
+- [x] **5.1** Jest/RNTL contract tests and tooling tests (counts below).
+- [x] **5.2** Native gallery journeys on iOS and Android dev builds from a fresh owned Metro.
+
+### Phase 6 — Close-out
+
+- [x] **6.1** Guide and milestone records; full workspace and bundle gates.
+
+### Component map
+
+| Contract | Artifact (`src/ui/…`) | Decisive states/behaviors | Tests (`test/unit/ui/…`) | Gallery |
+|---|---|---|---|---|
+| button.md | `button.tsx` | six variants, link role, disabled with reason (guarded, hint), loading verb as spoken name, stable width | `controls`, `overlays` | Button |
+| form-field.md | `form-field.tsx` | field only adds disabled/required/invalid/read-only; label focuses control; grid stacks with text size | `controls` | FormField e Input |
+| input.md | `input.tsx`, `input-logic.ts` | password toggle, search clear + polite count, textarea counter, read-only text; progressive identifier masks with caret and separator deletion | `controls`, `input-logic` | FormField e Input |
+| money-input.md | `money-input.tsx`, `input-logic.ts` | blank ≠ zero, right-to-left cents, 15th digit refused, replacements and pastes through `parseBrl` (malformed ones rejected, value kept), spoken value, disabled/read-only never emit, fast native typing/deletion | `controls`, `input-logic` | MoneyInput |
+| select.md | `select.tsx` | groups, inactive only when flagged, no default, searchable (accent-insensitive, complete list), loading/failed/empty, out-of-options marker, disabled never opens | `controls`, `overlays` | Select |
+| date-picker.md | `date-picker.tsx` | typed text kept, contract error, branch today/bounds, 0001–9999 navigation, header reflow at large text, range, day stepper, month waits without reference, `HH:mm` following external values; every member inherits FormField disabled/read-only | `controls` | DatePicker |
+| choice-controls.md | `choice.tsx` | indeterminate, radio without default, switch for device preferences only, hidden-label table selection | `controls`, `feedback` | Checkbox, Radio e Switch |
+| badge.md | `badge.tsx` | copy §5 labels and domain tokens by exact enum key, unknown raw/neutral/reported, Automática, feedback, mode | `feedback` | Badge |
+| card.md, summary-strip.md, detail-list.md | `layout.tsx` | next-action region, checklist; unavailable figure is — never zero, signed tones with spoken sign; identity/provenance/restriction rows | `feedback` | Card, SummaryStrip e DetailList |
+| table.md | `table.tsx` | shared column widths scaling with text, labelled horizontal region, sticky action column aligned per row, whole-row press vs explicit link vs nested actions/selection, loading/empty/error/updating, grouped/expandable lists | `feedback` | Table/List… |
+| filter-bar.md, pagination.md | `filters.tsx` | staged apply, applied-scope summary, Filtros (n) sheet (inline inside a dialog); envelope-driven buttons, range text, out-of-bounds page corrected | `overlays`, `feedback` | Table/List… |
+| modal-sheet.md, menu.md, tabs.md | `overlay.tsx`, `navigation.tsx` | one dismissal path, busy not dismissible, focus to first field/title and back to trigger, nested layers in one modal, Android back topmost-first; menu radio group, unavailable items with reason; tabs/segmented | `overlays`, `theme` | Modal/Sheet, Menu e Tabs |
+| notice.md, toast.md, save-status.md, skeleton.md, empty-state.md, stepper.md, disclosure.md, page-header.md | `feedback.tsx`, `layout.tsx` | verbatim ordered messages, no-body fallback, uncertain recovery, error summary links; toast ≥5 s, pause, per-message budget, above an already-open keyboard; every SaveStatus text; static skeleton under reduced motion; four empty kinds; confirmed step statuses; disclosure state; header focus/return | `feedback`, `overlays` | Notice, Toast… |
+| tokens/README.md | `src/theme/*`, `tooling/token*.mjs` | resolution/validation, parity, primitive-free output, theme lifecycle | `theme`, `tooling/tokens.test.mjs`, `tooling/colors.test.mjs` | Tema e tokens |
+
+### Verification summary
+
+- **Automated:** Mobile 30 tooling tests (token resolution/rejections, parity, primitive-free output, invalid class consumption, primitive references, gallery leak by path and UTF-8/UTF-16 strings) and 156 Jest/RNTL tests (69 new for theme/components); workspace frozen install, typecheck, lint (incl. token drift/consumption), format, Shared API 103 + core 296, Web 9 + 246, `generate:check` (287 files), real v58 doc-sync + 34 regressions, design-doc full/components + 14 negatives, contrast 1,164 pairs + 40 negatives.
+- **Bundles:** development and production exports for both OSs; the production gate passes with proof flags set and rejects a deliberately leaked gallery (`technical probe module in production map`). Production ships the theme and the UI modules routes use; the gallery appears only in development maps.
+- **Native:** dev clients on iOS 26.5 (iPhone 17 Pro simulator) and Android 16/API 36 (emulator) loaded fresh bundles from an owned Metro on port 8083 (project root verified). Maestro gallery journeys passed end to end on both OSs: theme override and return to Sistema, button states, money entry (right-to-left, deletion to blank, recorded zero, disabled unchanged), select sheet and disabled select, dialog with an in-modal nested select, busy confirmation that Back/close cannot dismiss, toast, branch-bounded calendar, table row versus nested action; on Android additionally Back closing the nested layer, then the dialog, then section → gallery → home, under OS reduced motion. Screenshots covered light/dark and the largest iOS text size, including the calendar sheet reopened at that size (month controls, year field and two-digit days whole), and a toast shown and replaced over an already-open keyboard. No new crash report on either OS.
+- **M2 regression (root providers changed):** on an owned disposable PostgreSQL/Mailpit/.NET stack with fake identities, the real native login → identity → branch/clock, retained note, held intent, lost response → cold restart → exact replay flow passed on both OSs, each verified as one durable result from two dispatches with one key, one body hash and matching ETag. Stack, proxy, Metro and emulator were stopped afterwards.
+- **Native rules** that the device runs established (pressed-state fills, order-independent money entry, keyboard insets, screen-reader-only focus, in-modal layers) are kept as current guidance in `mobile/AGENTS.md` § *M3 design system*.
+
+### Open gates and risks
+
+- Independent review of this milestone.
+- Not executed: physical-device touch, spoken VoiceOver/TalkBack journeys and the named Impeccable tool (not installed; the contract checklist and screenshot pass were used instead).
+- Native residual risks from Mobile M1 remain (Android `MountingCoordinator` SIGSEGV history, iOS `objc_storeWeak` SIGABRT); none recurred during these runs, which does not establish elimination.
+- Controlled formatted text fields can still drop one keystroke when deletions arrive with no inter-key delay (automation-speed `eraseText`); the editing logic itself is order-independent and human-speed input passed.
+- `INVALID_TIME` (**Hora inválida. Use hh:mm.**) mirrors the cataloged date message; the copy guidelines do not yet define a time-field message.
+
+**Next step:** Mobile M4 (Entry & Navigation Shell) on these components, after Web M4's preconditions per the shared numbering.
+
 ---
 
 ## Milestone 4 — Entry & Navigation Shell

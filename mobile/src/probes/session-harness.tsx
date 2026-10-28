@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Button, Text, TextInput, View } from 'react-native';
+import { Button, View } from 'react-native';
+import { AppText as Text } from '../ui/text';
+import { ProbeTextInput } from './themed';
 import {
   getBranchCurrent,
   getOperatorSelfContext,
@@ -148,7 +150,7 @@ function ReadyHarness() {
       ) : null}
       {!snapshot.user ? (
         <>
-          <TextInput
+          <ProbeTextInput
             disableFullscreenUI
             showSoftInputOnFocus={process.env.EXPO_PUBLIC_NATIVE_AUTOMATION_INPUT !== '1'}
             autoComplete="off"
@@ -161,7 +163,7 @@ function ReadyHarness() {
             value={email}
             onChangeText={setEmail}
           />
-          <TextInput
+          <ProbeTextInput
             disableFullscreenUI
             showSoftInputOnFocus={process.env.EXPO_PUBLIC_NATIVE_AUTOMATION_INPUT !== '1'}
             autoComplete="off"
@@ -186,7 +188,7 @@ function ReadyHarness() {
         </>
       ) : (
         <>
-          <TextInput
+          <ProbeTextInput
             disableFullscreenUI
             showSoftInputOnFocus={process.env.EXPO_PUBLIC_NATIVE_AUTOMATION_INPUT !== '1'}
             testID="session-branch-input"
@@ -247,7 +249,7 @@ function ReadyHarness() {
             }
           />
           <Text testID="session-grants-result">{grants}</Text>
-          <TextInput
+          <ProbeTextInput
             disableFullscreenUI
             showSoftInputOnFocus={process.env.EXPO_PUBLIC_NATIVE_AUTOMATION_INPUT !== '1'}
             testID="session-note"
@@ -291,7 +293,7 @@ function ReadyHarness() {
             }
           />
           <Text testID="session-note-state">{feedback}</Text>
-          <TextInput
+          <ProbeTextInput
             disableFullscreenUI
             showSoftInputOnFocus={process.env.EXPO_PUBLIC_NATIVE_AUTOMATION_INPUT !== '1'}
             testID="session-destination"
@@ -325,7 +327,7 @@ function ReadyHarness() {
             }
           />
           <Text testID="session-resumed-intent">{resumed}</Text>
-          <TextInput
+          <ProbeTextInput
             disableFullscreenUI
             showSoftInputOnFocus={process.env.EXPO_PUBLIC_NATIVE_AUTOMATION_INPUT !== '1'}
             testID="session-financial-payload"

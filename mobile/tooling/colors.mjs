@@ -1,6 +1,70 @@
 import names from 'color-name';
 import valueParser from 'postcss-value-parser';
 
+// The primitive ramps of design/tokens (color.primitive) plus Tailwind's default palette names.
+// None of them is an app color: apps name semantic and domain tokens only, and no semantic or
+// domain group starts with one of these words (same rule as Web M3 Phase 1).
+const rampNames = [
+  'blue',
+  'orange',
+  'neutral',
+  'night',
+  'green',
+  'red',
+  'amber',
+  'sky',
+  'teal',
+  'black',
+  'navy',
+  'alpha',
+  'white',
+  'slate',
+  'gray',
+  'zinc',
+  'stone',
+  'yellow',
+  'lime',
+  'emerald',
+  'cyan',
+  'indigo',
+  'violet',
+  'purple',
+  'fuchsia',
+  'pink',
+  'rose',
+].join('|');
+const colorUtilities = [
+  'bg',
+  'text',
+  'border(?:-[xytrblse])?',
+  'ring(?:-offset)?',
+  'outline',
+  'fill',
+  'stroke',
+  'decoration',
+  'divide',
+  'placeholder',
+  'caret',
+  'accent',
+  'shadow',
+  'tint',
+].join('|');
+const primitiveClass = new RegExp(
+  `(?:^|[\\s:!."'\`(])-?(?:${colorUtilities})-(?:${rampNames})(?:-\\d{1,3})?(?:/\\d{1,3})?(?=$|[\\s"'\`)\\]])`,
+);
+const primitiveName = new RegExp(
+  `\\bcolor\\.primitive\\b|\\bthemes\\.(?:light|dark)\\.primitive\\b|--(?:color-)?primitive\\b|--color-(?:${rampNames})(?:-\\d{1,3})?\\b`,
+);
+
+/**
+ * A reference to a primitive token in any form: its token path, a primitive CSS variable or a
+ * palette-ramp utility class (`bg-blue-600`, `active:text-red-700/50`). Only the generated token
+ * adapter names resolved values; nothing names a primitive.
+ */
+export function hasPrimitiveReference(value) {
+  return primitiveName.test(value) || primitiveClass.test(value);
+}
+
 // CSS parser keeps quoted text, fragments and URLs out of color detection.
 export function hasRawColor(value, includeNames = true) {
   // A complete URL is configuration/content, even if its fragment resembles hex.
@@ -55,16 +119,20 @@ export const rawColorRule = {
   meta: {
     type: 'problem',
     schema: [],
-    messages: { raw: 'Use semantic design tokens instead of raw colors.' },
+    messages: {
+      raw: 'Use semantic design tokens instead of raw colors.',
+      primitive:
+        'Use semantic or domain tokens: primitive palette references belong to the token adapter.',
+    },
   },
   create(context) {
     const reported = [];
-    function report(node) {
+    function report(node, messageId = 'raw') {
       // Parent visitors run first; do not report the same literal again in child visitors.
       const [start, end] = node.range;
       if (reported.some(([from, to]) => start >= from && end <= to)) return;
       reported.push([start, end]);
-      context.report({ node, messageId: 'raw' });
+      context.report({ node, messageId });
     }
     function isUrlFragment(node, value) {
       if (!value.startsWith('#')) return false;
@@ -77,6 +145,10 @@ export const rawColorRule = {
     }
     function inspect(node, value) {
       if (typeof value !== 'string') return;
+      if (hasPrimitiveReference(value)) {
+        report(node, 'primitive');
+        return;
+      }
       let inStyle = false;
       for (let parent = node.parent; parent; parent = parent.parent) {
         if (parent.type === 'Property') {
