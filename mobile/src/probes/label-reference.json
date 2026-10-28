@@ -1,0 +1,132 @@
+{
+  "Role": {
+    "Admin": "Administrador",
+    "Manager": "Gerente",
+    "Member": "Membro"
+  },
+  "Direction": {
+    "In": "Entrada",
+    "Out": "Saída"
+  },
+  "AccountType": {
+    "Terminal": "Terminal",
+    "BankAccount": "Conta bancária",
+    "Tab": "Conta fiado"
+  },
+  "TransactionStatus": {
+    "Draft": "Rascunho",
+    "Active": "Ativa",
+    "Cancelled": "Cancelada"
+  },
+  "DailyCloseStatus": {
+    "Draft": "Rascunho",
+    "Submitted": "Enviado",
+    "Approved": "Aprovado",
+    "Rejected": "Rejeitado"
+  },
+  "AgingBucket": {
+    "Current": "Em dia",
+    "Days0To30": "0–30 dias",
+    "Days31To60": "31–60 dias",
+    "Days61To90": "61–90 dias",
+    "Days91Plus": "Mais de 90 dias"
+  },
+  "TimeEntryStatus": {
+    "Present": "Presente",
+    "DayOff": "Folga",
+    "Sunday": "Domingo",
+    "Holiday": "Feriado",
+    "Vacation": "Férias",
+    "JustifiedAbsence": "Falta justificada",
+    "UnjustifiedAbsence": "Falta injustificada"
+  },
+  "SettlementRule": {
+    "SameDay": "Mesmo dia",
+    "NextCalendarDay": "Dia seguinte",
+    "NextBusinessDay": "Próximo dia útil",
+    "TwoBusinessDays": "2 dias úteis",
+    "OperatorEnteredCheque": "Cheque pré-datado (data informada)"
+  },
+  "HolidaySource": {
+    "Manual": "Manual",
+    "Canonical": "Calendário nacional",
+    "BrasilApi": "BrasilAPI",
+    "Nager": "Nager.Date"
+  },
+  "BrazilianHolidayCalendarSource": {
+    "Composite": "Todas as fontes",
+    "Canonical": "Calendário nacional",
+    "BrasilApi": "BrasilAPI",
+    "Nager": "Nager.Date"
+  },
+  "BrazilianHolidayType": {
+    "National": "Nacional",
+    "OptionalFederal": "Ponto facultativo"
+  },
+  "BrazilianHolidayImportStatus": {
+    "Imported": "Importado",
+    "Skipped": "Ignorado"
+  },
+  "TimeEntryTapAction": {
+    "Open": "Entrada",
+    "Close": "Saída"
+  },
+  "MonthlyReconciliationBlockerType": {
+    "UnapprovedClose": "Fechamento não aprovado",
+    "DraftTransactions": "Transações em rascunho",
+    "MissingExpectedClose": "Fechamento ausente"
+  },
+  "InstallmentPlanStatus": {
+    "Draft": "Rascunho",
+    "Active": "Ativo",
+    "Mixed": "Misto",
+    "Cancelled": "Cancelado"
+  },
+  "DailyCloseReviewEventType": {
+    "Rejected": "Rejeitado na conferência",
+    "OpeningChanged": "Abertura alterada"
+  },
+  "TransactionGenerationKind": {
+    "FiadoCountedStockSale": "venda fiado com entrega de mercadoria",
+    "FiadoCashRepayment": "recebimento de fiado em dinheiro"
+  },
+  "FiadoPaymentKind": {
+    "CountedCash": "Dinheiro (entra no caixa)",
+    "NonCash": "Outro meio (não entra no caixa)"
+  },
+  "TransactionTypeSystemRole": {
+    "FiadoCountedStockSaleCounterpart": "Saída automática de mercadoria (venda fiado)",
+    "FiadoCashRepaymentCounterpart": "Entrada automática de dinheiro (recebimento de fiado)"
+  },
+  "InvitationStatus": {
+    "Pending": "Pendente",
+    "Accepted": "Aceito",
+    "Declined": "Recusado",
+    "Expired": "Expirado"
+  },
+  "MailDeliveryStatus": {
+    "Pending": "Envio pendente",
+    "Sent": "Enviado ao servidor de e-mail",
+    "Failed": "Falha no envio"
+  },
+  "SettlementInstrument": {
+    "None": "Sem classificação",
+    "Cheque": "Cheque",
+    "CreditCard": "Cartão de crédito",
+    "DebitCard": "Cartão de débito"
+  },
+  "MonthlyFinancialRole": {
+    "None": "Nenhuma",
+    "BolaoServiceFee": "Tarifa de bolão",
+    "CommercialLeftover": "Sobra (perda comercial)"
+  },
+  "OverviewSectionStatus": {
+    "Ready": "Atualizado",
+    "Empty": "Nada no período",
+    "NotConfigured": "Não configurado"
+  },
+  "OperatorLinkRequestStatus": {
+    "Pending": "Pendente",
+    "Resolved": "Resolvida"
+  }
+}

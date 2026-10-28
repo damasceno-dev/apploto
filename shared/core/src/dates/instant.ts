@@ -3,8 +3,9 @@
 // passes the IANA zone it resolved (`Intl.DateTimeFormat().resolvedOptions().timeZone` on the
 // client, or an explicitly agreed zone so a server render matches). The zone rules come from the
 // engine's `Intl.DateTimeFormat` — the one engine-dependent formatter in this package. Its output
-// is assembled from numeric parts only (no locale strings). Strategy: web-verified candidate,
-// provisional for native until Mobile M1 measures Hermes.
+// uses only a numeric IANA offset; proleptic-Gregorian UTC getters assemble the date.
+// Strategy independently accepted on Node/Web and both Android/iOS Hermes (Shared M3).
+// No device clock, locale or zone is read here.
 
 const instantPattern =
   /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,9}))?)?(Z|[+-]\d{2}:\d{2})$/;
@@ -46,7 +47,10 @@ interface ZonedParts {
   readonly minute: string;
 }
 
-// A formatter per zone; construction validates the zone (an unknown zone throws RangeError).
+// Use Intl only for the IANA offset, not its calendar fields. Android Hermes uses a
+// Julian/Gregorian cutover even when calendar: 'iso8601' is requested (native M1 probe).
+// ECMAScript Date UTC getters use the required proleptic Gregorian calendar. Include offset
+// seconds: historical IANA offsets such as New York's -04:56:02 are not whole minutes.
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
 function zonedParts(value: string, timeZone: string): ZonedParts {
@@ -56,43 +60,51 @@ function zonedParts(value: string, timeZone: string): ZonedParts {
   if (formatter === undefined) {
     formatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+      timeZoneName: 'longOffset',
       hour: '2-digit',
-      minute: '2-digit',
       hourCycle: 'h23',
-      // `year` is the year of the era: without the era, 1 BC would read as year 0001.
-      era: 'short',
+      numberingSystem: 'latn',
     });
     formatters.set(timeZone, formatter);
   }
-  const parts: Record<string, string> = {};
-  for (const part of formatter.formatToParts(new Date(epoch))) parts[part.type] = part.value;
-  const { era, year, month, day, hour, minute } = parts;
-  if (
-    era === undefined ||
-    year === undefined ||
-    month === undefined ||
-    day === undefined ||
-    hour === undefined ||
-    minute === undefined
-  ) {
-    throw new RangeError(`The engine returned no date parts for ${value} in ${timeZone}`);
+  const parts = formatter.formatToParts(new Date(epoch));
+  const zoneIndex = parts.findIndex((part) => part.type === 'timeZoneName');
+  // iOS Hermes tags offset digits as hour/minute/literal, leaving only `GMT` in
+  // timeZoneName. Reassemble its signed suffix. Android can instead place a complete
+  // zone name BEFORE the clock; never append those clock parts to a complete offset.
+  let offset = parts[zoneIndex]?.value;
+  if (offset === 'GMT' || offset === 'UTC') {
+    const suffix = parts
+      .slice(zoneIndex + 1)
+      .map((part) => part.value)
+      .join('')
+      .trim();
+    if (/^[+-]/.test(suffix)) offset += suffix;
   }
-  // The converted local date must stay in the supported calendar (0001–9999 AD), like every
-  // other date this package formats: a conversion across either end is rejected, not mislabelled.
-  const absoluteYear = Number(year);
-  if (era !== 'AD' || !Number.isInteger(absoluteYear) || absoluteYear < 1 || absoluteYear > 9999) {
+  let seconds = 0;
+  if (offset !== 'GMT' && offset !== 'UTC') {
+    const match = /^(?:GMT|UTC)([+-])(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(offset ?? '');
+    if (!match || Number(match[2]) > 23 || Number(match[3]) > 59 || Number(match[4] ?? 0) > 59) {
+      throw new RangeError(
+        `The engine returned no numeric zone offset for ${value} in ${timeZone}`,
+      );
+    }
+    seconds =
+      (Number(match[2]) * 3600 + Number(match[3]) * 60 + Number(match[4] ?? 0)) *
+      (match[1] === '-' ? -1 : 1);
+  }
+  const local = new Date(epoch + seconds * 1000);
+  const year = local.getUTCFullYear();
+  if (year < 1 || year > 9999) {
     throw new RangeError(`${value} in ${timeZone} falls outside the years 0001–9999`);
   }
+  const pad = (part: number, width = 2) => String(part).padStart(width, '0');
   return {
-    year: year.padStart(4, '0'),
-    month: month.padStart(2, '0'),
-    day: day.padStart(2, '0'),
-    // Some engines print midnight as 24 even with h23; normalize it.
-    hour: hour === '24' ? '00' : hour.padStart(2, '0'),
-    minute: minute.padStart(2, '0'),
+    year: pad(year, 4),
+    month: pad(local.getUTCMonth() + 1),
+    day: pad(local.getUTCDate()),
+    hour: pad(local.getUTCHours()),
+    minute: pad(local.getUTCMinutes()),
   };
 }
 

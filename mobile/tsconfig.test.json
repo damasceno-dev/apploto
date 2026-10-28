@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": ["jest", "react", "react-native", "nativewind/types"] },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "test/unit/**/*.ts",
+    "test/unit/**/*.tsx",
+    "nativewind-env.d.ts",
+    "expo-env.d.ts",
+    ".expo/types/**/*.ts"
+  ]
+}

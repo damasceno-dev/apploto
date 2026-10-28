@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   addDays,
   addMonths,
@@ -283,5 +283,104 @@ describe('UTC audit instants → the caller-supplied device zone (§4)', () => {
     expect(() => formatInstant('2026-07-08T14:30:00', 'America/Sao_Paulo')).toThrow(RangeError);
     expect(() => formatInstant('2026-07-08T14:30:00Z', 'Not/AZone')).toThrow(RangeError);
     expect(() => formatInstant('2026-07-08T14:30:00Z', '')).toThrow(RangeError);
+  });
+});
+
+// Android API 36 Hermes reproduced hybrid calendar parts before 1582. The offset remains
+// usable; the formatter must derive the civil date from epoch + offset, including seconds.
+describe('native historical calendar regression', () => {
+  it('ignores hybrid calendar parts and retains historical offset seconds', () => {
+    const Original = Intl.DateTimeFormat;
+    class HybridFormatter extends Original {
+      override formatToParts(value?: Date | number) {
+        return super.formatToParts(value).map((part) => {
+          if (part.type === 'year') return { ...part, value: '0001' };
+          if (part.type === 'day') return { ...part, value: '03' };
+          return part;
+        });
+      }
+    }
+    vi.stubGlobal('Intl', { ...Intl, DateTimeFormat: HybridFormatter });
+    try {
+      // A separate alias avoids a formatter cached by an earlier case.
+      expect(formatInstant('0001-01-01T00:00:00Z', 'Etc/UTC')).toBe('01/01/0001 00:00');
+      expect(() => formatInstant('0001-01-01T00:30:00Z', 'Etc/GMT+2')).toThrow(RangeError);
+      expect(formatInstant('1880-01-01T12:00:00Z', 'US/Eastern')).toBe('01/01/1880 07:03');
+      expect(formatInstant('1582-10-04T00:00:00Z', 'Etc/UTC')).toBe('04/10/1582 00:00');
+      expect(formatInstant('1582-10-15T00:00:00Z', 'Etc/UTC')).toBe('15/10/1582 00:00');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+  it('fails closed when the engine supplies no usable offset', () => {
+    const Original = Intl.DateTimeFormat;
+    class MissingOffset extends Original {
+      override formatToParts(value?: Date | number) {
+        return super
+          .formatToParts(value)
+          .map((part) =>
+            part.type === 'timeZoneName' ? { ...part, value: 'Eastern Time' } : part,
+          );
+      }
+    }
+    vi.stubGlobal('Intl', { ...Intl, DateTimeFormat: MissingOffset });
+    try {
+      expect(() => formatInstant('2026-07-08T00:00:00Z', 'Canada/Eastern')).toThrow(RangeError);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('iOS Hermes split zone-offset regression', () => {
+  it('does not mistake a GMT prefix with misclassified numeric suffix parts for UTC', () => {
+    const Original = Intl.DateTimeFormat;
+    class SplitOffset extends Original {
+      override formatToParts(value?: Date | number) {
+        return super.formatToParts(value).flatMap((part) => {
+          if (part.type !== 'timeZoneName' || part.value === 'GMT') return [part];
+          return [
+            { type: 'timeZoneName', value: 'GMT' },
+            ...Array.from(part.value.slice(3), (value, index) => ({
+              type: index % 2 === 0 ? 'literal' : 'hour',
+              value,
+            })),
+          ] as Intl.DateTimeFormatPart[];
+        });
+      }
+    }
+    vi.stubGlobal('Intl', { ...Intl, DateTimeFormat: SplitOffset });
+    try {
+      expect(formatInstant('2026-07-08T17:30:00Z', 'Brazil/East')).toBe('08/07/2026 14:30');
+      expect(formatInstant('2026-07-08T17:30:00Z', 'Asia/Calcutta')).toBe('08/07/2026 23:00');
+      expect(formatInstant('1880-01-01T12:00:00Z', 'America/Detroit')).toBe('01/01/1880 06:27');
+      expect(() => formatInstant('0001-01-01T00:30:00Z', 'Etc/GMT+3')).toThrow(RangeError);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});
+
+describe('Android zone-prefix regression', () => {
+  it('does not append a following clock to a complete zone name or bare UTC', () => {
+    const Original = Intl.DateTimeFormat;
+    class PrefixOffset extends Original {
+      override formatToParts(value?: Date | number) {
+        const parts = super.formatToParts(value);
+        const zone = parts.find((part) => part.type === 'timeZoneName')!;
+        return [
+          zone,
+          { type: 'literal', value: ' ' },
+          ...parts.filter((part) => part.type !== 'timeZoneName'),
+        ] as Intl.DateTimeFormatPart[];
+      }
+    }
+    vi.stubGlobal('Intl', { ...Intl, DateTimeFormat: PrefixOffset });
+    try {
+      expect(formatInstant('2026-07-08T17:30:00Z', 'Etc/GMT+4')).toBe('08/07/2026 13:30');
+      expect(formatInstant('0001-01-01T00:00:00Z', 'UCT')).toBe('01/01/0001 00:00');
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

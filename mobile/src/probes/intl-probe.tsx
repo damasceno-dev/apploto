@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Platform, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import expoMetadata from 'expo/package.json';
+import { verifyCore } from './core-verification';
 
 type HermesGlobal = typeof globalThis & {
   HermesInternal?: { getRuntimeProperties?: () => Record<string, unknown> };
@@ -15,7 +16,7 @@ function codePoints(value: string) {
 }
 
 // Measurement only. No formatter strategy or normalization belongs to Mobile M1.
-function measureIntl() {
+export function measureIntl() {
   const hermes = (globalThis as HermesGlobal).HermesInternal;
   if (!hermes || !['ios', 'android'].includes(Platform.OS)) {
     throw new Error('Executar em iOS ou Android sob Hermes, sem depurador remoto.');
@@ -91,6 +92,32 @@ function measureIntl() {
     input: instant.toISOString(),
     numberOptions: currency.resolvedOptions(),
     dateOptions: new Intl.DateTimeFormat('pt-BR', options).resolvedOptions(),
+    historical: ['gregory', 'iso8601'].flatMap((calendar) =>
+      ['UTC', 'Etc/GMT+1', 'America/New_York'].map((timeZone) => {
+        try {
+          const formatter = new Intl.DateTimeFormat('en-US', {
+            calendar,
+            timeZone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            era: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            hourCycle: 'h23',
+            timeZoneName: 'longOffset',
+          });
+          return {
+            calendar,
+            timeZone,
+            options: formatter.resolvedOptions(),
+            parts: formatter.formatToParts(new Date('0001-01-01T00:00:00Z')),
+          };
+        } catch (error) {
+          return { calendar, timeZone, error: String(error) };
+        }
+      }),
+    ),
     readings: readings.map((reading) => ({
       ...reading,
       matchesSpec: reading.output === reading.expected,
@@ -102,17 +129,44 @@ function measureIntl() {
 
 export function IntlProbe() {
   const [result, setResult] = useState('');
+  const [summary, setSummary] = useState('');
   function run() {
     try {
-      setResult(JSON.stringify(measureIntl(), null, 2));
+      const measurement = { intl: measureIntl(), core: verifyCore() };
+      setSummary(
+        `${measurement.intl.platform}: ${measurement.core.passed}/${measurement.core.total}`,
+      );
+      // DEV-only, non-secret measurement for the native runner. Never stores session data.
+      if (__DEV__)
+        (globalThis as typeof globalThis & { __lotoCoreProof?: unknown }).__lotoCoreProof =
+          measurement;
+      setResult(JSON.stringify(measurement));
+      // Optional DEV capture only, explicitly configured by the local native test runner.
+      // This sends non-secret measurements to an owned loopback sink, never to the backend.
+      const sink = process.env.EXPO_PUBLIC_NATIVE_PROBE_SINK;
+      if (__DEV__ && sink) {
+        const url = new URL(sink);
+        if (url.protocol !== 'http:' || !['127.0.0.1', 'localhost'].includes(url.hostname))
+          throw new Error('Probe sink must be loopback');
+        void fetch(url.toString(), {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(measurement),
+        }).catch(() => setSummary('Não foi possível capturar a medição.'));
+      }
     } catch (error) {
       setResult(error instanceof Error ? error.message : String(error));
     }
   }
   return (
     <View className="gap-4">
-      <Button title="Medir Intl no Hermes" onPress={run} />
-      {result ? <Text selectable>{result}</Text> : null}
+      <Button testID="native-core-measure" title="Medir Intl no Hermes" onPress={run} />
+      {summary ? <Text testID="native-core-summary">{summary}</Text> : null}
+      {result ? (
+        <Text testID="native-core-result" accessible accessibilityLabel={result} selectable>
+          {result}
+        </Text>
+      ) : null}
     </View>
   );
 }

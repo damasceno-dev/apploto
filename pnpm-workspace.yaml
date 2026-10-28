@@ -2,3 +2,5 @@ packages:
   - 'shared/*'
   - 'web'
   - 'mobile'
+patchedDependencies:
+  react-native-screens@4.26.2: mobile/patches/react-native-screens@4.26.2.patch

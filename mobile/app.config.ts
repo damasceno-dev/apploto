@@ -9,7 +9,7 @@ const config: ExpoConfig = {
   userInterfaceStyle: 'automatic',
   ios: { bundleIdentifier: 'com.example.lotero.development' },
   android: { package: 'com.example.lotero.development' },
-  plugins: ['expo-router'],
+  plugins: ['expo-router', ['expo-secure-store', { configureAndroidBackup: true }]],
   experiments: { typedRoutes: true },
 };
 

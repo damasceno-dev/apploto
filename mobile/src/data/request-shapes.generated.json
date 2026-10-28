@@ -1,0 +1,84 @@
+{
+  "RequestCreateTransactionJson": {
+    "required": ["date", "value", "transactionTypeId", "accountId"],
+    "type": "object",
+    "properties": {
+      "date": { "type": "string", "format": "date-time" },
+      "value": {
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+        "type": ["number", "string"],
+        "format": "double"
+      },
+      "description": { "type": ["null", "string"] },
+      "transactionTime": { "type": ["null", "string"], "format": "time" },
+      "transactionTypeId": { "type": "string", "format": "uuid" },
+      "accountId": { "type": "string", "format": "uuid" },
+      "clientId": { "type": ["null", "string"], "format": "uuid" },
+      "dueDate": { "type": ["null", "string"], "format": "date-time" },
+      "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
+      "saveAsDraft": { "type": "boolean" },
+      "handsOutCountedStock": { "type": "boolean" }
+    }
+  },
+  "RequestCreateTransactionInstallmentJson": {
+    "required": ["date", "value", "transactionTypeId", "accountId", "installments"],
+    "type": "object",
+    "properties": {
+      "date": { "type": "string", "format": "date-time" },
+      "value": {
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+        "type": ["number", "string"],
+        "format": "double"
+      },
+      "description": { "type": ["null", "string"] },
+      "transactionTime": { "type": ["null", "string"], "format": "time" },
+      "transactionTypeId": { "type": "string", "format": "uuid" },
+      "accountId": { "type": "string", "format": "uuid" },
+      "clientId": { "type": ["null", "string"], "format": "uuid" },
+      "installments": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/RequestCreateTransactionInstallmentItemJson" }
+      },
+      "autoGenerateInstallments": { "type": "boolean" },
+      "dueDate": { "type": ["null", "string"], "format": "date-time" },
+      "installmentCount": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["null", "integer", "string"],
+        "format": "int32"
+      },
+      "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
+      "saveAsDraft": { "type": "boolean" }
+    }
+  },
+  "RequestCreateTransactionInstallmentItemJson": {
+    "required": ["dueDate", "value"],
+    "type": "object",
+    "properties": {
+      "dueDate": { "type": "string", "format": "date-time" },
+      "value": {
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+        "type": ["number", "string"],
+        "format": "double"
+      }
+    }
+  },
+  "RequestReceiveFiadoPaymentJson": {
+    "required": ["date", "value", "transactionTypeId", "accountId", "clientId"],
+    "type": "object",
+    "properties": {
+      "date": { "type": "string", "format": "date-time" },
+      "value": {
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+        "type": ["number", "string"],
+        "format": "double"
+      },
+      "transactionTime": { "type": ["null", "string"], "format": "time" },
+      "description": { "type": ["null", "string"] },
+      "transactionTypeId": { "type": "string", "format": "uuid" },
+      "accountId": { "type": "string", "format": "uuid" },
+      "clientId": { "type": "string", "format": "uuid" },
+      "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
+      "saveAsDraft": { "type": "boolean" }
+    }
+  }
+}
