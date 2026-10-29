@@ -199,14 +199,12 @@ public sealed class NamedEnumOpenApiContractTest(ServerWebApplicationFactory fac
     {
         var (_, branch, _, token) = await factory.SeedFullBranchContextAsync("NamedEnumDailyClose", Role.Manager);
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
-        var request = new RequestOpenDailyCloseJsonBuilder()
-            .WithDate(SaoPauloToday())
-            .WithAccountId(account.Id)
-            .Build();
+        await factory.EnsureCashVarianceProductAsync(branch.Id);
+        var session = await factory.SeedDailyCloseAsync(branch.Id, account.Id, SaoPauloToday(), itemsRecorded: false);
 
-        using var response = await _client.PostAuthAsync("/dailyclose", request, token);
+        using var response = await _client.GetAuthAsync($"/session/{session.Id}", token);
 
-        response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         await AssertStringEnumValue(response, "status", nameof(DailyCloseStatus.Draft));
     }
 

@@ -39,7 +39,7 @@ public class DailyCloseControllerRecallHappyPathTest(ServerWebApplicationFactory
             cashVarianceProduct.Id,
             45m);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await response.ReadContentAsync<ResponseDailyCloseJson>();
@@ -51,7 +51,7 @@ public class DailyCloseControllerRecallHappyPathTest(ServerWebApplicationFactory
         payload.Items.ShouldNotContain(item => item.ProductId == cashVarianceProduct.Id);
         payload.ItemsFirstRecordedAt.ShouldNotBeNull();
 
-        var getResponse = await _client.GetAuthAsync($"/dailyclose/{close.Id}", token);
+        var getResponse = await _client.GetAuthAsync($"/session/{close.Id}", token);
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var getPayload = await getResponse.ReadContentAsync<ResponseDailyCloseJson>();
         getPayload.Items.ShouldNotContain(item => item.ProductId == cashVarianceProduct.Id);
@@ -87,7 +87,7 @@ public class DailyCloseControllerRecallHappyPathTest(ServerWebApplicationFactory
             DailyCloseStatus.Submitted,
             submittedAt: DateTime.UtcNow.AddDays(-5));
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await response.ReadContentAsync<ResponseDailyCloseJson>();

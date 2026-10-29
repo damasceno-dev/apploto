@@ -4,6 +4,7 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { RequestSessionOpeningAcknowledgmentJson } from './requestSessionOpeningAcknowledgmentJson';
 
 export interface RequestCreateTransactionJson {
   date: string;
@@ -23,4 +24,9 @@ export interface RequestCreateTransactionJson {
   recordedByOperatorId?: string | null;
   saveAsDraft?: boolean;
   handsOutCountedStock?: boolean;
+  /** @nullable */
+  sessionId?: string | null;
+  /** @nullable */
+  historicalReason?: string | null;
+  openingAcknowledgment?: null | RequestSessionOpeningAcknowledgmentJson;
 }

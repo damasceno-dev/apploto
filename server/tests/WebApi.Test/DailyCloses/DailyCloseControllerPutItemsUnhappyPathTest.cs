@@ -32,7 +32,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         };
 
         var httpResponse = await _client.PutAsync(
-            $"/dailyclose/{Guid.NewGuid()}/items",
+            $"/session/{Guid.NewGuid()}/items",
             JsonContent.Create(request));
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
@@ -58,7 +58,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 10m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -92,7 +92,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -129,7 +129,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -154,7 +154,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
 
         var response = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -191,7 +191,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -216,7 +216,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = Guid.NewGuid(), Value = 10m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{otherClose.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{otherClose.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -246,7 +246,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = cvProduct.Id, Value = 10m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -270,7 +270,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
             Items = null
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -289,7 +289,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
 
         var firstResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -304,7 +304,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         var firstPayload = (await firstResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
 
         var staleResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -337,7 +337,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
 
         var response = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -377,7 +377,7 @@ public class DailyCloseControllerPutItemsUnhappyPathTest(ServerWebApplicationFac
         await factory.SeedSettingAsync(branch.Id, lockDate: date);
 
         var response = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,

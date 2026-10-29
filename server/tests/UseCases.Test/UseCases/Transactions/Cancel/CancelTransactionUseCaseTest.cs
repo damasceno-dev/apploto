@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -77,11 +78,7 @@ public class CancelTransactionUseCaseTest
             ctx.BranchUser.Role,
             ctx.CallerOperator,
             fixedNow);
-        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerIsMutable(
-            ctx.BranchUser.BranchId,
-            ctx.Transaction.AccountId,
-            ctx.Transaction.Date.Date,
-            Arg.Any<CancellationToken>());
+        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerIsMutable(Arg.Any<Transaction>(), Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(1).Commit();
         await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
@@ -282,21 +279,13 @@ public class CancelTransactionUseCaseTest
             .Build();
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
             .GetByIdAndBranchIdReturns(ctx.Transaction.Id, ctx.BranchUser.BranchId, ctx.Transaction)
-            .SumActiveValueByAccountAndDateAsNoTrackingReturns(
-                ctx.BranchUser.BranchId,
-                ctx.Transaction.AccountId,
-                ctx.Transaction.Date,
-                direction: null,
-                result: siblingActiveValue)
+            .SumActiveValueBySessionAsNoTrackingReturnsForAny(direction: null, result: siblingActiveValue)
             .Build();
         var useCase = CreateUseCase(ctx);
 
         await useCase.Execute(ctx.Transaction.Id, ValidRequest(), ctx.Transaction.Version);
 
-        var postCancelSum = await ctx.TransactionsRepository.SumActiveValueByAccountAndDateAsNoTracking(
-            ctx.BranchUser.BranchId,
-            ctx.Transaction.AccountId,
-            ctx.Transaction.Date);
+        var postCancelSum = await ctx.TransactionsRepository.SumActiveValueBySessionAsNoTracking(new DailyClose());
 
         postCancelSum.ShouldBe(siblingActiveValue);
         postCancelSum.ShouldNotBe(siblingActiveValue + ctx.Transaction.Value);
@@ -376,7 +365,7 @@ public class CancelTransactionUseCaseTest
                 AllowedAccountIds: [transaction.AccountId]));
 
         var mutationPermissionGuard = Substitute.For<ITransactionMutationPermissionGuard>();
-        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var dailyCloseLedgerGuard = SessionTestServices.LedgerGuard();
         var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         return new TestContext

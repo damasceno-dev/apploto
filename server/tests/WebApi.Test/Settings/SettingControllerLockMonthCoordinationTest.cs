@@ -246,7 +246,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
 
         var lockTask = Lock(lockClient, ctx);
         await heldLock.WaitForWaitersAsync(1);
-        var reopenTask = closeClient.PostAuthAsync($"/dailyclose/{close.Id}/reopen", ctx.Token);
+        var reopenTask = closeClient.PostAuthAsync($"/session/{close.Id}/reopen", ctx.Token);
         await heldLock.WaitForWaitersAsync(2);
 
         await heldLock.ReleaseAsync();
@@ -278,7 +278,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         await using var heldLock = await HoldMonthLockAsync(ctx.BranchId);
 
         var countTask = countClient.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
@@ -312,7 +312,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         using var lockClient = grantOrderFactory.CreateClient();
         await using var heldLock = await HoldMonthLockAsync(ctx.BranchId);
 
-        var recallTask = recallClient.PostAuthAsync($"/dailyclose/{close.Id}/recall", ctx.Token);
+        var recallTask = recallClient.PostAuthAsync($"/session/{close.Id}/recall", ctx.Token);
         await heldLock.WaitForWaitersAsync(1);
         var lockTask = Lock(lockClient, ctx);
         await heldLock.WaitForWaitersAsync(2);
@@ -342,7 +342,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         await using var heldLock = await HoldMonthLockAsync(ctx.BranchId);
 
         var correctionTask = correctionClient.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
@@ -375,11 +375,11 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         await factory.SeedDailyCloseItemAsync(successor.Id, ctx.ProductId, 30m);
         using var client = factory.CreateClient();
 
-        var reopen = await client.PostAuthAsync($"/dailyclose/{predecessor.Id}/reopen", ctx.Token);
+        var reopen = await client.PostAuthAsync($"/session/{predecessor.Id}/reopen", ctx.Token);
         reopen.StatusCode.ShouldBe(HttpStatusCode.OK, await reopen.Content.ReadAsStringAsync());
         var reopened = await reopen.ReadContentAsync<ResponseDailyCloseJson>();
         var correction = await client.PutAuthAsync(
-            $"/dailyclose/{predecessor.Id}/items",
+            $"/session/{predecessor.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = reopened.Version,
@@ -391,9 +391,9 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         correctionPayload.AffectedSuccessor.ShouldNotBeNull();
         correctionPayload.AffectedSuccessor.DailyCloseId.ShouldBe(successor.Id);
 
-        var submit = await client.PostAuthAsync($"/dailyclose/{predecessor.Id}/submit", ctx.Token);
+        var submit = await client.PostAuthAsync($"/session/{predecessor.Id}/submit", ctx.Token);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
-        var approve = await client.PostAuthAsync($"/dailyclose/{predecessor.Id}/approve", ctx.Token);
+        var approve = await client.PostAuthAsync($"/session/{predecessor.Id}/approve", ctx.Token);
         approve.StatusCode.ShouldBe(HttpStatusCode.OK, await approve.Content.ReadAsStringAsync());
 
         var lockResponse = await Lock(client, ctx);
@@ -528,7 +528,7 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
     private async Task<uint> GetVersion(RaceContext ctx, Guid closeId)
     {
         using var client = factory.CreateClient();
-        var response = await client.GetAuthAsync($"/dailyclose/{closeId}", ctx.Token);
+        var response = await client.GetAuthAsync($"/session/{closeId}", ctx.Token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         return (await response.ReadContentAsync<ResponseDailyCloseJson>()).Version;
     }

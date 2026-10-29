@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using System.Globalization;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
@@ -79,12 +80,7 @@ public class CreateTransactionInstallmentUseCaseTest
 
         await ctx.TransactionsRepository.Received(1)
             .AddRange(Arg.Is<IEnumerable<Transaction>>(rows => rows.Count() == 3));
-        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerAcceptsNewRow(
-            ctx.BranchUser.BranchId,
-            ctx.Request.AccountId,
-            ctx.Account.Type,
-            ctx.Request.Date.Date,
-            Arg.Any<CancellationToken>());
+        await ctx.DailyCloseLedgerGuard.Received(1).ResolveSessionForNewRow(Arg.Any<Guid>(), Arg.Any<AccountType>(), Arg.Any<DateTime>(), Arg.Any<SessionRowContext>(), Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(2).Commit();
         await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
@@ -514,7 +510,7 @@ public class CreateTransactionInstallmentUseCaseTest
             .ListActiveByOperatorIdAsNoTracking(callerOperator.Id, [operatorAccount])
             .Build();
         var transactionsRepository = new TransactionsRepositoryBuilder().Build();
-        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var dailyCloseLedgerGuard = SessionTestServices.LedgerGuard();
         var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
         var unitOfWork = new UnitOfWorkBuilder().Build();
         var branchHolidaySource = Substitute.For<IBranchHolidaySource>();

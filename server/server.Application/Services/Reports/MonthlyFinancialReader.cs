@@ -73,13 +73,20 @@ public class MonthlyFinancialReader(
 
         // Official variance is keyed by close id: a Draft close never has a row here, so its retained value is suppressed.
         var varianceByClose = varianceRows.ToDictionary(row => row.DailyCloseId, row => row.Value);
+        // Fees attach to their own session (a shared cashbox has several per day); unresolved legacy rows carry no
+        // session and stay keyed to their account/day.
         var feeByTerminalDay = feeRows
-            .GroupBy(row => (row.Date.Date, row.AccountId))
+            .GroupBy(row => (row.Date.Date, row.AccountId, row.SessionId))
             .ToDictionary(group => group.Key, group => (
                 Value: group.Sum(row => row.InTotal - row.OutTotal),
                 RowCount: group.Sum(row => row.RowCount),
                 group.First().AccountName,
                 group.First().AccountActive));
+
+        (decimal Value, int RowCount, string AccountName, bool AccountActive) FeeFor(DailyCloseSummaryRow close) =>
+            feeByTerminalDay.TryGetValue((close.Date.Date, close.AccountId, close.DailyCloseId), out var own)
+                ? own
+                : feeByTerminalDay.GetValueOrDefault((close.Date.Date, close.AccountId, null));
 
         var terminalDays = closes
             .Select(close => new ResponseMonthlyFinancialTerminalDayJson
@@ -91,8 +98,8 @@ public class MonthlyFinancialReader(
                 DailyCloseId = close.DailyCloseId,
                 CloseStatus = close.Status,
                 OfficialVariance = varianceByClose.TryGetValue(close.DailyCloseId, out var variance) ? variance : null,
-                BolaoServiceFee = feeConfigured ? feeByTerminalDay.GetValueOrDefault((close.Date.Date, close.AccountId)).Value : null,
-                BolaoServiceFeeRowCount = feeByTerminalDay.GetValueOrDefault((close.Date.Date, close.AccountId)).RowCount,
+                BolaoServiceFee = feeConfigured ? FeeFor(close).Value : null,
+                BolaoServiceFeeRowCount = FeeFor(close).RowCount,
                 RecordedByUserId = close.RecordedByUserId,
                 RecordedByUserName = close.RecordedByUserName,
                 RecordedByOperatorId = close.RecordedByOperatorId,
@@ -103,7 +110,9 @@ public class MonthlyFinancialReader(
                 SubmittedByOperatorName = close.SubmittedByOperatorName
             })
             .Concat(feeByTerminalDay
-                .Where(pair => closes.All(close => (close.Date.Date, close.AccountId) != pair.Key))
+                .Where(pair => closes.All(close =>
+                    (close.Date.Date, close.AccountId) != (pair.Key.Date, pair.Key.AccountId)
+                    || (pair.Key.SessionId is { } sessionId && sessionId != close.DailyCloseId)))
                 .Select(pair => new ResponseMonthlyFinancialTerminalDayJson
                 {
                     Date = pair.Key.Date,

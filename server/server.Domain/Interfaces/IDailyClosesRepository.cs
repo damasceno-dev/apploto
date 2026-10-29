@@ -9,17 +9,46 @@ public interface IDailyClosesRepository
     Task Add(DailyClose dailyClose, CancellationToken ct = default);
     Task<DailyClose?> GetByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default);
     Task<DailyClose?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
-    Task<DailyClose?> GetByBranchIdAndAccountIdAndDateAsNoTracking(Guid branchId, Guid accountId, DateTime date, CancellationToken ct = default);
-    Task<DailyClose?> GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-        Guid branchId,
-        Guid accountId,
-        DateTime beforeDate,
+    /// <summary>
+    /// The counted session whose closing is the inherited opening of <paramref name="session"/>: the latest Ready
+    /// session of the same cashbox with a lower Sequence and a recorded count. An Unresolved legacy row keeps the
+    /// shipped date rule (latest earlier counted close of the account).
+    /// </summary>
+    Task<DailyClose?> GetCountedPredecessorAsNoTracking(DailyClose session, CancellationToken ct = default);
+
+    /// <summary>
+    /// The next dependent session of the same cashbox: the first higher-Sequence session that acknowledged an opening
+    /// or recorded a count, tracked with its opening; null when none follows.
+    /// </summary>
+    Task<DailyClose?> GetDependentSuccessor(DailyClose session, CancellationToken ct = default);
+
+    /// <summary>The cashbox's single Active custody session, tracked, or null.</summary>
+    Task<DailyClose?> GetActiveCustodyByAccountId(Guid branchId, Guid accountId, CancellationToken ct = default);
+    Task<DailyClose?> GetActiveCustodyByAccountIdAsNoTracking(Guid branchId, Guid accountId, CancellationToken ct = default);
+
+    /// <summary>The latest counted Ready session of the cashbox (proposal source for the next start), with items.</summary>
+    Task<DailyClose?> GetLatestCountedReadyByAccountIdAsNoTracking(Guid branchId, Guid accountId, CancellationToken ct = default);
+
+    Task<int> GetMaxSequenceByAccountId(Guid branchId, Guid accountId, CancellationToken ct = default);
+
+    /// <summary>Every Ready session of the cashbox, tracked, ordered by StartedAt then Sequence (renumbering).</summary>
+    Task<IReadOnlyList<DailyClose>> ListReadyByAccountIdOrderedByStart(Guid branchId, Guid accountId, CancellationToken ct = default);
+
+    /// <summary>True when the cashbox still has Unresolved legacy sessions or cashbox rows without a session.</summary>
+    Task<bool> HasUnresolvedHistoryByAccountIdAsNoTracking(Guid branchId, Guid accountId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Earliest business date of an uncounted Ready predecessor of <paramref name="session"/> (lower Sequence, same
+    /// cashbox, no recorded count) that carries active financial rows, dated after <paramref name="afterDateExclusive"/>.
+    /// </summary>
+    Task<DateTime?> GetEarliestUncountedPredecessorActivityDateAsNoTracking(
+        DailyClose session,
+        DateTime afterDateExclusive,
         CancellationToken ct = default);
-    Task<DailyClose?> GetNextEligibleAfterDateByBranchIdAndAccountId(
-        Guid branchId,
-        Guid accountId,
-        DateTime afterDate,
-        CancellationToken ct = default);
+
+    /// <summary>Active custody sessions of the branch with cashbox and custodian names (queue and workstation).</summary>
+    Task<IReadOnlyList<DailyClose>> ListActiveCustodyByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default);
+
     /// <summary>
     /// Earliest business date carrying an active close in the branch, regardless of workflow status.
     /// Used to keep a fresh branch's month-lock floor from skipping backdated/imported history.

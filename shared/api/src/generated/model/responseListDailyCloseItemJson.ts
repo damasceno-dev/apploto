@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { DailyCloseStatus } from './dailyCloseStatus';
+import type { ResponseSessionCustodyJson } from './responseSessionCustodyJson';
 
 export interface ResponseListDailyCloseItemJson {
   id: string;
@@ -37,4 +38,5 @@ export interface ResponseListDailyCloseItemJson {
   /** @nullable */
   approvedAt?: string | null;
   createdAt: string;
+  custody: ResponseSessionCustodyJson;
 }

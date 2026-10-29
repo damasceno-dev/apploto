@@ -33,4 +33,5 @@ public class ResponseListDailyCloseItemJson
     public DateTime? SubmittedAt { get; init; }
     public DateTime? ApprovedAt { get; init; }
     public DateTime CreatedAt { get; init; }
+    public ResponseSessionCustodyJson Custody { get; init; } = new();
 }

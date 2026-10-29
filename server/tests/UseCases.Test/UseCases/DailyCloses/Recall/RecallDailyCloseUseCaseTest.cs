@@ -93,6 +93,7 @@ public class RecallDailyCloseUseCaseTest
                 .ReturnsId(ctx.BranchUser.BranchId, Guid.NewGuid())
                 .Build(),
             ctx.Coordination,
+            SessionTestServices.HandoverInvalidator(),
             ctx.UnitOfWork);
     }
 

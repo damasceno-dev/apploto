@@ -18,4 +18,9 @@ public class ResponseDailyCloseHistoryJson
     public ResponseDailyCloseOpeningSourceJson? CurrentOpeningSource { get; init; }
 
     public IReadOnlyList<ResponseDailyCloseHistoryEventJson> Events { get; init; } = [];
+
+    /// <summary>Custody events (start, acknowledgment, handover, finish, exception, declaration, rearrangement).</summary>
+    public IReadOnlyList<ResponseSessionEventJson> CustodyEvents { get; init; } = [];
+    public IReadOnlyList<ResponseSessionHandoverJson> Handovers { get; init; } = [];
+    public bool IsCustodyHistoryComplete { get; init; }
 }

@@ -40,7 +40,7 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
 
         var operationTask = Send(operationClient, ctx, operation);
         await heldLock.WaitForWaitersAsync(1);
-        var submitTask = submitClient.PostAuthAsync($"/dailyclose/{ctx.CloseId}/submit", ctx.Token);
+        var submitTask = submitClient.PostAuthAsync($"/session/{ctx.CloseId}/submit", ctx.Token);
         await heldLock.WaitForWaitersAsync(2);
 
         await heldLock.ReleaseAsync();
@@ -69,7 +69,7 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
         using var operationClient = grantOrderFactory.CreateClient();
         await using var heldLock = await HoldAccountKeyAsync(ctx.BranchId, ctx.TerminalId);
 
-        var submitTask = submitClient.PostAuthAsync($"/dailyclose/{ctx.CloseId}/submit", ctx.Token);
+        var submitTask = submitClient.PostAuthAsync($"/session/{ctx.CloseId}/submit", ctx.Token);
         await heldLock.WaitForWaitersAsync(1);
         var operationTask = Send(operationClient, ctx, operation);
         await heldLock.WaitForWaitersAsync(2);
@@ -136,7 +136,7 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
         var close = (await factory.ReloadAsync<DailyClose>(ctx.CloseId))!;
         var counted = operation == PhysicalOperation.CountedStockSale ? (Stock: 995m, Cash: 1000m) : (Stock: 1000m, Cash: 1005m);
         var put = await factory.CreateClient().PutAuthAsync(
-            $"/dailyclose/{ctx.CloseId}/items",
+            $"/session/{ctx.CloseId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,

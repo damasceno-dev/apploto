@@ -16,6 +16,11 @@ public class RequestListDailyClosesJson
     /// </summary>
     public bool Mine { get; init; }
 
+    /// <summary>Session filters (M9.6 Phase 2): custodian employee, custody state and physical terminal.</summary>
+    public Guid? CustodianOperatorId { get; init; }
+    public SessionCustodyState? CustodyState { get; init; }
+    public Guid? TerminalId { get; init; }
+
     public int Page { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }

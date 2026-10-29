@@ -77,11 +77,20 @@ public class CreateTransactionInstallmentUseCase(
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
-        await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(
-            createContext.BranchUser.BranchId,
+        TransactionSessionBinding.EnsureUsed(
+            request.SessionId,
+            request.OpeningAcknowledgment,
+            createContext.Account!.Type == AccountType.Terminal);
+        var ownSession = await dailyCloseLedgerGuard.ResolveSessionForNewRow(
             request.AccountId,
             createContext.Account!.Type,
             request.Date.Date,
+            new SessionRowContext(
+                createContext.BranchUser,
+                createContext.MemberScope!,
+                request.SessionId,
+                request.HistoricalReason,
+                request.OpeningAcknowledgment),
             ct);
 
         var installmentPlan = installmentPlanBuilder.Build(
@@ -96,6 +105,8 @@ public class CreateTransactionInstallmentUseCase(
                 createContext.RecordedByOperatorId,
                 createContext.BranchUser.UserId))
             .ToList();
+        foreach (var transaction in transactions)
+            transaction.SessionId = ownSession.SessionId;
 
         await transactionsRepository.AddRange(transactions, ct);
         await unitOfWork.Commit(ct);

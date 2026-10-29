@@ -21,6 +21,14 @@ internal static class TestSeeder
 {
     public const string DefaultPassword = "Password123";
 
+    // Uncounted placeholder sessions created for seeded cashbox rows, keyed by cashbox and day.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<(Guid AccountId, DateTime Date), Guid>
+        SeedPlaceholderSessions = new();
+
+    // Seeded sessions handed to tests, refreshed after a chain renumber so a held Version/Sequence stays current.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<Guid, WeakReference<DailyClose>>
+        SeededSessions = new();
+
     extension(ServerWebApplicationFactory factory)
     {
         public async Task<(User User, Branch Branch, BranchUser Membership, string Token)> SeedFullBranchContextAsync(
@@ -235,6 +243,14 @@ internal static class TestSeeder
                 Active = active
             };
 
+            // Every seeded cashbox has its physical CAIXA terminal (M9.6 Phase 2), so sessions can start on it.
+            if (type == AccountType.Terminal)
+            {
+                var terminal = new Terminal { BranchId = branchId, Name = account.Name };
+                dbContext.Terminals.Add(terminal);
+                account.TerminalId = terminal.Id;
+            }
+
             dbContext.Accounts.Add(account);
             await dbContext.SaveChangesAsync();
             return account;
@@ -377,11 +393,17 @@ internal static class TestSeeder
             TransactionStatus status = TransactionStatus.Active,
             DateTime? createdAt = null,
             Guid? id = null,
-            bool active = true)
+            bool active = true,
+            Guid? sessionId = null,
+            bool legacyUnsessioned = false)
         {
+            var transactionDate = date ?? DateTime.Today;
+            var boundSessionId = legacyUnsessioned
+                ? null
+                : sessionId ?? await factory.ResolveSeedSessionIdAsync(branchId, accountId, transactionDate.Date);
+
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
-            var transactionDate = date ?? DateTime.Today;
 
             var transaction = new Transaction
             {
@@ -403,8 +425,12 @@ internal static class TestSeeder
                 Status = status,
                 BranchId = branchId,
                 Active = active,
-                CreatedAt = ServerWebApplicationFactory.AsUtc(createdAt ?? DateTime.UtcNow)
+                CreatedAt = ServerWebApplicationFactory.AsUtc(createdAt ?? DateTime.UtcNow),
+                SessionId = boundSessionId
             };
+
+            if (legacyUnsessioned)
+                return await factory.SeedLegacyUnsessionedTransactionAsync(transaction);
 
             dbContext.Transactions.Add(transaction);
             await dbContext.SaveChangesAsync();
@@ -587,10 +613,20 @@ internal static class TestSeeder
             Guid? recordedByUserId = null,
             Guid? recordedByOperatorId = null,
             Guid? submittedByUserId = null,
-            bool active = true)
+            bool active = true,
+            SessionCustodyState? custodyState = null,
+            Guid? custodianOperatorId = null,
+            SessionMappingState mappingState = SessionMappingState.Ready)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+            var sessionDate = (date ?? DateTime.Today).Date;
+
+            // A cashbox row seeded before its close created an uncounted placeholder session for that day; the
+            // explicit close takes over the placeholder's identity so those rows stay bound to it.
+            var placeholderId = id is null && SeedPlaceholderSessions.TryRemove((accountId, sessionDate), out var reused)
+                ? reused
+                : (Guid?)null;
 
             var fallbackUserId = await dbContext.BranchUsers
                 .AsNoTracking()
@@ -630,13 +666,46 @@ internal static class TestSeeder
                     .Select(op => op.UserId)
                     .FirstOrDefaultAsync();
 
+            // Only a cashbox holds sessions; a close seeded on a Tab/Bank account can only be unresolved legacy history.
+            var accountType = await dbContext.Accounts
+                .Where(account => account.Id == accountId)
+                .Select(account => (AccountType?)account.Type)
+                .FirstOrDefaultAsync();
+            if (accountType is not AccountType.Terminal)
+                mappingState = SessionMappingState.Unresolved;
+            var isReady = mappingState == SessionMappingState.Ready;
+            var custodianId = isReady
+                ? custodianOperatorId ?? effectiveRecordedByOperatorId ?? submittedByOperatorId
+                    ?? await ResolveSeedCustodianAsync(dbContext, branchId, accountId)
+                : (Guid?)null;
+            var latestDate = await dbContext.DailyCloses
+                .Where(close => close.AccountId == accountId && close.MappingState == SessionMappingState.Ready)
+                .MaxAsync(close => (DateTime?)close.Date);
+            var effectiveCustodyState = isReady
+                ? custodyState ?? (latestDate is null || sessionDate >= latestDate ? SessionCustodyState.Active : SessionCustodyState.Finished)
+                : (SessionCustodyState?)null;
+            var terminalId = await dbContext.Accounts
+                .Where(account => account.Id == accountId)
+                .Select(account => account.TerminalId)
+                .FirstOrDefaultAsync();
+            var startedAt = SeedSessionStart(sessionDate, 0);
+
             var dailyClose = new DailyClose
             {
-                Id = id ?? Guid.NewGuid(),
+                Id = placeholderId ?? id ?? Guid.NewGuid(),
                 CreatedAt = AsUtc(createdAt ?? DateTime.UtcNow),
                 BranchId = branchId,
                 AccountId = accountId,
-                Date = date ?? DateTime.Today,
+                Date = sessionDate,
+                MappingState = mappingState,
+                Origin = isReady ? SessionOrigin.Started : SessionOrigin.Migrated,
+                CustodyState = effectiveCustodyState,
+                CustodianOperatorId = custodianId,
+                TerminalId = isReady ? terminalId : null,
+                Sequence = isReady ? 900_000 : null,
+                StartedAt = isReady ? startedAt : null,
+                EndedAt = effectiveCustodyState is null or SessionCustodyState.Active ? null : startedAt.AddMinutes(1),
+                CustodyHistoryComplete = isReady,
                 Status = status,
                 OpenedByUserId = effectiveOpenedByUserId,
                 RecordedByUserId = effectiveRecordedByUserId,
@@ -657,9 +726,66 @@ internal static class TestSeeder
                 Active = active
             };
 
+            // Seeding writes fixture state directly: the custody guards are bypassed only for this transaction while
+            // the cashbox chain is renumbered into non-overlapping intervals in date order.
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            await dbContext.Database.ExecuteSqlRawAsync("SET LOCAL session_replication_role = replica");
+            if (placeholderId is { } placeholder)
+            {
+                await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM \"DailyCloses\" WHERE \"Id\" = {placeholder}");
+            }
+
+            if (effectiveCustodyState == SessionCustodyState.Active)
+            {
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                    UPDATE "DailyCloses"
+                    SET "CustodyState" = 2, "EndedAt" = "StartedAt" + interval '1 minute'
+                    WHERE "AccountId" = {accountId} AND "MappingState" = 0 AND "CustodyState" = 0
+                    """);
+            }
+
             dbContext.DailyCloses.Add(dailyClose);
             await dbContext.SaveChangesAsync();
+            if (isReady)
+                await RenumberSeedChainAsync(dbContext, accountId);
+            await transaction.CommitAsync();
+            SeededSessions[dailyClose.Id] = new WeakReference<DailyClose>(dailyClose);
+            await RefreshSeededSessionsAsync(dbContext, accountId);
             return dailyClose;
+        }
+
+        /// <summary>
+        /// The session a seeded cashbox row belongs to: the latest Ready session of that cashbox and day, else a new
+        /// uncounted Draft placeholder session (the row's day had activity without a count). Tab/Bank rows get none.
+        /// </summary>
+        public async Task<Guid?> ResolveSeedSessionIdAsync(Guid branchId, Guid accountId, DateTime date)
+        {
+            using (var scope = factory.Services.CreateScope())
+            {
+                var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+                var type = await dbContext.Accounts
+                    .Where(account => account.Id == accountId)
+                    .Select(account => (AccountType?)account.Type)
+                    .FirstOrDefaultAsync();
+                if (type != AccountType.Terminal)
+                    return null;
+
+                var existing = await dbContext.DailyCloses
+                    .Where(close =>
+                        close.AccountId == accountId &&
+                        close.Date == date &&
+                        close.MappingState == SessionMappingState.Ready)
+                    .OrderByDescending(close => close.Sequence)
+                    .Select(close => (Guid?)close.Id)
+                    .FirstOrDefaultAsync();
+                if (existing is not null)
+                    return existing;
+            }
+
+            var placeholder = await factory.SeedDailyCloseAsync(branchId, accountId, date, itemsRecorded: false);
+            SeedPlaceholderSessions[(accountId, date)] = placeholder.Id;
+            return placeholder.Id;
         }
 
         /// <summary>
@@ -675,6 +801,96 @@ internal static class TestSeeder
             return await dbContext.Set<TEntity>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(entity => entity.Id == entityId);
+        }
+
+        private static DateTime SeedSessionStart(DateTime businessDate, int indexOnDay)
+        {
+            // Noon in São Paulo (UTC−3), two minutes apart per session of the same cashbox and day.
+            return DateTime.SpecifyKind(businessDate.Date.AddHours(15).AddMinutes(2 * indexOnDay), DateTimeKind.Utc);
+        }
+
+        private static async Task<Guid> ResolveSeedCustodianAsync(ServerDbContext dbContext, Guid branchId, Guid accountId)
+        {
+            var granted = await dbContext.OperatorAccounts
+                .Where(link => link.AccountId == accountId && link.Active && link.Operator.Active)
+                .OrderByDescending(link => link.Operator.UserId != null)
+                .ThenBy(link => link.CreatedAt)
+                .Select(link => (Guid?)link.OperatorId)
+                .FirstOrDefaultAsync();
+            if (granted is { } grantedOperatorId)
+                return grantedOperatorId;
+
+            var anyOperator = await dbContext.Operators
+                .Where(op => op.BranchId == branchId && op.Active)
+                .OrderBy(op => op.CreatedAt)
+                .Select(op => (Guid?)op.Id)
+                .FirstOrDefaultAsync();
+            if (anyOperator is { } operatorId)
+                return operatorId;
+
+            var custodian = new Operator { BranchId = branchId, Name = $"Custodian {Guid.NewGuid():N}" };
+            dbContext.Operators.Add(custodian);
+            await dbContext.SaveChangesAsync();
+            return custodian.Id;
+        }
+
+        private static async Task RefreshSeededSessionsAsync(ServerDbContext dbContext, Guid accountId)
+        {
+            var rows = await dbContext.DailyCloses
+                .AsNoTracking()
+                .Where(close => close.AccountId == accountId)
+                .Select(close => new { close.Id, close.Version, close.Sequence, close.CustodyState, close.StartedAt, close.EndedAt })
+                .ToListAsync();
+            foreach (var row in rows)
+            {
+                if (SeededSessions.TryGetValue(row.Id, out var reference) && reference.TryGetTarget(out var held))
+                {
+                    held.Version = row.Version;
+                    held.Sequence = row.Sequence;
+                    held.CustodyState = row.CustodyState;
+                    held.StartedAt = row.StartedAt;
+                    held.EndedAt = row.EndedAt;
+                }
+            }
+        }
+
+        /// <summary>
+        /// A cashbox row without a session, as only the M9.6 legacy quarantine leaves behind (unresolved orphan activity).
+        /// Written past the row guards on purpose; every other seeded cashbox row is bound to its session.
+        /// </summary>
+        public async Task<Transaction> SeedLegacyUnsessionedTransactionAsync(Transaction transaction)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+            await using var dbTransaction = await dbContext.Database.BeginTransactionAsync();
+            await dbContext.Database.ExecuteSqlRawAsync("SET LOCAL session_replication_role = replica");
+            transaction.SessionId = null;
+            dbContext.Transactions.Add(transaction);
+            await dbContext.SaveChangesAsync();
+            await dbTransaction.CommitAsync();
+            return transaction;
+        }
+
+        private static async Task RenumberSeedChainAsync(ServerDbContext dbContext, Guid accountId)
+        {
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                WITH ordered AS (
+                    SELECT "Id",
+                           row_number() OVER (ORDER BY "Date", "CreatedAt", "Id") AS rn,
+                           row_number() OVER (PARTITION BY "Date" ORDER BY "CreatedAt", "Id") - 1 AS j
+                    FROM "DailyCloses"
+                    WHERE "AccountId" = {accountId} AND "MappingState" = 0)
+                UPDATE "DailyCloses" d
+                SET "Sequence" = o.rn + 1000000,
+                    "StartedAt" = (d."Date"::timestamp + interval '15 hours' + o.j * interval '2 minutes') AT TIME ZONE 'UTC',
+                    "EndedAt" = CASE WHEN d."CustodyState" = 0 THEN NULL
+                                     ELSE (d."Date"::timestamp + interval '15 hours' + o.j * interval '2 minutes' + interval '1 minute') AT TIME ZONE 'UTC' END
+                FROM ordered o
+                WHERE d."Id" = o."Id";
+
+                UPDATE "DailyCloses" SET "Sequence" = "Sequence" - 1000000
+                WHERE "AccountId" = {accountId} AND "MappingState" = 0;
+                """);
         }
 
         private static DateTime AsUtc(DateTime value)

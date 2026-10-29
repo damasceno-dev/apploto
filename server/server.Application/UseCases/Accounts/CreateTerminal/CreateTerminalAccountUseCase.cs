@@ -1,3 +1,4 @@
+using server.Domain.Entities;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -11,6 +12,7 @@ public class CreateTerminalAccountUseCase(
     IAuthenticationService authenticationService,
     IAccountsRepository accountsRepository,
     IAccountPairingCoordination accountPairingCoordination,
+    ITerminalsRepository terminalsRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseCreateAccountJson> Execute(RequestCreateTerminalAccountJson request)
@@ -27,6 +29,19 @@ public class CreateTerminalAccountUseCase(
             request.Name,
             request.Institution,
             request.Number);
+
+        if (request.TerminalId is { } terminalId)
+        {
+            _ = await terminalsRepository.GetActiveByIdAndBranchIdAsNoTracking(terminalId, authenticatedBranchUser.BranchId)
+                ?? throw new NotFoundException(ResourcesErrorMessages.TERMINAL_NOT_FOUND);
+            terminalAccount.TerminalId = terminalId;
+        }
+        else
+        {
+            var terminal = new Terminal { BranchId = authenticatedBranchUser.BranchId, Name = terminalAccount.Name };
+            await terminalsRepository.Add(terminal);
+            terminalAccount.TerminalId = terminal.Id;
+        }
 
         if (request.ExistingTabAccountId.HasValue)
         {

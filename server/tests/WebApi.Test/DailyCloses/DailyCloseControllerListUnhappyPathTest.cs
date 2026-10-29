@@ -16,7 +16,7 @@ public class DailyCloseControllerListUnhappyPathTest(ServerWebApplicationFactory
     [Fact]
     public async Task List_ShouldReturn401_WhenNoToken()
     {
-        var httpResponse = await _client.GetAsync("/dailyclose");
+        var httpResponse = await _client.GetAsync("/session");
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -28,7 +28,7 @@ public class DailyCloseControllerListUnhappyPathTest(ServerWebApplicationFactory
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcList400Page");
 
-        var httpResponse = await _client.GetAuthAsync("/dailyclose?page=0", token);
+        var httpResponse = await _client.GetAuthAsync("/session?page=0", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -41,7 +41,7 @@ public class DailyCloseControllerListUnhappyPathTest(ServerWebApplicationFactory
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcList400PageSize");
 
         var httpResponse = await _client.GetAuthAsync(
-            $"/dailyclose?pageSize={ListDailyClosesFluentValidation.MaximumPageSize + 1}",
+            $"/session?pageSize={ListDailyClosesFluentValidation.MaximumPageSize + 1}",
             token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -58,7 +58,7 @@ public class DailyCloseControllerListUnhappyPathTest(ServerWebApplicationFactory
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcList400PageSizeZero");
 
-        var httpResponse = await _client.GetAuthAsync("/dailyclose?pageSize=0", token);
+        var httpResponse = await _client.GetAuthAsync("/session?pageSize=0", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -77,7 +77,7 @@ public class DailyCloseControllerListUnhappyPathTest(ServerWebApplicationFactory
         var dateTo = QueryDate(new DateTime(2025, 3, 10));
 
         var httpResponse = await _client.GetAuthAsync(
-            $"/dailyclose?dateFrom={dateFrom}&dateTo={dateTo}",
+            $"/session?dateFrom={dateFrom}&dateTo={dateTo}",
             token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
@@ -90,7 +90,7 @@ public class DailyCloseControllerListUnhappyPathTest(ServerWebApplicationFactory
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcList400MineOperator");
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose?mine=true&operatorId={Guid.NewGuid()}", token);
+        var httpResponse = await _client.GetAuthAsync($"/session?mine=true&operatorId={Guid.NewGuid()}", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

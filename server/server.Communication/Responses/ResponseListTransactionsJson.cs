@@ -32,6 +32,9 @@ public class ResponseListTransactionItemJson
     public DateTime? PaidAt { get; init; }
     public Guid? OriginTransactionId { get; init; }
 
+    /// <summary>The cashbox session of this row; null on Tab/Bank rows and unresolved legacy rows.</summary>
+    public Guid? SessionId { get; init; }
+
     /// <summary>
     /// System-owned generation origin (M7.7 Phase 5.7): non-null only on a generated Terminal leg, with
     /// <c>GeneratedFromTransactionId</c> naming its Tab source. Never accepted from a request.

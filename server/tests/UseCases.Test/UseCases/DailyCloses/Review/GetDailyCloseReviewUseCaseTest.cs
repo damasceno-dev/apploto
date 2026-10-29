@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
@@ -150,10 +151,7 @@ public class GetDailyCloseReviewUseCaseTest
 
         response.Items.ShouldHaveSingleItem().OpeningValue.ShouldBe(140m);
         await context.DailyClosesRepository.Received(1)
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                branchUser.BranchId,
-                account.Id,
-                monday);
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -350,10 +348,7 @@ public class GetDailyCloseReviewUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         await context.DailyClosesRepository.DidNotReceive()
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                Arg.Any<Guid>(),
-                Arg.Any<Guid>(),
-                Arg.Any<DateTime>());
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -390,10 +385,7 @@ public class GetDailyCloseReviewUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await context.DailyClosesRepository.DidNotReceive()
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                Arg.Any<Guid>(),
-                Arg.Any<Guid>(),
-                Arg.Any<DateTime>());
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -408,10 +400,7 @@ public class GetDailyCloseReviewUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
         await context.DailyClosesRepository.DidNotReceive()
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                Arg.Any<Guid>(),
-                Arg.Any<Guid>(),
-                Arg.Any<DateTime>());
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
     }
 
     private static GetDailyCloseReviewUseCase CreateUseCase(TestContext context)
@@ -425,7 +414,9 @@ public class GetDailyCloseReviewUseCaseTest
             context.DailyClosesRepository,
             context.ProductsRepository,
             memberAccountScopeResolver,
-            context.CashVarianceProductResolver);
+            context.CashVarianceProductResolver,
+            SessionTestServices.OpeningResolver(context.DailyClosesRepository, context.CashVarianceProductResolver),
+            Substitute.For<ISessionOpeningDiscrepanciesRepository>());
     }
 
     private static TestContext BuildContext(
@@ -441,11 +432,7 @@ public class GetDailyCloseReviewUseCaseTest
 
         if (currentClose is not null)
         {
-            repositoryBuilder.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
-                branchUser.BranchId,
-                currentClose.AccountId,
-                currentClose.Date,
-                priorClose);
+            repositoryBuilder.GetCountedPredecessorAsNoTrackingReturnsForAny(priorClose);
         }
 
         activeProducts ??= currentClose?.Items

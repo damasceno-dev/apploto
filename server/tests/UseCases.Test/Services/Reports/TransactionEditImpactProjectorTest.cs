@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using NSubstitute;
@@ -265,7 +266,7 @@ public class TransactionEditImpactProjectorTest
         var edit = BuildEdit();
         var dailyClose = CloseWithStatus(edit.AccountId, edit.Date, status);
         var dailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(BranchId, edit.AccountId, edit.Date, dailyClose)
+            .GetActiveCustodyByAccountIdAsNoTrackingReturns(BranchId, edit.AccountId, dailyClose)
             .Build();
 
         var cashVarianceProductId = Guid.NewGuid();
@@ -274,7 +275,7 @@ public class TransactionEditImpactProjectorTest
 
         var calculator = Substitute.For<ICashVarianceCalculator>();
         calculator
-            .CalculateAsync(BranchId, edit.AccountId, edit.Date, dailyClose.Id, cashVarianceProductId, Arg.Any<CancellationToken>())
+            .CalculateAsync(Arg.Any<DailyClose>(), cashVarianceProductId, Arg.Any<CancellationToken>())
             .Returns(50m);
 
         var projector = CreateProjector(
@@ -299,7 +300,7 @@ public class TransactionEditImpactProjectorTest
         var edit = BuildEdit();
         var dailyClose = CloseWithStatus(edit.AccountId, edit.Date, DailyCloseStatus.Draft);
         var dailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(BranchId, edit.AccountId, edit.Date, dailyClose)
+            .GetActiveCustodyByAccountIdAsNoTrackingReturns(BranchId, edit.AccountId, dailyClose)
             .Build();
         var projector = CreateProjector(dailyClosesRepository: dailyClosesRepository);
 

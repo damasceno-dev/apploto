@@ -5,7 +5,7 @@ namespace server.Domain.Entities;
 public class DailyClose : EntityBase
 {
     public uint Version { get; set; }
-    public DateTime Date { get; init; }
+    public DateTime Date { get; set; }
     public DailyCloseStatus Status { get; set; } = DailyCloseStatus.Draft;
 
     public Guid AccountId { get; init; }
@@ -56,6 +56,34 @@ public class DailyClose : EntityBase
     /// were never recorded and must be shown as unavailable, never inferred.
     /// </summary>
     public bool ReviewHistoryComplete { get; init; } = true;
+
+    // Session identity (M9.6 Phase 2). DailyClose.Id is the stable SessionId; a Ready session has a custodian,
+    // a per-cashbox Sequence and a half-open [StartedAt, EndedAt) interval. Unresolved legacy rows keep these
+    // null and are read-only history until a reviewed mapping resolves them.
+    public SessionMappingState MappingState { get; set; } = SessionMappingState.Ready;
+    public SessionOrigin Origin { get; init; } = SessionOrigin.Started;
+    public SessionCustodyState? CustodyState { get; set; }
+
+    public Guid? CustodianOperatorId { get; init; }
+    public Operator? CustodianOperator { get; init; }
+    public Guid? CustodianUserIdAtStart { get; init; }
+
+    public Guid? TerminalId { get; init; }
+    public Terminal? Terminal { get; init; }
+
+    public int? Sequence { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? EndedAt { get; set; }
+
+    /// <summary>Durable revision of the session's ledger, bumped by every write to its rows.</summary>
+    public long LedgerRevision { get; set; }
+
+    /// <summary>Durable revision of the session's count, bumped by every changed count save.</summary>
+    public long CountRevision { get; set; }
+
+    public bool CustodyHistoryComplete { get; init; } = true;
+
+    public SessionOpening? Opening { get; init; }
 
     public ICollection<DailyCloseItem> Items { get; init; } = [];
 }

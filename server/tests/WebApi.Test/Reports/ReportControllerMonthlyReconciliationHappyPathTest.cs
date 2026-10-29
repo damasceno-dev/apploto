@@ -122,7 +122,9 @@ public class ReportControllerMonthlyReconciliationHappyPathTest(ServerWebApplica
             operatorRow.Id,
             user.Id,
             date: activityDate,
-            status: TransactionStatus.Active);
+            status: TransactionStatus.Active,
+            // Direct activity without a session exists only as unresolved legacy history (M9.6 quarantine).
+            legacyUnsessioned: true);
 
         var httpResponse = await _client.GetAuthAsync("/report/monthly-reconciliation/2025/10", token);
 

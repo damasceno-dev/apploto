@@ -48,7 +48,7 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
         {
             var error = await response.ReadContentAsync<TestResponseErrorJson>();
             error.ErrorMessages.ShouldContain(closeCase == CloseCase.Missing
-                ? ResourcesErrorMessages.TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE
+                ? ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED
                 : ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
         }
     }
@@ -88,7 +88,7 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
         {
             var error = await response.ReadContentAsync<TestResponseErrorJson>();
             error.ErrorMessages.ShouldContain(closeCase == CloseCase.Missing
-                ? ResourcesErrorMessages.TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE
+                ? ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED
                 : ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
         }
     }
@@ -111,11 +111,7 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
         first.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await CountRowsAsync(context)).ShouldBe(0);
 
-        var open = await _client.PostAuthAsync(
-            "/dailyclose",
-            new RequestOpenDailyCloseJson { AccountId = context.AccountId, Date = context.Date },
-            context.Token);
-        open.StatusCode.ShouldBe(HttpStatusCode.Created);
+        await factory.OpenSeededSessionAsync(_client, context.AccountId, context.Date, context.Token);
 
         var retry = await _client.PostAuthAsync("/transaction", request, context.Token);
         retry.StatusCode.ShouldBe(HttpStatusCode.Created);

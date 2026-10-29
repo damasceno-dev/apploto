@@ -91,11 +91,7 @@ public class FinalizeTransactionUseCase(
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
-        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(
-            branchUser.BranchId,
-            transaction.AccountId,
-            transaction.Date.Date,
-            ct);
+        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(transaction, ct);
 
         // The physical leg (M7.7 Phase 5.6) activates in the same commit, under its own terminal's ledger guard.
         var counterpart = counterpartKey is null

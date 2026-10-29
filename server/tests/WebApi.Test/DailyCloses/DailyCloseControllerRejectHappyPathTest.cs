@@ -31,7 +31,7 @@ public class DailyCloseControllerRejectHappyPathTest(ServerWebApplicationFactory
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
         var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reject", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/reject", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();

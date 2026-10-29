@@ -23,7 +23,7 @@ public class DailyCloseControllerUncountedActivityTest(ServerWebApplicationFacto
         await SeedTransactionAsync(context, earliest, TransactionStatus.Active);
         await SeedTransactionAsync(context, later, TransactionStatus.Active);
 
-        var first = await _client.PostAuthAsync($"/dailyclose/{context.CloseId}/submit", context.Token);
+        var first = await _client.PostAuthAsync($"/session/{context.CloseId}/submit", context.Token);
         first.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var firstError = await first.ReadContentAsync<TestResponseErrorJson>();
         firstError.ErrorMessages.ShouldContain(string.Format(
@@ -31,7 +31,7 @@ public class DailyCloseControllerUncountedActivityTest(ServerWebApplicationFacto
             earliest.ToString("dd/MM/yyyy")));
 
         await factory.SeedDailyCloseAsync(context.BranchId, context.AccountId, earliest);
-        var second = await _client.PostAuthAsync($"/dailyclose/{context.CloseId}/submit", context.Token);
+        var second = await _client.PostAuthAsync($"/session/{context.CloseId}/submit", context.Token);
         second.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var secondError = await second.ReadContentAsync<TestResponseErrorJson>();
         secondError.ErrorMessages.ShouldContain(string.Format(
@@ -39,7 +39,7 @@ public class DailyCloseControllerUncountedActivityTest(ServerWebApplicationFacto
             later.ToString("dd/MM/yyyy")));
 
         await factory.SeedDailyCloseAsync(context.BranchId, context.AccountId, later);
-        var retry = await _client.PostAuthAsync($"/dailyclose/{context.CloseId}/submit", context.Token);
+        var retry = await _client.PostAuthAsync($"/session/{context.CloseId}/submit", context.Token);
         retry.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
@@ -55,7 +55,7 @@ public class DailyCloseControllerUncountedActivityTest(ServerWebApplicationFacto
             TransactionStatus.Active,
             active: false);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{context.CloseId}/submit", context.Token);
+        var response = await _client.PostAuthAsync($"/session/{context.CloseId}/submit", context.Token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -73,7 +73,7 @@ public class DailyCloseControllerUncountedActivityTest(ServerWebApplicationFacto
             DailyCloseStatus.Draft,
             itemsRecorded: true);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{context.CloseId}/submit", context.Token);
+        var response = await _client.PostAuthAsync($"/session/{context.CloseId}/submit", context.Token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -95,7 +95,7 @@ public class DailyCloseControllerUncountedActivityTest(ServerWebApplicationFacto
         await SeedTransactionAsync(context, openingDate, TransactionStatus.Active);
         await SeedTransactionAsync(context, context.CloseDate, TransactionStatus.Active);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{context.CloseId}/submit", context.Token);
+        var response = await _client.PostAuthAsync($"/session/{context.CloseId}/submit", context.Token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }

@@ -10,6 +10,9 @@ public class DailyCloseListFilter
     public DateTime? DateTo { get; set; }
     public Guid? OperatorId { get; set; }
     public bool? Mine { get; set; }
+    public Guid? CustodianOperatorId { get; set; }
+    public SessionCustodyState? CustodyState { get; set; }
+    public Guid? TerminalId { get; set; }
 
     /// <summary>
     /// Server-resolved active-linked-account set for Member callers; never set from a client-bound DTO.

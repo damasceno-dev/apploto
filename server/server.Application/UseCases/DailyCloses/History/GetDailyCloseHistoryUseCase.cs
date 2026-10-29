@@ -1,3 +1,5 @@
+using server.Application.UseCases.Sessions;
+using server.Domain.Entities.Enums;
 using server.Application.Services.Members;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
@@ -16,7 +18,9 @@ public class GetDailyCloseHistoryUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
     IDailyCloseReviewEventsRepository reviewEventsRepository,
-    IMemberAccountScopeResolver memberAccountScopeResolver)
+    IMemberAccountScopeResolver memberAccountScopeResolver,
+    ISessionEventsRepository sessionEventsRepository,
+    ISessionHandoversRepository sessionHandoversRepository)
 {
     public async Task<ResponseDailyCloseHistoryJson> Execute(Guid dailyCloseId, CancellationToken ct = default)
     {
@@ -40,16 +44,22 @@ public class GetDailyCloseHistoryUseCase(
             dailyClose.Id,
             branchUser.BranchId,
             ct);
-        var currentOpeningSource = await dailyClosesRepository.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-            branchUser.BranchId,
-            dailyClose.AccountId,
-            dailyClose.Date,
-            ct);
+        // An acknowledged opening keeps its own source; an inherited one reads the counted predecessor.
+        var currentOpeningSource = dailyClose.Opening is { SourceKind: SessionOpeningSourceKind.PreviousSession, SourceId: { } sourceId }
+            ? await dailyClosesRepository.GetByIdAndBranchIdAsNoTracking(sourceId, branchUser.BranchId, ct)
+            : dailyClose.Opening is null
+                ? await dailyClosesRepository.GetCountedPredecessorAsNoTracking(dailyClose, ct)
+                : null;
+        var custodyEvents = await sessionEventsRepository.ListBySessionIdAsNoTracking(branchUser.BranchId, dailyClose.Id, ct);
+        var handovers = await sessionHandoversRepository.ListBySessionIdAsNoTracking(branchUser.BranchId, dailyClose.Id, ct);
 
         return new ResponseDailyCloseHistoryJson
         {
             DailyCloseId = dailyClose.Id,
             IsHistoryComplete = dailyClose.ReviewHistoryComplete,
+            IsCustodyHistoryComplete = dailyClose.CustodyHistoryComplete,
+            CustodyEvents = custodyEvents.Select(sessionEvent => sessionEvent.ToResponse()).ToList(),
+            Handovers = handovers.Select(handover => handover.ToResponse()).ToList(),
             CurrentOpeningSource = currentOpeningSource is null
                 ? null
                 : new ResponseDailyCloseOpeningSourceJson

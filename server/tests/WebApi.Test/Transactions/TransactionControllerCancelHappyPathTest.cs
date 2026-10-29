@@ -162,10 +162,10 @@ public class TransactionControllerCancelHappyPathTest(ServerWebApplicationFactor
 
         using var scope = factory.Services.CreateScope();
         var transactionsRepository = scope.ServiceProvider.GetRequiredService<server.Domain.Interfaces.ITransactionsRepository>();
-        var sum = await transactionsRepository.SumActiveValueByAccountAndDateAsNoTracking(
-            ctx.Transaction.BranchId,
-            ctx.Transaction.AccountId,
-            ctx.Transaction.Date);
+        var sessions = scope.ServiceProvider.GetRequiredService<server.Domain.Interfaces.IDailyClosesRepository>();
+        var reloaded = await factory.ReloadAsync<Transaction>(ctx.Transaction.Id);
+        var session = await sessions.GetByIdAndBranchIdAsNoTracking(reloaded!.SessionId!.Value, ctx.Transaction.BranchId);
+        var sum = await transactionsRepository.SumActiveValueBySessionAsNoTracking(session!);
 
         sum.ShouldBe(0m);
     }

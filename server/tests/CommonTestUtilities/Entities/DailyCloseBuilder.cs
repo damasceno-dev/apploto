@@ -40,6 +40,12 @@ public class DailyCloseBuilder
     private Guid _branchId = Guid.NewGuid();
     private Branch? _branch;
     private IReadOnlyList<DailyCloseItem> _items = [];
+    private Guid? _custodianOperatorId;
+    private Operator? _custodianOperator;
+    private SessionCustodyState? _custodyState = SessionCustodyState.Active;
+    private SessionMappingState _mappingState = SessionMappingState.Ready;
+    private int? _sequence = 1;
+    private SessionOpening? _opening;
 
     public DailyCloseBuilder WithId(Guid id)
     {
@@ -201,6 +207,38 @@ public class DailyCloseBuilder
         return this;
     }
 
+    /// <summary>The session's custodian. Defaults to the recording (else submitting) operator.</summary>
+    public DailyCloseBuilder WithCustodian(Operator? custodian)
+    {
+        _custodianOperator = custodian;
+        _custodianOperatorId = custodian?.Id;
+        return this;
+    }
+
+    public DailyCloseBuilder WithCustodyState(SessionCustodyState? custodyState)
+    {
+        _custodyState = custodyState;
+        return this;
+    }
+
+    public DailyCloseBuilder WithMappingState(SessionMappingState mappingState)
+    {
+        _mappingState = mappingState;
+        return this;
+    }
+
+    public DailyCloseBuilder WithSequence(int? sequence)
+    {
+        _sequence = sequence;
+        return this;
+    }
+
+    public DailyCloseBuilder WithOpening(SessionOpening? opening)
+    {
+        _opening = opening;
+        return this;
+    }
+
     public DailyClose Build()
     {
         var branch = _branch ?? new BranchBuilder().WithId(_branchId).Build();
@@ -252,7 +290,13 @@ public class DailyCloseBuilder
             UpdatedByUserId = _updatedByUserId,
             BranchId = _branchId,
             Branch = branch,
-            Items = _items.ToList()
+            Items = _items.ToList(),
+            MappingState = _mappingState,
+            CustodyState = _custodyState,
+            Sequence = _sequence,
+            CustodianOperatorId = _custodianOperatorId ?? _recordedByOperatorId ?? _submittedByOperatorId,
+            CustodianOperator = _custodianOperator ?? _recordedByOperator ?? _submittedByOperator,
+            Opening = _opening
         };
     }
 }

@@ -4,6 +4,7 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { RequestSessionOpeningAcknowledgmentJson } from './requestSessionOpeningAcknowledgmentJson';
 
 export interface RequestReceiveFiadoPaymentJson {
   date: string;
@@ -19,4 +20,9 @@ export interface RequestReceiveFiadoPaymentJson {
   /** @nullable */
   recordedByOperatorId?: string | null;
   saveAsDraft?: boolean;
+  /** @nullable */
+  sessionId?: string | null;
+  /** @nullable */
+  historicalReason?: string | null;
+  openingAcknowledgment?: null | RequestSessionOpeningAcknowledgmentJson;
 }

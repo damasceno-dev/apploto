@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Communication.Responses;
@@ -13,7 +14,9 @@ public class GetDailyCloseReviewUseCase(
     IDailyClosesRepository dailyClosesRepository,
     IProductsRepository productsRepository,
     IMemberAccountScopeResolver memberAccountScopeResolver,
-    ICashVarianceProductResolver cashVarianceProductResolver)
+    ICashVarianceProductResolver cashVarianceProductResolver,
+    SessionOpeningResolver openingResolver,
+    ISessionOpeningDiscrepanciesRepository discrepanciesRepository)
 {
     public async Task<ResponseDailyCloseReviewJson> Execute(
         Guid dailyCloseId,
@@ -39,15 +42,11 @@ public class GetDailyCloseReviewUseCase(
                     ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         }
 
-        var priorClose = await dailyClosesRepository
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                branchUser.BranchId,
-                dailyClose.AccountId,
-                dailyClose.Date,
-                ct);
+        var opening = await openingResolver.ResolveForCalculation(dailyClose, ct);
+        var discrepancy = await discrepanciesRepository.GetBySessionIdAsNoTracking(branchUser.BranchId, dailyClose.Id, ct);
         var activeProducts = await productsRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId, ct);
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
-        return dailyClose.ToReviewResponse(priorClose, activeProducts, cashVarianceProductId);
+        return dailyClose.ToReviewResponse(opening, discrepancy, activeProducts, cashVarianceProductId);
     }
 }

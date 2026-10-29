@@ -210,7 +210,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
             HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED);
         await ShouldFail(
             await _client.PostAuthAsync("/transaction", Sale(noClose, 5m, handsOutCountedStock: true), noClose.Token),
-            HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE);
+            HttpStatusCode.Conflict, ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED);
         await ShouldFail(
             await _client.PostAuthAsync("/transaction/fiado-payment", Payment(submitted, submitted.CashMethodId, 5m), submitted.Token),
             HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
@@ -490,7 +490,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
             HttpStatusCode.Forbidden, ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await ShouldFail(
             await _client.PostAuthAsync("/transaction/preview", Sale(noClose, 5m, handsOutCountedStock: true), noClose.Token),
-            HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_REQUIRES_OPEN_DAILY_CLOSE);
+            HttpStatusCode.Conflict, ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED);
 
         var preview = await _client.PostAuthAsync("/transaction/preview", Sale(both, 5m, handsOutCountedStock: true), both.Token);
 

@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -7,63 +8,17 @@ namespace server.Application.Services.DailyCloses;
 
 public class CashVarianceCalculator(
     IDailyCloseItemsRepository dailyCloseItemsRepository,
-    IDailyClosesRepository dailyClosesRepository,
+    SessionOpeningResolver openingResolver,
     ITransactionsRepository transactionsRepository) : ICashVarianceCalculator
 {
-    public async Task<decimal> CalculateAsync(
-        Guid branchId,
-        Guid accountId,
-        DateTime branchLocalDate,
-        Guid currentDailyCloseId,
-        Guid cashVarianceProductId,
-        CancellationToken ct)
+    public async Task<decimal> CalculateAsync(DailyClose session, Guid cashVarianceProductId, CancellationToken ct)
     {
-        ct.ThrowIfCancellationRequested();
-
-        var currentItems = await dailyCloseItemsRepository
-            .ListActiveByDailyCloseIdAsNoTracking(currentDailyCloseId, ct);
-        var totalClosing = currentItems
-            .Where(item => item.ProductId != cashVarianceProductId)
-            .Sum(item => item.Value);
-
-        return await CalculateFromTotalClosingAsync(
-            branchId,
-            accountId,
-            branchLocalDate,
-            totalClosing,
-            cashVarianceProductId,
-            ct);
+        var opening = await openingResolver.ResolveForCalculation(session, ct);
+        return await CalculateWithOpeningAsync(session, opening, cashVarianceProductId, ct);
     }
 
-    public async Task<decimal> CalculateWithOpeningSourceAsync(
-        Guid branchId,
-        Guid accountId,
-        DateTime branchLocalDate,
-        Guid currentDailyCloseId,
-        Guid cashVarianceProductId,
-        DailyClose? openingSource,
-        CancellationToken ct)
-    {
-        var currentItems = await dailyCloseItemsRepository
-            .ListActiveByDailyCloseIdAsNoTracking(currentDailyCloseId, ct);
-        var totalClosing = currentItems
-            .Where(item => item.ProductId != cashVarianceProductId)
-            .Sum(item => item.Value);
-
-        return await CalculateFromResolvedOpeningAsync(
-            branchId,
-            accountId,
-            branchLocalDate,
-            totalClosing,
-            cashVarianceProductId,
-            openingSource,
-            ct);
-    }
-
-    public Task<decimal> CalculateCandidateAsync(
-        Guid branchId,
-        Guid accountId,
-        DateTime branchLocalDate,
+    public async Task<decimal> CalculateCandidateAsync(
+        DailyClose session,
         IReadOnlyList<RequestUpsertDailyCloseItemJson> candidateValues,
         Guid cashVarianceProductId,
         CancellationToken ct)
@@ -71,72 +26,36 @@ public class CashVarianceCalculator(
         var totalClosing = candidateValues
             .Where(item => item.ProductId != cashVarianceProductId)
             .Sum(item => item.Value);
-
-        return CalculateFromTotalClosingAsync(
-            branchId,
-            accountId,
-            branchLocalDate,
-            totalClosing,
-            cashVarianceProductId,
-            ct);
+        var opening = await openingResolver.ResolveForCalculation(session, ct);
+        return await CalculateFromTotals(session, totalClosing, opening.Total(cashVarianceProductId), ct);
     }
 
-    private async Task<decimal> CalculateFromTotalClosingAsync(
-        Guid branchId,
-        Guid accountId,
-        DateTime branchLocalDate,
-        decimal totalClosing,
+    public async Task<decimal> CalculateWithOpeningAsync(
+        DailyClose session,
+        ResolvedSessionOpening opening,
         Guid cashVarianceProductId,
         CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
 
-        var priorClose = await dailyClosesRepository
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                branchId,
-                accountId,
-                branchLocalDate,
-                ct);
+        var currentItems = await dailyCloseItemsRepository.ListActiveByDailyCloseIdAsNoTracking(session.Id, ct);
+        var totalClosing = currentItems
+            .Where(item => item.ProductId != cashVarianceProductId)
+            .Sum(item => item.Value);
 
-        return await CalculateFromResolvedOpeningAsync(
-            branchId,
-            accountId,
-            branchLocalDate,
-            totalClosing,
-            cashVarianceProductId,
-            priorClose,
-            ct);
+        return await CalculateFromTotals(session, totalClosing, opening.Total(cashVarianceProductId), ct);
     }
 
-    private async Task<decimal> CalculateFromResolvedOpeningAsync(
-        Guid branchId,
-        Guid accountId,
-        DateTime branchLocalDate,
+    private async Task<decimal> CalculateFromTotals(
+        DailyClose session,
         decimal totalClosing,
-        Guid cashVarianceProductId,
-        DailyClose? openingSource,
+        decimal totalOpening,
         CancellationToken ct)
     {
-        var totalOpening = openingSource?.Items
-            .Where(item => item.Active && item.ProductId != cashVarianceProductId)
-            .Sum(item => item.Value) ?? 0m;
-
         ct.ThrowIfCancellationRequested();
 
-        var totalTransactionsIn = await transactionsRepository
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                branchId,
-                accountId,
-                branchLocalDate,
-                Direction.In,
-                ct);
-        var totalTransactionsOut = await transactionsRepository
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                branchId,
-                accountId,
-                branchLocalDate,
-                Direction.Out,
-                ct);
+        var totalTransactionsIn = await transactionsRepository.SumActiveValueBySessionAsNoTracking(session, Direction.In, ct);
+        var totalTransactionsOut = await transactionsRepository.SumActiveValueBySessionAsNoTracking(session, Direction.Out, ct);
 
         return totalClosing - totalOpening - (totalTransactionsIn - totalTransactionsOut);
     }

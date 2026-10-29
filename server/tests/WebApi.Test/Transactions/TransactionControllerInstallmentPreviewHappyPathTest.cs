@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using System.Net;
 using CommonTestUtilities.Requests;
 using Microsoft.Extensions.DependencyInjection;
@@ -535,9 +536,11 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
         using var scope = factory.Services.CreateScope();
         var productResolver = scope.ServiceProvider.GetRequiredService<ICashVarianceProductResolver>();
         var calculator = scope.ServiceProvider.GetRequiredService<ICashVarianceCalculator>();
+        var sessions = scope.ServiceProvider.GetRequiredService<IDailyClosesRepository>();
         var cashVarianceProductId = await productResolver.GetIdAsync(branchId);
+        var session = await sessions.GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchId);
 
-        return await calculator.CalculateAsync(branchId, accountId, date, dailyCloseId, cashVarianceProductId, CancellationToken.None);
+        return await calculator.CalculateAsync(session!, cashVarianceProductId, CancellationToken.None);
     }
 
     private async Task<int> CountTransactionsAsync(Guid branchId)

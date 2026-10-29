@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
@@ -637,10 +638,8 @@ public class PutDailyCloseItemsUseCaseTest
             .Build();
         ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
             .GetByIdAndBranchIdReturns(ctx.DailyClose.Id, ctx.BranchUser.BranchId, ctx.DailyClose)
-            .GetNextEligibleAfterDateByBranchIdAndAccountIdReturns(
-                ctx.DailyClose.BranchId, ctx.DailyClose.AccountId, ctx.DailyClose.Date, successor)
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
-                ctx.DailyClose.BranchId, ctx.DailyClose.AccountId, ctx.DailyClose.Date, previousSource)
+            .GetDependentSuccessorReturnsForAny(successor)
+            .GetCountedPredecessorAsNoTrackingReturnsForAny(previousSource)
             .Build();
         var useCase = CreateUseCase(ctx);
 
@@ -683,8 +682,7 @@ public class PutDailyCloseItemsUseCaseTest
             .Build();
         ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
             .GetByIdAndBranchIdReturns(ctx.DailyClose.Id, ctx.BranchUser.BranchId, ctx.DailyClose)
-            .GetNextEligibleAfterDateByBranchIdAndAccountIdReturns(
-                ctx.DailyClose.BranchId, ctx.DailyClose.AccountId, ctx.DailyClose.Date, successor)
+            .GetDependentSuccessorReturnsForAny(successor)
             .Build();
         var useCase = CreateUseCase(ctx);
 
@@ -694,7 +692,7 @@ public class PutDailyCloseItemsUseCaseTest
         response.AffectedSuccessor.DailyCloseId.ShouldBe(successor.Id);
         successor.Status.ShouldBe(DailyCloseStatus.Draft);
         await ctx.DailyClosesRepository.DidNotReceiveWithAnyArgs()
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(default, default, default);
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
         Received.InOrder(() =>
         {
             ctx.ReviewEventRecorder.RecordOpeningChange(
@@ -742,7 +740,9 @@ public class PutDailyCloseItemsUseCaseTest
         var draftTransition = new DailyCloseDraftTransition();
         var successorInvalidator = new DailyCloseSuccessorInvalidator(
             ctx.DailyClosesRepository,
-            draftTransition);
+            draftTransition,
+            SessionTestServices.DiscrepancyRecorder(),
+            lockDateGuard);
         var accountCoordination = new DailyCloseAccountCoordinationBuilder().Build();
 
         return new PutDailyCloseItemsUseCase(

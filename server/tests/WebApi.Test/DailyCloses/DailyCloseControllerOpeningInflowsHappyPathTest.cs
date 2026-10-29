@@ -51,16 +51,16 @@ public class DailyCloseControllerOpeningInflowsHappyPathTest(ServerWebApplicatio
             (await replay.ReadContentAsync<ResponseCreateTransactionJson>()).Id.ShouldBe(payload.Id);
         }
         var items = new[] { new RequestUpsertDailyCloseItemJson { ProductId = cash.Id, Value = 1_470m } };
-        var preview = await _client.PostAuthAsync($"/dailyclose/{close.Id}/variance-preview",
+        var preview = await _client.PostAuthAsync($"/session/{close.Id}/variance-preview",
             new RequestDailyCloseVariancePreviewJson { Items = items }, token);
         preview.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await preview.ReadContentAsync<ResponseDailyCloseVariancePreviewJson>()).CashVariance.ShouldBe(0m);
-        var save = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items",
+        var save = await _client.PutAuthAsync($"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson { Version = close.Version, Items = items }, token);
         save.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var submit = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+        var submit = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
-        var review = await _client.GetAuthAsync($"/dailyclose/{close.Id}/review", token);
+        var review = await _client.GetAuthAsync($"/session/{close.Id}/review", token);
         var reviewed = await review.ReadContentAsync<ResponseDailyCloseReviewJson>();
         reviewed.Items.Single(i => i.IsCashVarianceProduct).ClosingValue.ShouldBe(0m);
         reviewed.Items.ShouldNotContain(i => i.ProductName == "Tarifa Bolão");

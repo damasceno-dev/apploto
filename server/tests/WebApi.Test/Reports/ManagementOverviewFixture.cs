@@ -90,10 +90,10 @@ internal sealed class ManagementOverviewFixture
 
         async Task<Transaction> Row(TransactionType type, Category category, Account account, Operator op, DateTime date, decimal value,
             DateTime? due = null, DateTime? paidAt = null, TransactionStatus status = TransactionStatus.Active, Guid? origin = null,
-            Guid? id = null, Client? clientRow = null) =>
+            Guid? id = null, Client? clientRow = null, bool legacy = false) =>
             await factory.SeedTransactionAsync(branch.Id, account.Id, type.Id, category.Id, category.DefaultDirection, op.Id,
                 managerUser.Id, date: date, value: value, dueDate: due, paidAt: paidAt, status: status, originTransactionId: origin,
-                id: id, clientId: clientRow?.Id);
+                id: id, clientId: clientRow?.Id, legacyUnsessioned: legacy);
 
         // Fiado (A5/A6): A owes 100 on two Tabs; B settled; C overpaid by 30; D owes 100 and pays 40 today in cash.
         var a = await factory.SeedClientAsync(branch.Id, "Cliente A");
@@ -130,12 +130,13 @@ internal sealed class ManagementOverviewFixture
         await Row(cheque, saidas, bank1, o1, planDate, 100m, T.AddDays(-10), paidAt: T.AddDays(-9), origin: p5);
         var standalone = await Row(cheque, saidas, bank1, o1, new DateTime(2026, 10, 10), 100m, T.AddDays(-3));
 
-        // Cards (A8) on T2, recorded yesterday: due +1 and +7 inside the 14-day window, +14 outside, one paid.
+        // Cards (A8) on T2, recorded yesterday: due +1 and +7 inside the 14-day window, +14 outside, one paid. T2 has no
+        // session that day: the rows are unresolved legacy activity, as before sessions existed.
         var yesterday = T.AddDays(-1);
-        await Row(credit, saidas, t2, o2, yesterday, 15m, T.AddDays(1));
-        await Row(debit, saidas, t2, o2, yesterday, 35m, T.AddDays(7));
-        await Row(credit, saidas, t2, o2, yesterday, 25m, T.AddDays(14));
-        await Row(credit, saidas, t2, o2, yesterday, 99m, T.AddDays(2), paidAt: T);
+        await Row(credit, saidas, t2, o2, yesterday, 15m, T.AddDays(1), legacy: true);
+        await Row(debit, saidas, t2, o2, yesterday, 35m, T.AddDays(7), legacy: true);
+        await Row(credit, saidas, t2, o2, yesterday, 25m, T.AddDays(14), legacy: true);
+        await Row(credit, saidas, t2, o2, yesterday, 99m, T.AddDays(2), paidAt: T, legacy: true);
 
         // Closes (A2/A3): 12 in [T−6, T] once today's open Draft is counted, one at T−7 outside the window.
         var closes = new Dictionary<string, DailyClose>();
@@ -169,7 +170,7 @@ internal sealed class ManagementOverviewFixture
         // September: elapsed and unlocked with one blocker of each type; August: locked.
         await Close("sep-submitted", t1, new DateTime(2026, 9, 10), DailyCloseStatus.Submitted, 1m, o1);
         await Row(pix, saidas, t1, o1, new DateTime(2026, 9, 12), 9m, status: TransactionStatus.Draft);
-        await Row(venda, entradas, t2, o2, new DateTime(2026, 9, 15), 10m);
+        await Row(venda, entradas, t2, o2, new DateTime(2026, 9, 15), 10m, legacy: true);
         await Close("aug-approved", t1, new DateTime(2026, 8, 20), DailyCloseStatus.Approved, 0m, o1);
 
         // Today's activity (A9/A10): O1 on T1 and Bank1, a Draft row counted apart, O4 on T3 (both since deactivated).
@@ -177,7 +178,7 @@ internal sealed class ManagementOverviewFixture
         await Row(pix, saidas, t1, o1, T, 30m);
         await Row(venda, entradas, t1, o1, T, 999m, status: TransactionStatus.Draft);
         await Row(venda, entradas, bank1, o1, T, 5m);
-        await Row(venda, entradas, t3, o4, T, 50m);
+        await Row(venda, entradas, t3, o4, T, 50m, legacy: true);
 
         // Bolão (A12): the day's fee and a leftover on T1.
         await Row(tarifa, receita, t1, o1, T.AddDays(-6), 100m);

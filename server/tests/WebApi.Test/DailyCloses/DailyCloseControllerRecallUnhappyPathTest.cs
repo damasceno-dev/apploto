@@ -16,7 +16,7 @@ public class DailyCloseControllerRecallUnhappyPathTest(ServerWebApplicationFacto
     [Fact]
     public async Task Recall_ShouldReturn401_WhenTokenIsMissing()
     {
-        var response = await _client.PostAsync($"/dailyclose/{Guid.NewGuid()}/recall", null);
+        var response = await _client.PostAsync($"/session/{Guid.NewGuid()}/recall", null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -38,7 +38,7 @@ public class DailyCloseControllerRecallUnhappyPathTest(ServerWebApplicationFacto
             DailyCloseStatus.Submitted);
 
         var response = await _client.PostAuthAsync(
-            $"/dailyclose/{otherClose.Id}/recall",
+            $"/session/{otherClose.Id}/recall",
             token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -64,7 +64,7 @@ public class DailyCloseControllerRecallUnhappyPathTest(ServerWebApplicationFacto
             submittedByOperatorId: recordingOperator.Id,
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -92,7 +92,7 @@ public class DailyCloseControllerRecallUnhappyPathTest(ServerWebApplicationFacto
             submittedByOperatorId: op.Id,
             submittedAt: DateTime.UtcNow.AddDays(-1));
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -115,7 +115,7 @@ public class DailyCloseControllerRecallUnhappyPathTest(ServerWebApplicationFacto
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id, LocalToday(), status);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -138,7 +138,7 @@ public class DailyCloseControllerRecallUnhappyPathTest(ServerWebApplicationFacto
             submittedAt: DateTime.UtcNow.AddDays(-2));
         await factory.SeedSettingAsync(branch.Id, lockDate: date);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();

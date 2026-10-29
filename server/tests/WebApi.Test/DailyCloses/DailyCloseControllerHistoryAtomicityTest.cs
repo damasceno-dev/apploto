@@ -36,7 +36,7 @@ public class DailyCloseControllerHistoryAtomicityTest(ServerWebApplicationFactor
         await using (await RejectEventInsertsFor(ctx.BranchId))
         {
             var response = await _client.PutAuthAsync(
-                $"/dailyclose/{source.Id}/items",
+                $"/session/{source.Id}/items",
                 new VersionedRequestPutDailyCloseItemsJson
                 {
                     Version = version,
@@ -56,7 +56,7 @@ public class DailyCloseControllerHistoryAtomicityTest(ServerWebApplicationFactor
 
         // Once events can be stored again the same correction succeeds and records exactly one event.
         var retry = await _client.PutAuthAsync(
-            $"/dailyclose/{source.Id}/items",
+            $"/session/{source.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
@@ -76,7 +76,7 @@ public class DailyCloseControllerHistoryAtomicityTest(ServerWebApplicationFactor
         await using (await RejectEventInsertsFor(ctx.BranchId))
         {
             var response = await _client.PostAuthAsync(
-                $"/dailyclose/{close.Id}/reject",
+                $"/session/{close.Id}/reject",
                 new RequestRejectDailyCloseJson { RejectionReason = "Recontar" },
                 ctx.Token);
 
@@ -136,7 +136,7 @@ public class DailyCloseControllerHistoryAtomicityTest(ServerWebApplicationFactor
 
     private async Task<uint> GetVersion(Guid dailyCloseId, string token)
     {
-        var response = await _client.GetAuthAsync($"/dailyclose/{dailyCloseId}", token);
+        var response = await _client.GetAuthAsync($"/session/{dailyCloseId}", token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         return (await response.ReadContentAsync<ResponseDailyCloseJson>()).Version;
     }

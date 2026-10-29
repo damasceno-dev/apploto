@@ -135,7 +135,7 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     private async Task<decimal> Preview(FiadoLinkedMovementTestContext ctx, ReconciliationProducts products, decimal stock, decimal cash)
     {
         var response = await _client.PostAuthAsync(
-            $"/dailyclose/{ctx.CloseId}/variance-preview",
+            $"/session/{ctx.CloseId}/variance-preview",
             new RequestDailyCloseVariancePreviewJson { Items = Items(products, stock, cash) },
             ctx.Token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
@@ -146,11 +146,11 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     {
         var close = (await factory.ReloadAsync<DailyClose>(ctx.CloseId))!;
         var put = await _client.PutAuthAsync(
-            $"/dailyclose/{ctx.CloseId}/items",
+            $"/session/{ctx.CloseId}/items",
             new VersionedRequestPutDailyCloseItemsJson { Version = close.Version, Items = Items(products, stock, cash) },
             ctx.Token);
         put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
-        var submit = await _client.PostAuthAsync($"/dailyclose/{ctx.CloseId}/submit", ctx.Token);
+        var submit = await _client.PostAuthAsync($"/session/{ctx.CloseId}/submit", ctx.Token);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(ctx.CloseId);
         // Counts stay exactly as the operator entered them; only the official variance row is computed.

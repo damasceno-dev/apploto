@@ -30,6 +30,8 @@ export interface ResponseListTransactionItemJson {
   paidAt?: string | null;
   /** @nullable */
   originTransactionId?: string | null;
+  /** @nullable */
+  sessionId?: string | null;
   generationKind?: null | TransactionGenerationKind;
   /** @nullable */
   generatedFromTransactionId?: string | null;

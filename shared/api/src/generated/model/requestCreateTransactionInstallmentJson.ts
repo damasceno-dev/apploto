@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { RequestCreateTransactionInstallmentItemJson } from './requestCreateTransactionInstallmentItemJson';
+import type { RequestSessionOpeningAcknowledgmentJson } from './requestSessionOpeningAcknowledgmentJson';
 
 export interface RequestCreateTransactionInstallmentJson {
   date: string;
@@ -30,4 +31,9 @@ export interface RequestCreateTransactionInstallmentJson {
   /** @nullable */
   recordedByOperatorId?: string | null;
   saveAsDraft?: boolean;
+  /** @nullable */
+  sessionId?: string | null;
+  /** @nullable */
+  historicalReason?: string | null;
+  openingAcknowledgment?: null | RequestSessionOpeningAcknowledgmentJson;
 }

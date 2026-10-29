@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using System.Globalization;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
@@ -275,8 +276,7 @@ public class PreviewInstallmentPlanUseCaseTest
         // Terminal Out total 300 → VarianceDelta = +300 → projected = 425 + 300 = 725.
         response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
         response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(725m);
-        await ctx.CashVarianceCalculator.Received(1).CalculateAsync(
-            ctx.BranchUser.BranchId, ctx.Account.Id, date, close.Id, productId, Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.Received(1).CalculateAsync(Arg.Any<DailyClose>(), productId, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -301,8 +301,7 @@ public class PreviewInstallmentPlanUseCaseTest
         response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
         response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
         response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(300m);
-        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(Arg.Any<DailyClose>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -343,8 +342,7 @@ public class PreviewInstallmentPlanUseCaseTest
         response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(0m);
         response.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
         response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
-        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(Arg.Any<DailyClose>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -419,13 +417,13 @@ public class PreviewInstallmentPlanUseCaseTest
             Status = status
         };
         ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(ctx.BranchUser.BranchId, ctx.Account.Id, date, close)
+            .GetActiveCustodyByAccountIdAsNoTrackingReturns(ctx.BranchUser.BranchId, ctx.Account.Id, close)
             .Build();
 
         var productId = Guid.NewGuid();
         ctx.CashVarianceProductResolver.GetIdAsync(ctx.BranchUser.BranchId, Arg.Any<CancellationToken>()).Returns(productId);
         ctx.CashVarianceCalculator
-            .CalculateAsync(ctx.BranchUser.BranchId, ctx.Account.Id, date, close.Id, productId, Arg.Any<CancellationToken>())
+            .CalculateAsync(Arg.Any<DailyClose>(), productId, Arg.Any<CancellationToken>())
             .Returns(currentVariance);
 
         return (productId, close);

@@ -30,7 +30,7 @@ public class DailyCloseControllerGetHappyPathTest(ServerWebApplicationFactory fa
             submittedByOperatorId: op.Id);
         var item = await factory.SeedDailyCloseItemAsync(dailyClose.Id, product.Id, value: 250m);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{dailyClose.Id}", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{dailyClose.Id}", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
@@ -65,7 +65,7 @@ public class DailyCloseControllerGetHappyPathTest(ServerWebApplicationFactory fa
             CashVarianceProductResolver.CashVarianceProductName);
         var dailyClose = await factory.SeedDailyCloseAsync(branch.Id, account.Id, date: DateTime.Today);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{dailyClose.Id}", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{dailyClose.Id}", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();

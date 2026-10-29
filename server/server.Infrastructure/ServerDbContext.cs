@@ -36,6 +36,19 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<IdempotencyRequest> IdempotencyRequests => Set<IdempotencyRequest>();
     public DbSet<DailyCloseReviewEvent> DailyCloseReviewEvents => Set<DailyCloseReviewEvent>();
     public DbSet<DailyCloseReviewEventItem> DailyCloseReviewEventItems => Set<DailyCloseReviewEventItem>();
+    public DbSet<Terminal> Terminals => Set<Terminal>();
+    public DbSet<SessionOpening> SessionOpenings => Set<SessionOpening>();
+    public DbSet<SessionOpeningItem> SessionOpeningItems => Set<SessionOpeningItem>();
+    public DbSet<SessionHandover> SessionHandovers => Set<SessionHandover>();
+    public DbSet<SessionHandoverItem> SessionHandoverItems => Set<SessionHandoverItem>();
+    public DbSet<SessionOpeningDiscrepancy> SessionOpeningDiscrepancies => Set<SessionOpeningDiscrepancy>();
+    public DbSet<SessionOpeningDiscrepancyRevision> SessionOpeningDiscrepancyRevisions => Set<SessionOpeningDiscrepancyRevision>();
+    public DbSet<SessionOpeningDiscrepancyRevisionItem> SessionOpeningDiscrepancyRevisionItems => Set<SessionOpeningDiscrepancyRevisionItem>();
+    public DbSet<OpeningDiscrepancyAttributionEvent> OpeningDiscrepancyAttributionEvents => Set<OpeningDiscrepancyAttributionEvent>();
+    public DbSet<SessionEvent> SessionEvents => Set<SessionEvent>();
+    public DbSet<CustodyMappingIssue> CustodyMappingIssues => Set<CustodyMappingIssue>();
+    public DbSet<OpeningCount> OpeningCounts => Set<OpeningCount>();
+    public DbSet<OpeningCountItem> OpeningCountItems => Set<OpeningCountItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

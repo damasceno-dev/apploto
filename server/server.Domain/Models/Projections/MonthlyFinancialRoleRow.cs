@@ -17,4 +17,5 @@ public record MonthlyFinancialRoleRow(
     bool TransactionTypeActive,
     decimal InTotal,
     decimal OutTotal,
-    int RowCount);
+    int RowCount,
+    Guid? SessionId = null);

@@ -16,7 +16,7 @@ namespace WebApi.Test.DailyCloses;
 
 /// <summary>
 /// M7.7 Phase 7.6.1 (gap X): durable close review events read through
-/// <c>GET /dailyclose/{id}/history</c>. Every event here is produced by the real commands
+/// <c>GET /session/{id}/history</c>. Every event here is produced by the real commands
 /// (<c>PUT /items</c>, <c>/reject</c>), never seeded.
 /// </summary>
 [Collection(ServerApiCollection.Name)]
@@ -94,7 +94,7 @@ public class DailyCloseControllerHistoryHappyPathTest(ServerWebApplicationFactor
         await factory.SeedDailyCloseItemAsync(successor.Id, ctx.ProductAId, 5m);
 
         var reject = await _client.PostAuthAsync(
-            $"/dailyclose/{successor.Id}/reject",
+            $"/session/{successor.Id}/reject",
             new RequestRejectDailyCloseJson { RejectionReason = "Contagem de bilhetes divergente" },
             ctx.ManagerToken);
         reject.StatusCode.ShouldBe(HttpStatusCode.OK, await reject.Content.ReadAsStringAsync());
@@ -200,7 +200,7 @@ public class DailyCloseControllerHistoryHappyPathTest(ServerWebApplicationFactor
         var ctx = await SeedContext("HistoryMemberRead");
         var successor = await factory.SeedDailyCloseAsync(ctx.BranchId, ctx.AccountId, ctx.Day(-4), DailyCloseStatus.Submitted);
         var reject = await _client.PostAuthAsync(
-            $"/dailyclose/{successor.Id}/reject",
+            $"/session/{successor.Id}/reject",
             new RequestRejectDailyCloseJson { RejectionReason = "Recontar" },
             ctx.ManagerToken);
         reject.StatusCode.ShouldBe(HttpStatusCode.OK, await reject.Content.ReadAsStringAsync());
@@ -234,11 +234,11 @@ public class DailyCloseControllerHistoryHappyPathTest(ServerWebApplicationFactor
 
     private async Task<HttpResponseMessage> PutItems(Guid dailyCloseId, string token, params (Guid ProductId, decimal Value)[] items)
     {
-        var current = await _client.GetAuthAsync($"/dailyclose/{dailyCloseId}", token);
+        var current = await _client.GetAuthAsync($"/session/{dailyCloseId}", token);
         current.StatusCode.ShouldBe(HttpStatusCode.OK, await current.Content.ReadAsStringAsync());
         var version = (await current.ReadContentAsync<ResponseDailyCloseJson>()).Version;
         return await _client.PutAuthAsync(
-            $"/dailyclose/{dailyCloseId}/items",
+            $"/session/{dailyCloseId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,
@@ -249,7 +249,7 @@ public class DailyCloseControllerHistoryHappyPathTest(ServerWebApplicationFactor
 
     private async Task<ResponseDailyCloseHistoryJson> GetHistory(Guid dailyCloseId, string token)
     {
-        var response = await _client.GetAuthAsync($"/dailyclose/{dailyCloseId}/history", token);
+        var response = await _client.GetAuthAsync($"/session/{dailyCloseId}/history", token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
         return await response.ReadContentAsync<ResponseDailyCloseHistoryJson>();
     }

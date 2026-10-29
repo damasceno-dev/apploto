@@ -833,4 +833,74 @@
   <data name="REPORT_SETTLEMENT_INSTRUMENT_INVALID" xml:space="preserve"><value>Informe um instrumento de liquidação válido: cheque, cartão de crédito ou cartão de débito.</value></data>
   <data name="REPORT_MONTH_IN_FUTURE" xml:space="preserve"><value>O mês informado ainda não começou.</value></data>
   <data name="REPORT_YEAR_MONTH_PAIR_REQUIRED" xml:space="preserve"><value>Informe o ano e o mês juntos, ou nenhum dos dois.</value></data>
+  <data name="ACCOUNT_DEACTIVATE_ACTIVE_CUSTODY" xml:space="preserve"><value>Este caixa tem um turno em custódia ou uma passagem pendente. Encerre ou resolva o turno antes de desativá-lo.</value></data>
+  <data name="SESSION_NOT_FOUND" xml:space="preserve"><value>Turno não encontrado.</value></data>
+  <data name="SESSION_ACTIVE_CUSTODY_CONFLICT" xml:space="preserve"><value>Este caixa já tem um turno em custódia.</value></data>
+  <data name="SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED" xml:space="preserve"><value>Nenhum turno está aberto neste caixa. Confira a abertura para iniciar o turno com esta operação.</value></data>
+  <data name="SESSION_UNRESOLVED_HISTORY" xml:space="preserve"><value>Este caixa tem histórico anterior sem custódia resolvida. Resolva o histórico antes de iniciar um turno.</value></data>
+  <data name="SESSION_CASHBOX_TERMINAL_REQUIRED" xml:space="preserve"><value>Associe este caixa a um terminal físico antes de iniciar um turno.</value></data>
+  <data name="SESSION_OPENING_SOURCE_CHANGED" xml:space="preserve"><value>A abertura proposta mudou. Atualize e confira a abertura novamente.</value></data>
+  <data name="SESSION_OPENING_SOURCE_MISSING" xml:space="preserve"><value>Não há abertura proposta para este caixa. Confirme explicitamente uma abertura zerada.</value></data>
+  <data name="SESSION_OPENING_ZERO_NOT_ACKNOWLEDGED" xml:space="preserve"><value>Uma abertura zerada precisa ser confirmada explicitamente.</value></data>
+  <data name="SESSION_OPENING_ITEMS_INCOMPLETE" xml:space="preserve"><value>Informe o valor conferido de cada produto da abertura proposta.</value></data>
+  <data name="SESSION_OPENING_ITEM_DUPLICATE" xml:space="preserve"><value>Cada produto só pode aparecer uma vez na abertura.</value></data>
+  <data name="SESSION_OPENING_VALUE_NEGATIVE" xml:space="preserve"><value>Os valores da abertura não podem ser negativos.</value></data>
+  <data name="SESSION_OPENING_PRODUCT_NOT_FOUND" xml:space="preserve"><value>Produto da abertura não encontrado ou inativo nesta filial.</value></data>
+  <data name="SESSION_REASON_REQUIRED" xml:space="preserve"><value>Informe o motivo.</value></data>
+  <data name="SESSION_REASON_TOO_LONG" xml:space="preserve"><value>O motivo deve ter no máximo 500 caracteres.</value></data>
+  <data name="SESSION_CUSTODIAN_NOT_FOUND" xml:space="preserve"><value>Operador responsável não encontrado nesta filial.</value></data>
+  <data name="SESSION_CUSTODIAN_NOT_GRANTED" xml:space="preserve"><value>O operador responsável não tem acesso a este caixa.</value></data>
+  <data name="SESSION_MANAGER_CUSTODIAN_REQUIRES_REASON" xml:space="preserve"><value>Informe o motivo ao iniciar um turno em nome de outro operador.</value></data>
+  <data name="SESSION_NOT_CUSTODIAN" xml:space="preserve"><value>Somente o operador responsável por este turno pode fazer esta ação.</value></data>
+  <data name="SESSION_NOT_ACTIVE_CUSTODY" xml:space="preserve"><value>Este turno não está em custódia.</value></data>
+  <data name="SESSION_NOT_SUBMITTED" xml:space="preserve"><value>O turno precisa estar enviado para esta ação.</value></data>
+  <data name="SESSION_CUSTODY_PREVIOUS_DAY" xml:space="preserve"><value>O turno em custódia deste caixa é de outro dia. Encerre-o antes de lançar movimentos de hoje.</value></data>
+  <data name="SESSION_HISTORICAL_WRITE_REQUIRES_SESSION" xml:space="preserve"><value>Para lançar em um dia anterior, informe o turno exato e o motivo.</value></data>
+  <data name="SESSION_HISTORICAL_WRITE_REQUIRES_REASON" xml:space="preserve"><value>Informe o motivo do lançamento histórico.</value></data>
+  <data name="SESSION_HISTORICAL_WRITE_NOT_ALLOWED" xml:space="preserve"><value>Somente gerentes podem lançar em um turno anterior.</value></data>
+  <data name="SESSION_HISTORICAL_DATE_MISMATCH" xml:space="preserve"><value>A data do lançamento precisa ser a data do turno informado.</value></data>
+  <data name="SESSION_LEDGER_FROZEN" xml:space="preserve"><value>O turno informado não está em rascunho; o caixa dele está congelado.</value></data>
+  <data name="SESSION_NOT_FOR_ACCOUNT" xml:space="preserve"><value>O turno informado não pertence a este caixa.</value></data>
+  <data name="SESSION_ONLY_ON_CASHBOX" xml:space="preserve"><value>Somente movimentos de caixa pertencem a um turno.</value></data>
+  <data name="SESSION_UNRESOLVED_NOT_WRITABLE" xml:space="preserve"><value>Este registro pertence a um histórico sem custódia resolvida e não pode ser alterado.</value></data>
+  <data name="SESSION_OPENING_ACKNOWLEDGMENT_NOT_ALLOWED" xml:space="preserve"><value>Já existe um turno em custódia neste caixa; a abertura não pode ser conferida novamente.</value></data>
+  <data name="SESSION_OPENING_ACKNOWLEDGMENT_INVALID" xml:space="preserve"><value>Informe a conferência de abertura ou a passagem a aceitar, não ambas.</value></data>
+  <data name="SESSION_HANDOVER_NOT_FOUND" xml:space="preserve"><value>Passagem de caixa não encontrada.</value></data>
+  <data name="SESSION_HANDOVER_PENDING" xml:space="preserve"><value>Este turno já tem uma passagem de caixa pendente.</value></data>
+  <data name="SESSION_HANDOVER_NOT_PENDING" xml:space="preserve"><value>Esta passagem de caixa não está pendente.</value></data>
+  <data name="SESSION_HANDOVER_NOT_INTENDED_INCOMING" xml:space="preserve"><value>Somente o operador indicado pode aceitar ou contestar esta passagem.</value></data>
+  <data name="SESSION_HANDOVER_STALE" xml:space="preserve"><value>A passagem mudou desde a sua leitura. Atualize e tente novamente.</value></data>
+  <data name="SESSION_HANDOVER_COUNT_CHANGED" xml:space="preserve"><value>A contagem do turno mudou depois da oferta; a passagem precisa ser refeita.</value></data>
+  <data name="SESSION_HANDOVER_INCOMING_SAME_AS_OUTGOING" xml:space="preserve"><value>O operador que recebe o caixa precisa ser diferente de quem o entrega.</value></data>
+  <data name="SESSION_HANDOVER_INCOMING_NOT_FOUND" xml:space="preserve"><value>Operador que recebe o caixa não encontrado nesta filial.</value></data>
+  <data name="SESSION_HANDOVER_REQUIRES_COUNT" xml:space="preserve"><value>Conte e envie o turno antes de oferecer a passagem.</value></data>
+  <data name="SESSION_FINISH_REQUIRES_SUBMITTED" xml:space="preserve"><value>Envie o turno antes de encerrá-lo.</value></data>
+  <data name="SESSION_FINISH_PENDING_HANDOVER" xml:space="preserve"><value>Resolva a passagem pendente antes de encerrar o turno.</value></data>
+  <data name="SESSION_EXCEPTION_ACTION_INVALID" xml:space="preserve"><value>Ação de exceção de custódia inválida.</value></data>
+  <data name="SESSION_EXCEPTION_INCOMING_REQUIRED" xml:space="preserve"><value>Informe o operador que assume o caixa.</value></data>
+  <data name="SESSION_DECLARE_WINDOW_INVALID" xml:space="preserve"><value>O intervalo declarado precisa estar no passado, dentro de um mesmo dia útil, e terminar depois de começar.</value></data>
+  <data name="SESSION_DECLARE_OVERLAP" xml:space="preserve"><value>O intervalo informado se sobrepõe a outro turno deste caixa.</value></data>
+  <data name="SESSION_REARRANGE_NOT_ALLOWED" xml:space="preserve"><value>Somente um turno encerrado e em rascunho, sem início conferido por operador, pode ser reposicionado.</value></data>
+  <data name="SESSION_REARRANGE_RECONCILED_ROW" xml:space="preserve"><value>Um movimento deste turno já tem liquidação conciliada; o turno não pode mudar de data.</value></data>
+  <data name="SESSION_LOCKED_SUCCESSOR" xml:space="preserve"><value>Um turno posterior deste caixa está em mês bloqueado; a correção não pode alterar a abertura dele.</value></data>
+  <data name="SESSION_DATE_COHERENCE" xml:space="preserve"><value>A data de um movimento precisa ser a data do seu turno.</value></data>
+  <data name="SESSION_RESTRICTED_START" xml:space="preserve"><value>Membros só podem iniciar um turno no dia de hoje, em seu próprio nome.</value></data>
+  <data name="SESSION_STALE_WRITE" xml:space="preserve"><value>O turno mudou desde a sua leitura. Atualize e tente novamente.</value></data>
+  <data name="OPENING_DISCREPANCY_NOT_FOUND" xml:space="preserve"><value>Diferença de abertura não encontrada.</value></data>
+  <data name="OPENING_DISCREPANCY_STALE" xml:space="preserve"><value>A diferença de abertura mudou desde a sua leitura. Atualize e tente novamente.</value></data>
+  <data name="OPENING_DISCREPANCY_TARGET_INVALID" xml:space="preserve"><value>Escolha a quem atribuir: operador que entregou, operador que recebeu ou nenhum.</value></data>
+  <data name="OPENING_DISCREPANCY_TARGET_UNAVAILABLE" xml:space="preserve"><value>Não há operador anterior conhecido para atribuir esta diferença.</value></data>
+  <data name="OPENING_DISCREPANCY_MATCHED" xml:space="preserve"><value>A abertura voltou a conferir; não há diferença a atribuir.</value></data>
+  <data name="OPENING_DISCREPANCY_LOCKED" xml:space="preserve"><value>A data desta diferença está em mês bloqueado.</value></data>
+  <data name="OPENING_COUNT_NOT_ALLOWED" xml:space="preserve"><value>O saldo de implantação só pode ser registrado antes do primeiro turno conferido deste caixa.</value></data>
+  <data name="OPENING_COUNT_STALE" xml:space="preserve"><value>O saldo de implantação mudou desde a sua leitura. Atualize e tente novamente.</value></data>
+  <data name="OPENING_COUNT_FUTURE_DATE" xml:space="preserve"><value>A data do saldo de implantação não pode estar no futuro.</value></data>
+  <data name="TERMINAL_NOT_FOUND" xml:space="preserve"><value>Terminal não encontrado.</value></data>
+  <data name="TERMINAL_NAME_REQUIRED" xml:space="preserve"><value>Informe o nome do terminal.</value></data>
+  <data name="TERMINAL_NAME_TOO_LONG" xml:space="preserve"><value>O nome do terminal deve ter no máximo 255 caracteres.</value></data>
+  <data name="TERMINAL_REFERENCE_TOO_LONG" xml:space="preserve"><value>A referência do terminal deve ter no máximo 100 caracteres.</value></data>
+  <data name="TERMINAL_REFERENCE_CONFLICT" xml:space="preserve"><value>Já existe um terminal com esta referência nesta filial.</value></data>
+  <data name="ACCOUNT_TERMINAL_REASSIGN_ACTIVE_CUSTODY" xml:space="preserve"><value>Encerre o turno em custódia antes de trocar o terminal deste caixa.</value></data>
+  <data name="SESSION_CUSTODY_STATE_INVALID" xml:space="preserve"><value>Informe um estado de custódia válido: em custódia, passado adiante ou encerrado.</value></data>
+  <data name="SESSION_OPENING_SOURCE_KIND_INVALID" xml:space="preserve"><value>Informe uma origem de abertura válida.</value></data>
 </root>

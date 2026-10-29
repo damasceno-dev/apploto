@@ -10,7 +10,7 @@ namespace WebApi.Test.DailyCloses;
 
 /// <summary>
 /// M7.7 Phase 7.6.1: the history read uses the close's own read permission, exactly like
-/// <c>GET /dailyclose/{id}</c>.
+/// <c>GET /session/{id}</c>.
 /// </summary>
 [Collection(ServerApiCollection.Name)]
 public class DailyCloseControllerHistoryUnhappyPathTest(ServerWebApplicationFactory factory)
@@ -20,7 +20,7 @@ public class DailyCloseControllerHistoryUnhappyPathTest(ServerWebApplicationFact
     [Fact]
     public async Task History_ShouldReturn401_WhenTokenIsMissing()
     {
-        var response = await _client.GetAsync($"/dailyclose/{Guid.NewGuid()}/history");
+        var response = await _client.GetAsync($"/session/{Guid.NewGuid()}/history");
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
     }
@@ -32,7 +32,7 @@ public class DailyCloseControllerHistoryUnhappyPathTest(ServerWebApplicationFact
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id, Today().AddDays(-1));
 
-        var response = await _client.GetAuthAsync($"/dailyclose/{close.Id}/history", token);
+        var response = await _client.GetAuthAsync($"/session/{close.Id}/history", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await response.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
@@ -47,7 +47,7 @@ public class DailyCloseControllerHistoryUnhappyPathTest(ServerWebApplicationFact
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id, Today().AddDays(-1));
 
-        var response = await _client.GetAuthAsync($"/dailyclose/{close.Id}/history", token);
+        var response = await _client.GetAuthAsync($"/session/{close.Id}/history", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         (await response.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
@@ -62,8 +62,8 @@ public class DailyCloseControllerHistoryUnhappyPathTest(ServerWebApplicationFact
         var otherAccount = await factory.SeedAccountAsync(otherBranch.Id, AccountType.Terminal);
         var foreignClose = await factory.SeedDailyCloseAsync(otherBranch.Id, otherAccount.Id, Today().AddDays(-1));
 
-        var foreign = await _client.GetAuthAsync($"/dailyclose/{foreignClose.Id}/history", token);
-        var missing = await _client.GetAuthAsync($"/dailyclose/{Guid.NewGuid()}/history", token);
+        var foreign = await _client.GetAuthAsync($"/session/{foreignClose.Id}/history", token);
+        var missing = await _client.GetAuthAsync($"/session/{Guid.NewGuid()}/history", token);
 
         foreign.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await foreign.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages

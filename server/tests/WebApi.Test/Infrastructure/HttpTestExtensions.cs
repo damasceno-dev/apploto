@@ -25,7 +25,7 @@ internal static class HttpTestExtensions
             string? idempotencyKey = null,
             uint? expectedVersion = null)
         {
-            if (idempotencyKey is null && requestUri is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment")
+            if (idempotencyKey is null && RequiresIdempotencyKey(requestUri))
                 idempotencyKey = $"test-{Guid.NewGuid():N}";
 
             return SendAuthAsync(
@@ -84,6 +84,19 @@ internal static class HttpTestExtensions
             payload.ShouldNotBeNull();
             return payload;
         }
+    }
+
+    // Financial creates and custody commands (M9.6 Phase 2) carry a required Idempotency-Key.
+    private static bool RequiresIdempotencyKey(string requestUri)
+    {
+        var path = requestUri.Split('?', 2)[0];
+        return path is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment"
+                   or "/session/start" or "/session/declare"
+               || (path.StartsWith("/session/", StringComparison.Ordinal)
+                   && (path.EndsWith("/handover", StringComparison.Ordinal)
+                       || path.EndsWith("/accept", StringComparison.Ordinal)
+                       || path.EndsWith("/finish", StringComparison.Ordinal)
+                       || path.EndsWith("/custody-exception", StringComparison.Ordinal)));
     }
 
     private static async Task<HttpResponseMessage> SendAuthAsync(HttpClient client,

@@ -33,20 +33,18 @@ public class FiadoPhysicalPairService(
     /// enforces the Member's own terminal scope and the terminal's open Draft close for the date, and returns the
     /// unsaved generated row linked to <paramref name="source"/>.
     /// </summary>
-    public async Task<Transaction> BuildCounterpart(
+    public async Task<(Transaction Counterpart, SessionRowResolution Session)> BuildCounterpart(
         Transaction source,
         Guid lockedTerminalId,
         TransactionGenerationKind kind,
-        Role callerRole,
-        MemberAccountScope memberScope,
+        SessionRowContext sessionContext,
         CancellationToken ct = default)
     {
-        var terminalId = await ValidateCounterpart(
+        var (terminalId, resolution) = await ValidateCounterpart(
             source.BranchId,
             source.AccountId,
             source.Date,
-            callerRole,
-            memberScope,
+            sessionContext,
             lockedTerminalId,
             ct);
 
@@ -56,7 +54,7 @@ public class FiadoPhysicalPairService(
         var systemType = await transactionTypesRepository.GetActiveSystemTypeByBranchIdAsNoTracking(source.BranchId, role, ct)
             ?? throw new InvalidOperationException($"Branch {source.BranchId} has no active system type {role}.");
 
-        return new Transaction
+        var counterpart = new Transaction
         {
             Date = source.Date,
             Value = source.Value,
@@ -71,8 +69,11 @@ public class FiadoPhysicalPairService(
             Status = source.Status,
             BranchId = source.BranchId,
             GenerationKind = kind,
-            GeneratedFromTransactionId = source.Id
+            GeneratedFromTransactionId = source.Id,
+            // The generated leg belongs to the paired cashbox's own session (§3.30); the Tab source carries none.
+            SessionId = resolution.SessionId
         };
+        return (counterpart, resolution);
     }
 
     /// <summary>
@@ -81,12 +82,11 @@ public class FiadoPhysicalPairService(
     /// an active pairing, the Member's own terminal scope, and the terminal's open Draft close for the date.
     /// Returns the paired terminal id.
     /// </summary>
-    public async Task<Guid> ValidateCounterpart(
+    public async Task<(Guid TerminalId, SessionRowResolution Session)> ValidateCounterpart(
         Guid branchId,
         Guid tabAccountId,
         DateTime date,
-        Role callerRole,
-        MemberAccountScope memberScope,
+        SessionRowContext sessionContext,
         Guid? lockedTerminalId,
         CancellationToken ct = default)
     {
@@ -94,10 +94,15 @@ public class FiadoPhysicalPairService(
         if (lockedTerminalId is { } locked && terminalId != locked)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED);
 
-        memberAccountScopeGuard.EnsureMemberCanActOnAccount(callerRole, memberScope, terminalId);
+        memberAccountScopeGuard.EnsureMemberCanActOnAccount(sessionContext.Actor.Role, sessionContext.Scope, terminalId);
 
-        await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(branchId, terminalId, AccountType.Terminal, date.Date, ct);
-        return terminalId;
+        var resolution = await dailyCloseLedgerGuard.ResolveSessionForNewRow(
+            terminalId,
+            AccountType.Terminal,
+            date.Date,
+            sessionContext with { Preview = sessionContext.Preview || lockedTerminalId is null },
+            ct);
+        return (terminalId, resolution);
     }
 
     /// <summary>
@@ -113,10 +118,6 @@ public class FiadoPhysicalPairService(
         if (callerRole == Role.Member && memberScope.LinkedOperator is not null)
             memberAccountScopeGuard.EnsureMemberCanActOnAccount(callerRole, memberScope, counterpart.AccountId);
 
-        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(
-            counterpart.BranchId,
-            counterpart.AccountId,
-            counterpart.Date.Date,
-            ct);
+        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(counterpart, ct);
     }
 }

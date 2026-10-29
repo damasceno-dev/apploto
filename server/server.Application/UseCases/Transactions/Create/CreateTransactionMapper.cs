@@ -61,6 +61,7 @@ public static class CreateTransactionMapper
                 PaidAt = transaction.PaidAt,
                 GenerationKind = transaction.GenerationKind,
                 GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
+                SessionId = transaction.SessionId,
                 RecordedByOperatorId = transaction.RecordedByOperatorId,
                 CreatedByUserId = transaction.CreatedByUserId,
                 Status = transaction.Status,

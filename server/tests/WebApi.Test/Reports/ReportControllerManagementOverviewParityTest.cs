@@ -69,12 +69,12 @@ public class ReportControllerManagementOverviewParityTest(ServerWebApplicationFa
         (recent.DraftCount, recent.SubmittedCount, recent.ApprovedCount, recent.RejectedCount).ShouldBe((9, 1, 1, 1));
         recent.PreviewLimit.ShouldBe(10);
         var list = await Get<ResponseListDailyClosesJson>(
-            $"/dailyclose?DateFrom={Day(T.AddDays(-6))}&DateTo={Day(T)}&Page=1&PageSize=10", token);
+            $"/session?DateFrom={Day(T.AddDays(-6))}&DateTo={Day(T)}&Page=1&PageSize=10", token);
         list.TotalCount.ShouldBe(recent.TotalCount);
         recent.Items.Select(item => item.DailyCloseId).ShouldBe(list.Items.Select(item => item.Id));
         recent.Items.ShouldNotContain(item => item.DailyCloseId == f.Closes["outside"].Id);
         var allRecent = await Get<ResponseListDailyClosesJson>(
-            $"/dailyclose?DateFrom={Day(T.AddDays(-6))}&DateTo={Day(T)}&Page=1&PageSize=50", token);
+            $"/session?DateFrom={Day(T.AddDays(-6))}&DateTo={Day(T)}&Page=1&PageSize=50", token);
         allRecent.Items.Select(item => item.Id).ShouldContain(f.Closes["recalled"].Id);
         recent.Items.Where(item => item.Status == DailyCloseStatus.Draft).ShouldAllBe(item => item.OfficialVariance == null);
         var rejected = recent.Items.SingleOrDefault(item => item.DailyCloseId == f.Closes["rejected"].Id);

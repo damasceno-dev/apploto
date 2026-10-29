@@ -20,6 +20,7 @@ public class RecallDailyCloseUseCase(
     IBranchClock branchClock,
     ICashVarianceProductResolver cashVarianceProductResolver,
     IDailyCloseAccountCoordination accountCoordination,
+    Services.Sessions.SessionHandoverInvalidator handoverInvalidator,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId, CancellationToken ct = default)
@@ -51,6 +52,9 @@ public class RecallDailyCloseUseCase(
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
         draftTransition.ApplyRecall(close, branchClock.UtcNow(), branchUser.UserId);
+
+        // A corrected outgoing closing invalidates any unaccepted handover offer (§6.20).
+        await handoverInvalidator.WithdrawPending(close, branchUser.User, branchClock.UtcNow(), "Recolhido para correção", ct);
 
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);

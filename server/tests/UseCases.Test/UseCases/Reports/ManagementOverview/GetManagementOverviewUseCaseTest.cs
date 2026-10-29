@@ -96,7 +96,10 @@ public class GetManagementOverviewUseCaseTest
             Substitute.For<ITimeEntryPoliciesRepository>(), new TimeEntryCalculationService());
         var lockDateReader = Substitute.For<ILockDateReader>();
         var builder = new ManagementOverviewBuilder(
-            new ManagerQueueReader(closes, items, accounts, transactions, resolver, lockDateReader, Substitute.For<IOnboardingRepository>()),
+            new ManagerQueueReader(closes, items, accounts, transactions, resolver, lockDateReader, Substitute.For<IOnboardingRepository>(),
+                Substitute.For<ISessionHandoversRepository>(),
+                Substitute.For<ISessionOpeningDiscrepanciesRepository>(),
+                Substitute.For<ICustodyMappingIssuesRepository>()),
             new MonthlyReconciliationReader(closes, transactions, items, resolver, new MonthLockReadinessEvaluator(), lockDateReader),
             new UpcomingSettlementsReader(transactions, types),
             new MonthlyFinancialReader(closes, items, transactions, types, resolver, projector),

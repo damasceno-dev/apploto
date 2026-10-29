@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
@@ -61,11 +62,7 @@ public class FinalizeTransactionUseCaseTest
             ctx.BranchUser.Role,
             ctx.CallerOperator,
             Arg.Any<DateTime>());
-        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerIsMutable(
-            ctx.BranchUser.BranchId,
-            ctx.Transaction.AccountId,
-            ctx.Transaction.Date.Date,
-            Arg.Any<CancellationToken>());
+        await ctx.DailyCloseLedgerGuard.Received(1).EnsureLedgerIsMutable(Arg.Any<Transaction>(), Arg.Any<CancellationToken>());
         await ctx.UnitOfWork.Received(1).Commit();
         await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
@@ -350,7 +347,7 @@ public class FinalizeTransactionUseCaseTest
                 AllowedAccountIds: [transaction.AccountId]));
 
         var mutationPermissionGuard = Substitute.For<ITransactionMutationPermissionGuard>();
-        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var dailyCloseLedgerGuard = SessionTestServices.LedgerGuard();
         var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         return new TestContext

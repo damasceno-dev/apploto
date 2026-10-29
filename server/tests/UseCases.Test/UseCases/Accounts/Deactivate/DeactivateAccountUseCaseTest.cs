@@ -115,7 +115,7 @@ public class DeactivateAccountUseCaseTest
         var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(accountId));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
-        await accountsRepo.Received(1).GetActiveByIdAndBranchId(accountId, branchUser.BranchId);
+        await accountsRepo.Received(1).GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId);
         await operatorAccountsRepo.DidNotReceive().ListActiveByAccountId(Arg.Any<Guid>());
         await unitOfWork.DidNotReceive().Commit();
     }
@@ -152,7 +152,7 @@ public class DeactivateAccountUseCaseTest
             .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().ListActiveByAccountId(terminal.Id, []).Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
-        var coordinationBuilder = new AccountPairingCoordinationBuilder();
+        var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork, coordinationBuilder.Build());
 
@@ -193,7 +193,7 @@ public class DeactivateAccountUseCaseTest
             .Build();
         var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().ListActiveByAccountId(tab.Id, []).Build();
         var unitOfWork = new UnitOfWorkBuilder().Build();
-        var coordinationBuilder = new AccountPairingCoordinationBuilder();
+        var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();
 
         var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork, coordinationBuilder.Build());
 
@@ -203,7 +203,12 @@ public class DeactivateAccountUseCaseTest
         activeHolder.TabAccountId.ShouldBeNull();
         activeHolder.Active.ShouldBeTrue();
         staleInactiveHolder.TabAccountId.ShouldBeNull();
-        await accountsRepo.Received(1).ListTerminalsByTabAccountId(branchUser.BranchId, tab.Id, Arg.Any<CancellationToken>());
+        // Read once to take every holder's account key in the global order, then again under the lock.
+        await accountsRepo.Received(2).ListTerminalsByTabAccountId(branchUser.BranchId, tab.Id, Arg.Any<CancellationToken>());
+        await coordinationBuilder.Build().Received(1).AcquireWithPairing(
+            branchUser.BranchId,
+            Arg.Is<IReadOnlyCollection<Guid>>(ids => ids.Contains(tab.Id) && ids.Contains(activeHolder.Id)),
+            Arg.Any<CancellationToken>());
         await unitOfWork.Received(1).Commit();
         await coordinationBuilder.Scope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
@@ -228,39 +233,20 @@ public class DeactivateAccountUseCaseTest
         await unitOfWork.Received(1).Commit();
     }
 
-    [Fact]
-    public async Task Execute_ShouldThrowConflictWithoutReadingAccounts_WhenPairingCoordinationIsBusy()
-    {
-        var branchUser = new BranchUserBuilder().Build();
-        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
-        var accountsRepo = new AccountsRepositoryBuilder().Build();
-        var operatorAccountsRepo = new OperatorAccountsRepositoryBuilder().Build();
-        var unitOfWork = new UnitOfWorkBuilder().Build();
-        var coordination = new AccountPairingCoordinationBuilder().Unavailable().Build();
-
-        var useCase = CreateUseCase(authService, accountsRepo, operatorAccountsRepo, unitOfWork, coordination);
-
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(Guid.NewGuid()));
-
-        exception.GetErrorMessages.ShouldHaveSingleItem().ShouldBe(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
-        await coordination.Received(1).TryAcquire(branchUser.BranchId, Arg.Any<CancellationToken>());
-        await accountsRepo.DidNotReceiveWithAnyArgs().GetActiveByIdAndBranchId(default, default);
-        await operatorAccountsRepo.DidNotReceiveWithAnyArgs().ListActiveByAccountId(default);
-        await unitOfWork.DidNotReceive().Commit();
-    }
-
     private static DeactivateAccountUseCase CreateUseCase(
         IAuthenticationService authService,
         IAccountsRepository accountsRepo,
         IOperatorAccountsRepository operatorAccountsRepo,
         IUnitOfWork unitOfWork,
-        IAccountPairingCoordination? accountPairingCoordination = null)
+        IDailyCloseAccountCoordination? accountCoordination = null)
     {
         return new DeactivateAccountUseCase(
             authService,
             accountsRepo,
             operatorAccountsRepo,
-            accountPairingCoordination ?? new AccountPairingCoordinationBuilder().Build(),
+            accountCoordination ?? new DailyCloseAccountCoordinationBuilder().Build(),
+            new DailyClosesRepositoryBuilder().Build(),
+            Substitute.For<ISessionHandoversRepository>(),
             unitOfWork);
     }
 }

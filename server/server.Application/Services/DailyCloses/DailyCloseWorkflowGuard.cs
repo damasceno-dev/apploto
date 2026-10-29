@@ -9,35 +9,12 @@ namespace server.Application.Services.DailyCloses;
 
 public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWorkflowGuard
 {
-    public void EnsureCanOpen(BranchUser caller, Operator? callerOperator, DateTime branchLocalDate)
-    {
-        var today = branchClock.LocalBusinessDate(branchClock.UtcNow());
-
-        if (branchLocalDate.Date > today)
-            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_FUTURE_DATE_NOT_ALLOWED);
-
-        if (caller.Role is Role.Manager or Role.Admin)
-        {
-            return;
-        }
-
-        // Account scope and duplicate-close races live outside this guard:
-        // MemberAccountScopeGuard checks the request account before this call, and the
-        // database unique constraint is the final authority for concurrent opens.
-        if (callerOperator is null)
-        {
-            throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
-        }
-
-        if (branchLocalDate.Date != today)
-            throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_MEMBER_OPEN_REQUIRES_TODAY);
-    }
-
     public DailyCloseEditItemsOutcome EnsureCanEditItems(
         DailyClose close,
         BranchUser caller,
         Operator? callerOperator)
     {
+        EnsureResolved(close);
         switch (close.Status)
         {
             case DailyCloseStatus.Approved:
@@ -76,6 +53,8 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
         if (memberCanEdit is false)
             throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_EDITABLE);
 
+        EnsureMemberIsCustodian(close, callerOperator);
+
         return close.Status == DailyCloseStatus.Rejected
             ? DailyCloseEditItemsOutcome.EditOnRejectedAutoTransitionToDraft
             : DailyCloseEditItemsOutcome.EditOnDraft;
@@ -83,6 +62,7 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 
     public void EnsureCanSubmit(DailyClose close, BranchUser caller, Operator? callerOperator)
     {
+        EnsureResolved(close);
         if (close.Status is not (DailyCloseStatus.Draft or DailyCloseStatus.Rejected))
         {
             throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_SUBMITTABLE);
@@ -103,6 +83,8 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR);
         }
 
+        EnsureMemberIsCustodian(close, callerOperator);
+
         if (close.RejectionReason is null
             && close.OpeningRecheckRequiredAt is null
             && branchClock.IsSameLocalDay(close.Date, branchClock.UtcNow()) is false)
@@ -113,6 +95,7 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 
     public void EnsureCanApprove(DailyClose close, BranchUser caller)
     {
+        EnsureResolved(close);
         if (caller.Role is not (Role.Manager or Role.Admin))
         {
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
@@ -126,6 +109,7 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 
     public void EnsureCanReject(DailyClose close, BranchUser caller)
     {
+        EnsureResolved(close);
         if (caller.Role is not (Role.Manager or Role.Admin))
         {
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
@@ -139,6 +123,7 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
 
     public void EnsureCanRecall(DailyClose close, BranchUser caller, Operator? callerOperator)
     {
+        EnsureResolved(close);
         if (close.Status != DailyCloseStatus.Submitted)
             throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_RECALLABLE);
 
@@ -151,16 +136,34 @@ public class DailyCloseWorkflowGuard(IBranchClock branchClock) : IDailyCloseWork
         if (callerOperator.Id != close.RecordedByOperatorId)
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_NOT_RECORDING_OPERATOR);
 
+        EnsureMemberIsCustodian(close, callerOperator);
+
         if (branchClock.IsSameLocalDay(close.Date, branchClock.UtcNow()) is false)
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.DAILYCLOSE_RECALL_REQUIRES_SAME_DAY);
     }
 
     public void EnsureCanReopen(DailyClose close, BranchUser caller)
     {
+        EnsureResolved(close);
         if (caller.Role is not (Role.Manager or Role.Admin))
             throw new TokenWithoutPermissionException(ResourcesErrorMessages.TOKEN_WITHOUT_PERMISSION);
 
         if (close.Status != DailyCloseStatus.Approved)
             throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_NOT_REOPENABLE);
+    }
+
+    // Unresolved legacy rows are read-only history until a reviewed mapping resolves them (§3.30).
+    private static void EnsureResolved(DailyClose close)
+    {
+        if (close.MappingState != SessionMappingState.Ready)
+            throw new ConflictException(ResourcesErrorMessages.SESSION_UNRESOLVED_NOT_WRITABLE);
+    }
+
+    // A Member acts only on sessions in their own custody; a manager records for any custodian. A Ready session always
+    // names its custodian (CK_DailyCloses_ReadySessionIdentity).
+    private static void EnsureMemberIsCustodian(DailyClose close, Operator callerOperator)
+    {
+        if (close.CustodianOperatorId is { } custodianOperatorId && custodianOperatorId != callerOperator.Id)
+            throw new TokenWithoutPermissionException(ResourcesErrorMessages.SESSION_NOT_CUSTODIAN);
     }
 }

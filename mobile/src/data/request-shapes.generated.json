@@ -17,7 +17,58 @@
       "dueDate": { "type": ["null", "string"], "format": "date-time" },
       "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
       "saveAsDraft": { "type": "boolean" },
-      "handsOutCountedStock": { "type": "boolean" }
+      "handsOutCountedStock": { "type": "boolean" },
+      "sessionId": { "type": ["null", "string"], "format": "uuid" },
+      "historicalReason": { "type": ["null", "string"] },
+      "openingAcknowledgment": {
+        "oneOf": [
+          { "type": "null" },
+          { "$ref": "#/components/schemas/RequestSessionOpeningAcknowledgmentJson" }
+        ]
+      }
+    }
+  },
+  "RequestSessionOpeningAcknowledgmentJson": {
+    "type": "object",
+    "properties": {
+      "custodianOperatorId": { "type": ["null", "string"], "format": "uuid" },
+      "sourceKind": {
+        "oneOf": [{ "type": "null" }, { "$ref": "#/components/schemas/SessionOpeningSourceKind" }]
+      },
+      "sourceId": { "type": ["null", "string"], "format": "uuid" },
+      "sourceRevision": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["null", "integer", "string"],
+        "format": "int64"
+      },
+      "explicitZero": { "type": "boolean" },
+      "items": {
+        "type": ["null", "array"],
+        "items": { "$ref": "#/components/schemas/RequestSessionOpeningItemJson" }
+      },
+      "reason": { "type": ["null", "string"] },
+      "handoverId": { "type": ["null", "string"], "format": "uuid" },
+      "handoverVersion": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["null", "integer", "string"],
+        "format": "uint32"
+      }
+    }
+  },
+  "SessionOpeningSourceKind": {
+    "enum": ["ExplicitZero", "OpeningCount", "PreviousSession", "ImportedSession"],
+    "type": "string"
+  },
+  "RequestSessionOpeningItemJson": {
+    "required": ["productId", "value"],
+    "type": "object",
+    "properties": {
+      "productId": { "type": "string", "format": "uuid" },
+      "value": {
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+        "type": ["number", "string"],
+        "format": "double"
+      }
     }
   },
   "RequestCreateTransactionInstallmentJson": {
@@ -47,7 +98,15 @@
         "format": "int32"
       },
       "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
-      "saveAsDraft": { "type": "boolean" }
+      "saveAsDraft": { "type": "boolean" },
+      "sessionId": { "type": ["null", "string"], "format": "uuid" },
+      "historicalReason": { "type": ["null", "string"] },
+      "openingAcknowledgment": {
+        "oneOf": [
+          { "type": "null" },
+          { "$ref": "#/components/schemas/RequestSessionOpeningAcknowledgmentJson" }
+        ]
+      }
     }
   },
   "RequestCreateTransactionInstallmentItemJson": {
@@ -78,7 +137,15 @@
       "accountId": { "type": "string", "format": "uuid" },
       "clientId": { "type": "string", "format": "uuid" },
       "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
-      "saveAsDraft": { "type": "boolean" }
+      "saveAsDraft": { "type": "boolean" },
+      "sessionId": { "type": ["null", "string"], "format": "uuid" },
+      "historicalReason": { "type": ["null", "string"] },
+      "openingAcknowledgment": {
+        "oneOf": [
+          { "type": "null" },
+          { "$ref": "#/components/schemas/RequestSessionOpeningAcknowledgmentJson" }
+        ]
+      }
     }
   }
 }

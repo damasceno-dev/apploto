@@ -84,11 +84,21 @@ public class CreateTransactionUseCase(
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
-        await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(
-            createContext.BranchUser.BranchId,
+        var sessionContext = new SessionRowContext(
+            createContext.BranchUser,
+            createContext.MemberScope!,
+            request.SessionId,
+            request.HistoricalReason,
+            request.OpeningAcknowledgment);
+        TransactionSessionBinding.EnsureUsed(
+            request.SessionId,
+            request.OpeningAcknowledgment,
+            createContext.Account!.Type == AccountType.Terminal || request.HandsOutCountedStock);
+        var ownSession = await dailyCloseLedgerGuard.ResolveSessionForNewRow(
             request.AccountId,
             createContext.Account!.Type,
             request.Date.Date,
+            sessionContext,
             ct);
 
         var transaction = request.ToTransaction(
@@ -98,15 +108,16 @@ public class CreateTransactionUseCase(
             createdByUserId: createContext.BranchUser.UserId,
             branchId: createContext.BranchUser.BranchId);
 
+        transaction.SessionId = ownSession.SessionId;
         Transaction? counterpart = null;
+        SessionRowResolution? counterpartSession = null;
         if (request.HandsOutCountedStock)
         {
-            counterpart = await fiadoPhysicalPairService.BuildCounterpart(
+            (counterpart, counterpartSession) = await fiadoPhysicalPairService.BuildCounterpart(
                 transaction,
                 pairedTerminalId ?? throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED),
                 TransactionGenerationKind.FiadoCountedStockSale,
-                createContext.BranchUser.Role,
-                createContext.MemberScope!,
+                sessionContext,
                 ct);
         }
 
@@ -116,6 +127,7 @@ public class CreateTransactionUseCase(
         await unitOfWork.Commit(ct);
         var response = transaction.ToCreateResponse();
         response.GeneratedTransactionId = counterpart?.Id;
+        TransactionSessionBinding.Apply(response, ownSession, counterpartSession);
         FinancialCommandIdempotency.Complete(idempotency, transaction.Id, response);
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);

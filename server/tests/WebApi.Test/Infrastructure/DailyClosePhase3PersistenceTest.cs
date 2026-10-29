@@ -111,6 +111,7 @@ public class DailyClosePhase3PersistenceTest(ServerWebApplicationFactory factory
             branch.Id,
             CashVarianceProductResolver.CashVarianceProductName);
         var baseDate = new DateTime(2026, 7, 1);
+        var originClose = await factory.SeedDailyCloseAsync(branch.Id, account.Id, baseDate, itemsRecorded: true);
         var explicitEmpty = await factory.SeedDailyCloseAsync(
             branch.Id,
             account.Id,
@@ -135,18 +136,11 @@ public class DailyClosePhase3PersistenceTest(ServerWebApplicationFactory factory
         using var scope = factory.Services.CreateScope();
         var repository = scope.ServiceProvider.GetRequiredService<IDailyClosesRepository>();
 
-        var firstForward = await repository.GetNextEligibleAfterDateByBranchIdAndAccountId(
-            branch.Id,
-            account.Id,
-            baseDate);
-        var secondForward = await repository.GetNextEligibleAfterDateByBranchIdAndAccountId(
-            branch.Id,
-            account.Id,
-            explicitEmpty.Date);
-        var backward = await repository.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-            branch.Id,
-            account.Id,
-            baseDate.AddDays(4));
+        var origin = await repository.GetByIdAndBranchIdAsNoTracking(originClose.Id, branch.Id);
+        var firstForward = await repository.GetDependentSuccessor(origin!);
+        var secondForward = await repository.GetDependentSuccessor(firstForward!);
+        var backward = await repository.GetCountedPredecessorAsNoTracking(
+            (await repository.GetByIdAndBranchIdAsNoTracking(neverCountedCashVarianceOnly.Id, branch.Id))!);
 
         firstForward.ShouldNotBeNull();
         firstForward.Id.ShouldBe(explicitEmpty.Id);

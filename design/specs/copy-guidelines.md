@@ -122,6 +122,22 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **OperatorLinkRequestStatus** *(§6.16)*: `Pending` → "Pendente" · `Resolved` → "Resolvida". *(Feminine — agrees with "solicitação".)*
 
+**SessionCustodyState** *(§3.30/§6.20, custody of a turno — never its review status)*: `Active` → "Em custódia" · `HandedOver` → "Passado adiante" · `Finished` → "Encerrado". *(Masculine — agrees with "turno". Shown beside, never instead of, `DailyCloseStatus`.)*
+
+**SessionMappingState** *(§3.30/§6.22, legacy history)*: `Ready` → "Resolvido" · `Unresolved` → "Histórico não resolvido". *(An Unresolved turno is read-only history: never offer an action on it.)*
+
+**SessionOrigin** *(§6.20, how the turno began)*: `Started` → "Iniciado no caixa" · `HandoverAccepted` → "Recebido em passagem" · `ManagerException` → "Iniciado pelo gerente (exceção)" · `ManagerDeclared` → "Declarado pelo gerente" · `Migrated` → "Migrado do sistema anterior".
+
+**SessionOpeningSourceKind** *(§6.20, where the proposed opening came from)*: `ExplicitZero` → "Abertura zerada confirmada" · `OpeningCount` → "Saldo de implantação" · `PreviousSession` → "Turno anterior" · `ImportedSession` → "Turno importado". *(A missing source is shown as missing, never as a zero.)*
+
+**SessionHandoverState** *(§6.20, passagem de caixa)*: `Offered` → "Oferecida" · `Accepted` → "Aceita" · `Disputed` → "Contestada" · `Withdrawn` → "Retirada". *(Feminine — agrees with "passagem".)*
+
+**OpeningDiscrepancyAttribution** *(§6.20, diferença de abertura)*: `Unattributed` → "Não atribuída" · `Outgoing` → "Operador que entregou" · `Incoming` → "Operador que recebeu" · `Neither` → "Nenhum dos dois". *(Only an explicit Outgoing/Incoming attribution of the current revision counts toward a person; "Não atribuída" and "Nenhum dos dois" never do.)*
+
+**CustodyExceptionAction** *(§6.20, manager custody exception)*: `Finish` → "Encerrar o turno" · `AcceptAndStart` → "Passar o caixa ao operador".
+
+**SessionEventKind** *(§6.20, custody history)*: `SessionStarted` → "Turno iniciado" · `OpeningAcknowledged` → "Abertura conferida" · `OpeningDiscrepancyOpened` → "Diferença de abertura registrada" · `OpeningDiscrepancyRevised` → "Diferença de abertura revisada" · `HandoverOffered` → "Passagem oferecida" · `HandoverAccepted` → "Passagem aceita" · `HandoverDisputed` → "Passagem contestada" · `HandoverWithdrawn` → "Passagem retirada" · `SessionFinished` → "Turno encerrado" · `CustodyExceptionResolved` → "Exceção de custódia resolvida" · `SessionDeclared` → "Turno declarado" · `SessionRearranged` → "Turno reposicionado" · `AttributionRecorded` → "Diferença atribuída".
+
 ## 6. Error display
 
 The backend is the single source of error-message truth. Every API error is `ResponseErrorJson { ErrorMessages: string[] }`, already written in pt-BR (`ResourcesErrorMessages.resx`); the unexpected-error handler also returns this shape for HTTP 500.

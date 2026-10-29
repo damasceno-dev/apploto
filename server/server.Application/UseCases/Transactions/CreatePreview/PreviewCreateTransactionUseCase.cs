@@ -1,3 +1,4 @@
+using server.Application.Services.DailyCloses;
 using server.Application.Services.Reports;
 using server.Application.Services.Transactions;
 using server.Application.UseCases.Transactions.Create;
@@ -49,12 +50,17 @@ public class PreviewCreateTransactionUseCase(
         Guid? pairedTerminalId = null;
         if (request.HandsOutCountedStock)
         {
-            pairedTerminalId = await fiadoPhysicalPairService.ValidateCounterpart(
+            (pairedTerminalId, _) = await fiadoPhysicalPairService.ValidateCounterpart(
                 branchUser.BranchId,
                 request.AccountId,
                 request.Date,
-                branchUser.Role,
-                createContext.MemberScope!,
+                new SessionRowContext(
+                    createContext.BranchUser,
+                    createContext.MemberScope!,
+                    request.SessionId,
+                    request.HistoricalReason,
+                    request.OpeningAcknowledgment,
+                    Preview: true),
                 lockedTerminalId: null,
                 ct);
         }

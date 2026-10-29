@@ -18,6 +18,11 @@ public class ListDailyClosesFluentValidation : AbstractValidator<RequestListDail
             .InclusiveBetween(1, MaximumPageSize)
             .WithMessage(string.Format(ResourcesErrorMessages.DAILYCLOSE_LIST_PAGE_SIZE_INVALID, 1, MaximumPageSize));
 
+        RuleFor(r => r.CustodyState)
+            .IsInEnum()
+            .When(r => r.CustodyState.HasValue)
+            .WithMessage(ResourcesErrorMessages.SESSION_CUSTODY_STATE_INVALID);
+
         RuleFor(r => r.Status)
             .IsInEnum()
             .When(r => r.Status.HasValue)

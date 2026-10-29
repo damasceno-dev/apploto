@@ -55,12 +55,9 @@ public class MonthlyReconciliationReader(
         var cashVarianceRows = await dailyCloseItemsRepository.ListVarianceValuesByBranchIdAndProductIdAndDateRangeAsNoTracking(
             branchId, cashVarianceProductId, accountId: null, dateFrom, dateTo, ct);
 
-        // Each account's OWN cash variance for a day. Keyed by (Date, AccountId) because one day can have
-        // several closes — one per account/terminal — each with its own value. Keying by Date alone would
-        // collapse them (e.g. account 1 = +10 and account 2 = +5 would lose the per-account split).
-        var cashVarianceByDateAndAccount = cashVarianceRows.ToDictionary(
-            r => (r.Date.Date, r.AccountId),
-            r => r.Value);
+        // Each session's OWN cash variance. Keyed by session id: one day has several sessions — one per cashbox and
+        // possibly several on a shared cashbox — each with its own official value, never added across sessions.
+        var cashVarianceBySession = cashVarianceRows.ToDictionary(r => r.DailyCloseId, r => r.Value);
 
         // The day's TOTAL cash variance across all of its accounts (e.g., +10 and +5 on the same day => +15),
         // used for the per-day NetVariance headline.
@@ -85,7 +82,7 @@ public class MonthlyReconciliationReader(
                         AccountId = c.AccountId,
                         AccountName = c.Account.Name,
                         Status = c.Status,
-                        VarianceValue = cashVarianceByDateAndAccount.GetValueOrDefault((dateOnly, c.AccountId), 0m)
+                        VarianceValue = cashVarianceBySession.GetValueOrDefault(c.Id, 0m)
                     })
                     .ToList();
 

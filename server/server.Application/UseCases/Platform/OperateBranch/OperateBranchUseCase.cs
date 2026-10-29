@@ -18,7 +18,8 @@ public sealed class OperateBranchUseCase(
     IOnboardingRepository invitations, IAccountsRepository accounts,
     IOperatorsRepository operators, IOperatorAccountsRepository grants, IProductsRepository products,
     BranchBootstrap bootstrap, InvitationWorkflow workflow,
-    ISecurityCoordination coordination, IUnitOfWork unitOfWork)
+    ISecurityCoordination coordination, IUnitOfWork unitOfWork,
+    ITerminalsRepository terminalsRepository)
 {
     public async Task<OperatedBranchResult> Execute(RequestOperateBranchJson request)
     {
@@ -63,8 +64,11 @@ public sealed class OperateBranchUseCase(
                     tab = new Account { BranchId = branch.Id, Name = setup.PairedTabName.Trim(), Type = AccountType.Tab };
                     await accounts.Add(tab);
                 }
+                // Each seeded cashbox gets its own physical CAIXA terminal (M9.6 Phase 2).
+                var physicalTerminal = new Terminal { BranchId = branch.Id, Name = setup.Name.Trim() };
+                await terminalsRepository.Add(physicalTerminal);
                 var terminal = new Account { BranchId = branch.Id, Name = setup.Name.Trim(), Type = AccountType.Terminal,
-                    TabAccountId = tab?.Id };
+                    TabAccountId = tab?.Id, TerminalId = physicalTerminal.Id };
                 await accounts.Add(terminal);
                 terminals.Add(terminal);
             }

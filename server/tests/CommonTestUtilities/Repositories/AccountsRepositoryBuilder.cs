@@ -23,6 +23,8 @@ public class AccountsRepositoryBuilder
     public AccountsRepositoryBuilder GetActiveByIdAndBranchId(Guid id, Guid branchId, Account? account)
     {
         _repository.GetActiveByIdAndBranchId(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
+        // Commands that lock before tracking read the same row without tracking first (§6.20 global order).
+        _repository.GetActiveByIdAndBranchIdAsNoTracking(id, branchId, Arg.Any<CancellationToken>()).Returns(account);
         return this;
     }
 

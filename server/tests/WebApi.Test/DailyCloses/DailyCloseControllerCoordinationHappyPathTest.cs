@@ -57,23 +57,14 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             CashVarianceProductResolver.CashVarianceProductName,
             displayOrder: 20);
         using var openerClient = factory.CreateClient();
-        var openResponse = await openerClient.PostAuthAsync(
-            "/dailyclose",
-            new RequestOpenDailyCloseJson
-            {
-                AccountId = account.Id,
-                Date = LocalToday().AddDays(-3)
-            },
-            openerToken);
-        openResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var opened = await openResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var opened = await factory.OpenSeededSessionAsync(openerClient, account.Id, LocalToday().AddDays(-3), openerToken);
 
         await using var heldLock = await HoldCoordinationLockAsync(branch.Id, account.Id);
         using var grantOrderFactory = CreateGrantOrderFactory();
         using var firstClient = grantOrderFactory.CreateClient();
         using var secondClient = grantOrderFactory.CreateClient();
         var firstTask = firstClient.PutAuthAsync(
-            $"/dailyclose/{opened.Id}/items",
+            $"/session/{opened.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = opened.Version,
@@ -82,7 +73,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             firstToken);
         await heldLock.WaitForWaitersAsync(1);
         var secondTask = secondClient.PutAuthAsync(
-            $"/dailyclose/{opened.Id}/items",
+            $"/session/{opened.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = opened.Version,
@@ -125,7 +116,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var submitTask = workflowClient.PostAuthAsync(
-            $"/dailyclose/{context.CloseId}/submit",
+            $"/session/{context.CloseId}/submit",
             context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
@@ -161,7 +152,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var approveTask = workflowClient.PostAuthAsync(
-            $"/dailyclose/{context.CloseId}/approve",
+            $"/session/{context.CloseId}/approve",
             context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
@@ -192,7 +183,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var submitClient = grantOrderFactory.CreateClient();
         using var mutationClient = grantOrderFactory.CreateClient();
         var submitTask = submitClient.PostAuthAsync(
-            $"/dailyclose/{context.CloseId}/submit",
+            $"/session/{context.CloseId}/submit",
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var mutationTask = mutationClient.PostAuthAsync(
@@ -254,7 +245,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var client = factory.CreateClient();
 
         var blockedResponse = await client.PostAuthAsync(
-            $"/dailyclose/{context.CloseId}/submit",
+            $"/session/{context.CloseId}/submit",
             context.Token);
 
         blockedResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
@@ -269,7 +260,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
 
         await heldRowLock.ReleaseAsync();
         var retry = await client.PostAuthAsync(
-            $"/dailyclose/{context.CloseId}/submit",
+            $"/session/{context.CloseId}/submit",
             context.Token);
         retry.StatusCode.ShouldBe(HttpStatusCode.OK, await retry.Content.ReadAsStringAsync());
         (await factory.ReloadAsync<DailyClose>(context.CloseId))!.Status.ShouldBe(DailyCloseStatus.Submitted);
@@ -358,7 +349,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var priorClient = grantOrderFactory.CreateClient();
         using var submitClient = grantOrderFactory.CreateClient();
         var priorTask = priorClient.PutAuthAsync(
-            $"/dailyclose/{context.PredecessorId}/items",
+            $"/session/{context.PredecessorId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = context.PredecessorVersion,
@@ -374,7 +365,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var submitTask = submitClient.PostAuthAsync(
-            $"/dailyclose/{context.SuccessorId}/submit",
+            $"/session/{context.SuccessorId}/submit",
             context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
@@ -396,7 +387,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var priorClient = grantOrderFactory.CreateClient();
         using var rejectClient = grantOrderFactory.CreateClient();
         var priorTask = priorClient.PutAuthAsync(
-            $"/dailyclose/{context.PredecessorId}/items",
+            $"/session/{context.PredecessorId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = context.PredecessorVersion,
@@ -412,7 +403,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var rejectTask = rejectClient.PostAuthAsync(
-            $"/dailyclose/{context.SuccessorId}/reject",
+            $"/session/{context.SuccessorId}/reject",
             new RequestRejectDailyCloseJson { RejectionReason = "should not land" },
             context.Token);
 
@@ -439,7 +430,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         using var countClient = grantOrderFactory.CreateClient();
         using var submitClient = grantOrderFactory.CreateClient();
         var countTask = countClient.PutAuthAsync(
-            $"/dailyclose/{context.PredecessorId}/items",
+            $"/session/{context.PredecessorId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = context.PredecessorVersion,
@@ -448,7 +439,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var submitTask = submitClient.PostAuthAsync(
-            $"/dailyclose/{context.SuccessorId}/submit",
+            $"/session/{context.SuccessorId}/submit",
             context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
@@ -477,11 +468,13 @@ public class DailyCloseControllerCoordinationHappyPathTest(
                 .WithValue(25m)
                 .WithAccountId(context.AccountId)
                 .WithTransactionTypeId(context.TransactionTypeId)
+                // A row for an earlier day names its exact session (M9.6 Phase 2); it never opens custody.
+                .WithSession(context.PredecessorId, "Lançamento esquecido do turno anterior")
                 .Build(),
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var submitTask = submitClient.PostAuthAsync(
-            $"/dailyclose/{context.SuccessorId}/submit",
+            $"/session/{context.SuccessorId}/submit",
             context.Token);
 
         await heldLock.WaitForWaitersAsync(2);

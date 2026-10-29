@@ -16,7 +16,7 @@ public class DailyCloseControllerApproveUnhappyPathTest(ServerWebApplicationFact
     [Fact]
     public async Task Approve_ShouldReturn401_WhenTokenIsMissing()
     {
-        var httpResponse = await _client.PostAsync($"/dailyclose/{Guid.NewGuid()}/approve", content: null);
+        var httpResponse = await _client.PostAsync($"/session/{Guid.NewGuid()}/approve", content: null);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -28,7 +28,7 @@ public class DailyCloseControllerApproveUnhappyPathTest(ServerWebApplicationFact
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcApproveMissing", Role.Manager);
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/approve", token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{Guid.NewGuid()}/approve", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -47,7 +47,7 @@ public class DailyCloseControllerApproveUnhappyPathTest(ServerWebApplicationFact
             status: DailyCloseStatus.Submitted,
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/approve", token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/approve", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -70,7 +70,7 @@ public class DailyCloseControllerApproveUnhappyPathTest(ServerWebApplicationFact
             date: LocalToday(),
             status: DailyCloseStatus.Draft);
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/approve", token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/approve", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -96,7 +96,7 @@ public class DailyCloseControllerApproveUnhappyPathTest(ServerWebApplicationFact
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
         await factory.SeedSettingAsync(branch.Id, lockDate: closeDate);
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/approve", token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/approve", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

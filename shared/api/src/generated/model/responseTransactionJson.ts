@@ -32,6 +32,8 @@ export interface ResponseTransactionJson {
   /** @nullable */
   generatedFromTransactionId?: string | null;
   /** @nullable */
+  sessionId?: string | null;
+  /** @nullable */
   generatedTransactionId?: string | null;
   recordedByOperatorId: string;
   createdByUserId: string;

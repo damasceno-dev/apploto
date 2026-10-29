@@ -67,9 +67,7 @@ public class PreviewDailyCloseVarianceUseCase(
             throw new OnValidationException([ResourcesErrorMessages.DAILYCLOSE_ITEM_PRODUCT_FORBIDDEN]);
 
         var cashVariance = await cashVarianceCalculator.CalculateCandidateAsync(
-            branchUser.BranchId,
-            close.AccountId,
-            close.Date,
+            close,
             items,
             cashVarianceProductId,
             ct);

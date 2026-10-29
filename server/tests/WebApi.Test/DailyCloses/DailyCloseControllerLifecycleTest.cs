@@ -113,7 +113,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
         firstCashVariance.Value.ShouldBe(100m);
 
         var ordinaryItemSave = await _client.PutAuthAsync(
-            $"/dailyclose/{opened.Id}/items",
+            $"/session/{opened.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = afterFirstSubmit.Version,
@@ -161,12 +161,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
     private async Task<ResponseDailyCloseJson> OpenAsync(Guid accountId, DateTime date, string token)
     {
-        var response = await _client.PostAuthAsync(
-            "/dailyclose",
-            new RequestOpenDailyCloseJson { AccountId = accountId, Date = date },
-            token);
-        response.StatusCode.ShouldBe(HttpStatusCode.Created);
-        return await response.ReadContentAsync<ResponseDailyCloseJson>();
+        return await factory.OpenSeededSessionAsync(_client, accountId, date, token);
     }
 
     private async Task PutItemsAsync(Guid closeId, Guid productId, decimal value, string token)
@@ -174,7 +169,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
         var close = await factory.ReloadAsync<DailyClose>(closeId);
         close.ShouldNotBeNull();
         var response = await _client.PutAuthAsync(
-            $"/dailyclose/{closeId}/items",
+            $"/session/{closeId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -186,14 +181,14 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
     private async Task SubmitAsync(Guid closeId, string token)
     {
-        var response = await _client.PostAuthAsync($"/dailyclose/{closeId}/submit", token);
+        var response = await _client.PostAuthAsync($"/session/{closeId}/submit", token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private async Task RejectAsync(Guid closeId, string rejectionReason, string token)
     {
         var response = await _client.PostAuthAsync(
-            $"/dailyclose/{closeId}/reject",
+            $"/session/{closeId}/reject",
             new RequestRejectDailyCloseJson { RejectionReason = rejectionReason },
             token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -201,13 +196,13 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
     private async Task RecallAsync(Guid closeId, string token)
     {
-        var response = await _client.PostAuthAsync($"/dailyclose/{closeId}/recall", token);
+        var response = await _client.PostAuthAsync($"/session/{closeId}/recall", token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private async Task ApproveAsync(Guid closeId, string token)
     {
-        var response = await _client.PostAuthAsync($"/dailyclose/{closeId}/approve", token);
+        var response = await _client.PostAuthAsync($"/session/{closeId}/approve", token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 

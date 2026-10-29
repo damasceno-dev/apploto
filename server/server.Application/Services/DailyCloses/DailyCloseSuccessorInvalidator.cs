@@ -1,13 +1,15 @@
+using server.Application.Services.Sessions;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Exceptions;
 
 namespace server.Application.Services.DailyCloses;
 
 /// <summary>
-/// The next eligible successor of a close whose counted input changed. <see cref="OpeningRecheckRequiredAt"/>
-/// is set only when this save demoted the successor; it is null when the successor was already Draft and
-/// was left untouched (its opening still changed, which the review event records).
+/// The next dependent session of a session whose counted input changed. <see cref="OpeningRecheckRequiredAt"/> is set
+/// only when this save demoted the successor; it is null when the successor was already Draft and was left
+/// untouched (its inherited opening still changed, which the review event records).
 /// </summary>
 public sealed record DailyCloseSuccessorInvalidation(
     DailyClose DailyClose,
@@ -19,31 +21,47 @@ public sealed record DailyCloseSuccessorInvalidation(
 
 public sealed class DailyCloseSuccessorInvalidator(
     IDailyClosesRepository dailyClosesRepository,
-    IDailyCloseDraftTransition draftTransition) : IDailyCloseSuccessorInvalidator
+    IDailyCloseDraftTransition draftTransition,
+    OpeningDiscrepancyRecorder discrepancyRecorder,
+    Settings.LockDateGuard lockDateGuard) : IDailyCloseSuccessorInvalidator
 {
     public async Task<DailyCloseSuccessorInvalidation?> InvalidateNextEligible(
         DailyClose triggeringClose,
+        IReadOnlyDictionary<Guid, decimal> newClosingValues,
         DateTime now,
-        Guid triggeringUserId,
+        User triggeringUser,
         CancellationToken ct = default)
     {
-        var successor = await dailyClosesRepository.GetNextEligibleAfterDateByBranchIdAndAccountId(
-            triggeringClose.BranchId,
-            triggeringClose.AccountId,
-            triggeringClose.Date,
-            ct);
-
+        var successor = await dailyClosesRepository.GetDependentSuccessor(triggeringClose, ct);
         if (successor is null)
             return null;
+
+        // A locked dependent successor rejects the originating correction: locked history is never modified.
+        await lockDateGuard.EnsureNotLocked(
+            successor.BranchId,
+            successor.Date,
+            ResourcesErrorMessages.SESSION_LOCKED_SUCCESSOR,
+            ct);
+
+        // An acknowledged opening is immutable: the correction appends a discrepancy comparison revision and never
+        // demotes the successor or changes its variance (§6.20 *Session opening in the §6.12 formula*).
+        if (successor.Opening is not null)
+        {
+            await discrepancyRecorder.ReviseForPredecessorChange(
+                successor,
+                triggeringClose,
+                newClosingValues,
+                triggeringUser,
+                now,
+                ct);
+            return null;
+        }
 
         var previousStatus = successor.Status;
         if (previousStatus is not (DailyCloseStatus.Submitted or DailyCloseStatus.Approved or DailyCloseStatus.Rejected))
             return new DailyCloseSuccessorInvalidation(successor, previousStatus, null);
 
-        // The predecessor already passed the lock-date guard. Because this selected successor is
-        // strictly later, it cannot be inside the locked interval, so a second lock-date read would
-        // be redundant and would weaken the single resolved-value boundary.
-        draftTransition.ApplyOpeningRecheck(successor, triggeringClose, now, triggeringUserId);
+        draftTransition.ApplyOpeningRecheck(successor, triggeringClose, now, triggeringUser.Id);
 
         return new DailyCloseSuccessorInvalidation(successor, previousStatus, now);
     }

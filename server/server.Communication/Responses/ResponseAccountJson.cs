@@ -12,4 +12,7 @@ public class ResponseAccountJson
     public Guid BranchId { get; set; }
     public Guid? TabAccountId { get; set; }
     public Guid? TerminalAccountId { get; set; }
+
+    /// <summary>Physical CAIXA terminal of a cashbox; null on Tab/Bank accounts.</summary>
+    public Guid? TerminalId { get; set; }
 }

@@ -54,14 +54,18 @@ internal sealed class FinancialHeadersOpenApiOperationTransformer : IOpenApiOper
         return path switch
         {
             "setting" or "setting/lock-month" => true,
-            "dailyclose" => method == "POST",
+            "session/start" or "session/declare" or "session/opening-count" => method == "POST",
+            "session/handover/{handoverId}/accept" or
+                "session/handover/{handoverId}/dispute" or
+                "session/handover/{handoverId}/withdraw" or
+                "session/opening-discrepancy/{discrepancyId}/attribution" => method == "POST",
             "transaction" or "transaction/installment" or "transaction/fiado-payment" => method == "POST",
             "transaction/{transactionId}" or
                 "transaction/{transactionId}/finalize" or
                 "transaction/{transactionId}/cancel" => true,
-            // Variance preview and the review-event history return no versioned close, so they carry no ETag.
-            _ => path.StartsWith("dailyclose/{dailyCloseId}", StringComparison.Ordinal) &&
-                 path is not ("dailyclose/{dailyCloseId}/variance-preview" or "dailyclose/{dailyCloseId}/history")
+            // Variance preview and the review-event history return no versioned session, so they carry no ETag.
+            _ => path.StartsWith("session/{sessionId}", StringComparison.Ordinal) &&
+                 path is not ("session/{sessionId}/variance-preview" or "session/{sessionId}/history")
         };
     }
 }

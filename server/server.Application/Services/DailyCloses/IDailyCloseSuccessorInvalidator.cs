@@ -6,7 +6,8 @@ public interface IDailyCloseSuccessorInvalidator
 {
     Task<DailyCloseSuccessorInvalidation?> InvalidateNextEligible(
         DailyClose triggeringClose,
+        IReadOnlyDictionary<Guid, decimal> newClosingValues,
         DateTime now,
-        Guid triggeringUserId,
+        User triggeringUser,
         CancellationToken ct = default);
 }

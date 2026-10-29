@@ -52,7 +52,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             ]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await httpResponse.Content.ReadAsStringAsync());
 
@@ -103,7 +103,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             };
 
         var putResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -117,23 +117,23 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         putPayload.Notes.ShouldBe(notes);
         putPayload.Version.ShouldNotBe(close.Version);
 
-        var submitResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+        var submitResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
         submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submitted = await submitResponse.ReadContentAsync<ResponseDailyCloseJson>();
         submitted.Notes.ShouldBe(notes);
 
-        var reviewResponse = await _client.GetAuthAsync($"/dailyclose/{close.Id}/review", token);
+        var reviewResponse = await _client.GetAuthAsync($"/session/{close.Id}/review", token);
         reviewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var review = await reviewResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
         review.Notes.ShouldBe(notes);
 
-        var getResponse = await _client.GetAuthAsync($"/dailyclose/{close.Id}", token);
+        var getResponse = await _client.GetAuthAsync($"/session/{close.Id}", token);
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var getPayload = await getResponse.ReadContentAsync<ResponseDailyCloseJson>();
         getPayload.Notes.ShouldBe(notes);
 
         var frozenNoteResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = submitted.Version,
@@ -149,7 +149,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         stillSubmitted.Status.ShouldBe(DailyCloseStatus.Submitted);
         stillSubmitted.Notes.ShouldBe(notes);
 
-        var recallResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/recall", token);
+        var recallResponse = await _client.PostAuthAsync($"/session/{close.Id}/recall", token);
         recallResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var recalled = await recallResponse.ReadContentAsync<ResponseDailyCloseJson>();
         recalled.Status.ShouldBe(DailyCloseStatus.Draft);
@@ -173,7 +173,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             };
 
         var firstResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -185,7 +185,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         var firstPayload = (await firstResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;
 
         var clearResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = firstPayload.Version,
@@ -222,7 +222,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
             Items = [new RequestUpsertDailyCloseItemJson { ProductId = product.Id, Value = 100m }]
         };
 
-        var httpResponse = await _client.PutAuthAsync($"/dailyclose/{close.Id}/items", request, token);
+        var httpResponse = await _client.PutAuthAsync($"/session/{close.Id}/items", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = (await httpResponse.ReadContentAsync<ResponsePutDailyCloseItemsJson>()).DailyClose;

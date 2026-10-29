@@ -29,22 +29,27 @@ public interface ITransactionsRepository
         Guid originTransactionId, Guid branchId, CancellationToken ct = default);
     Task<IReadOnlyList<Transaction>> ListPlanInstallmentsByOriginTransactionIdAndBranchIdAsNoTracking(
         Guid originTransactionId, Guid branchId, CancellationToken ct = default);
-    Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(
-        Guid branchId,
-        Guid accountId,
-        DateTime date,
+    /// <summary>
+    /// Active ledger total of one session: its own rows when Ready; an Unresolved legacy close keeps the shipped
+    /// account/date rows that carry no session.
+    /// </summary>
+    Task<decimal> SumActiveValueBySessionAsNoTracking(
+        DailyClose session,
         Direction? direction = null,
         CancellationToken ct = default);
-    Task<bool> ExistsDraftByAccountAndDateAsNoTracking(
-        Guid branchId,
-        Guid accountId,
-        DateTime date,
-        CancellationToken ct = default);
-    Task<DateTime?> GetEarliestUncountedActivityDateByAccountAsNoTracking(
+    Task<bool> ExistsDraftBySessionAsNoTracking(DailyClose session, CancellationToken ct = default);
+
+    /// <summary>The session's active rows, tracked (past-session rearrangement moves them with the session).</summary>
+    Task<IReadOnlyList<Transaction>> ListActiveBySessionId(Guid branchId, Guid sessionId, CancellationToken ct = default);
+    /// <summary>
+    /// Earliest date of an active cashbox row without a session (unresolved legacy activity) in
+    /// (<paramref name="afterDateExclusive"/>, <paramref name="upToDateInclusive"/>].
+    /// </summary>
+    Task<DateTime?> GetEarliestUnsessionedCashboxActivityDateAsNoTracking(
         Guid branchId,
         Guid accountId,
         DateTime afterDateExclusive,
-        DateTime beforeDateExclusive,
+        DateTime upToDateInclusive,
         CancellationToken ct = default);
     /// <summary>
     /// Earliest business date carrying a non-soft-deleted transaction in the branch, across every status.

@@ -131,10 +131,12 @@ public class PutDailyCloseItemsUseCase(
         DailyCloseSuccessorInvalidation? invalidation = null;
         if (countedInputChanged)
         {
+            close.CountRevision++;
             invalidation = await successorInvalidator.InvalidateNextEligible(
                 close,
+                afterMap,
                 now,
-                branchUser.UserId,
+                branchUser.User,
                 ct);
         }
 
@@ -147,11 +149,7 @@ public class PutDailyCloseItemsUseCase(
             var openingBefore = beforeMap;
             if (firstEligibilityChange)
             {
-                var previousSource = await dailyClosesRepository.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                    close.BranchId,
-                    close.AccountId,
-                    close.Date,
-                    ct);
+                var previousSource = await dailyClosesRepository.GetCountedPredecessorAsNoTracking(close, ct);
                 previousSourceId = previousSource?.Id;
                 openingBefore = previousSource is null
                     ? new Dictionary<Guid, decimal>()
