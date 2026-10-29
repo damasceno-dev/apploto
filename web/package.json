@@ -14,7 +14,8 @@
     "format": "prettier --write . --ignore-path ../.gitignore --ignore-path ../.prettierignore --ignore-path .gitignore",
     "format:check": "prettier --check . --ignore-path ../.gitignore --ignore-path ../.prettierignore --ignore-path .gitignore",
     "generate:tokens": "node tooling/tokens.mjs",
-    "test:styleguide": "playwright test -c playwright.styleguide.config.ts"
+    "test:styleguide": "playwright test -c playwright.styleguide.config.ts",
+    "e2e:stack": "node tooling/e2e-stack.mjs"
   },
   "dependencies": {
     "@loto/api": "workspace:*",

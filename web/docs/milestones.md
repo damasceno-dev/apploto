@@ -340,7 +340,7 @@ Inputs read: tokens and their README (all eight files), the 25-spec component in
 
 ### M3 criterion map, verification and status
 
-**Status:** Implementation of 1.1–7.4 is complete and implementer-verified. **Independent acceptance is pending:** the corrected component behavior (field/prop inheritance, disabled and read-only composites, toast budgets, in-dialog pickers at 375 px) and the 7.4 core-wiring corrections (read-only MoneyInput/DateField, calendar reselection, 0001/9999 bounds, progressive identifier deletion) await the same independent reviewer's recheck. Their regressions live in `test/unit/ui/review-round-1.test.tsx` and `review-round-2.test.tsx`.
+**Status:** Implementation of 1.1–7.4 is complete. M3 is independently accepted as the prerequisite consumed by M4 (2026-10-28). Spoken screen-reader and physical-touch evidence remains pending. Component and core-wiring regressions live in `test/unit/ui/review-round-1.test.tsx`, `review-round-2.test.tsx` and the styleguide suite.
 
 | Criteria | Artifact | Meaningful check |
 |---|---|---|
@@ -354,7 +354,7 @@ Inputs read: tokens and their README (all eight files), the 25-spec component in
 | 7.1–7.3 | tests, `test:styleguide`, docs | Commands below |
 | 7.4 | `src/lib/core-format.ts` (`coreFormat` port for all 13 callbacks), calendar re-exports from core, `AuditInstant`/`useDeviceTimeZone`, gallery **Formatação** section | `core-wiring.test.tsx`; `e2e-styleguide/core-format.spec.ts`; Chrome SSR/hydration with explicit and device zones |
 
-**Latest verification (2026-10-27):** frozen install, recursive typecheck/lint/format; Shared api 103 + core 292, Web 9 tooling + 246 Vitest; production build with bundle check (no `/styleguide` or `/e2e` route, no API URL, cookie names or gallery text in client assets); `test:styleguide` 31/31 with axe-core 4.14.0 WCAG A/AA clean in Claro and Escuro; real-stack `test:e2e` 20/20 on a disposable stack (last run after the first 7.4 corrections; the later IdentifierInput-only change is not used by any e2e flow).
+**Verification baseline (2026-10-27):** frozen install, recursive typecheck/lint/format; Shared api 103 + core 292, Web 9 tooling + 246 Vitest; production build with bundle check (no `/styleguide` or `/e2e` route, no API URL, cookie names or gallery text in client assets); `test:styleguide` 31/31 with axe-core 4.14.0 WCAG A/AA clean in Claro and Escuro; real-stack `test:e2e` 20/20 on a disposable stack (last run after the first 7.4 corrections; the later IdentifierInput-only change is not used by any e2e flow).
 
 **Not covered / open.** No real screen-reader or physical-touch pass; only Chrome; the browser default-font-size setting was not emulated (200% zoom and a doubled root size were). The indeterminate checkbox carries `aria-checked="mixed"` before hydration (inherent to the native control). The restricted-arithmetic demonstration is gallery-only until Design 4.9.7. Alphanumeric CNPJ stays verbatim and fails validation (Shared M3 open item). Cross-area suggestions for design, not acted on: the Badge spec could describe scoped (pinned-theme) regions, and the shell route map could show the `/f/{branchId}` prefix.
 ---
@@ -367,10 +367,73 @@ Inputs read: tokens and their README (all eight files), the 25-spec component in
 
 - Implements `screens.md` → *Navigation & information architecture* verbatim: home resolution by role, `GET /operator/self-context` deciding only whether Meu turno is offered, the one-shot mode switch, the full-page setup explanation for an unlinked Manager/Admin, Switch branch clearing all branch-scoped state, and the route guard that never gates Open day / Close day / Fix & resubmit behind an operator link in Gestão.
 - The single-branch auto-open and the zero-branch empty state on Branch picker.
-- Login and Branch picker carry gaps C and N (map); this milestone builds their current catalog entries, and the gated additions (recovery, invitation, Google, session menu) land in Web M11.
+- Login and Branch picker carry gaps C and N (map); M4 owns the core session menu, mode/branch actions and real logout. Recovery, invitation, Google and account feature content remain Web M11.
 - Home destinations render as placeholders until their feature milestones land.
 
 **Precondition:** Web M2 + M3, Shared M3, and the Design M4 shell blueprint.
+
+
+### Phase 1 — Inventory and verification plan
+
+- [x] **1.1** Reconcile the exhaustive catalog ownership/entry/return map with the typed destination registry and current M2 guards; preserve later feature ownership.
+- [x] **1.2** Complete source/contract/reference inspection and map every state below to unit, browser and real-stack coverage before integration acceptance.
+
+| Surface / scope | Required states and artifact boundary | Verification |
+|---|---|---|
+| `/entrar`, root gate | Password login, generic 401, verbatim 429/manual retry, pending suppression, uncertain result/manual retry; root resolves real authority | Entry unit tests plus actual password login in owned API stack; no credentials/storage/log/URL leaks |
+| `/filiais` | Zero/setup, single/BFF auto-open once, multiple full-row choices, failed/revoked branch, same-identity X intent versus Y choice; profile flags from identity API | Real memberships, keyboard/click, request-count and before-read assertions |
+| `/f/{branchId}` frame | Role home; blue sidebar, sticky context, PageHeader, compact drawer, live branch clock and role; no branch data on identity authority | SSR/direct entry, malformed/foreign ids, reload, both themes/system and selected Claude reference comparison |
+| Session menu | Caller context; linked Manager/Admin modes, Member no mode group; multi-branch switch, profile/password/platform gates, real logout and retained-work confirmation | Keyboard/focus, real profile flags, uncertain revocation, shared identity replacement/logout |
+| Gestão destinations | Queue/approval M7; nine reports M8; point management M9; operators, assignment, accounts, categories/types, products, holidays, settings, members M10 | Exhaustive registry and direct-entry permissions; intentional placeholders distinct from 403/404 |
+| Meu turno destinations | Today/open/close/correction M5; Member-only Ponto and own summaries M9; unlinked/empty-account explanations | Full Member/Manager/Admin × link/account matrix; Gestão close exceptions; self-context reread boundaries |
+| Shared journeys | Transactions/create/edit/cheque plan and client statement/payment M6; Clients M10; preserve incoming mode and nested source/fallback | Origin/filter/section/scroll/focus restoration with fresh permission/resource checks, no mutation replay |
+| Identity/capability/global | Account/password, recovery/reset/invitation, Plataforma and guided employees remain M11 | Truthful availability, fresh authority, capability hygiene; no pretend provider/request |
+| Authority/recovery | Session recreation/foreground/Meu turno/mode/link-error rereads; role reduction, link loss, fetch failure, offline, day rollover | Pause dispatch; detach late scope results; verbatim errors; status rail priority/max two; input remains isolated |
+| Tab/navigation storage | X/Y and X/X, same-tab history/reload, copied state validation, branch-switch reset, email-partitioned durable input | One browser identity/two pages; corrupt state, old intent/write token; no secrets/ETags/passwords in navigation |
+| Accessibility/responsiveness | Desktop/tablet/375px, 200%/enlarged text, long labels, keyboard drawer/menu, Escape/backdrop/return, skip link, reduced motion | Browser screenshots and axe; spoken/physical evidence only if actually executed |
+| Prerequisites/production | M2 real-stack; M3 field inheritance, readonly/disabled composites, toast, nested 375px pickers, calendar bounds/reselection, progressive deletion | Existing suites plus workspace gates, ordinary build/bundle exclusions, API generation and doc/design/token checks |
+
+### Phase 2 — Login and Branch picker
+
+- [x] **2.1** Password entry and root gate integration: `src/components/entry/password-login.tsx`; recovery/provider/account business content remains M11.
+- [x] **2.2** Deliver zero/one/many membership picker, account context, failed selection refresh and correctly bound resume through existing M2 commands.
+
+### Phase 3 — Frame and session menu
+
+- [x] **3.1** Deliver responsive themed shell, server-owned context, exhaustive semantic navigation and accessible drawer/menu.
+- [x] **3.2** Deliver real sign-out, retained-work safety and prioritized status rail.
+
+### Phase 4 — Route and self-context policy
+
+- [x] **4.1** Deliver exhaustive typed registry, SSR/client guards, role homes and protected future-feature placeholders.
+- [x] **4.2** Deliver live role/link/account handling and every specified reread boundary, preserving Gestão close exceptions.
+
+### Phase 5 — Tab context and returns
+
+- [x] **5.1** Integrate tab-only branch switch teardown and validated mode/history restoration with M2 scopes.
+- [x] **5.2** Verify nested future blocker returns, isolated input and no restored mutation/precondition replay.
+
+### Phase 6 — Integrated verification
+
+- [x] **6.1** Execute owned real-stack role/membership/change fixtures and supported browser/state/accessibility checks; unavailable manual tools and the M3 browser gate remain explicit below.
+- [x] **6.2** Run workspace gates, API generation, doc/design/token checks, M2/M3 regressions and ordinary production bundle exclusions.
+
+### Phase 7 — Finish and acceptance
+
+- [x] **7.1** Complete all in-scope implementation and concise restart documentation.
+- [ ] **7.2** Obtain the owning independent reviewer's M3 prerequisite disposition and M4 acceptance after corrections. Implementer checks do not satisfy this gate.
+
+**Current status (2026-10-28):** Implementation is present for Phases 1–6 and 7.1; M4 independent acceptance remains pending at 7.2. Base commit remains `main` at `7b6473ce7a2054ac69b1e12eb56d48b12834bc8d`; the M4 worktree is uncommitted, with no branch/worktree changes or commits.
+
+**Artifact pointers:** `src/components/entry/` owns the password form, membership picker and M11 availability destinations; `src/components/shell/` owns the frame and account menu. `src/lib/destinations.ts` is the catalog registry; the proxy and branch page both constrain direct entries. `navigation-state.ts` / `scoped-navigation.ts` hold non-secret tab/history candidates; durable financial input stays in M2's email/branch partitions. Scope-exit events cancel prepared operations and detach query results before navigation, without ending another tab's branch.
+
+**Verification (2026-10-28):** workspace typecheck/lint/format and 928 tests passed (API 103, core 296, Web 9 tooling + 334 unit, Mobile 30 tooling + 156 Jest). Ordinary production build/bundle checks pass; styleguide browser suite passes 31/31; real-API browser suite passes 43/43. Coverage includes the role/link matrix, optional shell-read failures, shared-route link loss, mode/reload/back behavior, role-change explanation, 401/429 and uncertain login, refused logout preserving prepared work, two-tab isolation, open-drawer contrast, navigation order and 375px entry screens with doubled text. API generation matches 287 files; v58 doc sync and 34 negative scenarios pass; design coverage is 45/45 and contrast passes all 1,164 pairs. Chrome captures and raw results remain outside Git.
+
+**Real gates / limits:** ordinary production build/bundle checks and the M3 styleguide browser suite pass; the earlier port-bind blocker is resolved. M3 prerequisite acceptance for M4 is recorded; M4 independent recheck remains open. No spoken screen-reader, physical-touch or Impeccable run is claimed. Resource-origin restoration is refused until a feature owner can re-read that resource; shell navigation never restores write preconditions or submits input. Unavailable browser storage uses safe catalog fallbacks. Navigation uses opaque UserId keys; durable input retains M2's email-hash partitions. M2's single-instance hosting boundary remains. Broader Design 4.8.4 acceptance, Mobile M3 separate acceptance, server M9.6 1.3 and unrelated report/provider/native/release gates remain unchanged.
+
+**Local example:** `pnpm --filter @loto/web e2e:stack start` builds the same disposable harness and prints its `/entrar` origin plus a private `state.json` containing the fake users. `e2e:stack stop <state.json>` stops only its recorded resources. Do not copy that file or raw captures into Git. The helper uses Mailpit and an owned database; it sends no real messages.
+
+**Next actionable step:** obtain the designated reviewer's M4 recheck in chat. No independent approval is implied by checked implementation criteria.
 
 ---
 

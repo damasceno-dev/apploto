@@ -19,6 +19,8 @@ import type { LogoutResult, SessionCommandFailure, SessionCommandResult } from '
 
 /** Fired before the gate navigates away, so device-input helpers flush pending saves. */
 export const beforeGateEvent = 'loto:before-gate';
+/** This tab has confirmed an exit; scoped work must stop before navigation begins. */
+export const scopeExitEvent = 'loto:scope-exit';
 const identityChannelName = 'loto-session';
 const branchChannelName = 'loto-branch';
 
@@ -118,16 +120,20 @@ export function SessionProvider({ initial, fixtures, children }: SessionProvider
         const abort = new AbortController();
         pendingRead.current = abort;
         setRecovering(true);
+        let verified = false;
         try {
           const result = await sessionClient.readSession({ signal: abort.signal });
-          if (result.ok && authority.current === started) apply(result.snapshot, announce);
-        } catch (error) {
-          if (!abort.signal.aborted) throw error;
+          if (result.ok && authority.current === started) {
+            apply(result.snapshot, announce);
+            verified = true;
+          }
+        } catch {
+          // An unreadable response cannot settle authority. Keep writes paused for manual recovery.
         } finally {
           if (pendingRead.current === abort) {
             pendingRead.current = null;
             pendingRefresh.current = null;
-            setRecovering(false);
+            setRecovering(!verified);
           }
         }
       })();
@@ -247,6 +253,8 @@ export function SessionProvider({ initial, fixtures, children }: SessionProvider
         const { mine, declared } = begin();
         try {
           const result = await sessionClient.logout(declared);
+          if ('snapshot' in result && latestCommand.current === mine)
+            window.dispatchEvent(new CustomEvent(scopeExitEvent, { detail: { branchId: null } }));
           settle(mine, 'snapshot' in result ? result.snapshot : null);
           return result;
         } catch (error) {
@@ -310,16 +318,20 @@ export function BranchSessionProvider({ branchId, initial, children }: BranchSes
         const abort = new AbortController();
         pendingRead.current = abort;
         setRecovering(true);
+        let verified = false;
         try {
           const result = await sessionClient.readSession({ signal: abort.signal, branchId });
-          if (result.ok && authority.current === started) apply(result.snapshot, announce);
-        } catch (error) {
-          if (!abort.signal.aborted) throw error;
+          if (result.ok && authority.current === started) {
+            apply(result.snapshot, announce);
+            verified = true;
+          }
+        } catch {
+          // An unreadable response cannot settle authority. Keep writes paused for manual recovery.
         } finally {
           if (pendingRead.current === abort) {
             pendingRead.current = null;
             pendingRefresh.current = null;
-            setRecovering(false);
+            setRecovering(!verified);
           }
         }
       })();

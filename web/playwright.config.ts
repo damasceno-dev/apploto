@@ -1,8 +1,12 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { defineConfig } from '@playwright/test';
 
 // Web M2 end-to-end suite against the real local stack started by `e2e/global-setup.ts`.
 // It drives the installed Google Chrome (`channel: 'chrome'`): no browser download.
 export default defineConfig({
+  outputDir: mkdtempSync(path.join(tmpdir(), 'loto-web-e2e-results-')),
   testDir: 'e2e',
   testMatch: '*.spec.ts',
   globalSetup: './e2e/global-setup.ts',

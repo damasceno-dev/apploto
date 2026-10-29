@@ -71,3 +71,27 @@ if (!process.argv[2]) {
 console.log(
   `Web SSR: one app-owned ${expected}; no foreign executable React in source maps/page trace. Next keeps its framework React aliases.`,
 );
+
+// Shell and ordinary UI ship; technical galleries, credentials and the server transport do not.
+if (!process.argv[2]) {
+  const chunks = await readdir(path.join(build, 'static/chunks'), { recursive: true });
+  const forbidden = [
+    '__Host-loto-id',
+    '__Host-loto-rt',
+    '__Host-loto-meta',
+    'LOTO_API_BASE_URL',
+    'Pacotes locais:',
+    'Estrutura inicial do aplicativo.',
+    'E2E probe',
+    'operador-e2e@example.invalid',
+  ];
+  if (process.env.LOTO_API_BASE_URL) forbidden.push(process.env.LOTO_API_BASE_URL);
+  for (const name of chunks.filter((name) => name.endsWith('.js'))) {
+    const content = await readFile(path.join(build, 'static/chunks', name), 'utf8');
+    for (const value of forbidden)
+      assert.ok(
+        !content.includes(value),
+        `Private/technical content in client chunk ${name}: ${value}`,
+      );
+  }
+}

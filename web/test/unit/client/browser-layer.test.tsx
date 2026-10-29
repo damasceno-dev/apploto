@@ -8,6 +8,7 @@ import { useDeviceDraft } from '@/client/drafts/use-device-draft';
 import { ScopedQueryProvider } from '@/client/query/scoped-query-provider';
 import {
   BranchSessionProvider,
+  scopeExitEvent,
   SessionProvider,
   useSession,
 } from '@/client/session/session-provider';
@@ -524,3 +525,141 @@ describe('per-tab branch scope (D-M2-1)', () => {
     expect(reads.every((read) => read.url === '/bff/session')).toBe(true);
   });
 });
+
+describe('M4 recovery boundary', () => {
+  function RecoveryProbe() {
+    const session = useSession();
+    return (
+      <>
+        <span>{session.writesPaused ? 'dispatch paused' : 'dispatch ready'}</span>
+        <button onClick={() => void session.refresh()}>Verify authority</button>
+      </>
+    );
+  }
+  it('keeps dispatch paused after an unreadable refresh until a manual verified response', async () => {
+    const valid = { ...branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa') };
+    let calls = 0;
+    vi.stubGlobal('fetch', () => {
+      calls += 1;
+      return calls === 1
+        ? Promise.reject(new TypeError('offline'))
+        : Promise.resolve(new Response(JSON.stringify(valid)));
+    });
+    render(
+      <BranchTab snapshot={valid}>
+        <RecoveryProbe />
+      </BranchTab>,
+    );
+    expect(screen.getByText('dispatch ready')).toBeTruthy();
+    act(() => screen.getByRole('button', { name: 'Verify authority' }).click());
+    await screen.findByText('dispatch paused');
+    expect(calls).toBe(1);
+    act(() => screen.getByRole('button', { name: 'Verify authority' }).click());
+    await screen.findByText('dispatch ready');
+    expect(calls).toBe(2);
+  });
+});
+
+it('M4 confirmed tab exit cancels prepared operations before navigation without affecting another branch', async () => {
+  const calls = controlledFetch();
+  let submit: (() => Promise<unknown>) | null = null;
+  render(
+    <BranchTab snapshot={branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa')}>
+      <Operation
+        onReady={(value) => {
+          submit = value;
+        }}
+      />
+    </BranchTab>,
+  );
+  await screen.findByText('pronto');
+  act(() =>
+    window.dispatchEvent(new CustomEvent(scopeExitEvent, { detail: { branchId: 'beta' } })),
+  );
+  act(() =>
+    window.dispatchEvent(new CustomEvent(scopeExitEvent, { detail: { branchId: 'alfa' } })),
+  );
+  const result = await submit!();
+  expect(result).toEqual({ kind: 'cancelled' });
+  expect(calls.filter((call) => call.init.method === 'POST')).toHaveLength(0);
+});
+
+it('a refused logout preserves prepared operations and does not announce a scope exit', async () => {
+  const valid = branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa');
+  const exited = vi.fn();
+  window.addEventListener(scopeExitEvent, exited);
+  let posts = 0;
+  let submit: (() => Promise<unknown>) | null = null;
+  vi.stubGlobal('fetch', async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path === '/bff/session/logout')
+      return new Response(JSON.stringify({ errorMessages: ['Origem recusada.'] }), { status: 403 });
+    if (path === '/bff/session') return new Response(JSON.stringify(valid));
+    posts += 1;
+    return new Response(JSON.stringify({ id: 'created' }), { status: 201 });
+  });
+  function Action() {
+    const session = useSession();
+    return (
+      <>
+        <button onClick={() => void session.logout()}>Logout refused</button>
+        <span>{session.writesPaused ? 'waiting' : 'settled'}</span>
+      </>
+    );
+  }
+  render(
+    <BranchTab snapshot={valid}>
+      <Action />
+      <Operation
+        onReady={(value) => {
+          submit = value;
+        }}
+      />
+    </BranchTab>,
+  );
+  await screen.findByText('pronto');
+  act(() => screen.getByText('Logout refused').click());
+  await waitFor(() => expect(screen.getByText('settled')).toBeTruthy());
+  expect(exited).not.toHaveBeenCalled();
+  let result;
+  await act(async () => {
+    result = await submit!();
+  });
+  expect(result).toMatchObject({ kind: 'confirmed' });
+  expect(posts).toBe(1);
+  window.removeEventListener(scopeExitEvent, exited);
+});
+
+for (const serverConfirmed of [true, false]) {
+  it(`successful local logout announces exit only after its response (server confirmed: ${serverConfirmed})`, async () => {
+    let release!: (response: Response) => void;
+    vi.stubGlobal(
+      'fetch',
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    );
+    const exited = vi.fn();
+    window.addEventListener(scopeExitEvent, exited);
+    function Action() {
+      const session = useSession();
+      return <button onClick={() => void session.logout()}>Confirm logout</button>;
+    }
+    render(
+      <SessionProvider
+        initial={branchSnapshot('ana@example.invalid', 'alfa', 'scope-ana.g-alfa')}
+        fixtures={false}
+      >
+        <Action />
+      </SessionProvider>,
+    );
+    act(() => screen.getByText('Confirm logout').click());
+    expect(exited).not.toHaveBeenCalled();
+    await act(async () =>
+      release(new Response(JSON.stringify({ ...anonymousSnapshot, serverConfirmed }))),
+    );
+    await waitFor(() => expect(exited).toHaveBeenCalledTimes(1));
+    window.removeEventListener(scopeExitEvent, exited);
+  });
+}

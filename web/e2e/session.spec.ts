@@ -33,7 +33,8 @@ test('gate resolves before any branch request; the deep link waits as an intent'
   const deepLink = `/f/${state.branches.alfa}/e2e/read?filtro=hoje`;
   const gated = await page.goto(`${state.webUrl}${deepLink}`);
   expect(new URL(page.url()).pathname).toBe('/entrar');
-  expect(gated?.status()).toBe(404); // Login is a Web M4 screen; M2 only decides the gate.
+  expect(gated?.status()).toBe(200); // M4 now renders Login after the M2 gate.
+  await expect(page.getByRole('heading', { name: 'Entrar' })).toBeVisible();
   expect(forwarded).toHaveLength(0);
   const intent = (await sessionCookies(context, state))['__Host-loto-intent'];
   expect(intent).toMatchObject({ httpOnly: true, secure: true, sameSite: 'Lax', path: '/' });

@@ -250,10 +250,12 @@ export function MenuLink({
   href,
   label,
   description,
+  onNavigate,
 }: {
   readonly href: string;
   readonly label: ReactNode;
   readonly description?: ReactNode;
+  readonly onNavigate?: () => void;
 }) {
   const { close, sheet } = useMenu();
   return (
@@ -262,7 +264,10 @@ export function MenuLink({
       role={sheet ? undefined : 'menuitem'}
       data-menu-item=""
       tabIndex={sheet ? 0 : -1}
-      onClick={close}
+      onClick={() => {
+        onNavigate?.();
+        close();
+      }}
       className={itemClass}
     >
       <ItemText label={label} description={description} />

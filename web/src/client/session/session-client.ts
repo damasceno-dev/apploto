@@ -1,4 +1,5 @@
-import { bffSessionPath, type SessionSnapshot } from '@/lib/bff-protocol';
+import { validateIntentPath } from '@/lib/route-policy';
+import { bffSessionPath, parseScope, type SessionSnapshot } from '@/lib/bff-protocol';
 import { bffFetch } from '../bff-fetch';
 
 /** A refused session command: the backend's status, verbatim messages and advisory `Retry-After`. */
@@ -81,12 +82,16 @@ export async function logout(
   if (!response.ok) return failure(response);
   const body = (await response.json()) as SessionSnapshot & { serverConfirmed: boolean };
   const { serverConfirmed, ...snapshot } = body;
+  if (typeof serverConfirmed !== 'boolean' || !isSessionSnapshot(snapshot))
+    throw new Error('Invalid session response.');
   return { snapshot, serverConfirmed };
 }
 
 async function settle(response: Response): Promise<SessionCommandResult> {
   if (!response.ok) return failure(response);
-  return { ok: true, snapshot: (await response.json()) as SessionSnapshot };
+  const snapshot: unknown = await response.json();
+  if (!isSessionSnapshot(snapshot)) throw new Error('Invalid session response.');
+  return { ok: true, snapshot };
 }
 
 async function failure(response: Response): Promise<SessionCommandFailure> {
@@ -112,4 +117,70 @@ async function failure(response: Response): Promise<SessionCommandFailure> {
     retryAfterSeconds: Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null,
     bffError: response.headers.get('x-loto-bff-error'),
   };
+}
+
+/** Session responses are a credential-free wire boundary; a malformed 2xx never confirms a command. */
+export function isSessionSnapshot(value: unknown): value is SessionSnapshot {
+  if (!value || typeof value !== 'object') return false;
+  if (
+    Object.keys(value).some(
+      (key) =>
+        !['state', 'scope', 'user', 'branch', 'branches', 'messages', 'resume'].includes(key),
+    )
+  )
+    return false;
+  const snapshot = value as SessionSnapshot;
+  if (
+    ![
+      'anonymous',
+      'no-memberships',
+      'choose-branch',
+      'branch-unavailable',
+      'renewal-unconfirmed',
+      'branch',
+    ].includes(snapshot.state)
+  )
+    return false;
+  if (
+    snapshot.scope !== null &&
+    (typeof snapshot.scope !== 'string' || parseScope(snapshot.scope) === null)
+  )
+    return false;
+  if (
+    snapshot.resume !== null &&
+    validateIntentPath(snapshot.resume, { fixtures: true }) !== snapshot.resume
+  )
+    return false;
+  if (
+    !Array.isArray(snapshot.messages) ||
+    !snapshot.messages.every((message) => typeof message === 'string')
+  )
+    return false;
+  if (
+    snapshot.user !== null &&
+    (!snapshot.user ||
+      typeof snapshot.user.userId !== 'string' ||
+      typeof snapshot.user.name !== 'string' ||
+      typeof snapshot.user.email !== 'string')
+  )
+    return false;
+  const branchValid = (branch: SessionSnapshot['branch']) =>
+    branch !== null &&
+    typeof branch === 'object' &&
+    typeof branch.id === 'string' &&
+    branch.id.length > 0 &&
+    typeof branch.name === 'string' &&
+    ['Member', 'Manager', 'Admin'].includes(branch.role);
+  if (snapshot.branch !== null && !branchValid(snapshot.branch)) return false;
+  if (
+    snapshot.branches !== null &&
+    (!Array.isArray(snapshot.branches) || !snapshot.branches.every(branchValid))
+  )
+    return false;
+  if (
+    snapshot.state === 'branch' &&
+    (snapshot.branch === null || snapshot.scope === null || snapshot.user === null)
+  )
+    return false;
+  return true;
 }

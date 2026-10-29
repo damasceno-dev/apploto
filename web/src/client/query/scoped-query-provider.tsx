@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { scopeExitEvent } from '../session/session-provider';
 import type { ApiClient } from '@loto/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -89,6 +90,17 @@ function ScopeBoundary({ scope, branchId = null, children }: ScopeProps) {
     [queryClient],
   );
 
+  useEffect(() => {
+    const stop = (event: Event) => {
+      const exiting = (event as CustomEvent<{ branchId: string | null }>).detail?.branchId;
+      if (exiting === null || exiting === branchId) {
+        void queryClient.cancelQueries();
+        queryClient.clear();
+      }
+    };
+    window.addEventListener(scopeExitEvent, stop);
+    return () => window.removeEventListener(scopeExitEvent, stop);
+  }, [branchId, queryClient]);
   return (
     <ScopeDepthContext.Provider value={depth}>
       <ScopedClientContext.Provider value={apiClient}>

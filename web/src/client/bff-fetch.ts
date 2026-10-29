@@ -24,6 +24,8 @@ const sessionOutcomes: ReadonlySet<SessionOutcome> = new Set<SessionOutcome>([
 ]);
 
 export const sessionSignalEvent = 'loto:session-signal';
+/** A scoped write refusal may reflect a changed grant/link; never classify localized messages. */
+export const branchAccessSignalEvent = 'loto:branch-access-signal';
 
 export interface SessionSignal {
   readonly code: BffErrorCode | null;
@@ -88,5 +90,13 @@ export async function bffFetch(
     cache: 'no-store',
   });
   observeResponse(response);
+  if (
+    branchId !== null &&
+    (init.method ?? 'GET').toUpperCase() !== 'GET' &&
+    (response.status === 400 || response.status === 403) &&
+    typeof window !== 'undefined'
+  ) {
+    window.dispatchEvent(new CustomEvent(branchAccessSignalEvent, { detail: { branchId } }));
+  }
   return response;
 }

@@ -32,6 +32,10 @@ export interface StackState {
     readonly ana: StackUser;
     readonly bia: StackUser;
     readonly carla: StackUser;
+    readonly memberLinked: StackUser;
+    readonly manager: StackUser;
+    readonly managerLinked: StackUser;
+    readonly adminLinked: StackUser;
   };
   readonly branches: { readonly alfa: string; readonly beta: string; readonly gama: string };
   readonly transaction: {
@@ -296,6 +300,22 @@ export async function startStack(): Promise<string> {
     ana: { email: 'ana-e2e@example.invalid', password: randomBytes(12).toString('base64url') },
     bia: { email: 'bia-e2e@example.invalid', password: randomBytes(12).toString('base64url') },
     carla: { email: 'carla-e2e@example.invalid', password: randomBytes(12).toString('base64url') },
+    memberLinked: {
+      email: 'member-linked-e2e@example.invalid',
+      password: randomBytes(12).toString('base64url'),
+    },
+    manager: {
+      email: 'manager-e2e@example.invalid',
+      password: randomBytes(12).toString('base64url'),
+    },
+    managerLinked: {
+      email: 'manager-linked-e2e@example.invalid',
+      password: randomBytes(12).toString('base64url'),
+    },
+    adminLinked: {
+      email: 'admin-linked-e2e@example.invalid',
+      password: randomBytes(12).toString('base64url'),
+    },
   };
   await run(
     'dotnet',
@@ -441,6 +461,42 @@ export async function startStack(): Promise<string> {
   }
   if (!transactionTypeId)
     throw new Error('No seeded transaction type accepts a bank-account movement.');
+
+  // M4 role/link fixtures use ordinary invitations, registration and account assignment only.
+  const terminal = await call<{ id: string }>(
+    'POST',
+    '/account/terminal',
+    { name: 'Caixa shell E2E', createTabAccount: true },
+    alfaToken,
+  );
+  for (const [key, role, linked] of [
+    ['memberLinked', 'Member', true],
+    ['manager', 'Manager', false],
+    ['managerLinked', 'Manager', true],
+    ['adminLinked', 'Admin', true],
+  ] as const) {
+    const user = users[key];
+    await call('POST', '/invitation', { email: user.email, role }, alfaToken);
+    const registered = await call<{ userId: string }>('POST', '/invitation/register', {
+      token: await capability(mailUrl, user.email, seen),
+      name: `Pessoa ${key} E2E`,
+      password: user.password,
+    });
+    if (linked) {
+      const employee = await call<{ id: string }>(
+        'POST',
+        '/operator',
+        { name: `Pessoa ${key} E2E`, userId: registered.userId },
+        alfaToken,
+      );
+      await call(
+        'POST',
+        `/operator/${employee.id}/accounts`,
+        { accountId: terminal.id },
+        alfaToken,
+      );
+    }
+  }
 
   // The end-to-end Next build (fixtures included, own output directory) served on localhost.
   const webEnv = {

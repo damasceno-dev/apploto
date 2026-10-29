@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { matchDestination } from '@/lib/destinations';
+import { parseBranchPath } from '@/lib/branch-route';
 import { serverEnv } from '@/config/server-env';
 import { decideGate, routeBranch, routeTier, validateIntentPath } from '@/lib/route-policy';
 import { gateCopy } from '@/lib/session-copy';
@@ -23,6 +25,19 @@ import { fenceWrites, resolveSession, scopeAfter } from '@/server/session/servic
 export async function proxy(request: NextRequest) {
   const fixtures = serverEnv.e2eFixtures;
   const pathname = request.nextUrl.pathname;
+  const route = parseBranchPath(pathname);
+  if (
+    pathname.startsWith('/f/') &&
+    (!route ||
+      (route.rest !== '/' &&
+        matchDestination(route.rest) === null &&
+        !(fixtures && ['/e2e/read', '/e2e/writes'].includes(route.rest))))
+  ) {
+    return new NextResponse(
+      '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Página não encontrada · Lotero</title></head><body><main><h1>Página não encontrada</h1><p>Confira o endereço ou volte para escolher uma filial.</p><a href="/filiais">Escolher filial</a></main></body></html>',
+      { status: 404, headers: { ...noStoreHeaders, 'content-type': 'text/html; charset=utf-8' } },
+    );
+  }
   const tier = routeTier(pathname, { fixtures });
   const cookies = readSessionCookies(request.cookies);
   // Every page gives the browser its device id before any session command needs it.

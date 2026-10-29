@@ -5,7 +5,7 @@ import type { ApiRequestOptions } from '@loto/api';
 import { anonymousSnapshot, bffSessionPath } from '@/lib/bff-protocol';
 import { bffFetch, latestServerTimeMs } from '../bff-fetch';
 import { createBrowserApiClient } from '../query/browser-api';
-import { useSession } from '../session/session-provider';
+import { scopeExitEvent, useSession } from '../session/session-provider';
 import { deviceStorage, partitionFor } from '../storage/partition';
 import { OperationController, type OperationResult } from './operation-controller';
 import type { OperationRecord } from './operation-store';
@@ -58,6 +58,14 @@ export function useIdempotentOperation<P, R>(config: {
   useEffect(() => {
     let current = true;
     let created: OperationController<P, R> | null = null;
+    const stop = (event: Event) => {
+      const exiting = (event as CustomEvent<{ branchId: string | null }>).detail?.branchId;
+      if (exiting === null || exiting === branch?.id) {
+        current = false;
+        created?.dispose();
+      }
+    };
+    window.addEventListener(scopeExitEvent, stop);
     void partitionFor({ ...anonymousSnapshot, state, scope, user, branch }).then((partition) => {
       if (!current) return;
       if (partition === null || scope === null) {
@@ -83,6 +91,7 @@ export function useIdempotentOperation<P, R>(config: {
     });
     return () => {
       current = false;
+      window.removeEventListener(scopeExitEvent, stop);
       created?.dispose();
     };
   }, [state, scope, user, branch, context, operation]);

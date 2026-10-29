@@ -1,3 +1,6 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { defineConfig } from '@playwright/test';
 
 // Web M3 gallery suite: builds the explicitly requested gallery output (`LOTO_WEB_STYLEGUIDE=1`,
@@ -12,6 +15,7 @@ const env = {
 };
 
 export default defineConfig({
+  outputDir: mkdtempSync(path.join(tmpdir(), 'loto-web-styleguide-results-')),
   testDir: 'e2e-styleguide',
   testMatch: '*.spec.ts',
   workers: 1,
