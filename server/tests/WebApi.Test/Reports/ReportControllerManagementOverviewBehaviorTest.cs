@@ -171,8 +171,14 @@ public class ReportControllerManagementOverviewBehaviorTest(ServerWebApplication
                            .UseNpgsql(factory.DisposableConnectionString).Options);
                        var category = await other.Categories.AsNoTracking().FirstAsync(c => c.BranchId == f.Branch.Id && c.Name == "Entradas");
                        var venda = await other.TransactionTypes.AsNoTracking().FirstAsync(t => t.CategoryId == category.Id && t.Name == "Venda");
+                       // A cashbox row always belongs to its session (M9.6 Phase 2): today's T1 custody.
+                       var session = await other.DailyCloses.AsNoTracking()
+                           .Where(close => close.AccountId == f.T1.Id && close.Date == T && close.MappingState == SessionMappingState.Ready)
+                           .Select(close => close.Id)
+                           .FirstAsync();
                        other.Transactions.Add(new Transaction
                        {
+                           SessionId = session,
                            BranchId = f.Branch.Id, AccountId = f.T1.Id, TransactionTypeId = venda.Id, CategoryId = category.Id,
                            Direction = Direction.In, Date = T, DueDate = T, Value = 1000m, RecordedByOperatorId = f.O1.Id,
                            CreatedByUserId = (await other.Users.AsNoTracking().FirstAsync()).Id, Description = "concurrent write"

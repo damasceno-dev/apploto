@@ -91,6 +91,7 @@ public class AccountPairingCleanupMigrationTest : IAsyncLifetime
             var pairings = await dbContext.Accounts
                 .AsNoTracking()
                 .Where(account => account.BranchId == BranchId)
+                .Select(account => new { account.Id, account.TabAccountId })
                 .ToDictionaryAsync(account => account.Id, account => account.TabAccountId);
 
             pairings[ValidTerminalId].ShouldBe(ValidTabId);
@@ -102,8 +103,12 @@ public class AccountPairingCleanupMigrationTest : IAsyncLifetime
             // The Tab the inactive Terminal used to reserve now pairs without hitting the unique index.
             await dbContext.Database.ExecuteSqlRawAsync(
                 $"""UPDATE "Accounts" SET "TabAccountId" = '{ReservedTabId}' WHERE "Id" = '{SpareTerminalId}';""");
-            (await dbContext.Accounts.AsNoTracking().SingleAsync(account => account.Id == SpareTerminalId))
-                .TabAccountId.ShouldBe(ReservedTabId);
+            // Projected: the current Account entity carries columns this schema predates.
+            (await dbContext.Accounts.AsNoTracking()
+                    .Where(account => account.Id == SpareTerminalId)
+                    .Select(account => account.TabAccountId)
+                    .SingleAsync())
+                .ShouldBe(ReservedTabId);
         }
     }
 }

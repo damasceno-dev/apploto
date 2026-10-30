@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -173,8 +174,7 @@ public class PreviewCreateTransactionUseCaseTest
         // VarianceDelta = −NetFlow(In, 100) = −100 → projected = 425 + (−100) = 325.
         response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(-100m);
         response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(325m);
-        await ctx.CashVarianceCalculator.Received(1).CalculateAsync(
-            ctx.BranchUser.BranchId, ctx.Account.Id, TransactionDate, close.Id, productId, Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.Received(1).CalculateAsync(Arg.Any<DailyClose>(), productId, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -192,8 +192,7 @@ public class PreviewCreateTransactionUseCaseTest
         response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
         response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
         response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(-100m);
-        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(
-            Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<Guid>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.DidNotReceive().CalculateAsync(Arg.Any<DailyClose>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -423,13 +422,13 @@ public class PreviewCreateTransactionUseCaseTest
             Status = status
         };
         ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(ctx.BranchUser.BranchId, ctx.Account.Id, TransactionDate, close)
+            .GetActiveCustodyByAccountIdAsNoTrackingReturns(ctx.BranchUser.BranchId, ctx.Account.Id, close)
             .Build();
 
         var productId = Guid.NewGuid();
         ctx.CashVarianceProductResolver.GetIdAsync(ctx.BranchUser.BranchId, Arg.Any<CancellationToken>()).Returns(productId);
         ctx.CashVarianceCalculator
-            .CalculateAsync(ctx.BranchUser.BranchId, ctx.Account.Id, TransactionDate, close.Id, productId, Arg.Any<CancellationToken>())
+            .CalculateAsync(Arg.Any<DailyClose>(), productId, Arg.Any<CancellationToken>())
             .Returns(currentVariance);
 
         return (productId, close);

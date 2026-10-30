@@ -34,5 +34,6 @@ public class ResponseDailyCloseJson
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public Guid? UpdatedByUserId { get; init; }
+    public ResponseSessionCustodyJson Custody { get; init; } = new();
     public IReadOnlyList<ResponseDailyCloseItemJson> Items { get; init; } = [];
 }

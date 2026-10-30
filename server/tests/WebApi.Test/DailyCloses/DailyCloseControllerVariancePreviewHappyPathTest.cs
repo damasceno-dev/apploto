@@ -71,7 +71,7 @@ public class DailyCloseControllerVariancePreviewHappyPathTest(ServerWebApplicati
 
         var preview = await PreviewAsync(close.Id, candidates, token);
         var putResponse = await _client.PutAuthAsync(
-            $"/dailyclose/{close.Id}/items",
+            $"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = close.Version,
@@ -81,7 +81,7 @@ public class DailyCloseControllerVariancePreviewHappyPathTest(ServerWebApplicati
             token);
         putResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        var submitResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+        var submitResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
         submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submittedItems = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
 
@@ -163,7 +163,7 @@ public class DailyCloseControllerVariancePreviewHappyPathTest(ServerWebApplicati
         string token)
     {
         var httpResponse = await _client.PostAuthAsync(
-            $"/dailyclose/{closeId}/variance-preview",
+            $"/session/{closeId}/variance-preview",
             new RequestDailyCloseVariancePreviewJson { Items = items },
             token);
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);

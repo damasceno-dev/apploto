@@ -81,10 +81,38 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
             .HasForeignKey(dailyClose => dailyClose.BranchId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.AccountId, dailyClose.Date })
+        builder.Property(dailyClose => dailyClose.MappingState).HasConversion<short>().IsRequired();
+        builder.Property(dailyClose => dailyClose.Origin).HasConversion<short>().IsRequired();
+        builder.Property(dailyClose => dailyClose.CustodyState).HasConversion<short?>().IsRequired(false);
+        builder.Property(dailyClose => dailyClose.StartedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+        builder.Property(dailyClose => dailyClose.EndedAt).HasColumnType("timestamp with time zone").IsRequired(false);
+        builder.Property(dailyClose => dailyClose.LedgerRevision).IsRequired();
+        builder.Property(dailyClose => dailyClose.CountRevision).IsRequired();
+        builder.Property(dailyClose => dailyClose.CustodyHistoryComplete).IsRequired();
+
+        builder.HasOne(dailyClose => dailyClose.CustodianOperator)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.CustodianOperatorId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(dailyClose => dailyClose.Terminal)
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.TerminalId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Session identity replaces the account/day uniqueness (M9.6 Phase 2.2): one Sequence per resolved cashbox
+        // session and one Active custody per cashbox. Historical Draft corrections coexist with today's custody.
+        builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.AccountId, dailyClose.Sequence })
             .IsUnique()
-            .HasDatabaseName("IX_DailyCloses_BranchId_AccountId_Date")
-            .HasFilter("\"Active\" = true");
+            .HasDatabaseName("IX_DailyCloses_BranchId_AccountId_Sequence")
+            .HasFilter("\"MappingState\" = 0");
+
+        builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.AccountId })
+            .IsUnique()
+            .HasDatabaseName("IX_DailyCloses_BranchId_AccountId_ActiveCustody")
+            .HasFilter("\"Active\" = true AND \"MappingState\" = 0 AND \"CustodyState\" = 0");
 
         builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.Date, dailyClose.AccountId });
         builder.HasIndex(dailyClose => new { dailyClose.BranchId, dailyClose.Status });
@@ -94,5 +122,18 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
             "CK_DailyCloses_RecordingIdentityMatchesFirstCount",
             "(\"ItemsFirstRecordedAt\" IS NULL AND \"RecordedByUserId\" IS NULL AND \"RecordedByOperatorId\" IS NULL) OR " +
             "(\"ItemsFirstRecordedAt\" IS NOT NULL AND \"RecordedByUserId\" IS NOT NULL)"));
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_DailyCloses_ReadySessionIdentity",
+            "\"MappingState\" <> 0 OR (\"CustodyState\" IS NOT NULL AND \"Sequence\" IS NOT NULL AND " +
+            "\"StartedAt\" IS NOT NULL AND \"CustodianOperatorId\" IS NOT NULL)"));
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_DailyCloses_CustodyStateMatchesEnd",
+            "\"CustodyState\" IS NULL OR ((\"CustodyState\" = 0) = (\"EndedAt\" IS NULL))"));
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_DailyCloses_IntervalOrdered",
+            "\"EndedAt\" IS NULL OR \"StartedAt\" IS NULL OR \"EndedAt\" > \"StartedAt\""));
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_DailyCloses_SequencePositive",
+            "\"Sequence\" IS NULL OR \"Sequence\" > 0"));
     }
 }

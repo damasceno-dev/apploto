@@ -8,6 +8,13 @@ public class ReceiveFiadoPaymentFluentValidation : AbstractValidator<RequestRece
 {
     public ReceiveFiadoPaymentFluentValidation()
     {
+        RuleFor(request => request.OpeningAcknowledgment!)
+            .SetValidator(new Sessions.Start.SessionOpeningAcknowledgmentFluentValidation())
+            .When(request => request.OpeningAcknowledgment is not null);
+        RuleFor(request => request.HistoricalReason)
+            .MaximumLength(Services.Sessions.SessionStarter.ReasonMaxLength)
+            .WithMessage(ResourcesErrorMessages.SESSION_REASON_TOO_LONG);
+
         RuleFor(r => r.Date)
             .NotEqual(default(DateTime))
             .WithMessage(ResourcesErrorMessages.TRANSACTION_DATE_EMPTY);

@@ -19,7 +19,7 @@ public class DailyCloseControllerVariancePreviewUnhappyPathTest(ServerWebApplica
     public async Task VariancePreview_ShouldReturn401_WhenTokenIsMissing()
     {
         var response = await _client.PostAsync(
-            $"/dailyclose/{Guid.NewGuid()}/variance-preview",
+            $"/session/{Guid.NewGuid()}/variance-preview",
             JsonContent.Create(new RequestDailyCloseVariancePreviewJson { Items = [] }));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
@@ -145,7 +145,7 @@ public class DailyCloseControllerVariancePreviewUnhappyPathTest(ServerWebApplica
         string token)
     {
         return _client.PostAuthAsync(
-            $"/dailyclose/{closeId}/variance-preview",
+            $"/session/{closeId}/variance-preview",
             new RequestDailyCloseVariancePreviewJson { Items = items },
             token);
     }

@@ -29,6 +29,7 @@ public static class TransactionSharedMapper
                 OriginTransactionId = transaction.OriginTransactionId,
                 GenerationKind = transaction.GenerationKind,
                 GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
+                SessionId = transaction.SessionId,
                 GeneratedTransactionId = generatedTransactionId,
                 RecordedByOperatorId = transaction.RecordedByOperatorId,
                 CreatedByUserId = transaction.CreatedByUserId,
@@ -65,6 +66,7 @@ public static class TransactionSharedMapper
                 OriginTransactionId = transaction.OriginTransactionId,
                 GenerationKind = transaction.GenerationKind,
                 GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
+                SessionId = transaction.SessionId,
                 CreatedAt = transaction.CreatedAt
             };
         }

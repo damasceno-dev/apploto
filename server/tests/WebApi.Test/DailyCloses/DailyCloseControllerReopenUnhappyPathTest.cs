@@ -16,7 +16,7 @@ public class DailyCloseControllerReopenUnhappyPathTest(ServerWebApplicationFacto
     [Fact]
     public async Task Reopen_ShouldReturn401_WhenTokenIsMissing()
     {
-        var response = await _client.PostAsync($"/dailyclose/{Guid.NewGuid()}/reopen", null);
+        var response = await _client.PostAsync($"/session/{Guid.NewGuid()}/reopen", null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -38,7 +38,7 @@ public class DailyCloseControllerReopenUnhappyPathTest(ServerWebApplicationFacto
             DailyCloseStatus.Approved);
 
         var response = await _client.PostAuthAsync(
-            $"/dailyclose/{otherClose.Id}/reopen",
+            $"/session/{otherClose.Id}/reopen",
             token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
@@ -64,7 +64,7 @@ public class DailyCloseControllerReopenUnhappyPathTest(ServerWebApplicationFacto
             submittedAt: DateTime.UtcNow.AddMinutes(-10),
             approvedAt: DateTime.UtcNow.AddMinutes(-5));
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reopen", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/reopen", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -93,7 +93,7 @@ public class DailyCloseControllerReopenUnhappyPathTest(ServerWebApplicationFacto
             approvedAt: DateTime.UtcNow.AddDays(-1));
         await factory.SeedSettingAsync(branch.Id, lockDate: date);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reopen", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/reopen", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();
@@ -117,7 +117,7 @@ public class DailyCloseControllerReopenUnhappyPathTest(ServerWebApplicationFacto
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         var close = await factory.SeedDailyCloseAsync(branch.Id, account.Id, LocalToday(), status);
 
-        var response = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reopen", token);
+        var response = await _client.PostAuthAsync($"/session/{close.Id}/reopen", token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();

@@ -16,6 +16,10 @@ public class RequestCreateTransactionJsonBuilder
     private DateTime? _dueDate;
     private Guid? _recordedByOperatorId;
     private bool _saveAsDraft;
+    private bool _handsOutCountedStock;
+    private Guid? _sessionId;
+    private string? _historicalReason;
+    private RequestSessionOpeningAcknowledgmentJson? _openingAcknowledgment;
 
     public RequestCreateTransactionJsonBuilder()
     {
@@ -85,6 +89,25 @@ public class RequestCreateTransactionJsonBuilder
         return this;
     }
 
+    public RequestCreateTransactionJsonBuilder WithHandsOutCountedStock(bool handsOutCountedStock)
+    {
+        _handsOutCountedStock = handsOutCountedStock;
+        return this;
+    }
+
+    public RequestCreateTransactionJsonBuilder WithSession(Guid? sessionId, string? historicalReason = null)
+    {
+        _sessionId = sessionId;
+        _historicalReason = historicalReason;
+        return this;
+    }
+
+    public RequestCreateTransactionJsonBuilder WithOpeningAcknowledgment(RequestSessionOpeningAcknowledgmentJson? acknowledgment)
+    {
+        _openingAcknowledgment = acknowledgment;
+        return this;
+    }
+
     public RequestCreateTransactionJson Build()
     {
         return new RequestCreateTransactionJson
@@ -98,7 +121,11 @@ public class RequestCreateTransactionJsonBuilder
             ClientId = _clientId,
             DueDate = _dueDate,
             RecordedByOperatorId = _recordedByOperatorId,
-            SaveAsDraft = _saveAsDraft
+            SaveAsDraft = _saveAsDraft,
+            HandsOutCountedStock = _handsOutCountedStock,
+            SessionId = _sessionId,
+            HistoricalReason = _historicalReason,
+            OpeningAcknowledgment = _openingAcknowledgment
         };
     }
 }

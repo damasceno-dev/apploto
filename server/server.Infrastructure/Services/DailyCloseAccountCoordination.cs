@@ -22,10 +22,27 @@ internal sealed class DailyCloseAccountCoordination(
         return AcquireMany(branchId, [accountId], ct);
     }
 
-    public async Task<IDailyCloseAccountCoordinationScope> AcquireMany(
+    public Task<IDailyCloseAccountCoordinationScope> AcquireMany(
         Guid branchId,
         IReadOnlyCollection<Guid> accountIds,
         CancellationToken ct = default)
+    {
+        return AcquireOrdered(branchId, accountIds, includePairingKey: false, ct);
+    }
+
+    public Task<IDailyCloseAccountCoordinationScope> AcquireWithPairing(
+        Guid branchId,
+        IReadOnlyCollection<Guid> accountIds,
+        CancellationToken ct = default)
+    {
+        return AcquireOrdered(branchId, accountIds, includePairingKey: true, ct);
+    }
+
+    private async Task<IDailyCloseAccountCoordinationScope> AcquireOrdered(
+        Guid branchId,
+        IReadOnlyCollection<Guid> accountIds,
+        bool includePairingKey,
+        CancellationToken ct)
     {
         if (accountIds.Count == 0)
             throw new ArgumentException("At least one account is required.", nameof(accountIds));
@@ -53,6 +70,14 @@ internal sealed class DailyCloseAccountCoordination(
             await dbContext.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock_shared({monthLockKey})",
                 ct);
+
+            if (includePairingKey)
+            {
+                var pairingKey = AccountPairingCoordinationKey.Compute(branchId);
+                await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT pg_advisory_xact_lock({pairingKey})",
+                    ct);
+            }
 
             // Ascending key order is the one global order for multi-account scopes; a single account is the
             // trivial case of the same order.

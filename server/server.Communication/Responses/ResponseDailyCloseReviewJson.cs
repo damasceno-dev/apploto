@@ -46,5 +46,9 @@ public class ResponseDailyCloseReviewJson
     public DateTime CreatedAt { get; init; }
     public DateTime? UpdatedAt { get; init; }
     public Guid? UpdatedByUserId { get; init; }
+    public ResponseSessionCustodyJson Custody { get; init; } = new();
+
+    /// <summary>The opening's current comparison against its proposal; null when it matched or is inherited.</summary>
+    public ResponseOpeningDiscrepancyJson? OpeningDiscrepancy { get; init; }
     public IReadOnlyList<ResponseDailyCloseReviewItemJson> Items { get; init; } = [];
 }

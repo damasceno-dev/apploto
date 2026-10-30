@@ -20,6 +20,7 @@ public class RejectDailyCloseUseCase(
     IBranchClock branchClock,
     ICashVarianceProductResolver cashVarianceProductResolver,
     IDailyCloseAccountCoordination accountCoordination,
+    Services.Sessions.SessionHandoverInvalidator handoverInvalidator,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseDailyCloseJson> Execute(
@@ -74,6 +75,9 @@ public class RejectDailyCloseUseCase(
             actorOperator,
             now,
             ct);
+
+        // A corrected outgoing closing invalidates any unaccepted handover offer (§6.20).
+        await handoverInvalidator.WithdrawPending(close, branchUser.User, branchClock.UtcNow(), "Fechamento rejeitado", ct);
 
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);

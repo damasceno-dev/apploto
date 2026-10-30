@@ -27,6 +27,14 @@ internal class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(a => a.CustodyHistoryRevision).IsRequired().HasDefaultValue(0L);
+
+        builder.HasOne(a => a.Terminal)
+            .WithMany()
+            .HasForeignKey(a => a.TerminalId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         // A Tab account can belong to at most one Terminal
         builder.HasIndex(a => a.TabAccountId)
             .IsUnique()

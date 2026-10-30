@@ -6,6 +6,7 @@
  */
 import type { DailyCloseStatus } from './dailyCloseStatus';
 import type { ResponseDailyCloseItemJson } from './responseDailyCloseItemJson';
+import type { ResponseSessionCustodyJson } from './responseSessionCustodyJson';
 
 export interface ResponseDailyCloseJson {
   id: string;
@@ -58,5 +59,6 @@ export interface ResponseDailyCloseJson {
   updatedAt?: string | null;
   /** @nullable */
   updatedByUserId?: string | null;
+  custody: ResponseSessionCustodyJson;
   items: ResponseDailyCloseItemJson[];
 }

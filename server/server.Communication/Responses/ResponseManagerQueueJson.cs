@@ -22,4 +22,7 @@ public class ResponseManagerQueueJson
 
     /// <summary>Draft transactions with <c>LockDate &lt; Date ≤</c> branch-local today, whatever date was requested.</summary>
     public int UnlockedDraftTransactionCount { get; init; }
+
+    /// <summary>Custody work of the branch (open sessions, pending handovers, unattributed opening discrepancies).</summary>
+    public ResponseManagerQueueCustodyJson Custody { get; init; } = new();
 }

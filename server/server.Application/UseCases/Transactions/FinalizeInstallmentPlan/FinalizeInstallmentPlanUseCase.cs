@@ -93,7 +93,8 @@ public class FinalizeInstallmentPlanUseCase(
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
-        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(branchUser.BranchId, accountId, date, ct);
+        // Every installment of a plan shares its account, date and (on a cashbox) its session.
+        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(drafts[0], ct);
 
         foreach (var draft in drafts)
         {

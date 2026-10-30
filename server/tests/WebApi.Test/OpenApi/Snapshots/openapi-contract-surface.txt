@@ -28,6 +28,7 @@ enum AgingBucket string: Current, Days0To30, Days31To60, Days61To90, Days91Plus
 enum BrazilianHolidayCalendarSource string: Composite, Canonical, BrasilApi, Nager
 enum BrazilianHolidayImportStatus string: Imported, Skipped
 enum BrazilianHolidayType string: National, OptionalFederal
+enum CustodyExceptionAction string: Finish, AcceptAndStart
 enum DailyCloseReviewEventType string: Rejected, OpeningChanged
 enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
 enum Direction string: In, Out
@@ -38,9 +39,16 @@ enum InvitationStatus string: Pending, Accepted, Declined, Expired
 enum MailDeliveryStatus string: Pending, Sent, Failed
 enum MonthlyFinancialRole string: None, BolaoServiceFee, CommercialLeftover
 enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions, MissingExpectedClose
+enum OpeningDiscrepancyAttribution string: Unattributed, Outgoing, Incoming, Neither
 enum OperatorLinkRequestStatus string: Pending, Resolved
 enum OverviewSectionStatus string: Ready, Empty, NotConfigured
 enum Role string: Admin, Manager, Member
+enum SessionCustodyState string: Active, HandedOver, Finished
+enum SessionEventKind string: SessionStarted, OpeningAcknowledged, OpeningDiscrepancyOpened, OpeningDiscrepancyRevised, HandoverOffered, HandoverAccepted, HandoverDisputed, HandoverWithdrawn, SessionFinished, CustodyExceptionResolved, SessionDeclared, SessionRearranged, AttributionRecorded
+enum SessionHandoverState string: Offered, Accepted, Disputed, Withdrawn
+enum SessionMappingState string: Ready, Unresolved
+enum SessionOpeningSourceKind string: ExplicitZero, OpeningCount, PreviousSession, ImportedSession
+enum SessionOrigin string: Started, HandoverAccepted, ManagerException, ManagerDeclared, Migrated
 enum SettlementInstrument string: None, Cheque, CreditCard, DebitCard
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
@@ -51,12 +59,25 @@ enum TransactionTypeSystemRole string: FiadoCountedStockSaleCounterpart, FiadoCa
 
 ## schemas
 
+schema RequestAcceptSessionHandoverJson
+  explicitZero optional boolean
+  items optional RequestSessionOpeningItemJson[]?
+  reason optional string?
+
 schema RequestAddTimeEntrySegmentJson
   clockIn required string
   clockOut optional string?
 
 schema RequestAssignAccountJson
   accountId required string
+
+schema RequestAssignCashboxTerminalJson
+  terminalId required string
+
+schema RequestAttributeOpeningDiscrepancyJson
+  discrepancyRevision required integer|string
+  reason optional string?
+  target optional enum:OpeningDiscrepancyAttribution
 
 schema RequestCancelTransactionJson
   cancellationReason required string
@@ -111,6 +132,11 @@ schema RequestCreateTerminalAccountJson
   institution optional string?
   name required string
   number optional string?
+  terminalId optional string?
+
+schema RequestCreateTerminalJson
+  externalReference optional string?
+  name required string
 
 schema RequestCreateTransactionInstallmentItemJson
   dueDate required string
@@ -123,10 +149,13 @@ schema RequestCreateTransactionInstallmentJson
   date required string
   description optional string?
   dueDate optional string?
+  historicalReason optional string?
   installmentCount optional integer|string?
   installments required RequestCreateTransactionInstallmentItemJson[]
+  openingAcknowledgment optional RequestSessionOpeningAcknowledgmentJson?
   recordedByOperatorId optional string?
   saveAsDraft optional boolean
+  sessionId optional string?
   transactionTime optional string?
   transactionTypeId required string
   value required number|string
@@ -138,8 +167,11 @@ schema RequestCreateTransactionJson
   description optional string?
   dueDate optional string?
   handsOutCountedStock optional boolean
+  historicalReason optional string?
+  openingAcknowledgment optional RequestSessionOpeningAcknowledgmentJson?
   recordedByOperatorId optional string?
   saveAsDraft optional boolean
+  sessionId optional string?
   transactionTime optional string?
   transactionTypeId required string
   value required number|string
@@ -156,9 +188,19 @@ schema RequestCreateTransactionTypeJson
 schema RequestDailyCloseVariancePreviewJson
   items optional RequestUpsertDailyCloseItemJson[]?
 
+schema RequestDeclarePastSessionJson
+  accountId required string
+  custodianOperatorId required string
+  endedAt required string
+  reason optional string?
+  startedAt required string
+
 schema RequestFinalizeInstallmentPlanJson
   confirmMixedPlan optional boolean
   installments optional RequestInstallmentPlanRowVersionJson[]?
+
+schema RequestFinishSessionJson
+  reason optional string?
 
 schema RequestForgotPasswordJson
   email required string
@@ -190,6 +232,11 @@ schema RequestLockSettingMonthJson
 schema RequestLogoutJson
   refreshToken required string
 
+schema RequestOfferSessionHandoverJson
+  countRevision required integer|string
+  incomingOperatorId required string
+  reason optional string?
+
 schema RequestOnboardingOperatorJson
   name required string
   terminalIndexes required integer|string[]
@@ -197,10 +244,6 @@ schema RequestOnboardingOperatorJson
 schema RequestOnboardingTerminalJson
   name required string
   pairedTabName optional string?
-
-schema RequestOpenDailyCloseJson
-  accountId required string
-  date required string
 
 schema RequestOperateBranchJson
   additionalProducts required string[]
@@ -221,16 +264,30 @@ schema RequestPutDailyCloseItemsJson
   items optional RequestUpsertDailyCloseItemJson[]?
   notes optional string?
 
+schema RequestRearrangePastSessionJson
+  endedAt required string
+  reason optional string?
+  startedAt required string
+
 schema RequestReceiveFiadoPaymentJson
   accountId required string
   clientId required string
   date required string
   description optional string?
+  historicalReason optional string?
+  openingAcknowledgment optional RequestSessionOpeningAcknowledgmentJson?
   recordedByOperatorId optional string?
   saveAsDraft optional boolean
+  sessionId optional string?
   transactionTime optional string?
   transactionTypeId required string
   value required number|string
+
+schema RequestRecordOpeningCountJson
+  accountId required string
+  asOfDate required string
+  expectedRevision optional integer|string?
+  items optional RequestSessionOpeningItemJson[]?
 
 schema RequestRegisterInvitationJson
   name required string
@@ -246,6 +303,35 @@ schema RequestRejectDailyCloseJson
 schema RequestResetPasswordJson
   newPassword required string
   token required string
+
+schema RequestResolveCustodyExceptionJson
+  action required enum:CustodyExceptionAction
+  explicitZero optional boolean
+  incomingOperatorId optional string?
+  items optional RequestSessionOpeningItemJson[]?
+  reason optional string?
+
+schema RequestSessionOpeningAcknowledgmentJson
+  custodianOperatorId optional string?
+  explicitZero optional boolean
+  handoverId optional string?
+  handoverVersion optional integer|string?
+  items optional RequestSessionOpeningItemJson[]?
+  reason optional string?
+  sourceId optional string?
+  sourceKind optional enum:SessionOpeningSourceKind?
+  sourceRevision optional integer|string?
+
+schema RequestSessionOpeningItemJson
+  productId required string
+  value required number|string
+
+schema RequestSessionReasonJson
+  reason optional string?
+
+schema RequestStartSessionJson
+  accountId required string
+  opening optional RequestSessionOpeningAcknowledgmentJson?
 
 schema RequestTimeEntrySegmentJson
   clockIn required string
@@ -336,6 +422,11 @@ schema ResponseAcceptInvitationJson
   operatorId optional string?
   role required enum:Role
 
+schema ResponseAcceptSessionHandoverJson
+  handover required ResponseSessionHandoverJson
+  incoming required ResponseStartSessionJson
+  outgoingSession required ResponseDailyCloseJson
+
 schema ResponseAccountJson
   branchId required string
   id required string
@@ -344,6 +435,7 @@ schema ResponseAccountJson
   number optional string?
   tabAccountId optional string?
   terminalAccountId optional string?
+  terminalId optional string?
   type required enum:AccountType
 
 schema ResponseAffectedDailyCloseSuccessorJson
@@ -352,6 +444,14 @@ schema ResponseAffectedDailyCloseSuccessorJson
   newStatus required enum:DailyCloseStatus
   openingRecheckRequiredAt required string
   previousStatus required enum:DailyCloseStatus
+
+schema ResponseAffectedSessionJson
+  discrepancyRevised required boolean
+  openingRecheckRequired required boolean
+  sequence optional integer?
+  sessionId required string
+  status required enum:DailyCloseStatus
+  version required integer
 
 schema ResponseAgingBucketTotalJson
   bucket required enum:AgingBucket
@@ -494,6 +594,7 @@ schema ResponseCreateAccountJson
   number optional string?
   tabAccountId optional string?
   terminalAccountId optional string?
+  terminalId optional string?
   type required enum:AccountType
 
 schema ResponseCreateBranchSessionJson
@@ -540,8 +641,11 @@ schema ResponseCreateTransactionJson
   generatedTransactionId optional string?
   generationKind optional enum:TransactionGenerationKind?
   id required string
+  openingDiscrepancyId optional string?
   paidAt optional string?
   recordedByOperatorId required string
+  sessionId optional string?
+  startedSessionId optional string?
   status required enum:TransactionStatus
   transactionTime optional string?
   transactionTypeId required string
@@ -571,8 +675,11 @@ schema ResponseDailyCloseHistoryEventJson
 
 schema ResponseDailyCloseHistoryJson
   currentOpeningSource optional ResponseDailyCloseOpeningSourceJson?
+  custodyEvents required ResponseSessionEventJson[]
   dailyCloseId required string
   events required ResponseDailyCloseHistoryEventJson[]
+  handovers required ResponseSessionHandoverJson[]
+  isCustodyHistoryComplete required boolean
   isHistoryComplete required boolean
 
 schema ResponseDailyCloseItemJson
@@ -590,6 +697,7 @@ schema ResponseDailyCloseJson
   approvedByUserName optional string?
   branchId required string
   createdAt required string
+  custody required ResponseSessionCustodyJson
   date required string
   id required string
   items required ResponseDailyCloseItemJson[]
@@ -642,6 +750,7 @@ schema ResponseDailyCloseReviewJson
   approvedByUserName optional string?
   branchId required string
   createdAt required string
+  custody required ResponseSessionCustodyJson
   date required string
   id required string
   items required ResponseDailyCloseReviewItemJson[]
@@ -649,6 +758,7 @@ schema ResponseDailyCloseReviewJson
   notes optional string?
   openedByUserId required string
   openedByUserName required string
+  openingDiscrepancy optional ResponseOpeningDiscrepancyJson?
   openingRecheckRequiredAt optional string?
   openingRecheckTriggeredByDailyCloseId optional string?
   openingRecheckTriggeredByUserId optional string?
@@ -830,6 +940,7 @@ schema ResponseListDailyCloseItemJson
   approvedByUserId optional string?
   approvedByUserName optional string?
   createdAt required string
+  custody required ResponseSessionCustodyJson
   date required string
   id required string
   recordedByOperatorId optional string?
@@ -924,6 +1035,7 @@ schema ResponseListTransactionItemJson
   id required string
   originTransactionId optional string?
   paidAt optional string?
+  sessionId optional string?
   status required enum:TransactionStatus
   transactionTypeId required string
   transactionTypeName required string
@@ -1184,9 +1296,16 @@ schema ResponseManagerQueueCloseJson
   submittedByUserName optional string?
   varianceValue optional number?
 
+schema ResponseManagerQueueCustodyJson
+  openSessions required ResponseManagerQueueOpenSessionJson[]
+  openingDiscrepanciesAwaitingAttribution required ResponseManagerQueueOpeningDiscrepancyJson[]
+  pendingHandovers required ResponseSessionHandoverJson[]
+  unresolvedMappingIssueCount required integer
+
 schema ResponseManagerQueueJson
   backlog required ResponseManagerQueueBacklogJson
   closes required ResponseManagerQueueCloseJson[]
+  custody required ResponseManagerQueueCustodyJson
   date required string
   meanVariance required number
   notSubmitted required ResponseManagerQueueNotSubmittedJson[]
@@ -1202,6 +1321,34 @@ schema ResponseManagerQueueNotSubmittedJson
   operatorId required string
   operatorName required string
   status optional enum:DailyCloseStatus?
+
+schema ResponseManagerQueueOpenSessionJson
+  accountId required string
+  accountName required string
+  custodianOperatorId optional string?
+  custodianOperatorName optional string?
+  date required string
+  sequence optional integer?
+  sessionId required string
+  startedAt optional string?
+  startedBeforeToday required boolean
+  status required enum:DailyCloseStatus
+
+schema ResponseManagerQueueOpeningDiscrepancyJson
+  accountId required string
+  accountName required string
+  attributedRevision optional integer?
+  attribution required enum:OpeningDiscrepancyAttribution
+  currentRevision required integer
+  currentTotalDelta required number
+  custodianOperatorName optional string?
+  date required string
+  handoverId optional string?
+  openingDiscrepancyId required string
+  predecessorSessionId optional string?
+  sessionId required string
+  sessionOpeningId required string
+  version required integer
 
 schema ResponseMonthlyFinancialHoursDayJson
   balanceHours required number
@@ -1361,6 +1508,38 @@ schema ResponseOpenChequeAgingRowJson
   transactionId required string
   value required number
 
+schema ResponseOpeningCountJson
+  accountId required string
+  asOfDate required string
+  createdAt required string
+  id required string
+  items required ResponseSessionHandoverItemJson[]
+  recordedByUserId required string
+  revision required integer
+  version required integer
+
+schema ResponseOpeningDiscrepancyItemJson
+  acknowledgedValue required number
+  delta required number
+  productId required string
+  proposedValue required number
+
+schema ResponseOpeningDiscrepancyJson
+  allowedTargets required enum:OpeningDiscrepancyAttribution[]
+  attributedRevision optional integer?
+  attribution required enum:OpeningDiscrepancyAttribution
+  countsTowardPerson required boolean
+  currentRevision required integer
+  currentTotalDelta required number
+  handoverId optional string?
+  id required string
+  items required ResponseOpeningDiscrepancyItemJson[]
+  predecessorSessionId optional string?
+  sessionId required string
+  sessionOpeningId required string
+  sourceKind required enum:SessionOpeningSourceKind
+  version required integer
+
 schema ResponseOperatedOnboardingJson
   branchId required string
   branchName required string
@@ -1447,11 +1626,87 @@ schema ResponseReceivableImpactJson
 schema ResponseRemoveBranchUserJson
   branchUser required ResponseBranchUserJson
 
+schema ResponseResolveCustodyExceptionJson
+  incoming optional ResponseStartSessionJson?
+  outgoingSession required ResponseDailyCloseJson
+
 schema ResponseSelfContextJson
   availableAccounts required ResponseOperatorAccountJson[]
   operatorId optional string?
   operatorName optional string?
   primaryAccount optional ResponseOperatorAccountJson?
+
+schema ResponseSessionChainChangeJson
+  affectedSessions required ResponseAffectedSessionJson[]
+  movedTransactionIds required string[]
+  session required ResponseDailyCloseJson
+
+schema ResponseSessionCustodyJson
+  countRevision required integer
+  custodianOperatorId optional string?
+  custodianOperatorName optional string?
+  custodyHistoryComplete required boolean
+  custodyState optional enum:SessionCustodyState?
+  endedAt optional string?
+  ledgerRevision required integer
+  mappingState required enum:SessionMappingState
+  openingAcknowledged required boolean
+  origin required enum:SessionOrigin
+  sequence optional integer?
+  startedAt optional string?
+  terminalId optional string?
+
+schema ResponseSessionEventJson
+  actorName required string
+  actorUserId required string
+  createdAt required string
+  details required string
+  id required string
+  kind required enum:SessionEventKind
+  reason optional string?
+  relatedId optional string?
+
+schema ResponseSessionHandoverItemJson
+  productId required string
+  value required number
+
+schema ResponseSessionHandoverJson
+  accountId required string
+  id required string
+  incomingSessionId optional string?
+  intendedIncomingOperatorId required string
+  intendedIncomingOperatorName required string
+  items required ResponseSessionHandoverItemJson[]
+  offeredAt required string
+  offeredByUserId required string
+  offeredCountRevision required integer
+  outgoingSessionId required string
+  reason optional string?
+  resolvedAt optional string?
+  resolvedByUserId optional string?
+  state required enum:SessionHandoverState
+  version required integer
+
+schema ResponseSessionOpeningProposalItemJson
+  displayOrder required integer
+  productId required string
+  productName required string
+  value optional number?
+
+schema ResponseSessionOpeningProposalJson
+  accountId required string
+  accountName required string
+  activeSessionId optional string?
+  canStart required boolean
+  hasUnresolvedHistory required boolean
+  isMissing required boolean
+  items required ResponseSessionOpeningProposalItemJson[]
+  pendingHandoverId optional string?
+  sourceDate optional string?
+  sourceId optional string?
+  sourceKind optional enum:SessionOpeningSourceKind?
+  sourceRevision optional integer?
+  terminalId optional string?
 
 schema ResponseSettingJson
   active required boolean
@@ -1468,6 +1723,17 @@ schema ResponseSettlementInstrumentTotalJson
   count required integer
   instrument required enum:SettlementInstrument
   value required number
+
+schema ResponseStartSessionJson
+  openingDiscrepancy optional ResponseOpeningDiscrepancyJson?
+  session required ResponseDailyCloseJson
+  sessionOpeningId required string
+
+schema ResponseTerminalJson
+  active required boolean
+  externalReference optional string?
+  id required string
+  name required string
 
 schema ResponseTimeEntryBalanceOperatorJson
   abonadoDays required integer
@@ -1549,6 +1815,7 @@ schema ResponseTransactionJson
   originTransactionId optional string?
   paidAt optional string?
   recordedByOperatorId required string
+  sessionId optional string?
   status required enum:TransactionStatus
   transactionTime optional string?
   transactionTypeId required string
@@ -1843,124 +2110,6 @@ operation GET /client/{clientId}/fiado-statement
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
-
-operation GET /dailyclose
-  security BranchBearer[]
-  query AccountId optional string
-  query DateFrom optional string
-  query DateTo optional string
-  query Mine optional boolean
-  query OperatorId optional string
-  query Page optional integer|string
-  query PageSize optional integer|string
-  query Status optional enum:DailyCloseStatus
-  response 200 ResponseListDailyClosesJson
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-
-operation POST /dailyclose
-  security BranchBearer[]
-  body required RequestOpenDailyCloseJson
-  response 201 ResponseDailyCloseJson headers=ETag
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation GET /dailyclose/{dailyCloseId}
-  security BranchBearer[]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-
-operation POST /dailyclose/{dailyCloseId}/approve
-  security BranchBearer[Admin,Manager]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation GET /dailyclose/{dailyCloseId}/history
-  security BranchBearer[]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseHistoryJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-
-operation PUT /dailyclose/{dailyCloseId}/items
-  security BranchBearer[]
-  path dailyCloseId required string
-  header If-Match required string
-  body required RequestPutDailyCloseItemsJson
-  response 200 ResponsePutDailyCloseItemsJson headers=ETag
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation POST /dailyclose/{dailyCloseId}/recall
-  security BranchBearer[]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation POST /dailyclose/{dailyCloseId}/reject
-  security BranchBearer[Admin,Manager]
-  path dailyCloseId required string
-  body required RequestRejectDailyCloseJson
-  response 200 ResponseDailyCloseJson headers=ETag
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation POST /dailyclose/{dailyCloseId}/reopen
-  security BranchBearer[Admin,Manager]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation GET /dailyclose/{dailyCloseId}/review
-  security BranchBearer[]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseReviewJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-
-operation POST /dailyclose/{dailyCloseId}/submit
-  security BranchBearer[]
-  path dailyCloseId required string
-  response 200 ResponseDailyCloseJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation POST /dailyclose/{dailyCloseId}/variance-preview
-  security BranchBearer[]
-  path dailyCloseId required string
-  body required RequestDailyCloseVariancePreviewJson
-  response 200 ResponseDailyCloseVariancePreviewJson
-  response 400 ResponseErrorJson
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
 
 operation GET /holiday
   security BranchBearer[]
@@ -2415,6 +2564,267 @@ operation GET /report/upcoming-settlements
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
 
+operation GET /session
+  security BranchBearer[]
+  query AccountId optional string
+  query CustodianOperatorId optional string
+  query CustodyState optional enum:SessionCustodyState
+  query DateFrom optional string
+  query DateTo optional string
+  query Mine optional boolean
+  query OperatorId optional string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Status optional enum:DailyCloseStatus
+  query TerminalId optional string
+  response 200 ResponseListDailyClosesJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+
+operation POST /session/declare
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestDeclarePastSessionJson
+  response 201 ResponseSessionChainChangeJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/handover/{handoverId}/accept
+  security BranchBearer[]
+  path handoverId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestAcceptSessionHandoverJson
+  response 200 ResponseAcceptSessionHandoverJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/handover/{handoverId}/dispute
+  security BranchBearer[]
+  path handoverId required string
+  header If-Match required string
+  body required RequestSessionReasonJson
+  response 200 ResponseSessionHandoverJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/handover/{handoverId}/withdraw
+  security BranchBearer[]
+  path handoverId required string
+  header If-Match required string
+  body required RequestSessionReasonJson
+  response 200 ResponseSessionHandoverJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /session/opening-count
+  security BranchBearer[Admin,Manager]
+  query accountId required string
+  response 200 ResponseOpeningCountJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /session/opening-count
+  security BranchBearer[Admin,Manager]
+  body required RequestRecordOpeningCountJson
+  response 200 ResponseOpeningCountJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/opening-discrepancy/{discrepancyId}/attribution
+  security BranchBearer[Admin,Manager]
+  path discrepancyId required string
+  header If-Match required string
+  body required RequestAttributeOpeningDiscrepancyJson
+  response 200 ResponseOpeningDiscrepancyJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /session/opening-proposal
+  security BranchBearer[]
+  query accountId required string
+  response 200 ResponseSessionOpeningProposalJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/start
+  security BranchBearer[]
+  header Idempotency-Key required string
+  body required RequestStartSessionJson
+  response 201 ResponseStartSessionJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /session/{sessionId}
+  security BranchBearer[]
+  path sessionId required string
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /session/{sessionId}/approve
+  security BranchBearer[Admin,Manager]
+  path sessionId required string
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/custody-exception
+  security BranchBearer[Admin,Manager]
+  path sessionId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestResolveCustodyExceptionJson
+  response 200 ResponseResolveCustodyExceptionJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/finish
+  security BranchBearer[]
+  path sessionId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestFinishSessionJson
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/handover
+  security BranchBearer[]
+  path sessionId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestOfferSessionHandoverJson
+  response 201 ResponseSessionHandoverJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /session/{sessionId}/history
+  security BranchBearer[]
+  path sessionId required string
+  response 200 ResponseDailyCloseHistoryJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation PUT /session/{sessionId}/items
+  security BranchBearer[]
+  path sessionId required string
+  header If-Match required string
+  body required RequestPutDailyCloseItemsJson
+  response 200 ResponsePutDailyCloseItemsJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/rearrange
+  security BranchBearer[Admin,Manager]
+  path sessionId required string
+  header If-Match required string
+  body required RequestRearrangePastSessionJson
+  response 200 ResponseSessionChainChangeJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/recall
+  security BranchBearer[]
+  path sessionId required string
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/reject
+  security BranchBearer[Admin,Manager]
+  path sessionId required string
+  body required RequestRejectDailyCloseJson
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/reopen
+  security BranchBearer[Admin,Manager]
+  path sessionId required string
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /session/{sessionId}/review
+  security BranchBearer[]
+  path sessionId required string
+  response 200 ResponseDailyCloseReviewJson headers=ETag
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /session/{sessionId}/submit
+  security BranchBearer[]
+  path sessionId required string
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/variance-preview
+  security BranchBearer[]
+  path sessionId required string
+  body required RequestDailyCloseVariancePreviewJson
+  response 200 ResponseDailyCloseVariancePreviewJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation GET /setting
   security BranchBearer[]
   response 200 ResponseSettingJson headers=ETag
@@ -2439,6 +2849,31 @@ operation POST /setting/lock-month
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /terminal
+  security BranchBearer[]
+  response 200 ResponseTerminalJson[]
+  response 401 ResponseErrorJson
+
+operation POST /terminal
+  security BranchBearer[Admin,Manager]
+  body required RequestCreateTerminalJson
+  response 201 ResponseTerminalJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation PUT /terminal/cashbox/{accountId}
+  security BranchBearer[Admin,Manager]
+  path accountId required string
+  body required RequestAssignCashboxTerminalJson
+  response 200 ResponseAccountJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
 operation GET /timeentry

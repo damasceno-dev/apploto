@@ -1,3 +1,4 @@
+using server.Application.UseCases.Sessions;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -18,6 +19,9 @@ public static class ListDailyClosesMapper
                 DateFrom = request.DateFrom,
                 DateTo = request.DateTo,
                 OperatorId = request.OperatorId,
+                CustodianOperatorId = request.CustodianOperatorId,
+                CustodyState = request.CustodyState,
+                TerminalId = request.TerminalId,
                 Page = request.Page,
                 PageSize = request.PageSize
             };
@@ -30,6 +34,7 @@ public static class ListDailyClosesMapper
         {
             return new ResponseListDailyCloseItemJson
             {
+                Custody = close.ToCustodyResponse(),
                 Id = close.Id,
                 Date = close.Date,
                 Status = close.Status,

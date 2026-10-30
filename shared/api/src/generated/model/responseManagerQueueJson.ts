@@ -6,6 +6,7 @@
  */
 import type { ResponseManagerQueueBacklogJson } from './responseManagerQueueBacklogJson';
 import type { ResponseManagerQueueCloseJson } from './responseManagerQueueCloseJson';
+import type { ResponseManagerQueueCustodyJson } from './responseManagerQueueCustodyJson';
 import type { ResponseManagerQueueNotSubmittedJson } from './responseManagerQueueNotSubmittedJson';
 
 export interface ResponseManagerQueueJson {
@@ -18,4 +19,5 @@ export interface ResponseManagerQueueJson {
   notSubmitted: ResponseManagerQueueNotSubmittedJson[];
   backlog: ResponseManagerQueueBacklogJson;
   unlockedDraftTransactionCount: number;
+  custody: ResponseManagerQueueCustodyJson;
 }

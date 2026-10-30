@@ -68,6 +68,17 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // The composite (BranchId, AccountId, SessionId) foreign key to the session's alternate key is installed by the
+        // M9.6 Phase 2 migration in SQL, so a row can never attach to another cashbox's session.
+        builder.HasOne(t => t.Session)
+            .WithMany()
+            .HasForeignKey(t => t.SessionId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(t => new { t.SessionId, t.Status })
+            .HasFilter("\"SessionId\" IS NOT NULL");
+
         builder.HasOne(t => t.Branch)
             .WithMany()
             .HasForeignKey(t => t.BranchId)

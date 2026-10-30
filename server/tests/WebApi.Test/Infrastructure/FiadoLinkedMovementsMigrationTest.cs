@@ -143,7 +143,11 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
                 .SingleAsync();
             legacyType.FiadoPaymentKind.ShouldBeNull();
             legacyType.SystemRole.ShouldBeNull();
-            var legacyRow = await dbContext.Transactions.AsNoTracking().SingleAsync(row => row.Id == LegacyRepaymentId);
+            // Projected: the current Transaction entity carries columns this schema predates.
+            var legacyRow = await dbContext.Transactions.AsNoTracking()
+                .Where(row => row.Id == LegacyRepaymentId)
+                .Select(row => new { row.GenerationKind, row.GeneratedFromTransactionId })
+                .SingleAsync();
             legacyRow.GenerationKind.ShouldBeNull();
             legacyRow.GeneratedFromTransactionId.ShouldBeNull();
             (await dbContext.Transactions.CountAsync(row => row.GenerationKind != null)).ShouldBe(0);

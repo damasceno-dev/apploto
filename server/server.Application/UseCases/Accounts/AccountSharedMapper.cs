@@ -36,6 +36,7 @@ public static class AccountSharedMapper
                 Number = account.Number,
                 BranchId = account.BranchId,
                 TabAccountId = account.TabAccountId,
+                TerminalId = account.TerminalId,
                 TerminalAccountId = terminalAccountId
             };
         }
@@ -50,6 +51,7 @@ public static class AccountSharedMapper
                 Number = account.Number,
                 BranchId = account.BranchId,
                 TabAccountId = account.TabAccountId,
+                TerminalId = account.TerminalId,
                 TerminalAccountId = terminalAccountId
             };
         }

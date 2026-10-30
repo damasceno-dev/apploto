@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
@@ -53,19 +54,8 @@ public class SubmitDailyCloseUseCaseTest
 
         ctx.WorkflowGuard.Received(1)
             .EnsureCanSubmit(ctx.DailyClose, ctx.BranchUser, ctx.CallerOperator);
-        await ctx.CashVarianceCalculator.Received(1).CalculateWithOpeningSourceAsync(
-            Arg.Is<Guid>(id => id == ctx.BranchUser.BranchId),
-            Arg.Is<Guid>(id => id == ctx.DailyClose.AccountId),
-            Arg.Is<DateTime>(date => date == ctx.DailyClose.Date),
-            Arg.Is<Guid>(id => id == ctx.DailyClose.Id),
-            Arg.Is<Guid>(id => id == ctx.CashVarianceProductId),
-            Arg.Any<DailyClose?>(),
-            Arg.Any<CancellationToken>());
-        await ctx.DailyCloseLedgerGuard.Received(1).EnsureNoOutstandingDraftTransactions(
-            ctx.BranchUser.BranchId,
-            ctx.DailyClose.AccountId,
-            ctx.DailyClose.Date.Date,
-            Arg.Any<CancellationToken>());
+        await ctx.CashVarianceCalculator.Received(1).CalculateWithOpeningAsync(Arg.Any<DailyClose>(), Arg.Any<ResolvedSessionOpening>(), Arg.Is<Guid>(id => id == ctx.CashVarianceProductId), Arg.Any<CancellationToken>());
+        await ctx.DailyCloseLedgerGuard.Received(1).EnsureNoOutstandingDraftTransactions(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
         await ctx.DailyCloseLedgerCoordination.Received(1).Acquire(
             ctx.BranchUser.BranchId,
             ctx.DailyClose.AccountId,
@@ -207,7 +197,7 @@ public class SubmitDailyCloseUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
-            .CalculateAsync(Guid.Empty, Guid.Empty, default, Guid.Empty, Guid.Empty, CancellationToken.None);
+            .CalculateAsync(Arg.Any<DailyClose>(), Guid.Empty, CancellationToken.None);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -216,11 +206,7 @@ public class SubmitDailyCloseUseCaseTest
     {
         var ctx = BuildContext(Role.Manager, linkedOperator: false);
         ctx.DailyCloseLedgerGuard
-            .EnsureNoOutstandingDraftTransactions(
-                ctx.BranchUser.BranchId,
-                ctx.DailyClose.AccountId,
-                ctx.DailyClose.Date.Date,
-                Arg.Any<CancellationToken>())
+            .EnsureNoOutstandingDraftTransactions(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromException(new ConflictException(
                 ResourcesErrorMessages.DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS)));
         var useCase = CreateUseCase(ctx);
@@ -229,7 +215,7 @@ public class SubmitDailyCloseUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
-            .CalculateAsync(Guid.Empty, Guid.Empty, default, Guid.Empty, Guid.Empty, CancellationToken.None);
+            .CalculateAsync(Arg.Any<DailyClose>(), Guid.Empty, CancellationToken.None);
         await ctx.UnitOfWork.DidNotReceive().Commit();
         await ctx.DailyCloseLedgerCoordinationScope.DidNotReceive()
             .Complete(Arg.Any<CancellationToken>());
@@ -254,7 +240,7 @@ public class SubmitDailyCloseUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
-            .CalculateAsync(Guid.Empty, Guid.Empty, default, Guid.Empty, Guid.Empty, CancellationToken.None);
+            .CalculateAsync(Arg.Any<DailyClose>(), Guid.Empty, CancellationToken.None);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -271,16 +257,9 @@ public class SubmitDailyCloseUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_ITEMS_NOT_RECORDED);
         await ctx.DailyCloseLedgerGuard.DidNotReceiveWithAnyArgs()
-            .EnsureNoOutstandingDraftTransactions(Guid.Empty, Guid.Empty, default, CancellationToken.None);
+            .EnsureNoOutstandingDraftTransactions(Arg.Any<DailyClose>(), CancellationToken.None);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
-            .CalculateWithOpeningSourceAsync(
-                Guid.Empty,
-                Guid.Empty,
-                default,
-                Guid.Empty,
-                Guid.Empty,
-                null,
-                CancellationToken.None);
+            .CalculateWithOpeningAsync(Arg.Any<DailyClose>(), Arg.Any<ResolvedSessionOpening>(), Guid.Empty, CancellationToken.None);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -296,11 +275,7 @@ public class SubmitDailyCloseUseCaseTest
             .Build();
         ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
             .GetByIdAndBranchIdReturns(ctx.DailyClose.Id, ctx.BranchUser.BranchId, ctx.DailyClose)
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
-                ctx.BranchUser.BranchId,
-                ctx.DailyClose.AccountId,
-                ctx.DailyClose.Date,
-                openingSource)
+            .GetCountedPredecessorAsNoTrackingReturnsForAny(openingSource)
             .Build();
         var setting = new Setting
         {
@@ -315,22 +290,11 @@ public class SubmitDailyCloseUseCaseTest
         await useCase.Execute(ctx.DailyClose.Id);
 
         await ctx.DailyClosesRepository.Received(1)
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                ctx.BranchUser.BranchId,
-                ctx.DailyClose.AccountId,
-                ctx.DailyClose.Date,
-                Arg.Any<CancellationToken>());
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
         await ctx.SettingsRepository.Received(1)
             .GetByBranchIdAsNoTracking(ctx.BranchUser.BranchId, Arg.Any<CancellationToken>());
         await ctx.CashVarianceCalculator.Received(1)
-            .CalculateWithOpeningSourceAsync(
-                ctx.BranchUser.BranchId,
-                ctx.DailyClose.AccountId,
-                ctx.DailyClose.Date,
-                ctx.DailyClose.Id,
-                ctx.CashVarianceProductId,
-                openingSource,
-                Arg.Any<CancellationToken>());
+            .CalculateWithOpeningAsync(Arg.Any<DailyClose>(), Arg.Any<ResolvedSessionOpening>(), ctx.CashVarianceProductId, Arg.Any<CancellationToken>());
     }
 
     private static SubmitDailyCloseUseCase CreateUseCase(TestContext ctx)
@@ -356,6 +320,7 @@ public class SubmitDailyCloseUseCaseTest
             ctx.BranchClock,
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
+            SessionTestServices.OpeningResolver(ctx.DailyClosesRepository, ctx.CashVarianceProductResolver),
             ctx.UnitOfWork);
     }
 
@@ -419,16 +384,9 @@ public class SubmitDailyCloseUseCaseTest
             .Returns(cashVarianceProductId);
         var cashVarianceCalculator = Substitute.For<ICashVarianceCalculator>();
         cashVarianceCalculator
-            .CalculateWithOpeningSourceAsync(
-                Arg.Any<Guid>(),
-                Arg.Any<Guid>(),
-                Arg.Any<DateTime>(),
-                Arg.Any<Guid>(),
-                Arg.Any<Guid>(),
-                Arg.Any<DailyClose?>(),
-                Arg.Any<CancellationToken>())
+            .CalculateWithOpeningAsync(Arg.Any<DailyClose>(), Arg.Any<ResolvedSessionOpening>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(computedVariance);
-        var dailyCloseLedgerGuard = Substitute.For<IDailyCloseLedgerGuard>();
+        var dailyCloseLedgerGuard = SessionTestServices.LedgerGuard();
         var dailyCloseItemsRepository = new DailyCloseItemsRepositoryBuilder().Build();
         var transactionsRepository = new TransactionsRepositoryBuilder().Build();
         var coordinationBuilder = new DailyCloseAccountCoordinationBuilder();

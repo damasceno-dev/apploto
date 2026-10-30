@@ -9,6 +9,7 @@ import type {
   BrazilianHolidayCalendarSource,
   BrazilianHolidayImportStatus,
   BrazilianHolidayType,
+  CustodyExceptionAction,
   DailyCloseReviewEventType,
   DailyCloseStatus,
   Direction,
@@ -19,9 +20,16 @@ import type {
   MailDeliveryStatus,
   MonthlyFinancialRole,
   MonthlyReconciliationBlockerType,
+  OpeningDiscrepancyAttribution,
   OperatorLinkRequestStatus,
   OverviewSectionStatus,
   Role,
+  SessionCustodyState,
+  SessionEventKind,
+  SessionHandoverState,
+  SessionMappingState,
+  SessionOpeningSourceKind,
+  SessionOrigin,
   SettlementInstrument,
   SettlementRule,
   TimeEntryStatus,
@@ -197,6 +205,72 @@ export const operatorLinkRequestStatusLabels: Labels<OperatorLinkRequestStatus> 
   Resolved: 'Resolvida',
 };
 
+/** Custody of a turno — never its review status. Masculine — agrees with *turno*. */
+export const sessionCustodyStateLabels: Labels<SessionCustodyState> = {
+  Active: 'Em custódia',
+  HandedOver: 'Passado adiante',
+  Finished: 'Encerrado',
+};
+
+/** An Unresolved turno is read-only history: never offer an action on it. */
+export const sessionMappingStateLabels: Labels<SessionMappingState> = {
+  Ready: 'Resolvido',
+  Unresolved: 'Histórico não resolvido',
+};
+
+export const sessionOriginLabels: Labels<SessionOrigin> = {
+  Started: 'Iniciado no caixa',
+  HandoverAccepted: 'Recebido em passagem',
+  ManagerException: 'Iniciado pelo gerente (exceção)',
+  ManagerDeclared: 'Declarado pelo gerente',
+  Migrated: 'Migrado do sistema anterior',
+};
+
+/** A missing source is shown as missing, never as a zero. */
+export const sessionOpeningSourceKindLabels: Labels<SessionOpeningSourceKind> = {
+  ExplicitZero: 'Abertura zerada confirmada',
+  OpeningCount: 'Saldo de implantação',
+  PreviousSession: 'Turno anterior',
+  ImportedSession: 'Turno importado',
+};
+
+/** Feminine — agrees with *passagem*. */
+export const sessionHandoverStateLabels: Labels<SessionHandoverState> = {
+  Offered: 'Oferecida',
+  Accepted: 'Aceita',
+  Disputed: 'Contestada',
+  Withdrawn: 'Retirada',
+};
+
+/** Only an explicit Outgoing/Incoming attribution of the current revision counts toward a person. */
+export const openingDiscrepancyAttributionLabels: Labels<OpeningDiscrepancyAttribution> = {
+  Unattributed: 'Não atribuída',
+  Outgoing: 'Operador que entregou',
+  Incoming: 'Operador que recebeu',
+  Neither: 'Nenhum dos dois',
+};
+
+export const custodyExceptionActionLabels: Labels<CustodyExceptionAction> = {
+  Finish: 'Encerrar o turno',
+  AcceptAndStart: 'Passar o caixa ao operador',
+};
+
+export const sessionEventKindLabels: Labels<SessionEventKind> = {
+  SessionStarted: 'Turno iniciado',
+  OpeningAcknowledged: 'Abertura conferida',
+  OpeningDiscrepancyOpened: 'Diferença de abertura registrada',
+  OpeningDiscrepancyRevised: 'Diferença de abertura revisada',
+  HandoverOffered: 'Passagem oferecida',
+  HandoverAccepted: 'Passagem aceita',
+  HandoverDisputed: 'Passagem contestada',
+  HandoverWithdrawn: 'Passagem retirada',
+  SessionFinished: 'Turno encerrado',
+  CustodyExceptionResolved: 'Exceção de custódia resolvida',
+  SessionDeclared: 'Turno declarado',
+  SessionRearranged: 'Turno reposicionado',
+  AttributionRecorded: 'Diferença atribuída',
+};
+
 /** The provenance marker of a generated movement (copy §4, §5): never a status. */
 export const generatedMovementMarker = 'Automática';
 
@@ -227,6 +301,14 @@ export const enumLabels = {
   MonthlyFinancialRole: monthlyFinancialRoleLabels,
   OverviewSectionStatus: overviewSectionStatusLabels,
   OperatorLinkRequestStatus: operatorLinkRequestStatusLabels,
+  SessionCustodyState: sessionCustodyStateLabels,
+  SessionMappingState: sessionMappingStateLabels,
+  SessionOrigin: sessionOriginLabels,
+  SessionOpeningSourceKind: sessionOpeningSourceKindLabels,
+  SessionHandoverState: sessionHandoverStateLabels,
+  OpeningDiscrepancyAttribution: openingDiscrepancyAttributionLabels,
+  CustodyExceptionAction: custodyExceptionActionLabels,
+  SessionEventKind: sessionEventKindLabels,
 } as const;
 
 export type EnumLabel =

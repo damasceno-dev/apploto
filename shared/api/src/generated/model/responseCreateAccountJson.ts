@@ -19,4 +19,6 @@ export interface ResponseCreateAccountJson {
   tabAccountId?: string | null;
   /** @nullable */
   terminalAccountId?: string | null;
+  /** @nullable */
+  terminalId?: string | null;
 }

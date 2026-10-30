@@ -83,21 +83,21 @@ public class ReportControllerMonthlyFinancialTest(ServerWebApplicationFactory fa
         await Close("submitted", t1, 5, DailyCloseStatus.Submitted, 3m, o1.Id, user1.Id, o1.Id);
 
         async Task Row(TransactionType type, Category category, Direction direction, Account account, Operator recorder, int day,
-            decimal value, TransactionStatus status = TransactionStatus.Active) =>
+            decimal value, TransactionStatus status = TransactionStatus.Active, bool legacy = false) =>
             await factory.SeedTransactionAsync(branch.Id, account.Id, type.Id, category.Id, direction, recorder.Id, manager.Id,
-                date: new DateTime(2026, 9, day), value: value, status: status);
+                date: new DateTime(2026, 9, day), value: value, status: status, legacyUnsessioned: legacy);
 
         await Row(tarifa, receita, Direction.In, t1, o1, 2, 120m);
         await Row(tarifa, receita, Direction.In, t1, o2, 2, 30m);
         await Row(tarifa, receita, Direction.In, t1, o1, 3, 100m);
-        await Row(tarifa, receita, Direction.In, t2, o2, 6, 40m);                 // fee day with no close
+        await Row(tarifa, receita, Direction.In, t2, o2, 6, 40m, legacy: true);   // fee day with no session (legacy)
         await Row(tarifa, receita, Direction.In, t1, o1, 2, 999m, TransactionStatus.Draft);
         await Row(tarifa, receita, Direction.In, t1, o1, 2, 888m, TransactionStatus.Cancelled);
         await Row(tarifa, receita, Direction.In, bank, o1, 2, 500m);               // bank inflow: out of scope
         await Row(operador, entradas, Direction.In, t1, o1, 2, 350m);              // Operador is never the fee
         await Row(sobraBolao, comerciais, Direction.Out, t1, o1, 2, 25m);
         await Row(sobraFederal, comerciais, Direction.Out, t1, o2, 2, 10m);
-        await Row(tarifa, receita, Direction.In, t1, o1, 20, 0.01m);               // a later fee-only day on T1
+        await Row(tarifa, receita, Direction.In, t1, o1, 20, 0.01m, legacy: true); // a later fee-only legacy day on T1
 
         // Hours: a split day under the default policy, a day under the 10 September policy, an old forgotten clock-out,
         // and today's live segment.

@@ -6,10 +6,15 @@
  */
 import type { ResponseDailyCloseHistoryEventJson } from './responseDailyCloseHistoryEventJson';
 import type { ResponseDailyCloseOpeningSourceJson } from './responseDailyCloseOpeningSourceJson';
+import type { ResponseSessionEventJson } from './responseSessionEventJson';
+import type { ResponseSessionHandoverJson } from './responseSessionHandoverJson';
 
 export interface ResponseDailyCloseHistoryJson {
   dailyCloseId: string;
   isHistoryComplete: boolean;
   currentOpeningSource?: null | ResponseDailyCloseOpeningSourceJson;
   events: ResponseDailyCloseHistoryEventJson[];
+  custodyEvents: ResponseSessionEventJson[];
+  handovers: ResponseSessionHandoverJson[];
+  isCustodyHistoryComplete: boolean;
 }

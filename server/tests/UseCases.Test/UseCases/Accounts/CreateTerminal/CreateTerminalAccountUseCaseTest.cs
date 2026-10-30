@@ -180,6 +180,7 @@ public class CreateTerminalAccountUseCaseTest
             authService,
             accountsRepo,
             accountPairingCoordination ?? new AccountPairingCoordinationBuilder().Build(),
+            Substitute.For<ITerminalsRepository>(),
             unitOfWork);
     }
 }

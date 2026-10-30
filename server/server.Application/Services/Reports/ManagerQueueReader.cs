@@ -1,3 +1,4 @@
+using server.Application.UseCases.Sessions;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
 using server.Communication.Responses;
@@ -17,7 +18,10 @@ public class ManagerQueueReader(
     ITransactionsRepository transactionsRepository,
     ICashVarianceProductResolver cashVarianceProductResolver,
     ILockDateReader lockDateReader,
-    IOnboardingRepository onboardingRepository)
+    IOnboardingRepository onboardingRepository,
+    ISessionHandoversRepository sessionHandoversRepository,
+    ISessionOpeningDiscrepanciesRepository discrepanciesRepository,
+    ICustodyMappingIssuesRepository custodyMappingIssuesRepository)
 {
     public async Task<ResponseManagerQueueJson> Read(
         Guid branchId,
@@ -45,11 +49,9 @@ public class ManagerQueueReader(
         var unlockedDraftTransactionCount = await transactionsRepository.CountDraftByBranchIdAndDateRangeAsNoTracking(
             branchId, afterDateExclusive: lockDate, throughDateInclusive: branchLocalToday, ct);
 
-        // Keyed by (Date, AccountId): each account's close carries its own variance row for the day;
-        // keying by date alone would collapse sibling accounts.
-        var varianceByDateAndAccount = varianceRows.ToDictionary(
-            r => (r.Date.Date, r.AccountId),
-            r => r.Value);
+        // Keyed by session: each session carries its own official variance; successive sessions of a shared cashbox
+        // are listed side by side and never added together.
+        var varianceBySession = varianceRows.ToDictionary(r => r.DailyCloseId, r => r.Value);
 
         // Draft closes never surface as review rows: they belong to the not-submitted queue below,
         // carrying their close id so the UI can deep-link into the open draft.
@@ -71,16 +73,18 @@ public class ManagerQueueReader(
                 Status = c.Status,
                 SubmittedAt = c.SubmittedAt,
                 ApprovedAt = c.ApprovedAt,
-                VarianceValue = varianceByDateAndAccount.TryGetValue((date, c.AccountId), out var variance)
+                VarianceValue = varianceBySession.TryGetValue(c.DailyCloseId, out var variance)
                     ? variance
                     : null
             })
             .ToList();
 
         var submittedAccountIds = closeRows.Select(c => c.AccountId).ToHashSet();
+        // A cashbox may hold several Draft sessions on one day; the deep link names the latest.
         var draftClosesByAccountId = closes
             .Where(c => c.Status == DailyCloseStatus.Draft)
-            .ToDictionary(c => c.AccountId);
+            .GroupBy(c => c.AccountId)
+            .ToDictionary(group => group.Key, group => group.Last());
 
         // Expected-closer rule (M7.5 item 1.2): active Terminal accounts with at least one active
         // OperatorAccount link to an active Operator are expected to close. Bank/Tab accounts are not:
@@ -127,7 +131,56 @@ public class ManagerQueueReader(
                 OldestPendingDate = backlog.OldestPendingDate
             },
             PendingOperatorLinkRequestCount = await onboardingRepository.PendingRequestCount(branchId, ct),
+            Custody = await ReadCustody(branchId, branchLocalToday, ct),
             UnlockedDraftTransactionCount = unlockedDraftTransactionCount
+        };
+    }
+
+    private async Task<ResponseManagerQueueCustodyJson> ReadCustody(Guid branchId, DateTime branchLocalToday, CancellationToken ct)
+    {
+        var openSessions = await dailyClosesRepository.ListActiveCustodyByBranchIdAsNoTracking(branchId, ct);
+        var handovers = await sessionHandoversRepository.ListUnresolvedByBranchIdAsNoTracking(branchId, ct);
+        var discrepancies = await discrepanciesRepository.ListAwaitingAttributionByBranchIdAsNoTracking(branchId, ct);
+        var issues = await custodyMappingIssuesRepository.CountUnresolvedByBranchIdAsNoTracking(branchId, ct);
+
+        return new ResponseManagerQueueCustodyJson
+        {
+            OpenSessions = openSessions
+                .Select(session => new ResponseManagerQueueOpenSessionJson
+                {
+                    SessionId = session.Id,
+                    AccountId = session.AccountId,
+                    AccountName = session.Account.Name,
+                    Date = session.Date,
+                    Sequence = session.Sequence,
+                    CustodianOperatorId = session.CustodianOperatorId,
+                    CustodianOperatorName = session.CustodianOperator?.Name,
+                    StartedAt = session.StartedAt,
+                    Status = session.Status,
+                    StartedBeforeToday = session.Date < branchLocalToday
+                })
+                .ToList(),
+            PendingHandovers = handovers.Select(handover => handover.ToResponse()).ToList(),
+            OpeningDiscrepanciesAwaitingAttribution = discrepancies
+                .Select(discrepancy => new ResponseManagerQueueOpeningDiscrepancyJson
+                {
+                    OpeningDiscrepancyId = discrepancy.Id,
+                    SessionId = discrepancy.SessionId,
+                    SessionOpeningId = discrepancy.SessionOpeningId,
+                    HandoverId = discrepancy.HandoverId,
+                    PredecessorSessionId = discrepancy.PredecessorSessionId,
+                    AccountId = discrepancy.Session.AccountId,
+                    AccountName = discrepancy.Session.Account.Name,
+                    Date = discrepancy.Session.Date,
+                    CustodianOperatorName = discrepancy.Session.CustodianOperator?.Name,
+                    CurrentRevision = discrepancy.CurrentRevision,
+                    CurrentTotalDelta = discrepancy.CurrentTotalDelta,
+                    Attribution = discrepancy.Attribution,
+                    AttributedRevision = discrepancy.AttributedRevision,
+                    Version = discrepancy.Version
+                })
+                .ToList(),
+            UnresolvedMappingIssueCount = issues.Sum(row => row.Count)
         };
     }
 }

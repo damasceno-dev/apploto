@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Services;
@@ -29,16 +30,10 @@ public class PreviewDailyCloseVarianceUseCaseTest
         var response = await useCase.Execute(context.Close.Id, context.Request);
 
         response.CashVariance.ShouldBe(context.CalculatedVariance);
-        await context.CashVarianceCalculator.Received(1).CalculateCandidateAsync(
-            context.BranchUser.BranchId,
-            context.Close.AccountId,
-            context.Close.Date,
-            Arg.Is<IReadOnlyList<RequestUpsertDailyCloseItemJson>>(items =>
+        await context.CashVarianceCalculator.Received(1).CalculateCandidateAsync(Arg.Any<DailyClose>(), Arg.Is<IReadOnlyList<RequestUpsertDailyCloseItemJson>>(items =>
                 items.Count == 1 &&
                 items[0].ProductId == context.Product.Id &&
-                items[0].Value == 250m),
-            context.CashVarianceProductId,
-            Arg.Any<CancellationToken>());
+                items[0].Value == 250m), context.CashVarianceProductId, Arg.Any<CancellationToken>());
         await context.DailyClosesRepository.DidNotReceive()
             .GetByIdAndBranchId(Arg.Any<Guid>(), Arg.Any<Guid>());
     }
@@ -60,13 +55,7 @@ public class PreviewDailyCloseVarianceUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
         await context.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
-            .CalculateCandidateAsync(
-                Guid.Empty,
-                Guid.Empty,
-                default,
-                [],
-                Guid.Empty,
-                CancellationToken.None);
+            .CalculateCandidateAsync(Arg.Any<DailyClose>(), [], Guid.Empty, CancellationToken.None);
     }
 
     [Fact]
@@ -81,13 +70,7 @@ public class PreviewDailyCloseVarianceUseCaseTest
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_SUBMITTABLE);
         await context.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
-            .CalculateCandidateAsync(
-                Guid.Empty,
-                Guid.Empty,
-                default,
-                [],
-                Guid.Empty,
-                CancellationToken.None);
+            .CalculateCandidateAsync(Arg.Any<DailyClose>(), [], Guid.Empty, CancellationToken.None);
     }
 
     private static PreviewDailyCloseVarianceUseCase CreateUseCase(TestContext context)
@@ -128,13 +111,7 @@ public class PreviewDailyCloseVarianceUseCaseTest
         var workflowGuard = Substitute.For<IDailyCloseWorkflowGuard>();
         const decimal calculatedVariance = 42.50m;
         var calculator = Substitute.For<ICashVarianceCalculator>();
-        calculator.CalculateCandidateAsync(
-                Arg.Any<Guid>(),
-                Arg.Any<Guid>(),
-                Arg.Any<DateTime>(),
-                Arg.Any<IReadOnlyList<RequestUpsertDailyCloseItemJson>>(),
-                Arg.Any<Guid>(),
-                Arg.Any<CancellationToken>())
+        calculator.CalculateCandidateAsync(Arg.Any<DailyClose>(), Arg.Any<IReadOnlyList<RequestUpsertDailyCloseItemJson>>(), Arg.Any<Guid>(), Arg.Any<CancellationToken>())
             .Returns(calculatedVariance);
         var productResolver = Substitute.For<ICashVarianceProductResolver>();
         productResolver.GetIdAsync(branchUser.BranchId, Arg.Any<CancellationToken>())

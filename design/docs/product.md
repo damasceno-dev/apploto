@@ -1,7 +1,7 @@
 # Lotero — Product Framing (frontend)
 
 <!--
-Synced against loto-specs: v58
+Synced against loto-specs: v59
 -->
 
 > **Status:** Reviewed baseline (Design M0 0.4.3) plus the auth/account addendum (0.4.6, authored 2026-10-20; verified corrections closed by owner 2026-10-22). This is the frontend brief for the M2–M4 design system and the app builds; pending features retain their owning contract gates in the screen catalog. The gap-Q reports (Dashboard, Upcoming settlements, Monthly financial report) are cataloged against server M11 Phase 4–7 contracts (canonical v56), and login abuse protection against server M8 Phase 8 (canonical v57). Independent review accepted both catalog reconciliations on 2026-10-21, so this marker is v57; M11 source-contract acceptance is now recorded at `84f75b9` (owner close-out 2026-10-22). The three report blueprints are authored under M4 4.8.4 and await independent design acceptance; real-app and remaining launch gates stay open.
@@ -38,7 +38,7 @@ Three backend concepts the UI must respect (detail in `loto-specs.md` §2): **Us
 
 **Member scope is screen-specific:** transaction reads use **linked accounts** (§6.10 — a shared account shows *both* operators' rows; `Mine=true` narrows to the caller's own operator); mutation ownership and current-day checks are separate. Operator/time-entry reports resolve the **own operator**, with each endpoint's empty-scope fallback. Clients are shared counter work for any branch role except deactivation. The shipped Client statement access (gap H, server M7.7 Phase 5) requires an explicit Tab grant and shows complete client debt across the branch, not a partial per-drawer debt. Managers/Admins have whole-branch access subject to each command's rules.
 
-**Navigation follows the existing IA:** Members start in Meu turno; Manager/Admin start in Gestão and, when linked to an active Operator, may switch to Meu turno. An unlinked Manager/Admin retains Open day, Close day, Fix & resubmit, approval and recall access in Gestão; only own-shift mode needs the link. Manager/Admin always use the **snapshot** time-entry contract in Time-entry management, even for their own hours; the Member tap shape never follows a mode switch. The snapshot reconciles segment ids; omission does not delete a segment and existing `ClockIn` changes use the granular route. See the authoritative [route table and screen entries](screens.md#navigation--information-architecture).
+**Navigation follows the existing IA:** Members start in Meu turno; Manager/Admin start in Gestão and, when linked to an active Operator, may switch to Meu turno. An unlinked Manager/Admin retains Close day, Fix & resubmit, approval and recall access in Gestão and may start a turno for a granted operator only as a reasoned exception (server M9.6 P2); starting their own turno and own-shift mode need the link. Manager/Admin always use the **snapshot** time-entry contract in Time-entry management, even for their own hours; the Member tap shape never follows a mode switch. The snapshot reconciles segment ids; omission does not delete a segment and existing `ClockIn` changes use the granular route. See the authoritative [route table and screen entries](screens.md#navigation--information-architecture).
 
 ## 3. Platform rule — mobile clones web
 
@@ -86,7 +86,7 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 
 **Day close flows** *(dual-mode: the Cockpit orchestrates them in Meu turno — Member by default, linked Manager/Admin through the explicit Gestão ↔ Meu turno switch — and Gestão handles their exceptions; mobile-first)*
 - **Operator Day Cockpit** — the operator's "today" home; surfaces the next action across the steps below.
-- **Open day** · record transactions via **Transaction — Create (fast entry)** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
+- **Open day** (Conferir abertura e iniciar a turno, or carry the acknowledgment on the first operation) · record transactions via **Transaction — Create (fast entry)** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
 
 **Time clock & management**
 - **Clock in / out** *(Member only)* · **Time-entry management** *(Manager/Admin, including own hours)*.

@@ -55,7 +55,7 @@ public class DailyCloseControllerReviewHappyPathTest(ServerWebApplicationFactory
         await factory.SeedDailyCloseItemAsync(mondayClose.Id, retiredCurrentProduct.Id, value: 50m);
         await factory.SeedDailyCloseItemAsync(mondayClose.Id, cashVarianceProduct.Id, value: -5m);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{mondayClose.Id}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{mondayClose.Id}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
@@ -110,7 +110,7 @@ public class DailyCloseControllerReviewHappyPathTest(ServerWebApplicationFactory
             displayOrder: 30);
         var dailyClose = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{dailyClose.Id}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{dailyClose.Id}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
@@ -146,7 +146,7 @@ public class DailyCloseControllerReviewHappyPathTest(ServerWebApplicationFactory
             date: new DateTime(2026, 7, 2));
         await factory.SeedDailyCloseItemAsync(currentClose.Id, product.Id, 55m);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{currentClose.Id}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{currentClose.Id}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
@@ -173,7 +173,7 @@ public class DailyCloseControllerReviewHappyPathTest(ServerWebApplicationFactory
             date: new DateTime(2026, 7, 2));
         await factory.SeedDailyCloseItemAsync(currentClose.Id, product.Id, 80m);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{currentClose.Id}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{currentClose.Id}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();

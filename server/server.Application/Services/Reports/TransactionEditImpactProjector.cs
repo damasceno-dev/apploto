@@ -1,3 +1,4 @@
+using server.Domain.Entities;
 using server.Application.Services.DailyCloses;
 using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
@@ -255,7 +256,7 @@ public class TransactionEditImpactProjector(
         // close status, so by here the edit is permitted regardless of status; DailyCloseStatus lets
         // the manager judge the consequence of editing under a pending vs signed-off vs repudiated
         // close.
-        return BuildCashVarianceSection(branchId, edit.AccountId, edit.Date, BuildVarianceDelta(edit), ct);
+        return BuildCashVarianceSection(branchId, edit.AccountId, edit.Date, BuildVarianceDelta(edit), ct, edit.SessionId);
     }
 
     private async Task<ResponseReceivableImpactJson> BuildCreateReceivableImpact(
@@ -339,10 +340,21 @@ public class TransactionEditImpactProjector(
         Guid accountId,
         DateTime date,
         decimal varianceDelta,
-        CancellationToken ct)
+        CancellationToken ct,
+        Guid? sessionId = null)
     {
-        var dailyClose = await dailyClosesRepository
-            .GetByBranchIdAndAccountIdAndDateAsNoTracking(branchId, accountId, date, ct);
+        // An existing row projects onto its own session; a new row onto the session it would bind to — the active
+        // custody of that date (a historical write names its session explicitly and is not modeled here).
+        DailyClose? dailyClose;
+        if (sessionId is { } existingSessionId)
+        {
+            dailyClose = await dailyClosesRepository.GetByIdAndBranchIdAsNoTracking(existingSessionId, branchId, ct);
+        }
+        else
+        {
+            var active = await dailyClosesRepository.GetActiveCustodyByAccountIdAsNoTracking(branchId, accountId, ct);
+            dailyClose = active?.Date == date.Date ? active : null;
+        }
 
         if (dailyClose is null)
         {
@@ -359,8 +371,7 @@ public class TransactionEditImpactProjector(
         if (dailyClose.Status is not DailyCloseStatus.Draft)
         {
             var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchId, ct);
-            currentVariance = await cashVarianceCalculator.CalculateAsync(
-                branchId, accountId, date, dailyClose.Id, cashVarianceProductId, ct);
+            currentVariance = await cashVarianceCalculator.CalculateAsync(dailyClose, cashVarianceProductId, ct);
         }
 
         return new ResponseCashVarianceImpactJson

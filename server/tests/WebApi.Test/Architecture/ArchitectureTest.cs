@@ -83,11 +83,11 @@ public class ArchitectureTest
         "server.Application.UseCases.Transactions.InstallmentPreview",
         "server.Application.UseCases.Transactions.EditPreview",
         "server.Application.UseCases.Transactions.CreatePreview",
-        // M7.5 Phase 4 catch-up: the daily-close review context (GET /dailyclose/{id}/review)
+        // M7.5 Phase 4 catch-up: the daily-close review context (GET /session/{id}/review)
         // is a read surface like the report use cases — it must never be able to commit.
         "server.Application.UseCases.DailyCloses.Review",
         "server.Application.UseCases.DailyCloses.VariancePreview",
-        // M7.7 Phase 7.6.1: the review-event history (GET /dailyclose/{id}/history) only reads.
+        // M7.7 Phase 7.6.1: the review-event history (GET /session/{id}/history) only reads.
         "server.Application.UseCases.DailyCloses.History",
         // M7.7 Phase 7.6.2: the installment plan read (GET /transaction/installment/{id}) only reads.
         "server.Application.UseCases.Transactions.GetInstallmentPlan",
@@ -262,11 +262,10 @@ public class ArchitectureTest
     }
 
     [Fact]
-    public void DailyCloseAccountCoordination_HasExactlyTheThirteenDeclaredMutationParticipants()
+    public void DailyCloseAccountCoordination_HasExactlyTheDeclaredMutationParticipants()
     {
         var expected = new HashSet<string>(StringComparer.Ordinal)
         {
-            "server.Application.UseCases.DailyCloses.Open.OpenDailyCloseUseCase",
             "server.Application.UseCases.DailyCloses.PutItems.PutDailyCloseItemsUseCase",
             "server.Application.UseCases.DailyCloses.Submit.SubmitDailyCloseUseCase",
             "server.Application.UseCases.DailyCloses.Approve.ApproveDailyCloseUseCase",
@@ -280,7 +279,15 @@ public class ArchitectureTest
             "server.Application.UseCases.Transactions.FinalizeInstallmentPlan.FinalizeInstallmentPlanUseCase",
             "server.Application.UseCases.Transactions.Cancel.CancelTransactionUseCase",
             // M7.7 Phase 5.1/5.6: Receber pagamento writes the Tab and, for counted cash, the paired terminal.
-            "server.Application.UseCases.Transactions.ReceiveFiadoPayment.ReceiveFiadoPaymentUseCase"
+            "server.Application.UseCases.Transactions.ReceiveFiadoPayment.ReceiveFiadoPaymentUseCase",
+            // M9.6 Phase 2: pairing, unpairing, deactivation and Terminal reassignment of a cashbox take the full §6.20
+            // order (month → pairing → account keys) before any Account-row write.
+            "server.Application.UseCases.Accounts.PairTab.PairTabAccountUseCase",
+            "server.Application.UseCases.Accounts.UnpairTab.UnpairTabAccountUseCase",
+            "server.Application.UseCases.Accounts.Deactivate.DeactivateAccountUseCase",
+            "server.Application.UseCases.Sessions.Terminals.AssignCashboxTerminalUseCase",
+            // Session/custody commands run inside the cashbox coordination through one envelope.
+            "server.Application.Services.Sessions.SessionCommandRunner"
         };
         var actual = typeof(AppDependencyInjection).Assembly.GetTypes()
             .Where(type => type is { IsClass: true, IsAbstract: false })

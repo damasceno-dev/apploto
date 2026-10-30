@@ -1,3 +1,4 @@
+using CommonTestUtilities.Services;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using NSubstitute;
@@ -24,10 +25,9 @@ public class CashVarianceCalculatorTest
 
         result.ShouldBe(300m);
         await ctx.DailyClosesRepository.Received(1)
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                Arg.Is<Guid>(id => id == ctx.BranchId),
-                Arg.Is<Guid>(id => id == ctx.AccountId),
-                Arg.Is<DateTime>(date => date == ctx.BranchLocalDate));
+            .GetCountedPredecessorAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == ctx.CurrentDailyCloseId),
+                Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -73,10 +73,9 @@ public class CashVarianceCalculatorTest
 
         result.ShouldBe(75m);
         await ctx.DailyClosesRepository.Received(1)
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                Arg.Is<Guid>(id => id == ctx.BranchId),
-                Arg.Is<Guid>(id => id == ctx.AccountId),
-                Arg.Is<DateTime>(date => date == ctx.BranchLocalDate));
+            .GetCountedPredecessorAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == ctx.CurrentDailyCloseId),
+                Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -170,50 +169,52 @@ public class CashVarianceCalculatorTest
     }
 
     [Fact]
-    public async Task CalculateAsync_ShouldQueryOnlyRequestedAccount_WhenSiblingAccountHasDifferentSums()
+    public async Task CalculateAsync_ShouldSumOnlyTheSessionsOwnRows_WhenAnotherSessionOfTheSameCashboxHasRows()
     {
-        var siblingAccountId = Guid.NewGuid();
         var ctx = BuildContext(
             currentItems: [Item(Guid.NewGuid(), 500m)],
             priorClose: null,
             transactionsIn: 200m,
             transactionsOut: 50m);
+        var siblingSessionId = Guid.NewGuid();
         ctx.TransactionsRepository
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                ctx.BranchId,
-                siblingAccountId,
-                ctx.BranchLocalDate,
-                Direction.In)
+            .SumActiveValueBySessionAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == siblingSessionId),
+                Arg.Any<Direction?>(),
+                Arg.Any<CancellationToken>())
             .Returns(9_000m);
-        ctx.TransactionsRepository
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                ctx.BranchId,
-                siblingAccountId,
-                ctx.BranchLocalDate,
-                Direction.Out)
-            .Returns(4_000m);
 
         var result = await ctx.CalculateAsync();
 
         result.ShouldBe(350m);
-        await ctx.TransactionsRepository.Received(1)
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                Arg.Is<Guid>(id => id == ctx.BranchId),
-                Arg.Is<Guid>(id => id == ctx.AccountId),
-                Arg.Is<DateTime>(date => date == ctx.BranchLocalDate),
-                Arg.Is<Direction?>(direction => direction == Direction.In));
-        await ctx.TransactionsRepository.Received(1)
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                Arg.Is<Guid>(id => id == ctx.BranchId),
-                Arg.Is<Guid>(id => id == ctx.AccountId),
-                Arg.Is<DateTime>(date => date == ctx.BranchLocalDate),
-                Arg.Is<Direction?>(direction => direction == Direction.Out));
         await ctx.TransactionsRepository.DidNotReceive()
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                Arg.Any<Guid>(),
-                Arg.Is<Guid>(id => id == siblingAccountId),
-                Arg.Any<DateTime>(),
-                Arg.Any<Direction?>());
+            .SumActiveValueBySessionAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == siblingSessionId),
+                Arg.Any<Direction?>(),
+                Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task CalculateAsync_ShouldUseAcknowledgedOpening_InsteadOfThePredecessorClosing()
+    {
+        var productId = Guid.NewGuid();
+        var ctx = BuildContext(
+            currentItems: [Item(productId, 1_100m)],
+            priorClose: null);
+        ctx.PriorClose = PriorClose(ctx.BranchId, ctx.AccountId, ctx.BranchLocalDate, [Item(productId, 1_100m)]);
+        ctx.Opening = new SessionOpening
+        {
+            SessionId = ctx.CurrentDailyCloseId,
+            Items = [new SessionOpeningItem { ProductId = productId, ProposedValue = 1_100m, AcknowledgedValue = 1_080m }]
+        };
+        RewirePriorClose(ctx);
+
+        var result = await ctx.CalculateAsync();
+
+        // E11b: Finished 1,100 → Start 1,080; the acknowledged 1,080 is TotalOpening (1,100 − 1,080 − 0 = 20).
+        result.ShouldBe(20m);
+        await ctx.DailyClosesRepository.DidNotReceive()
+            .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -229,17 +230,15 @@ public class CashVarianceCalculatorTest
 
         result.ShouldBe(450m);
         await ctx.TransactionsRepository.Received(1)
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                ctx.BranchId,
-                ctx.AccountId,
-                ctx.BranchLocalDate,
-                Direction.In);
+            .SumActiveValueBySessionAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == ctx.CurrentDailyCloseId),
+                Direction.In,
+                Arg.Any<CancellationToken>());
         await ctx.TransactionsRepository.Received(1)
-            .SumActiveValueByAccountAndDateAsNoTracking(
-                ctx.BranchId,
-                ctx.AccountId,
-                ctx.BranchLocalDate,
-                Direction.Out);
+            .SumActiveValueBySessionAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == ctx.CurrentDailyCloseId),
+                Direction.Out,
+                Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -361,9 +360,7 @@ public class CashVarianceCalculatorTest
         RewirePriorClose(ctx);
 
         var result = await ctx.Calculator.CalculateCandidateAsync(
-            ctx.BranchId,
-            ctx.AccountId,
-            ctx.BranchLocalDate,
+            ctx.Session,
             [new RequestUpsertDailyCloseItemJson { ProductId = candidateProductId, Value = 200m }],
             ctx.CashVarianceProductId,
             CancellationToken.None);
@@ -398,9 +395,7 @@ public class CashVarianceCalculatorTest
 
         var savedResult = await ctx.CalculateAsync();
         var candidateResult = await ctx.Calculator.CalculateCandidateAsync(
-            ctx.BranchId,
-            ctx.AccountId,
-            ctx.BranchLocalDate,
+            ctx.Session,
             [
                 new RequestUpsertDailyCloseItemJson { ProductId = firstProductId, Value = 120m },
                 new RequestUpsertDailyCloseItemJson { ProductId = secondProductId, Value = 30m }
@@ -436,47 +431,34 @@ public class CashVarianceCalculatorTest
         ctx.DailyCloseItemsRepository = new DailyCloseItemsRepositoryBuilder()
             .ListActiveByDailyCloseIdAsNoTrackingReturns(ctx.CurrentDailyCloseId, ctx.CurrentItems)
             .Build();
-        ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
-                ctx.BranchId,
-                ctx.AccountId,
-                ctx.BranchLocalDate,
-                ctx.PriorClose)
-            .Build();
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .SumActiveValueByAccountAndDateAsNoTrackingReturns(
-                ctx.BranchId,
-                ctx.AccountId,
-                ctx.BranchLocalDate,
-                Direction.In,
-                transactionsIn)
-            .SumActiveValueByAccountAndDateAsNoTrackingReturns(
-                ctx.BranchId,
-                ctx.AccountId,
-                ctx.BranchLocalDate,
-                Direction.Out,
-                transactionsOut)
+            .SumActiveValueBySessionAsNoTrackingReturns(ctx.CurrentDailyCloseId, Direction.In, transactionsIn)
+            .SumActiveValueBySessionAsNoTrackingReturns(ctx.CurrentDailyCloseId, Direction.Out, transactionsOut)
             .Build();
-        ctx.Calculator = new CashVarianceCalculator(
-            ctx.DailyCloseItemsRepository,
-            ctx.DailyClosesRepository,
-            ctx.TransactionsRepository);
+        RewirePriorClose(ctx);
 
         return ctx;
     }
 
     private static void RewirePriorClose(CalculatorContext ctx)
     {
+        ctx.Session = new DailyCloseBuilder()
+            .WithId(ctx.CurrentDailyCloseId)
+            .WithBranchId(ctx.BranchId)
+            .WithAccountId(ctx.AccountId)
+            .WithDate(ctx.BranchLocalDate)
+            .Build();
+        if (ctx.Opening is not null)
+            ctx.Session = new DailyCloseBuilder().WithId(ctx.CurrentDailyCloseId).WithBranchId(ctx.BranchId).WithAccountId(ctx.AccountId).WithDate(ctx.BranchLocalDate).WithOpening(ctx.Opening).Build();
         ctx.DailyClosesRepository = new DailyClosesRepositoryBuilder()
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
-                ctx.BranchId,
-                ctx.AccountId,
-                ctx.BranchLocalDate,
-                ctx.PriorClose)
+            .GetCountedPredecessorAsNoTrackingReturns(ctx.CurrentDailyCloseId, ctx.PriorClose)
+            .Build();
+        var cashVarianceProductResolver = new CashVarianceProductResolverBuilder()
+            .ReturnsId(ctx.BranchId, ctx.CashVarianceProductId)
             .Build();
         ctx.Calculator = new CashVarianceCalculator(
             ctx.DailyCloseItemsRepository,
-            ctx.DailyClosesRepository,
+            SessionTestServices.OpeningResolver(ctx.DailyClosesRepository, cashVarianceProductResolver),
             ctx.TransactionsRepository);
     }
 
@@ -512,6 +494,8 @@ public class CashVarianceCalculatorTest
         public Guid CashVarianceProductId { get; set; }
         public IReadOnlyList<DailyCloseItem> CurrentItems { get; set; } = [];
         public DailyClose? PriorClose { get; set; }
+        public SessionOpening? Opening { get; set; }
+        public DailyClose Session { get; set; } = null!;
         public IDailyCloseItemsRepository DailyCloseItemsRepository { get; set; } = null!;
         public IDailyClosesRepository DailyClosesRepository { get; set; } = null!;
         public ITransactionsRepository TransactionsRepository { get; set; } = null!;
@@ -519,13 +503,7 @@ public class CashVarianceCalculatorTest
 
         public Task<decimal> CalculateAsync()
         {
-            return Calculator.CalculateAsync(
-                BranchId,
-                AccountId,
-                BranchLocalDate,
-                CurrentDailyCloseId,
-                CashVarianceProductId,
-                CancellationToken.None);
+            return Calculator.CalculateAsync(Session, CashVarianceProductId, CancellationToken.None);
         }
     }
 }

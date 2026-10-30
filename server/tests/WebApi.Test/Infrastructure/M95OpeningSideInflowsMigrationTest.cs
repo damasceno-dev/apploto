@@ -15,6 +15,7 @@ namespace WebApi.Test.Infrastructure;
 public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
 {
     private const string Previous = "20261018165353_M8OperatedOnboardingAndGoogleIdentity";
+    private const string M95Migration = "20261020104851_M95OpeningSideInflows";
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:16-alpine")
         .WithCreateParameterModifier(parameters =>
         {
@@ -154,30 +155,45 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
         await db.GetService<IMigrator>().MigrateAsync(Previous);
         var branch = new Branch { Name = "History" };
         var user = new User { Name = "Reviewer", Email = "reviewer@example.invalid", Password = "unused" };
-        var account = new Account { BranchId = branch.Id, Name = "Terminal", Type = AccountType.Terminal };
         var fee = new Product { BranchId = branch.Id, Name = "Renamed fee" };
         var date = new DateTime(2026, 9, 10);
-        var close = new DailyClose { BranchId = branch.Id, AccountId = account.Id, OpenedByUserId = user.Id,
-            Active = closeActive, Date = date, RecordedByUserId = user.Id, Status = DailyCloseStatus.Approved, ItemsFirstRecordedAt = DateTime.UtcNow };
-        var item = new DailyCloseItem { DailyCloseId = close.Id, ProductId = fee.Id, Value = 120m, Active = itemActive };
-        db.AddRange(branch, user, account, fee, close, item,
-            new Setting { BranchId = branch.Id, LockDate = locked ? date : DateTime.MinValue });
+        db.AddRange(branch, user, fee, new Setting { BranchId = branch.Id, LockDate = locked ? date : DateTime.MinValue });
         await db.SaveChangesAsync();
-        var version = close.Version;
-        var itemVersion = await db.Database.SqlQuery<long>($"SELECT xmin::text::bigint AS \"Value\" FROM \"DailyCloseItems\" WHERE \"Id\" = {item.Id}").SingleAsync();
+
+        // Account and close rows are written with the pre-M9.6 columns; the current entities carry session ones.
+        var accountId = Guid.NewGuid();
+        var closeId = Guid.NewGuid();
+        var itemId = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Accounts" ("Id", "Type", "Name", "BranchId", "CreatedAt", "Active")
+            VALUES ({accountId}, 0, 'Terminal', {branch.Id}, now(), true);
+            INSERT INTO "DailyCloses" ("Id", "Date", "Status", "AccountId", "OpenedByUserId", "RecordedByUserId",
+                "ItemsFirstRecordedAt", "BranchId", "ReviewHistoryComplete", "CreatedAt", "Active")
+            VALUES ({closeId}, {DateOnly.FromDateTime(date)}, 2, {accountId}, {user.Id}, {user.Id}, now(), {branch.Id}, true,
+                now(), {closeActive});
+            INSERT INTO "DailyCloseItems" ("Id", "Value", "DailyCloseId", "ProductId", "CreatedAt", "Active")
+            VALUES ({itemId}, 120, {closeId}, {fee.Id}, now(), {itemActive});
+            """);
+        var version = await RowVersion(db, "DailyCloses", closeId);
+        var itemVersion = await RowVersion(db, "DailyCloseItems", itemId);
         await SetMap(db, new[] { Map(branch.Id, fee.Id) });
         var succeeds = locked || !closeActive || !itemActive;
-        if (succeeds) await db.Database.MigrateAsync();
-        else (await Should.ThrowAsync<PostgresException>(() => db.Database.MigrateAsync())).MessageText.ShouldStartWith("M95_GAP_AA:");
+        var migrator = db.GetService<IMigrator>();
+        if (succeeds) await migrator.MigrateAsync(M95Migration);
+        else (await Should.ThrowAsync<PostgresException>(() => migrator.MigrateAsync(M95Migration))).MessageText.ShouldStartWith("M95_GAP_AA:");
         db.ChangeTracker.Clear();
-        var saved = await db.DailyCloses.Include(c => c.Items).SingleAsync(c => c.Id == close.Id);
-        saved.Version.ShouldBe(version);
+        var saved = await db.DailyCloses.AsNoTracking()
+            .Where(c => c.Id == closeId)
+            .Select(c => new { c.Status, c.Active })
+            .SingleAsync();
+        (await RowVersion(db, "DailyCloses", closeId)).ShouldBe(version);
         saved.Status.ShouldBe(DailyCloseStatus.Approved);
-        saved.Items.Single().Id.ShouldBe(item.Id);
-        saved.Items.Single().Value.ShouldBe(120m);
-        saved.Items.Single().Active.ShouldBe(itemActive);
         saved.Active.ShouldBe(closeActive);
-        (await db.Database.SqlQuery<long>($"SELECT xmin::text::bigint AS \"Value\" FROM \"DailyCloseItems\" WHERE \"Id\" = {item.Id}").SingleAsync()).ShouldBe(itemVersion);
+        var savedItem = await db.DailyCloseItems.AsNoTracking().SingleAsync(i => i.Id == itemId);
+        savedItem.DailyCloseId.ShouldBe(closeId);
+        savedItem.Value.ShouldBe(120m);
+        savedItem.Active.ShouldBe(itemActive);
+        (await RowVersion(db, "DailyCloseItems", itemId)).ShouldBe(itemVersion);
         (await db.Products.SingleAsync(p => p.Id == fee.Id)).Active.ShouldBe(!succeeds);
     }
 
@@ -190,6 +206,9 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
         var json = JsonSerializer.Serialize(mapping);
         await db.Database.ExecuteSqlInterpolatedAsync($"SELECT set_config('loto.m95_seed_map', {json}, false)");
     }
+
+    private static Task<long> RowVersion(ServerDbContext db, string table, Guid id) => db.Database
+        .SqlQueryRaw<long>($"SELECT xmin::text::bigint AS \"Value\" FROM \"{table}\" WHERE \"Id\" = {{0}}", id).SingleAsync();
 
     private static Task<long> ProductVersion(ServerDbContext db, Guid id) => db.Database
         .SqlQuery<long>($"SELECT xmin::text::bigint AS \"Value\" FROM \"Products\" WHERE \"Id\" = {id}").SingleAsync();

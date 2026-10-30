@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -37,7 +38,7 @@ public class FinalizeInstallmentPlanUseCaseTest
         foreach (var installment in ctx.Installments)
             ctx.MutationPermissionGuard.Received(1).EnsureAllowed(installment, ctx.BranchUser.Role, ctx.CallerOperator, Arg.Any<DateTime>());
         await ctx.Coordination.Received(1).Acquire(ctx.BranchUser.BranchId, ctx.AccountId, Arg.Any<CancellationToken>());
-        await ctx.LedgerGuard.Received(1).EnsureLedgerIsMutable(ctx.BranchUser.BranchId, ctx.AccountId, ctx.Date, Arg.Any<CancellationToken>());
+        await ctx.LedgerGuard.Received(1).EnsureLedgerIsMutable(Arg.Any<Transaction>(), Arg.Any<CancellationToken>());
         await ctx.TransactionsRepository.Received(1).ListPlanInstallmentsByOriginTransactionIdAndBranchId(
             ctx.OriginId, ctx.BranchUser.BranchId, Arg.Any<CancellationToken>());
         Received.InOrder(() =>
@@ -119,7 +120,7 @@ public class FinalizeInstallmentPlanUseCaseTest
     public async Task Execute_ShouldLeaveEveryInstallmentDraft_WhenTheLedgerIsFrozen()
     {
         var ctx = BuildContext(TransactionStatus.Draft, TransactionStatus.Draft);
-        ctx.LedgerGuard.EnsureLedgerIsMutable(ctx.BranchUser.BranchId, ctx.AccountId, ctx.Date, Arg.Any<CancellationToken>())
+        ctx.LedgerGuard.EnsureLedgerIsMutable(Arg.Any<Transaction>(), Arg.Any<CancellationToken>())
             .ThrowsAsync(new ConflictException(ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN));
         var useCase = CreateUseCase(ctx);
 
@@ -216,7 +217,7 @@ public class FinalizeInstallmentPlanUseCaseTest
             TransactionsRepository = transactionsRepository,
             MemberAccountScopeResolver = memberAccountScopeResolver,
             MutationPermissionGuard = Substitute.For<ITransactionMutationPermissionGuard>(),
-            LedgerGuard = Substitute.For<IDailyCloseLedgerGuard>(),
+            LedgerGuard = SessionTestServices.LedgerGuard(),
             Coordination = coordinationBuilder.Build(),
             CoordinationScope = coordinationBuilder.Scope,
             UnitOfWork = unitOfWork ?? new UnitOfWorkBuilder().Build()

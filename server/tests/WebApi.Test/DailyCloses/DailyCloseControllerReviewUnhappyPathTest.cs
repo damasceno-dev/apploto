@@ -15,7 +15,7 @@ public class DailyCloseControllerReviewUnhappyPathTest(ServerWebApplicationFacto
     [Fact]
     public async Task Review_ShouldReturn401_WhenTokenIsMissing()
     {
-        var httpResponse = await _client.GetAsync($"/dailyclose/{Guid.NewGuid()}/review");
+        var httpResponse = await _client.GetAsync($"/session/{Guid.NewGuid()}/review");
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -27,7 +27,7 @@ public class DailyCloseControllerReviewUnhappyPathTest(ServerWebApplicationFacto
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcReviewMissing", Role.Manager);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{Guid.NewGuid()}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{Guid.NewGuid()}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -42,7 +42,7 @@ public class DailyCloseControllerReviewUnhappyPathTest(ServerWebApplicationFacto
         var otherAccount = await factory.SeedAccountAsync(otherBranch.Id, AccountType.Terminal);
         var otherClose = await factory.SeedDailyCloseAsync(otherBranch.Id, otherAccount.Id);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{otherClose.Id}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{otherClose.Id}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -59,7 +59,7 @@ public class DailyCloseControllerReviewUnhappyPathTest(ServerWebApplicationFacto
         var account = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal);
         var dailyClose = await factory.SeedDailyCloseAsync(branch.Id, account.Id);
 
-        var httpResponse = await _client.GetAuthAsync($"/dailyclose/{dailyClose.Id}/review", token);
+        var httpResponse = await _client.GetAuthAsync($"/session/{dailyClose.Id}/review", token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

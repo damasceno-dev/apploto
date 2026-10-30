@@ -318,7 +318,10 @@ public class ReportControllerManagerQueueBacklogHappyPathTest(ServerWebApplicati
     {
         return factory.SeedTransactionAsync(
             ledger.BranchId, ledger.AccountId, ledger.TransactionTypeId, ledger.CategoryId, Direction.In,
-            ledger.OperatorId, ledger.UserId, date: date, status: status, active: active);
+            ledger.OperatorId, ledger.UserId, date: date, status: status, active: active,
+            // Draft-row counting is independent of sessions; these rows create no placeholder session that would
+            // join the close backlog.
+            legacyUnsessioned: true);
     }
 
     private sealed record LedgerContext(

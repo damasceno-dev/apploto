@@ -208,6 +208,13 @@ public static class InfraDependencyInjection
         services.AddScoped<IDailyClosesRepository, DailyClosesRepository>();
         services.AddScoped<IDailyCloseItemsRepository, DailyCloseItemsRepository>();
         services.AddScoped<IDailyCloseReviewEventsRepository, DailyCloseReviewEventsRepository>();
+        services.AddScoped<ITerminalsRepository, TerminalsRepository>();
+        services.AddScoped<ISessionOpeningsRepository, SessionOpeningsRepository>();
+        services.AddScoped<ISessionHandoversRepository, SessionHandoversRepository>();
+        services.AddScoped<ISessionOpeningDiscrepanciesRepository, SessionOpeningDiscrepanciesRepository>();
+        services.AddScoped<ISessionEventsRepository, SessionEventsRepository>();
+        services.AddScoped<IOpeningCountsRepository, OpeningCountsRepository>();
+        services.AddScoped<ICustodyMappingIssuesRepository, CustodyMappingIssuesRepository>();
         services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();
         services.AddScoped<ITimeEntrySegmentsRepository, TimeEntrySegmentsRepository>();
         services.AddScoped<ITimeEntryPoliciesRepository, TimeEntryPoliciesRepository>();

@@ -72,6 +72,8 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
     public async Task LockMonth_ShouldReturnExactDraftTransactionKey()
     {
         var ctx = await SeedContext("SettingLockDraft", MonthsAgo(1));
+        // Every session is approved; only the Draft row bound to one of them blocks.
+        await factory.SeedDailyCloseAsync(ctx.BranchId, ctx.TerminalId, ctx.TargetMonth.AddDays(3), DailyCloseStatus.Approved);
         await SeedTransaction(ctx, ctx.TerminalId, ctx.TargetMonth.AddDays(3), TransactionStatus.Draft);
 
         await AssertConflict(ctx, ResourcesErrorMessages.SETTING_LOCK_MONTH_DRAFT_TRANSACTIONS);
@@ -81,7 +83,8 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
     public async Task LockMonth_ShouldReturnExactNoCloseMonthKey_ForImportedTerminalActivity()
     {
         var ctx = await SeedContext("SettingLockNoClose", MonthsAgo(1));
-        await SeedTransaction(ctx, ctx.TerminalId, ctx.TargetMonth.AddDays(4));
+        // Imported activity without any session is unresolved legacy history (M9.6 quarantine).
+        await SeedTransaction(ctx, ctx.TerminalId, ctx.TargetMonth.AddDays(4), legacyUnsessioned: true);
 
         await AssertConflict(ctx, ResourcesErrorMessages.SETTING_LOCK_MONTH_NO_CLOSE_WITH_EXPECTED_ACTIVITY);
     }
@@ -96,7 +99,7 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
             ctx.TargetMonth.AddDays(1),
             DailyCloseStatus.Approved);
         var secondTerminal = await factory.SeedAccountAsync(ctx.BranchId, AccountType.Terminal);
-        await SeedTransaction(ctx, secondTerminal.Id, ctx.TargetMonth.AddDays(5));
+        await SeedTransaction(ctx, secondTerminal.Id, ctx.TargetMonth.AddDays(5), legacyUnsessioned: true);
 
         await AssertConflict(ctx, ResourcesErrorMessages.SETTING_LOCK_MONTH_MISSING_EXPECTED_CLOSE);
     }
@@ -240,7 +243,7 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
         await factory.SeedHolidayAsync(ctx.BranchId, saturday, "Holiday on operating Saturday");
         // The Terminal row was created now, after this historical activity date. Activation windows
         // do not alter the rule: persistence-bypassed direct activity still makes the pair expected.
-        await SeedTransaction(ctx, ctx.TerminalId, saturday);
+        await SeedTransaction(ctx, ctx.TerminalId, saturday, legacyUnsessioned: true);
 
         await AssertConflict(ctx, ResourcesErrorMessages.SETTING_LOCK_MONTH_NO_CLOSE_WITH_EXPECTED_ACTIVITY);
     }
@@ -346,7 +349,8 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
         LockContext ctx,
         Guid accountId,
         DateTime date,
-        TransactionStatus status = TransactionStatus.Active)
+        TransactionStatus status = TransactionStatus.Active,
+        bool legacyUnsessioned = false)
     {
         return factory.SeedTransactionAsync(
             ctx.BranchId,
@@ -357,7 +361,8 @@ public sealed class SettingControllerLockMonthTest(ServerWebApplicationFactory f
             ctx.OperatorId,
             createdByUserId: ctx.UserId,
             date: date,
-            status: status);
+            status: status,
+            legacyUnsessioned: legacyUnsessioned);
     }
 
     private async Task SetLockDate(Guid settingId, DateTime lockDate)

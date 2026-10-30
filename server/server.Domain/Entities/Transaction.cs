@@ -5,7 +5,7 @@ namespace server.Domain.Entities;
 public class Transaction : EntityBase
 {
     public uint Version { get; set; }
-    public DateTime Date { get; init; }
+    public DateTime Date { get; set; }
     public decimal Value { get; init; }
     public string? Description { get; set; }
     public TimeOnly? TransactionTime { get; set; }
@@ -35,6 +35,11 @@ public class Transaction : EntityBase
     public TransactionGenerationKind? GenerationKind { get; init; }
     public Guid? GeneratedFromTransactionId { get; init; }
     public Transaction? GeneratedFromTransaction { get; set; }
+
+    // Accountable session of a cashbox row (M9.6 Phase 2), set only by the server; null on Tab/Bank rows and on
+    // unresolved legacy cashbox rows.
+    public Guid? SessionId { get; set; }
+    public DailyClose? Session { get; set; }
 
     public Guid RecordedByOperatorId { get; init; }
     public Operator RecordedByOperator { get; init; } = null!;

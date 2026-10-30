@@ -27,6 +27,13 @@ public class ResponseCreateTransactionJson
     /// the same commit and replayed with it.
     /// </summary>
     public Guid? GeneratedTransactionId { get; set; }
+    /// <summary>The cashbox session of this row; null on Tab/Bank rows (M9.6 Phase 2).</summary>
+    public Guid? SessionId { get; set; }
+
+    /// <summary>The session this command started through its opening acknowledgment, replayed with it.</summary>
+    public Guid? StartedSessionId { get; set; }
+    public Guid? OpeningDiscrepancyId { get; set; }
+
     public Guid RecordedByOperatorId { get; set; }
     public Guid CreatedByUserId { get; set; }
     public TransactionStatus Status { get; set; }

@@ -1,3 +1,5 @@
+using server.Application.Services.Sessions;
+using server.Application.UseCases.Sessions;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -9,14 +11,14 @@ internal static class GetDailyCloseReviewMapper
     extension(DailyClose close)
     {
         public ResponseDailyCloseReviewJson ToReviewResponse(
-            DailyClose? priorClose,
+            ResolvedSessionOpening opening,
+            SessionOpeningDiscrepancy? discrepancy,
             IReadOnlyList<Product> activeProducts,
             Guid cashVarianceProductId)
         {
-            var priorValuesByProductId = priorClose?.Items
-                .Where(item => item.Active)
-                .ToDictionary(item => item.ProductId, item => item.Value)
-                ?? [];
+            // The opening column is the acknowledged opening when one exists, otherwise the inherited closing of the
+            // counted predecessor (§6.20) — the same TotalOpening the calculator uses.
+            var priorValuesByProductId = opening.Values;
             var closingValuesByProductId = close.Items
                 .Where(item => item.Active)
                 .ToDictionary(item => item.ProductId, item => item.Value);
@@ -60,6 +62,8 @@ internal static class GetDailyCloseReviewMapper
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
+                Custody = close.ToCustodyResponse(),
+                OpeningDiscrepancy = discrepancy?.ToResponse(),
                 Items = productsToReview
                     .Select(product =>
                     {

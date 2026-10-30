@@ -10,7 +10,9 @@ public class DeactivateAccountUseCase(
     IAuthenticationService authenticationService,
     IAccountsRepository accountsRepository,
     IOperatorAccountsRepository operatorAccountsRepository,
-    IAccountPairingCoordination accountPairingCoordination,
+    IDailyCloseAccountCoordination accountCoordination,
+    IDailyClosesRepository dailyClosesRepository,
+    ISessionHandoversRepository sessionHandoversRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseAccountJson> Execute(Guid accountId)
@@ -20,11 +22,40 @@ public class DeactivateAccountUseCase(
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
 
-        await using var coordination = await accountPairingCoordination.TryAcquire(authenticatedBranchUser.BranchId)
-            ?? throw new ConflictException(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+        // §6.20 global order before any Account-row write: a "no active custody" read under the pairing key alone
+        // could race a session start that already holds the account key.
+        var accountKey = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(
+            accountId,
+            authenticatedBranchUser.BranchId)
+            ?? throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+        List<Guid> lockedAccountIds = [accountKey.Id];
+        if (accountKey.Type == AccountType.Tab)
+        {
+            var pairedTerminalKeys = await accountsRepository.ListTerminalsByTabAccountId(
+                authenticatedBranchUser.BranchId,
+                accountKey.Id);
+            lockedAccountIds.AddRange(pairedTerminalKeys.Select(terminal => terminal.Id));
+        }
+
+        await using var coordination = await accountCoordination.AcquireWithPairing(
+            authenticatedBranchUser.BranchId,
+            lockedAccountIds);
 
         var account = await accountsRepository.GetActiveByIdAndBranchId(accountId, authenticatedBranchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.ACCOUNT_NOT_FOUND);
+
+        if (account.Type == AccountType.Terminal)
+        {
+            if (await dailyClosesRepository.GetActiveCustodyByAccountIdAsNoTracking(
+                    authenticatedBranchUser.BranchId,
+                    account.Id) is not null
+                || await sessionHandoversRepository.ExistsUnresolvedByAccountIdAsNoTracking(
+                    authenticatedBranchUser.BranchId,
+                    account.Id))
+            {
+                throw new ConflictException(ResourcesErrorMessages.ACCOUNT_DEACTIVATE_ACTIVE_CUSTODY);
+            }
+        }
 
         var activeLinks = await operatorAccountsRepository.ListActiveByAccountId(account.Id);
 

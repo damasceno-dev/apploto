@@ -28,6 +28,7 @@ public sealed class HypotheticalTransactionEdit(Transaction snapshot, RequestUpd
     public Guid BranchId { get; } = snapshot.BranchId;
     public Guid AccountId { get; } = snapshot.AccountId;
     public DateTime Date { get; } = snapshot.Date;
+    public Guid? SessionId { get; } = snapshot.SessionId;
     public AccountType AccountType { get; } = snapshot.Account.Type;
 
     public decimal CurrentValue { get; } = snapshot.Value;

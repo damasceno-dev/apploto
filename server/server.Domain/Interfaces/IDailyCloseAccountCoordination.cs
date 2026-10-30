@@ -18,6 +18,17 @@ public interface IDailyCloseAccountCoordination
         Guid branchId,
         IReadOnlyCollection<Guid> accountIds,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// The full §6.20 global order for commands that change cashbox pairing, deactivation or Terminal assignment:
+    /// shared month boundary, then the branch pairing key, then the account keys ascending. A read of "no active
+    /// custody" under this scope cannot race a session start, and no path waits on pairing after the month boundary
+    /// in any other order.
+    /// </summary>
+    Task<IDailyCloseAccountCoordinationScope> AcquireWithPairing(
+        Guid branchId,
+        IReadOnlyCollection<Guid> accountIds,
+        CancellationToken ct = default);
 }
 
 public interface IDailyCloseAccountCoordinationScope : IAsyncDisposable

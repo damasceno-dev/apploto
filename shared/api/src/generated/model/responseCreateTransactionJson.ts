@@ -31,6 +31,12 @@ export interface ResponseCreateTransactionJson {
   generatedFromTransactionId?: string | null;
   /** @nullable */
   generatedTransactionId?: string | null;
+  /** @nullable */
+  sessionId?: string | null;
+  /** @nullable */
+  startedSessionId?: string | null;
+  /** @nullable */
+  openingDiscrepancyId?: string | null;
   recordedByOperatorId: string;
   createdByUserId: string;
   status: TransactionStatus;

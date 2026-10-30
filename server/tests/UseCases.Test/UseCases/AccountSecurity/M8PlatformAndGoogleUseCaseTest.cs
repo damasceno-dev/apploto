@@ -56,7 +56,7 @@ public sealed class M8PlatformAndGoogleUseCaseTest
             Substitute.For<IProductsRepository>(), null!,
             new InvitationWorkflow(Substitute.For<IBranchUsersRepository>(), Substitute.For<IOperatorsRepository>(),
                 Substitute.For<IOnboardingRepository>(), coordination, work, TimeProvider.System, Options,
-                Substitute.For<ISecurityMailSender>()), coordination, work);
+                Substitute.For<ISecurityMailSender>()), coordination, work, Substitute.For<ITerminalsRepository>());
         var result = await useCase.Execute(request);
         result.Created.ShouldBeFalse();
         result.Response.BranchId.ShouldBe(branch.Id);

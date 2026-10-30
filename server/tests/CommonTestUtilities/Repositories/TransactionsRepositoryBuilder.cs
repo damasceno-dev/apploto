@@ -114,17 +114,23 @@ public class TransactionsRepositoryBuilder
         return this;
     }
 
-    public TransactionsRepositoryBuilder SumActiveValueByAccountAndDateAsNoTrackingReturns(
-        Guid branchId,
-        Guid accountId,
-        DateTime date,
+    public TransactionsRepositoryBuilder SumActiveValueBySessionAsNoTrackingReturnsForAny(Direction? direction, decimal result)
+    {
+        _repository.SumActiveValueBySessionAsNoTracking(
+                Arg.Any<DailyClose>(),
+                Arg.Is<Direction?>(value => value == direction),
+                Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder SumActiveValueBySessionAsNoTrackingReturns(
+        Guid sessionId,
         Direction? direction,
         decimal result)
     {
-        _repository.SumActiveValueByAccountAndDateAsNoTracking(
-                Arg.Is<Guid>(value => value == branchId),
-                Arg.Is<Guid>(value => value == accountId),
-                Arg.Is<DateTime>(value => value == date),
+        _repository.SumActiveValueBySessionAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == sessionId),
                 Arg.Is<Direction?>(value => value == direction),
                 Arg.Any<CancellationToken>())
             .Returns(result);

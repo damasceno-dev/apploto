@@ -58,13 +58,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
             recordedByOperatorId: managerOperator.Id);
         await factory.SeedDailyCloseItemAsync(predecessor.Id, product.Id, 100m);
 
-        var openedResponse = await _client.PostAuthAsync(
-            "/dailyclose",
-            new RequestOpenDailyCloseJson { AccountId = account.Id, Date = closeDate },
-            openerToken);
-
-        openedResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var opened = await openedResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var opened = await factory.OpenSeededSessionAsync(_client, account.Id, closeDate, openerToken, openedByUserId: opener.Id);
         opened.OpenedByUserId.ShouldBe(opener.Id);
         opened.RecordedByUserId.ShouldBeNull();
         opened.RecordedByOperatorId.ShouldBeNull();
@@ -82,14 +76,14 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         claimed.DailyClose.SubmittedByUserId.ShouldBeNull();
 
         var memberFreshBackdatedSubmit = await _client.PostAuthAsync(
-            $"/dailyclose/{opened.Id}/submit",
+            $"/session/{opened.Id}/submit",
             recordingToken);
         memberFreshBackdatedSubmit.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var freshError = await memberFreshBackdatedSubmit.ReadContentAsync<TestResponseErrorJson>();
         freshError.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
 
         var managerSubmit = await _client.PostAuthAsync(
-            $"/dailyclose/{opened.Id}/submit",
+            $"/session/{opened.Id}/submit",
             managerToken);
 
         managerSubmit.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -105,18 +99,18 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         submittedState.SubmittedByUserId.ShouldBe(managerUser.Id);
         submittedState.SubmittedByOperatorId.ShouldBe(managerOperator.Id);
 
-        var getResponse = await _client.GetAuthAsync($"/dailyclose/{opened.Id}", managerToken);
+        var getResponse = await _client.GetAuthAsync($"/session/{opened.Id}", managerToken);
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var get = await getResponse.ReadContentAsync<ResponseDailyCloseJson>();
         get.RecordedByOperatorName.ShouldBe(recordingOperator.Name);
         get.SubmittedByOperatorName.ShouldBe(managerOperator.Name);
-        var reviewResponse = await _client.GetAuthAsync($"/dailyclose/{opened.Id}/review", managerToken);
+        var reviewResponse = await _client.GetAuthAsync($"/session/{opened.Id}/review", managerToken);
         reviewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var review = await reviewResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
         review.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
         review.SubmittedByOperatorId.ShouldBe(managerOperator.Id);
         var listResponse = await _client.GetAuthAsync(
-            $"/dailyclose?operatorId={recordingOperator.Id}",
+            $"/session?operatorId={recordingOperator.Id}",
             managerToken);
         listResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var list = await listResponse.ReadContentAsync<ResponseListDailyClosesJson>();
@@ -180,7 +174,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         var corrected = await correction.ReadContentAsync<ResponsePutDailyCloseItemsJson>();
         corrected.DailyClose.RecordedByUserId.ShouldBe(recordingUser.Id);
         corrected.DailyClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
-        var resubmit = await _client.PostAuthAsync($"/dailyclose/{opened.Id}/submit", recordingToken);
+        var resubmit = await _client.PostAuthAsync($"/session/{opened.Id}/submit", recordingToken);
         resubmit.StatusCode.ShouldBe(HttpStatusCode.OK);
         var resubmitted = await resubmit.ReadContentAsync<ResponseDailyCloseJson>();
         resubmitted.RecordedByUserId.ShouldBe(recordingUser.Id);
@@ -212,16 +206,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
             recordedByUserId: manager.Id,
             recordedByOperatorId: null);
         await factory.SeedDailyCloseItemAsync(predecessor.Id, product.Id, 50m);
-        var openResponse = await _client.PostAuthAsync(
-            "/dailyclose",
-            new RequestOpenDailyCloseJson
-            {
-                AccountId = account.Id,
-                Date = predecessorDate.AddDays(1)
-            },
-            managerToken);
-        openResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
-        var opened = await openResponse.ReadContentAsync<ResponseDailyCloseJson>();
+        var opened = await factory.OpenSeededSessionAsync(_client, account.Id, predecessorDate.AddDays(1), managerToken, openedByUserId: manager.Id);
 
         var firstCount = await PutAsync(opened.Id, opened.Version, product.Id, 40m, managerToken);
         firstCount.StatusCode.ShouldBe(
@@ -230,7 +215,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         var counted = await firstCount.ReadContentAsync<ResponsePutDailyCloseItemsJson>();
         counted.DailyClose.RecordedByUserId.ShouldBe(manager.Id);
         counted.DailyClose.RecordedByOperatorId.ShouldBeNull();
-        var submit = await _client.PostAuthAsync($"/dailyclose/{opened.Id}/submit", managerToken);
+        var submit = await _client.PostAuthAsync($"/session/{opened.Id}/submit", managerToken);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var predecessorEdit = await PutAsync(
@@ -333,7 +318,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         corrected.DailyClose.Items.ShouldNotContain(item => item.ProductId == cashVariance.Id);
 
         var resubmit = await _client.PostAuthAsync(
-            $"/dailyclose/{successor.Id}/submit",
+            $"/session/{successor.Id}/submit",
             recordingToken);
         resubmit.StatusCode.ShouldBe(HttpStatusCode.OK);
         var resubmitted = await resubmit.ReadContentAsync<ResponseDailyCloseJson>();
@@ -377,7 +362,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         await factory.SeedDailyCloseItemAsync(close.Id, product.Id, 10m);
 
         var released = await _client.PostAuthAsync(
-            $"/dailyclose/{close.Id}/{release.ToString().ToLowerInvariant()}",
+            $"/session/{close.Id}/{release.ToString().ToLowerInvariant()}",
             managerToken);
         released.StatusCode.ShouldBe(HttpStatusCode.OK);
         var releasedPayload = await released.ReadContentAsync<ResponseDailyCloseJson>();
@@ -403,7 +388,7 @@ public class DailyCloseControllerOpeningRecheckOwnershipTest(ServerWebApplicatio
         string token)
     {
         return _client.PutAuthAsync(
-            $"/dailyclose/{closeId}/items",
+            $"/session/{closeId}/items",
             new VersionedRequestPutDailyCloseItemsJson
             {
                 Version = version,

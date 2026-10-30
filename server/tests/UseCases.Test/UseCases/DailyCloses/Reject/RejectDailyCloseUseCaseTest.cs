@@ -220,6 +220,7 @@ public class RejectDailyCloseUseCaseTest
                 .ReturnsId(ctx.BranchUser.BranchId, Guid.NewGuid())
                 .Build(),
             coordination,
+            SessionTestServices.HandoverInvalidator(),
             ctx.UnitOfWork);
     }
 

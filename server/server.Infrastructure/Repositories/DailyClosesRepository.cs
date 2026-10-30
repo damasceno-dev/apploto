@@ -35,65 +35,197 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
                 ct);
     }
 
-    public async Task<DailyClose?> GetByBranchIdAndAccountIdAndDateAsNoTracking(
-        Guid branchId,
-        Guid accountId,
-        DateTime date,
-        CancellationToken ct = default)
+    public async Task<DailyClose?> GetCountedPredecessorAsNoTracking(DailyClose session, CancellationToken ct = default)
     {
-        // Exact-key lookup shared by cash-variance previews and the ledger-freeze guard.
-        // Status only — no Items include needed. Ordered for determinism in the unlikely
-        // event of more than one active close on the same (branch, account, date).
-        return await dbContext.DailyCloses
-            .AsNoTracking()
-            .Where(dailyClose =>
-                dailyClose.BranchId == branchId &&
-                dailyClose.AccountId == accountId &&
-                dailyClose.Date == date &&
-                dailyClose.Active)
-            .OrderByDescending(dailyClose => dailyClose.CreatedAt)
-            .ThenByDescending(dailyClose => dailyClose.Id)
-            .FirstOrDefaultAsync(ct);
-    }
-
-    public async Task<DailyClose?> GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-        Guid branchId,
-        Guid accountId,
-        DateTime beforeDate,
-        CancellationToken ct = default)
-    {
-        return await dbContext.DailyCloses
+        var query = dbContext.DailyCloses
             .AsNoTracking()
             .Include(dailyClose => dailyClose.Items)
             .Where(dailyClose =>
-                dailyClose.BranchId == branchId &&
-                dailyClose.AccountId == accountId &&
-                dailyClose.Date < beforeDate &&
+                dailyClose.BranchId == session.BranchId &&
+                dailyClose.AccountId == session.AccountId &&
+                dailyClose.Id != session.Id &&
                 dailyClose.Active &&
-                dailyClose.ItemsFirstRecordedAt != null)
+                dailyClose.ItemsFirstRecordedAt != null);
+
+        if (session.MappingState == SessionMappingState.Ready)
+        {
+            return await query
+                .Where(dailyClose =>
+                    dailyClose.MappingState == SessionMappingState.Ready &&
+                    dailyClose.Sequence < session.Sequence)
+                .OrderByDescending(dailyClose => dailyClose.Sequence)
+                .FirstOrDefaultAsync(ct);
+        }
+
+        return await query
+            .Where(dailyClose => dailyClose.Date < session.Date)
             .OrderByDescending(dailyClose => dailyClose.Date)
             .ThenByDescending(dailyClose => dailyClose.CreatedAt)
             .ThenByDescending(dailyClose => dailyClose.Id)
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<DailyClose?> GetNextEligibleAfterDateByBranchIdAndAccountId(
+    public async Task<DailyClose?> GetDependentSuccessor(DailyClose session, CancellationToken ct = default)
+    {
+        if (session.MappingState != SessionMappingState.Ready)
+            return null;
+
+        // The first later session that either acknowledged an opening or recorded a count: its counted predecessor is
+        // now this session, even when its acknowledged opening originally named another source (a past session
+        // declared or moved between them, owner decision F2). An acknowledged successor gets a comparison revision,
+        // an inherited one the opening recheck; a locked one refuses the originating correction.
+        var successor = await IncludeRichResponse(dbContext.DailyCloses)
+            .Where(dailyClose =>
+                dailyClose.BranchId == session.BranchId &&
+                dailyClose.AccountId == session.AccountId &&
+                dailyClose.MappingState == SessionMappingState.Ready &&
+                dailyClose.Active &&
+                dailyClose.Sequence > session.Sequence &&
+                (dailyClose.ItemsFirstRecordedAt != null || dailyClose.Opening != null))
+            .OrderBy(dailyClose => dailyClose.Sequence)
+            .FirstOrDefaultAsync(ct);
+
+        return successor;
+    }
+
+    public Task<DailyClose?> GetActiveCustodyByAccountId(Guid branchId, Guid accountId, CancellationToken ct = default)
+    {
+        return IncludeRichResponse(dbContext.DailyCloses)
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.AccountId == accountId &&
+                dailyClose.Active &&
+                dailyClose.MappingState == SessionMappingState.Ready &&
+                dailyClose.CustodyState == SessionCustodyState.Active)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public Task<DailyClose?> GetActiveCustodyByAccountIdAsNoTracking(
         Guid branchId,
         Guid accountId,
-        DateTime afterDate,
+        CancellationToken ct = default)
+    {
+        return IncludeRichResponse(dbContext.DailyCloses)
+            .AsNoTracking()
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.AccountId == accountId &&
+                dailyClose.Active &&
+                dailyClose.MappingState == SessionMappingState.Ready &&
+                dailyClose.CustodyState == SessionCustodyState.Active)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public Task<DailyClose?> GetLatestCountedReadyByAccountIdAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        CancellationToken ct = default)
+    {
+        return dbContext.DailyCloses
+            .AsNoTracking()
+            .Include(dailyClose => dailyClose.Items)
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.AccountId == accountId &&
+                dailyClose.MappingState == SessionMappingState.Ready &&
+                dailyClose.Active &&
+                dailyClose.ItemsFirstRecordedAt != null)
+            .OrderByDescending(dailyClose => dailyClose.Sequence)
+            .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<int> GetMaxSequenceByAccountId(Guid branchId, Guid accountId, CancellationToken ct = default)
+    {
+        return await dbContext.DailyCloses
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.AccountId == accountId &&
+                dailyClose.MappingState == SessionMappingState.Ready)
+            .MaxAsync(dailyClose => dailyClose.Sequence, ct) ?? 0;
+    }
+
+    public async Task<IReadOnlyList<DailyClose>> ListReadyByAccountIdOrderedByStart(
+        Guid branchId,
+        Guid accountId,
         CancellationToken ct = default)
     {
         return await IncludeRichResponse(dbContext.DailyCloses)
             .Where(dailyClose =>
                 dailyClose.BranchId == branchId &&
                 dailyClose.AccountId == accountId &&
-                dailyClose.Date > afterDate &&
+                dailyClose.MappingState == SessionMappingState.Ready)
+            .OrderBy(dailyClose => dailyClose.StartedAt)
+            .ThenBy(dailyClose => dailyClose.Sequence)
+            .ToListAsync(ct);
+    }
+
+    public async Task<bool> HasUnresolvedHistoryByAccountIdAsNoTracking(
+        Guid branchId,
+        Guid accountId,
+        CancellationToken ct = default)
+    {
+        var unresolvedSession = await dbContext.DailyCloses
+            .AsNoTracking()
+            .AnyAsync(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.AccountId == accountId &&
                 dailyClose.Active &&
-                dailyClose.ItemsFirstRecordedAt != null)
-            .OrderBy(dailyClose => dailyClose.Date)
-            .ThenBy(dailyClose => dailyClose.CreatedAt)
-            .ThenBy(dailyClose => dailyClose.Id)
+                dailyClose.MappingState == SessionMappingState.Unresolved,
+                ct);
+        if (unresolvedSession)
+            return true;
+
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .AnyAsync(transaction =>
+                transaction.BranchId == branchId &&
+                transaction.AccountId == accountId &&
+                transaction.Active &&
+                transaction.SessionId == null &&
+                transaction.Account.Type == AccountType.Terminal,
+                ct);
+    }
+
+    public async Task<DateTime?> GetEarliestUncountedPredecessorActivityDateAsNoTracking(
+        DailyClose session,
+        DateTime afterDateExclusive,
+        CancellationToken ct = default)
+    {
+        return await dbContext.DailyCloses
+            .AsNoTracking()
+            .Where(dailyClose =>
+                dailyClose.BranchId == session.BranchId &&
+                dailyClose.AccountId == session.AccountId &&
+                dailyClose.MappingState == SessionMappingState.Ready &&
+                dailyClose.Active &&
+                dailyClose.Sequence < session.Sequence &&
+                dailyClose.Date > afterDateExclusive &&
+                dailyClose.ItemsFirstRecordedAt == null &&
+                dbContext.Transactions.Any(transaction =>
+                    transaction.SessionId == dailyClose.Id &&
+                    transaction.Active &&
+                    transaction.Status == TransactionStatus.Active))
+            .OrderBy(dailyClose => dailyClose.Sequence)
+            .Select(dailyClose => (DateTime?)dailyClose.Date)
             .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<DailyClose>> ListActiveCustodyByBranchIdAsNoTracking(
+        Guid branchId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.DailyCloses
+            .AsNoTracking()
+            .Include(dailyClose => dailyClose.Account)
+            .Include(dailyClose => dailyClose.CustodianOperator)
+            .Where(dailyClose =>
+                dailyClose.BranchId == branchId &&
+                dailyClose.Active &&
+                dailyClose.MappingState == SessionMappingState.Ready &&
+                dailyClose.CustodyState == SessionCustodyState.Active)
+            .OrderBy(dailyClose => dailyClose.Account.Name)
+            .ThenBy(dailyClose => dailyClose.Id)
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<DailyClose>> ListByBranchIdAndYearMonthAsNoTracking(
@@ -253,6 +385,8 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .Include(dailyClose => dailyClose.SubmittedByUser)
             .Include(dailyClose => dailyClose.SubmittedByOperator)
             .Include(dailyClose => dailyClose.ApprovedByUser)
+            .Include(dailyClose => dailyClose.CustodianOperator)
+            .Include(dailyClose => dailyClose.Opening)
             .OrderByDescending(dailyClose => dailyClose.Date)
             .ThenByDescending(dailyClose => dailyClose.CreatedAt)
             .ThenByDescending(dailyClose => dailyClose.Id)
@@ -281,6 +415,9 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
             .Include(dailyClose => dailyClose.ApprovedByUser)
             .Include(dailyClose => dailyClose.OpeningRecheckTriggeredByDailyClose)
             .Include(dailyClose => dailyClose.OpeningRecheckTriggeredByUser)
+            .Include(dailyClose => dailyClose.CustodianOperator)
+            .Include(dailyClose => dailyClose.Opening)
+            .ThenInclude(opening => opening!.Items)
             .Include(dailyClose => dailyClose.Items)
             .ThenInclude(item => item.Product);
     }
@@ -308,6 +445,15 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
 
         if (filter.OperatorId is { } operatorId)
             query = query.Where(dailyClose => dailyClose.RecordedByOperatorId == operatorId);
+
+        if (filter.CustodianOperatorId is { } custodianOperatorId)
+            query = query.Where(dailyClose => dailyClose.CustodianOperatorId == custodianOperatorId);
+
+        if (filter.CustodyState is { } custodyState)
+            query = query.Where(dailyClose => dailyClose.CustodyState == custodyState);
+
+        if (filter.TerminalId is { } terminalId)
+            query = query.Where(dailyClose => dailyClose.TerminalId == terminalId);
 
         return query;
     }

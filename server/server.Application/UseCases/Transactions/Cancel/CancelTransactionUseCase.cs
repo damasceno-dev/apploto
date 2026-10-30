@@ -91,11 +91,7 @@ public class CancelTransactionUseCase(
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
-        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(
-            branchUser.BranchId,
-            transaction.AccountId,
-            transaction.Date.Date,
-            ct);
+        await dailyCloseLedgerGuard.EnsureLedgerIsMutable(transaction, ct);
 
         // Cancellation never touches installment siblings: the loaded row is the only
         // entity mutated. The installment-sibling-isolation Web API test in 7.9 is the

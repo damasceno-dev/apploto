@@ -81,46 +81,46 @@ public class DailyClosesRepositoryBuilder
         return this;
     }
 
-    public DailyClosesRepositoryBuilder GetByBranchIdAndAccountIdAndDateAsNoTrackingReturns(
+    public DailyClosesRepositoryBuilder GetActiveCustodyByAccountIdAsNoTrackingReturns(
         Guid branchId,
         Guid accountId,
-        DateTime date,
         DailyClose? result)
     {
-        _repository.GetByBranchIdAndAccountIdAndDateAsNoTracking(
+        _repository.GetActiveCustodyByAccountIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid>(value => value == accountId),
-                Arg.Is<DateTime>(value => value == date),
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
 
-    public DailyClosesRepositoryBuilder GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTrackingReturns(
-        Guid branchId,
-        Guid accountId,
-        DateTime beforeDate,
-        DailyClose? result)
+    public DailyClosesRepositoryBuilder GetCountedPredecessorAsNoTrackingReturns(Guid sessionId, DailyClose? result)
     {
-        _repository.GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                Arg.Is<Guid>(value => value == branchId),
-                Arg.Is<Guid>(value => value == accountId),
-                Arg.Is<DateTime>(value => value == beforeDate),
+        _repository.GetCountedPredecessorAsNoTracking(
+                Arg.Is<DailyClose>(session => session.Id == sessionId),
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
 
-    public DailyClosesRepositoryBuilder GetNextEligibleAfterDateByBranchIdAndAccountIdReturns(
-        Guid branchId,
-        Guid accountId,
-        DateTime afterDate,
-        DailyClose? result)
+    public DailyClosesRepositoryBuilder GetCountedPredecessorAsNoTrackingReturnsForAny(DailyClose? result)
     {
-        _repository.GetNextEligibleAfterDateByBranchIdAndAccountId(
-                Arg.Is<Guid>(value => value == branchId),
-                Arg.Is<Guid>(value => value == accountId),
-                Arg.Is<DateTime>(value => value == afterDate),
+        _repository.GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public DailyClosesRepositoryBuilder GetDependentSuccessorReturnsForAny(DailyClose? result)
+    {
+        _repository.GetDependentSuccessor(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>())
+            .Returns(result);
+        return this;
+    }
+
+    public DailyClosesRepositoryBuilder GetDependentSuccessorReturns(Guid sessionId, DailyClose? result)
+    {
+        _repository.GetDependentSuccessor(
+                Arg.Is<DailyClose>(session => session.Id == sessionId),
                 Arg.Any<CancellationToken>())
             .Returns(result);
         return this;

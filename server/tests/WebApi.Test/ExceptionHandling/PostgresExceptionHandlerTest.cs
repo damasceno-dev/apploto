@@ -29,7 +29,8 @@ public class PostgresExceptionHandlerTest
         {
             { "IX_Operators_BranchId_UserId", ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED },
             { "IX_Clients_BranchId_Cpf", ResourcesErrorMessages.CLIENT_CPF_CONFLICT },
-            { "IX_DailyCloses_BranchId_AccountId_Date", ResourcesErrorMessages.DAILYCLOSE_DATE_CONFLICT },
+            { "IX_DailyCloses_BranchId_AccountId_ActiveCustody", ResourcesErrorMessages.SESSION_ACTIVE_CUSTODY_CONFLICT },
+            { "IX_SessionHandovers_OutgoingSessionId_Unresolved", ResourcesErrorMessages.SESSION_HANDOVER_PENDING },
             { "IX_DailyCloseItems_DailyCloseId_ProductId", ResourcesErrorMessages.DAILYCLOSE_ITEM_DUPLICATE },
             { "IX_TimeEntries_BranchId_OperatorId_Date", ResourcesErrorMessages.TIMEENTRY_DATE_CONFLICT },
             { "IX_TimeEntrySegments_TimeEntryId_OpenShift", ResourcesErrorMessages.TIMEENTRY_OPEN_SEGMENT_CONFLICT },

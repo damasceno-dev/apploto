@@ -10,7 +10,7 @@ namespace server.Application.UseCases.Accounts.PairTab;
 public class PairTabAccountUseCase(
     IAuthenticationService authenticationService,
     IAccountsRepository accountsRepository,
-    IAccountPairingCoordination accountPairingCoordination,
+    IDailyCloseAccountCoordination accountCoordination,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseAccountJson> Execute(RequestPairTabAccountJson request)
@@ -18,8 +18,10 @@ public class PairTabAccountUseCase(
         Validate(request);
 
         var authenticatedBranchUser = await authenticationService.GetAuthenticatedBranchUser();
-        await using var coordination = await accountPairingCoordination.TryAcquire(authenticatedBranchUser.BranchId)
-            ?? throw new ConflictException(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+        // §6.20 global order: month boundary → pairing key → both account keys, before any Account-row write.
+        await using var coordination = await accountCoordination.AcquireWithPairing(
+            authenticatedBranchUser.BranchId,
+            [request.TerminalAccountId, request.TabAccountId]);
 
         var terminalAccount = await accountsRepository.GetActiveByIdAndBranchId(
             request.TerminalAccountId,

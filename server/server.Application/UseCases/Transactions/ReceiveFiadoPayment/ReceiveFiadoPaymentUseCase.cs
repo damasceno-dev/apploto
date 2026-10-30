@@ -95,11 +95,17 @@ public class ReceiveFiadoPaymentUseCase(
             ResourcesErrorMessages.TRANSACTION_DATE_LOCKED,
             ct);
 
-        await dailyCloseLedgerGuard.EnsureLedgerAcceptsNewRow(
-            context.BranchUser.BranchId,
+        var sessionContext = new SessionRowContext(
+            context.BranchUser,
+            context.MemberScope!,
+            request.SessionId,
+            request.HistoricalReason,
+            request.OpeningAcknowledgment);
+        var ownSession = await dailyCloseLedgerGuard.ResolveSessionForNewRow(
             request.AccountId,
             context.Account!.Type,
             request.Date.Date,
+            sessionContext,
             ct);
 
         var payment = createRequest.ToTransaction(
@@ -109,15 +115,19 @@ public class ReceiveFiadoPaymentUseCase(
             createdByUserId: context.BranchUser.UserId,
             branchId: context.BranchUser.BranchId);
 
+        payment.SessionId = ownSession.SessionId;
         Transaction? counterpart = null;
+        SessionRowResolution? counterpartSession = null;
+        var writesCashboxRow = ownSession.Session is not null
+            || context.TransactionType.FiadoPaymentKind == FiadoPaymentKind.CountedCash;
+        TransactionSessionBinding.EnsureUsed(request.SessionId, request.OpeningAcknowledgment, writesCashboxRow);
         if (context.TransactionType.FiadoPaymentKind == FiadoPaymentKind.CountedCash)
         {
-            counterpart = await fiadoPhysicalPairService.BuildCounterpart(
+            (counterpart, counterpartSession) = await fiadoPhysicalPairService.BuildCounterpart(
                 payment,
                 pairedTerminalId ?? throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED),
                 TransactionGenerationKind.FiadoCashRepayment,
-                context.BranchUser.Role,
-                context.MemberScope!,
+                sessionContext,
                 ct);
         }
 
@@ -127,6 +137,7 @@ public class ReceiveFiadoPaymentUseCase(
         await unitOfWork.Commit(ct);
         var response = payment.ToCreateResponse();
         response.GeneratedTransactionId = counterpart?.Id;
+        TransactionSessionBinding.Apply(response, ownSession, counterpartSession);
         FinancialCommandIdempotency.Complete(idempotency, payment.Id, response);
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
@@ -156,7 +167,10 @@ internal static class ReceiveFiadoPaymentMapper
             AccountId = request.AccountId,
             ClientId = request.ClientId,
             RecordedByOperatorId = request.RecordedByOperatorId,
-            SaveAsDraft = request.SaveAsDraft
+            SaveAsDraft = request.SaveAsDraft,
+            SessionId = request.SessionId,
+            HistoricalReason = request.HistoricalReason,
+            OpeningAcknowledgment = request.OpeningAcknowledgment
         };
     }
 }

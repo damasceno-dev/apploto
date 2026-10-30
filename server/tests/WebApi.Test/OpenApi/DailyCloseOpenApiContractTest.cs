@@ -89,19 +89,42 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
         AssertSchemaIsNonNullable(previewResponseProperties.GetProperty("cashVariance"));
 
         var previewPath = root.GetProperty("paths")
-            .GetProperty("/dailyclose/{dailyCloseId}/variance-preview")
+            .GetProperty("/session/{sessionId}/variance-preview")
             .GetProperty("post");
         previewPath.TryGetProperty("requestBody", out _).ShouldBeTrue();
         previewPath.GetProperty("responses").TryGetProperty("200", out _).ShouldBeTrue();
 
-        var openOperation = root.GetProperty("paths")
-            .GetProperty("/dailyclose")
+        // The account/day open is retired: custody starts through the acknowledged start (M9.6 Phase 2–3).
+        root.GetProperty("paths").TryGetProperty("/dailyclose", out _).ShouldBeFalse();
+        var startOperation = root.GetProperty("paths")
+            .GetProperty("/session/start")
             .GetProperty("post");
-        openOperation.GetProperty("responses").GetProperty("201")
+        startOperation.GetProperty("responses").GetProperty("201")
             .GetProperty("headers").TryGetProperty("ETag", out _).ShouldBeTrue();
+        startOperation.GetProperty("parameters")
+            .EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "Idempotency-Key")
+            .GetProperty("required").GetBoolean().ShouldBeTrue();
+        foreach (var path in new[]
+                 {
+                     "/session/opening-proposal",
+                     "/session/{sessionId}/handover",
+                     "/session/handover/{handoverId}/accept",
+                     "/session/handover/{handoverId}/dispute",
+                     "/session/handover/{handoverId}/withdraw",
+                     "/session/{sessionId}/finish",
+                     "/session/{sessionId}/custody-exception",
+                     "/session/declare",
+                     "/session/{sessionId}/rearrange",
+                     "/session/opening-discrepancy/{discrepancyId}/attribution",
+                     "/session/opening-count"
+                 })
+        {
+            root.GetProperty("paths").TryGetProperty(path, out _).ShouldBeTrue(path);
+        }
 
         var putItemsOperation = root.GetProperty("paths")
-            .GetProperty("/dailyclose/{dailyCloseId}/items")
+            .GetProperty("/session/{sessionId}/items")
             .GetProperty("put");
         var ifMatch = putItemsOperation.GetProperty("parameters")
             .EnumerateArray()
@@ -113,11 +136,11 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
 
         AssertWorkflowEndpoint(
             root,
-            "/dailyclose/{dailyCloseId}/recall",
+            "/session/{sessionId}/recall",
             ["200", "401", "403", "404", "409"]);
         AssertWorkflowEndpoint(
             root,
-            "/dailyclose/{dailyCloseId}/reopen",
+            "/session/{sessionId}/reopen",
             ["200", "401", "403", "404", "409"]);
     }
 

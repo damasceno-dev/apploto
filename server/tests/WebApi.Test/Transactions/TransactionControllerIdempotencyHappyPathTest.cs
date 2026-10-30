@@ -170,7 +170,7 @@ public sealed class TransactionControllerIdempotencyHappyPathTest(ServerWebAppli
         frozenError.ErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
         (await GetIdempotencyRequests(branch.Id, user.Id, key)).ShouldBeEmpty();
 
-        var reopenResponse = await client.PostAuthAsync($"/dailyclose/{close.Id}/reopen", token);
+        var reopenResponse = await client.PostAuthAsync($"/session/{close.Id}/reopen", token);
         reopenResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await reopenResponse.Content.ReadAsStringAsync());
 
         var retryResponse = await client.PostAuthAsync("/transaction", request, token, key);

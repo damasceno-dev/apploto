@@ -57,7 +57,7 @@ public class DailyCloseControllerFrozenVarianceReadSurfaceHappyPathTest(ServerWe
             125m);
 
         var releaseResponse = await _client.PostAuthAsync(
-            $"/dailyclose/{close.Id}/{release.ToString().ToLowerInvariant()}",
+            $"/session/{close.Id}/{release.ToString().ToLowerInvariant()}",
             token);
         releaseResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var released = await releaseResponse.ReadContentAsync<ResponseDailyCloseJson>();
@@ -79,7 +79,7 @@ public class DailyCloseControllerFrozenVarianceReadSurfaceHappyPathTest(ServerWe
         retained.Active.ShouldBeTrue();
         retained.Value.ShouldBe(125m);
 
-        var reviewResponse = await _client.GetAuthAsync($"/dailyclose/{close.Id}/review", token);
+        var reviewResponse = await _client.GetAuthAsync($"/session/{close.Id}/review", token);
         reviewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var review = await reviewResponse.ReadContentAsync<ResponseDailyCloseReviewJson>();
         review.Status.ShouldBe(DailyCloseStatus.Draft);

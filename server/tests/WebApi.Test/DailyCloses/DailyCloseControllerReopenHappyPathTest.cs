@@ -52,7 +52,7 @@ public class DailyCloseControllerReopenHappyPathTest(ServerWebApplicationFactory
             cashVarianceProduct.Id,
             999m);
 
-        var reopenResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reopen", token);
+        var reopenResponse = await _client.PostAuthAsync($"/session/{close.Id}/reopen", token);
 
         reopenResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var reopened = await reopenResponse.ReadContentAsync<ResponseDailyCloseJson>();
@@ -82,7 +82,7 @@ public class DailyCloseControllerReopenHappyPathTest(ServerWebApplicationFactory
         retainedVariance.Value.ShouldBe(999m);
         retainedVariance.Active.ShouldBeTrue();
 
-        var prematureApprove = await _client.PostAuthAsync($"/dailyclose/{close.Id}/approve", token);
+        var prematureApprove = await _client.PostAuthAsync($"/session/{close.Id}/approve", token);
         prematureApprove.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var approveError = await prematureApprove.ReadContentAsync<TestResponseErrorJson>();
         approveError.ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_NOT_APPROVABLE);
@@ -98,7 +98,7 @@ public class DailyCloseControllerReopenHappyPathTest(ServerWebApplicationFactory
             token);
         transactionResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var submitResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/submit", token);
+        var submitResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
         submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submitted = await submitResponse.ReadContentAsync<ResponseDailyCloseJson>();
         submitted.Status.ShouldBe(DailyCloseStatus.Submitted);
@@ -110,7 +110,7 @@ public class DailyCloseControllerReopenHappyPathTest(ServerWebApplicationFactory
         refreshedVariance.ShouldNotBeNull();
         refreshedVariance.Value.ShouldBe(75m);
 
-        var approveResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/approve", token);
+        var approveResponse = await _client.PostAuthAsync($"/session/{close.Id}/approve", token);
         approveResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var approved = await approveResponse.ReadContentAsync<ResponseDailyCloseJson>();
         approved.Status.ShouldBe(DailyCloseStatus.Approved);

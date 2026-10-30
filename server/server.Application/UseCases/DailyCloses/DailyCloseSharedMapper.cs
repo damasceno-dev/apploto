@@ -1,3 +1,4 @@
+using server.Application.UseCases.Sessions;
 using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities;
@@ -51,6 +52,7 @@ public static class DailyCloseSharedMapper
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
+                Custody = close.ToCustodyResponse(),
                 Items = close.Items
                     .Where(item => close.IsVisible(item, cashVarianceProductId))
                     .Select(item => item.ToItemResponse())
@@ -100,6 +102,7 @@ public static class DailyCloseSharedMapper
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
+                Custody = close.ToCustodyResponse(),
                 Items = []
             };
         }
@@ -148,6 +151,7 @@ public static class DailyCloseSharedMapper
                 CreatedAt = close.CreatedAt,
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
+                Custody = close.ToCustodyResponse(),
                 Items = close.Items
                     .Where(item => close.IsVisible(item, cashVarianceProductId))
                     .Select(item => item.ToItemResponse(productMap))

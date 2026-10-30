@@ -80,14 +80,14 @@ public sealed class RequiredMetadataOpenApiContractTest(ServerWebApplicationFact
         AssertQueryParameterRequired(cashVariance, "PageSize", expected: true);
         AssertQueryParameterRequired(cashVariance, "AccountId", expected: false);
 
-        AssertOptionalQueryParameters(paths, "/dailyclose", "get", "Mine", "Page", "PageSize");
+        AssertOptionalQueryParameters(paths, "/session", "get", "Mine", "Page", "PageSize");
         AssertOptionalQueryParameters(paths, "/holiday", "get", "Page", "PageSize");
         AssertOptionalQueryParameters(paths, "/report/daily-ledger", "get", "Page", "PageSize");
         AssertOptionalQueryParameters(paths, "/report/operator-summary", "get", "Mine");
         AssertOptionalQueryParameters(paths, "/report/timeentry-balance", "get", "Mine");
         AssertOptionalQueryParameters(paths, "/timeentry", "get", "InProgressFirst", "Page", "PageSize");
         AssertOptionalQueryParameters(paths, "/transaction", "get", "Mine", "Page", "PageSize");
-        AssertOptionalBooleanQueryParameter(paths, "/dailyclose", "get", "Mine");
+        AssertOptionalBooleanQueryParameter(paths, "/session", "get", "Mine");
         AssertOptionalBooleanQueryParameter(paths, "/timeentry", "get", "Mine");
         AssertOptionalBooleanQueryParameter(paths, "/transaction", "get", "Mine");
 

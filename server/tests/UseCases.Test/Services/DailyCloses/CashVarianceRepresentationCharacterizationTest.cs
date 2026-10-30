@@ -1,3 +1,5 @@
+using CommonTestUtilities.Services;
+using server.Application.Services.Sessions;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using server.Application.Services.DailyCloses;
@@ -140,26 +142,32 @@ public class CashVarianceRepresentationCharacterizationTest
             .WithDate(date.AddDays(-1))
             .WithItems([Item(stockProductId, Opening), Item(cashProductId, Opening), Item(feeProductId, countedFeePrevious)])
             .Build();
+        var dailyClosesRepository = new DailyClosesRepositoryBuilder().Build();
         var calculator = new CashVarianceCalculator(
             new DailyCloseItemsRepositoryBuilder()
                 .ListActiveByDailyCloseIdAsNoTrackingReturns(
                     currentCloseId,
                     [Item(stockProductId, stockClosing), Item(cashProductId, cashClosing), Item(feeProductId, countedFeeToday)])
                 .Build(),
-            new DailyClosesRepositoryBuilder().Build(),
+            SessionTestServices.OpeningResolver(
+                dailyClosesRepository,
+                new CashVarianceProductResolverBuilder().ReturnsId(branchId, cashVarianceProductId).Build()),
             new TransactionsRepositoryBuilder()
-                .SumActiveValueByAccountAndDateAsNoTrackingReturns(branchId, accountId, date, Direction.In, terminalIn)
-                .SumActiveValueByAccountAndDateAsNoTrackingReturns(branchId, accountId, date, Direction.Out, terminalOut)
+                .SumActiveValueBySessionAsNoTrackingReturns(currentCloseId, Direction.In, terminalIn)
+                .SumActiveValueBySessionAsNoTrackingReturns(currentCloseId, Direction.Out, terminalOut)
                 .Build());
+        var session = new DailyCloseBuilder()
+            .WithId(currentCloseId)
+            .WithBranchId(branchId)
+            .WithAccountId(accountId)
+            .WithDate(date)
+            .Build();
+        var inherited = new ResolvedSessionOpening(
+            SessionOpeningResolver.ClosingValues(opening, cashVarianceProductId),
+            null,
+            opening);
 
-        return await calculator.CalculateWithOpeningSourceAsync(
-            branchId,
-            accountId,
-            date,
-            currentCloseId,
-            cashVarianceProductId,
-            opening,
-            CancellationToken.None);
+        return await calculator.CalculateWithOpeningAsync(session, inherited, cashVarianceProductId, CancellationToken.None);
     }
 
     private static DailyCloseItem Item(Guid productId, decimal value)

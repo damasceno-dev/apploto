@@ -37,6 +37,11 @@ namespace server.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<long>("CustodyHistoryRevision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
                     b.Property<string>("Institution")
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
@@ -53,6 +58,9 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid?>("TabAccountId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TerminalId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Type")
                         .HasColumnType("integer");
 
@@ -63,6 +71,8 @@ namespace server.Infrastructure.Migrations
                     b.HasIndex("TabAccountId")
                         .IsUnique()
                         .HasFilter("\"TabAccountId\" IS NOT NULL");
+
+                    b.HasIndex("TerminalId");
 
                     b.ToTable("Accounts", (string)null);
                 });
@@ -222,6 +232,58 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("Clients", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.CustodyMappingIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("IssueCode")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("ResolutionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("SourceKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "Status");
+
+                    b.HasIndex("SourceKind", "SourceId", "IssueCode")
+                        .IsUnique();
+
+                    b.ToTable("CustodyMappingIssues", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.DailyClose", b =>
                 {
                     b.Property<Guid>("Id")
@@ -243,14 +305,38 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid>("BranchId")
                         .HasColumnType("uuid");
 
+                    b.Property<long>("CountRevision")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CustodianOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustodianUserIdAtStart")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("CustodyHistoryComplete")
+                        .HasColumnType("boolean");
+
+                    b.Property<short?>("CustodyState")
+                        .HasColumnType("smallint");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("date");
 
+                    b.Property<DateTime?>("EndedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ItemsFirstRecordedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("LedgerRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<short>("MappingState")
+                        .HasColumnType("smallint");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
@@ -268,6 +354,9 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid?>("OpeningRecheckTriggeredByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<short>("Origin")
+                        .HasColumnType("smallint");
+
                     b.Property<Guid?>("RecordedByOperatorId")
                         .HasColumnType("uuid");
 
@@ -281,6 +370,12 @@ namespace server.Infrastructure.Migrations
                     b.Property<bool>("ReviewHistoryComplete")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("StartedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
 
@@ -291,6 +386,9 @@ namespace server.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TerminalId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -311,6 +409,8 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("ApprovedByUserId");
 
+                    b.HasIndex("CustodianOperatorId");
+
                     b.HasIndex("OpenedByUserId");
 
                     b.HasIndex("OpeningRecheckTriggeredByDailyCloseId");
@@ -325,12 +425,19 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("SubmittedByUserId");
 
+                    b.HasIndex("TerminalId");
+
+                    b.HasIndex("BranchId", "AccountId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DailyCloses_BranchId_AccountId_ActiveCustody")
+                        .HasFilter("\"Active\" = true AND \"MappingState\" = 0 AND \"CustodyState\" = 0");
+
                     b.HasIndex("BranchId", "Status");
 
-                    b.HasIndex("BranchId", "AccountId", "Date")
+                    b.HasIndex("BranchId", "AccountId", "Sequence")
                         .IsUnique()
-                        .HasDatabaseName("IX_DailyCloses_BranchId_AccountId_Date")
-                        .HasFilter("\"Active\" = true");
+                        .HasDatabaseName("IX_DailyCloses_BranchId_AccountId_Sequence")
+                        .HasFilter("\"MappingState\" = 0");
 
                     b.HasIndex("BranchId", "AccountId", "Status");
 
@@ -338,7 +445,15 @@ namespace server.Infrastructure.Migrations
 
                     b.ToTable("DailyCloses", null, t =>
                         {
+                            t.HasCheckConstraint("CK_DailyCloses_CustodyStateMatchesEnd", "\"CustodyState\" IS NULL OR ((\"CustodyState\" = 0) = (\"EndedAt\" IS NULL))");
+
+                            t.HasCheckConstraint("CK_DailyCloses_IntervalOrdered", "\"EndedAt\" IS NULL OR \"StartedAt\" IS NULL OR \"EndedAt\" > \"StartedAt\"");
+
+                            t.HasCheckConstraint("CK_DailyCloses_ReadySessionIdentity", "\"MappingState\" <> 0 OR (\"CustodyState\" IS NOT NULL AND \"Sequence\" IS NOT NULL AND \"StartedAt\" IS NOT NULL AND \"CustodianOperatorId\" IS NOT NULL)");
+
                             t.HasCheckConstraint("CK_DailyCloses_RecordingIdentityMatchesFirstCount", "(\"ItemsFirstRecordedAt\" IS NULL AND \"RecordedByUserId\" IS NULL AND \"RecordedByOperatorId\" IS NULL) OR (\"ItemsFirstRecordedAt\" IS NOT NULL AND \"RecordedByUserId\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_DailyCloses_SequencePositive", "\"Sequence\" IS NULL OR \"Sequence\" > 0");
                         });
                 });
 
@@ -777,6 +892,134 @@ namespace server.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.OpeningCount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("AsOfDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("AccountId", "Revision")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId", "AccountId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_OpeningCounts_BranchId_AccountId_Current")
+                        .HasFilter("\"Active\" = true");
+
+                    b.ToTable("OpeningCounts", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.OpeningCountItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OpeningCountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("OpeningCountId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("OpeningCountItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OpeningCountItems_NonNegative", "\"Value\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.OpeningDiscrepancyAttributionEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DiscrepancyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DiscrepancyRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("SupersedesEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Target")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("SupersedesEventId");
+
+                    b.HasIndex("DiscrepancyId", "CreatedAt");
+
+                    b.ToTable("OpeningDiscrepancyAttributionEvents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OpeningDiscrepancyAttributionEvents_Target", "\"Target\" IN (1, 2, 3)");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.OperatedOnboarding", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1065,6 +1308,403 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SessionEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ActorName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("RelatedId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("SessionId", "CreatedAt");
+
+                    b.ToTable("SessionEvents", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("IncomingSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("IntendedIncomingOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("OfferedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OfferedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("OfferedCountRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("OutgoingSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("State")
+                        .HasColumnType("smallint");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncomingSessionId")
+                        .IsUnique()
+                        .HasFilter("\"IncomingSessionId\" IS NOT NULL");
+
+                    b.HasIndex("IntendedIncomingOperatorId");
+
+                    b.HasIndex("OfferedByUserId");
+
+                    b.HasIndex("OutgoingSessionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SessionHandovers_OutgoingSessionId_Unresolved")
+                        .HasFilter("\"State\" IN (0, 2)");
+
+                    b.ToTable("SessionHandovers", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionHandoverItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionHandoverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SessionHandoverId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("SessionHandoverItems", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpening", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AcknowledgedByOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AcknowledgedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<short>("EvidenceKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("HandoverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("SourceKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<long?>("SourceRevision")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AcknowledgedByOperatorId");
+
+                    b.HasIndex("AcknowledgedByUserId");
+
+                    b.HasIndex("HandoverId");
+
+                    b.HasIndex("SessionId")
+                        .IsUnique();
+
+                    b.ToTable("SessionOpenings", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("AttributedRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("Attribution")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("CurrentRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("CurrentTotalDelta")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid?>("HandoverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PredecessorSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionOpeningId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("SourceKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HandoverId");
+
+                    b.HasIndex("PredecessorSessionId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("SessionOpeningId")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId", "Attribution");
+
+                    b.ToTable("SessionOpeningDiscrepancies", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancyRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AcknowledgedTotal")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DiscrepancyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ProposedTotal")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long?>("SourceRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("TotalDelta")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DiscrepancyId", "Revision")
+                        .IsUnique();
+
+                    b.ToTable("SessionOpeningDiscrepancyRevisions", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancyRevisionItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AcknowledgedValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Delta")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ProposedValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("RevisionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("RevisionId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("SessionOpeningDiscrepancyRevisionItems", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AcknowledgedValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ProposedValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("SessionOpeningId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SessionOpeningId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("SessionOpeningItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SessionOpeningItems_NonNegative", "\"AcknowledgedValue\" >= 0 AND (\"ProposedValue\" IS NULL OR \"ProposedValue\" >= 0)");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Setting", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1107,6 +1747,40 @@ namespace server.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Settings", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.Terminal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExternalReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId", "ExternalReference")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Terminals_BranchId_ExternalReference")
+                        .HasFilter("\"ExternalReference\" IS NOT NULL");
+
+                    b.ToTable("Terminals", (string)null);
                 });
 
             modelBuilder.Entity("server.Domain.Entities.TimeEntry", b =>
@@ -1310,6 +1984,9 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid>("RecordedByOperatorId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SessionId")
+                        .HasColumnType("uuid");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
 
@@ -1361,6 +2038,9 @@ namespace server.Infrastructure.Migrations
                         .HasFilter("\"PaidAt\" IS NULL");
 
                     b.HasIndex("BranchId", "Status");
+
+                    b.HasIndex("SessionId", "Status")
+                        .HasFilter("\"SessionId\" IS NOT NULL");
 
                     b.HasIndex("BranchId", "Date", "AccountId");
 
@@ -1485,9 +2165,16 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("TabAccountId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("server.Domain.Entities.Terminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Branch");
 
                     b.Navigation("TabAccount");
+
+                    b.Navigation("Terminal");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.BranchUser", b =>
@@ -1531,6 +2218,15 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Branch");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.CustodyMappingIssue", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("server.Domain.Entities.DailyClose", b =>
                 {
                     b.HasOne("server.Domain.Entities.Account", "Account")
@@ -1549,6 +2245,11 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", "CustodianOperator")
+                        .WithMany()
+                        .HasForeignKey("CustodianOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("server.Domain.Entities.User", "OpenedByUser")
                         .WithMany()
@@ -1586,11 +2287,18 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("SubmittedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("server.Domain.Entities.Terminal", "Terminal")
+                        .WithMany()
+                        .HasForeignKey("TerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Account");
 
                     b.Navigation("ApprovedByUser");
 
                     b.Navigation("Branch");
+
+                    b.Navigation("CustodianOperator");
 
                     b.Navigation("OpenedByUser");
 
@@ -1605,6 +2313,8 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("SubmittedByOperator");
 
                     b.Navigation("SubmittedByUser");
+
+                    b.Navigation("Terminal");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.DailyCloseItem", b =>
@@ -1763,6 +2473,62 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Operator");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.OpeningCount", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.OpeningCountItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.OpeningCount", "OpeningCount")
+                        .WithMany("Items")
+                        .HasForeignKey("OpeningCountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OpeningCount");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.OpeningDiscrepancyAttributionEvent", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionOpeningDiscrepancy", "Discrepancy")
+                        .WithMany()
+                        .HasForeignKey("DiscrepancyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.OpeningDiscrepancyAttributionEvent", null)
+                        .WithMany()
+                        .HasForeignKey("SupersedesEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Discrepancy");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.OperatedOnboarding", b =>
                 {
                     b.HasOne("server.Domain.Entities.Branch", "Branch")
@@ -1882,12 +2648,198 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SessionEvent", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>
+                {
+                    b.HasOne("server.Domain.Entities.DailyClose", "IncomingSession")
+                        .WithMany()
+                        .HasForeignKey("IncomingSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Operator", "IntendedIncomingOperator")
+                        .WithMany()
+                        .HasForeignKey("IntendedIncomingOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("OfferedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "OutgoingSession")
+                        .WithMany()
+                        .HasForeignKey("OutgoingSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("IncomingSession");
+
+                    b.Navigation("IntendedIncomingOperator");
+
+                    b.Navigation("OutgoingSession");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionHandoverItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionHandover", "SessionHandover")
+                        .WithMany("Items")
+                        .HasForeignKey("SessionHandoverId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SessionHandover");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpening", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("AcknowledgedByOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("AcknowledgedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionHandover", null)
+                        .WithMany()
+                        .HasForeignKey("HandoverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "Session")
+                        .WithOne("Opening")
+                        .HasForeignKey("server.Domain.Entities.SessionOpening", "SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancy", b =>
+                {
+                    b.HasOne("server.Domain.Entities.SessionHandover", null)
+                        .WithMany()
+                        .HasForeignKey("HandoverId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", null)
+                        .WithMany()
+                        .HasForeignKey("PredecessorSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionOpening", "SessionOpening")
+                        .WithMany()
+                        .HasForeignKey("SessionOpeningId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Session");
+
+                    b.Navigation("SessionOpening");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancyRevision", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionOpeningDiscrepancy", "Discrepancy")
+                        .WithMany("Revisions")
+                        .HasForeignKey("DiscrepancyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Discrepancy");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancyRevisionItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Product", null)
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionOpeningDiscrepancyRevision", "Revision")
+                        .WithMany("Items")
+                        .HasForeignKey("RevisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Revision");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionOpening", "SessionOpening")
+                        .WithMany("Items")
+                        .HasForeignKey("SessionOpeningId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SessionOpening");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Setting", b =>
                 {
                     b.HasOne("server.Domain.Entities.Branch", "Branch")
                         .WithOne("Setting")
                         .HasForeignKey("server.Domain.Entities.Setting", "BranchId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.Terminal", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", "Branch")
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Branch");
@@ -2000,6 +2952,11 @@ namespace server.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("server.Domain.Entities.DailyClose", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("server.Domain.Entities.TransactionType", "TransactionType")
                         .WithMany()
                         .HasForeignKey("TransactionTypeId")
@@ -2023,6 +2980,8 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("OriginTransaction");
 
                     b.Navigation("RecordedByOperator");
+
+                    b.Navigation("Session");
 
                     b.Navigation("TransactionType");
                 });
@@ -2062,6 +3021,8 @@ namespace server.Infrastructure.Migrations
             modelBuilder.Entity("server.Domain.Entities.DailyClose", b =>
                 {
                     b.Navigation("Items");
+
+                    b.Navigation("Opening");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.DailyCloseReviewEvent", b =>
@@ -2069,9 +3030,34 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.OpeningCount", b =>
+                {
+                    b.Navigation("Items");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Operator", b =>
                 {
                     b.Navigation("OperatorAccounts");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpening", b =>
+                {
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancy", b =>
+                {
+                    b.Navigation("Revisions");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionOpeningDiscrepancyRevision", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.TimeEntry", b =>

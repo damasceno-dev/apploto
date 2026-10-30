@@ -20,7 +20,17 @@ public sealed class M8AccountSecurityOpenApiContractTest(ServerWebApplicationFac
         id.GetProperty("format").GetString().ShouldBe("uuid");
         schemas.GetProperty("ResponseUserProfileJson").GetProperty("properties").EnumerateObject().Select(p => p.Name).Order()
             .ShouldBe(["email", "hasPassword", "isPlatformOperator", "name", "userId"]);
-        schemas.GetRawText().ShouldNotContain("\"sessionId\"");
+        // The identity/refresh session stays server-only. Cashbox custody sessions (M9.6, "turno") are a different,
+        // public resource, so the guard covers every identity, token and login schema rather than the whole document.
+        foreach (var schema in schemas.EnumerateObject().Where(schema =>
+                     schema.Name.StartsWith("ResponseUser", StringComparison.Ordinal) ||
+                     schema.Name.StartsWith("RequestUser", StringComparison.Ordinal) ||
+                     schema.Name.Contains("Token", StringComparison.Ordinal) ||
+                     schema.Name.Contains("Login", StringComparison.Ordinal) ||
+                     schema.Name.Contains("Google", StringComparison.Ordinal)))
+        {
+            schema.Value.GetRawText().ShouldNotContain("\"sessionId\"", customMessage: schema.Name);
+        }
         schemas.GetRawText().ShouldNotContain("\"tokenHash\"");
     }
 

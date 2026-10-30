@@ -145,21 +145,24 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ThenBy(transaction => transaction.Id);
     }
 
-    public async Task<decimal> SumActiveValueByAccountAndDateAsNoTracking(
-        Guid branchId,
-        Guid accountId,
-        DateTime date,
+    public async Task<decimal> SumActiveValueBySessionAsNoTracking(
+        DailyClose session,
         Direction? direction = null,
         CancellationToken ct = default)
     {
         var query = dbContext.Transactions
             .AsNoTracking()
             .Where(transaction =>
-                transaction.BranchId == branchId &&
-                transaction.AccountId == accountId &&
-                transaction.Date == date &&
+                transaction.BranchId == session.BranchId &&
                 transaction.Active &&
                 transaction.Status == TransactionStatus.Active);
+
+        query = session.MappingState == SessionMappingState.Ready
+            ? query.Where(transaction => transaction.SessionId == session.Id)
+            : query.Where(transaction =>
+                transaction.AccountId == session.AccountId &&
+                transaction.Date == session.Date &&
+                transaction.SessionId == null);
 
         if (direction is { } selectedDirection)
         {
@@ -169,11 +172,11 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         return await query.Select(transaction => (decimal?)transaction.Value).SumAsync(ct) ?? 0m;
     }
 
-    public async Task<DateTime?> GetEarliestUncountedActivityDateByAccountAsNoTracking(
+    public async Task<DateTime?> GetEarliestUnsessionedCashboxActivityDateAsNoTracking(
         Guid branchId,
         Guid accountId,
         DateTime afterDateExclusive,
-        DateTime beforeDateExclusive,
+        DateTime upToDateInclusive,
         CancellationToken ct = default)
     {
         return await dbContext.Transactions
@@ -181,36 +184,46 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .Where(transaction =>
                 transaction.BranchId == branchId &&
                 transaction.AccountId == accountId &&
+                transaction.SessionId == null &&
                 transaction.Active &&
                 transaction.Status == TransactionStatus.Active &&
                 transaction.Date > afterDateExclusive &&
-                transaction.Date < beforeDateExclusive &&
-                !dbContext.DailyCloses.Any(close =>
-                    close.BranchId == branchId &&
-                    close.AccountId == accountId &&
-                    close.Date == transaction.Date &&
-                    close.Active &&
-                    close.ItemsFirstRecordedAt != null))
+                transaction.Date <= upToDateInclusive)
             .OrderBy(transaction => transaction.Date)
             .Select(transaction => (DateTime?)transaction.Date)
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<bool> ExistsDraftByAccountAndDateAsNoTracking(
+    public async Task<bool> ExistsDraftBySessionAsNoTracking(DailyClose session, CancellationToken ct = default)
+    {
+        var query = dbContext.Transactions
+            .AsNoTracking()
+            .Where(transaction =>
+                transaction.BranchId == session.BranchId &&
+                transaction.Active &&
+                transaction.Status == TransactionStatus.Draft);
+
+        query = session.MappingState == SessionMappingState.Ready
+            ? query.Where(transaction => transaction.SessionId == session.Id)
+            : query.Where(transaction =>
+                transaction.AccountId == session.AccountId &&
+                transaction.Date == session.Date &&
+                transaction.SessionId == null);
+
+        return await query.AnyAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<Transaction>> ListActiveBySessionId(
         Guid branchId,
-        Guid accountId,
-        DateTime date,
+        Guid sessionId,
         CancellationToken ct = default)
     {
         return await dbContext.Transactions
-            .AsNoTracking()
-            .AnyAsync(transaction =>
+            .Where(transaction =>
                 transaction.BranchId == branchId &&
-                transaction.AccountId == accountId &&
-                transaction.Date == date &&
-                transaction.Active &&
-                transaction.Status == TransactionStatus.Draft,
-                ct);
+                transaction.SessionId == sessionId &&
+                transaction.Active)
+            .ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<Transaction>> ListByBranchIdAndAccountIdAndDateRangeAsNoTracking(
@@ -809,7 +822,8 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 OperatorActive = t.RecordedByOperator.Active,
                 t.TransactionTypeId,
                 TypeName = t.TransactionType.Name,
-                TypeActive = t.TransactionType.Active
+                TypeActive = t.TransactionType.Active,
+                t.SessionId
             })
             .Select(g => new
             {
@@ -834,7 +848,8 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 r.Key.TypeActive,
                 r.InTotal,
                 r.OutTotal,
-                r.RowCount))
+                r.RowCount,
+                r.Key.SessionId))
             .ToList();
     }
 
@@ -1059,6 +1074,9 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 transaction.Active &&
                 transaction.Status == TransactionStatus.Active &&
                 transaction.Account.Type == AccountType.Terminal &&
+                // Session-bound rows are covered by their session's own readiness; only unresolved legacy cashbox
+                // rows without a session are orphan activity (§6.21 month lock).
+                transaction.SessionId == null &&
                 transaction.Date.Year == year &&
                 transaction.Date.Month == month)
             .GroupBy(transaction => new

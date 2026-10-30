@@ -23,7 +23,7 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
         var closeA = await factory.SeedDailyCloseAsync(branchA.Id, accountA.Id);
         var closeB = await factory.SeedDailyCloseAsync(branchB.Id, accountB.Id);
 
-        var payload = await GetListAsync("/dailyclose", tokenA);
+        var payload = await GetListAsync("/session", tokenA);
 
         payload.Items.Select(item => item.Id).ShouldContain(closeA.Id);
         payload.Items.Select(item => item.Id).ShouldNotContain(closeB.Id);
@@ -51,23 +51,23 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
         var operatorMatch = await factory.SeedDailyCloseAsync(
             branch.Id, accountA.Id, date: new DateTime(2025, 2, 12), submittedByOperatorId: operatorB.Id);
 
-        var byAccount = await GetListAsync($"/dailyclose?accountId={accountA.Id}", token);
+        var byAccount = await GetListAsync($"/session?accountId={accountA.Id}", token);
         byAccount.Items.Select(item => item.Id).ShouldContain(accountMatch.Id);
         byAccount.Items.Select(item => item.Id).ShouldNotContain(accountMiss.Id);
         byAccount.Items.All(item => item.AccountId == accountA.Id).ShouldBeTrue();
 
-        var byStatus = await GetListAsync($"/dailyclose?status={(int)DailyCloseStatus.Submitted}", token);
+        var byStatus = await GetListAsync($"/session?status={(int)DailyCloseStatus.Submitted}", token);
         byStatus.Items.Select(item => item.Id).ShouldContain(submittedClose.Id);
         byStatus.Items.All(item => item.Status == DailyCloseStatus.Submitted).ShouldBeTrue();
 
         var byDateRange = await GetListAsync(
-            $"/dailyclose?dateFrom={QueryDate(new DateTime(2025, 2, 10))}&dateTo={QueryDate(new DateTime(2025, 2, 11))}",
+            $"/session?dateFrom={QueryDate(new DateTime(2025, 2, 10))}&dateTo={QueryDate(new DateTime(2025, 2, 11))}",
             token);
         byDateRange.Items.Select(item => item.Id).ShouldContain(accountMatch.Id);
         byDateRange.Items.Select(item => item.Id).ShouldContain(submittedClose.Id);
         byDateRange.Items.Select(item => item.Id).ShouldNotContain(outsideDate.Id);
 
-        var byOperator = await GetListAsync($"/dailyclose?operatorId={operatorB.Id}", token);
+        var byOperator = await GetListAsync($"/session?operatorId={operatorB.Id}", token);
         byOperator.Items.Select(item => item.Id).ShouldBe([operatorMatch.Id]);
     }
 
@@ -87,7 +87,7 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
             date: DateTime.Today.AddDays(-1),
             submittedByOperatorId: otherOperator.Id);
 
-        var payload = await GetListAsync("/dailyclose?mine=true", token);
+        var payload = await GetListAsync("/session?mine=true", token);
 
         payload.Items.Select(item => item.Id).ShouldBe([ownClose.Id]);
         payload.Items.Select(item => item.Id).ShouldNotContain(otherClose.Id);
@@ -110,13 +110,13 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
         var hidden = await factory.SeedDailyCloseAsync(branch.Id, accountB.Id,
             submittedByOperatorId: otherOperator.Id);
 
-        var payload = await GetListAsync("/dailyclose", token);
+        var payload = await GetListAsync("/session", token);
 
         payload.Items.Select(item => item.Id).ShouldBe([visible.Id]);
         payload.Items.Select(item => item.Id).ShouldNotContain(hidden.Id);
         payload.TotalCount.ShouldBe(1);
 
-        var explicitUnlinked = await GetListAsync($"/dailyclose?accountId={accountB.Id}", token);
+        var explicitUnlinked = await GetListAsync($"/session?accountId={accountB.Id}", token);
         explicitUnlinked.Items.ShouldBeEmpty();
         explicitUnlinked.TotalCount.ShouldBe(0);
     }
@@ -157,7 +157,7 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
             createdAt: sharedCreatedAt,
             id: sameCreatedLowId);
 
-        var payload = await GetListAsync("/dailyclose", token);
+        var payload = await GetListAsync("/session", token);
 
         payload.Items.Select(item => item.Id).Take(4).ShouldBe([
             dateWins.Id,
@@ -185,7 +185,7 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
             await factory.SeedDailyCloseAsync(branch.Id, account.Id, date: new DateTime(2025, 4, index));
         }
 
-        var payload = await GetListAsync($"/dailyclose?accountId={account.Id}&page={page}&pageSize=3", token);
+        var payload = await GetListAsync($"/session?accountId={account.Id}&page={page}&pageSize=3", token);
 
         payload.Items.Count.ShouldBe(expectedItemCount);
         payload.TotalCount.ShouldBe(7);
@@ -207,7 +207,7 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
             approvedByUserId: approvedByUser.Id,
             approvedAt: DateTime.UtcNow);
 
-        var payload = await GetListAsync($"/dailyclose?accountId={account.Id}", token);
+        var payload = await GetListAsync($"/session?accountId={account.Id}", token);
 
         payload.Items.Count.ShouldBe(1);
         var item = payload.Items[0];
@@ -227,7 +227,7 @@ public class DailyCloseControllerListHappyPathTest(ServerWebApplicationFactory f
         await factory.SeedDailyCloseAsync(branch.Id, otherAccount.Id,
             submittedByOperatorId: otherOperator.Id);
 
-        var payload = await GetListAsync("/dailyclose", token);
+        var payload = await GetListAsync("/session", token);
 
         payload.Items.ShouldBeEmpty();
         payload.TotalCount.ShouldBe(0);

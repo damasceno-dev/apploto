@@ -79,26 +79,31 @@ public class CloseReviewEventsMigrationTest : IAsyncLifetime
 
         await using (var dbContext = new ServerDbContext(options))
         {
-            var legacy = await dbContext.DailyCloses.AsNoTracking().SingleAsync(close => close.Id == LegacyCloseId);
+            // Projected and written with this schema's columns: the current DailyClose entity carries session ones.
+            var legacy = await dbContext.DailyCloses.AsNoTracking()
+                .Where(close => close.Id == LegacyCloseId)
+                .Select(close => new { close.ReviewHistoryComplete, close.RejectionReason })
+                .SingleAsync();
             legacy.ReviewHistoryComplete.ShouldBeFalse();
             legacy.RejectionReason.ShouldBe("Rejeitado antes dos eventos");
             (await dbContext.DailyCloseReviewEvents.CountAsync()).ShouldBe(0);
 
-            var fresh = new DailyClose
-            {
-                BranchId = BranchId,
-                AccountId = AccountId,
-                OpenedByUserId = UserId,
-                Date = new DateTime(2026, 9, 11)
-            };
-            dbContext.DailyCloses.Add(fresh);
-            await dbContext.SaveChangesAsync();
+            // A close written after the migration carries the entity's complete-history default.
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "DailyCloses" ("Id", "Date", "Status", "AccountId", "OpenedByUserId", "BranchId", "CreatedAt",
+                    "Active", "ReviewHistoryComplete")
+                VALUES ({Guid.NewGuid()}, {new DateOnly(2026, 9, 11)}, 0, {AccountId}, {UserId}, {BranchId}, now(), true,
+                    {new DailyClose().ReviewHistoryComplete})
+                """);
         }
 
         await using (var dbContext = new ServerDbContext(options))
         {
-            (await dbContext.DailyCloses.AsNoTracking().SingleAsync(close => close.Date == new DateTime(2026, 9, 11)))
-                .ReviewHistoryComplete.ShouldBeTrue();
+            (await dbContext.DailyCloses.AsNoTracking()
+                    .Where(close => close.Date == new DateTime(2026, 9, 11))
+                    .Select(close => close.ReviewHistoryComplete)
+                    .SingleAsync())
+                .ShouldBeTrue();
         }
     }
 }

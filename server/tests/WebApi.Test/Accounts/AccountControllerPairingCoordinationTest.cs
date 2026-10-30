@@ -113,6 +113,8 @@ public sealed class AccountControllerPairingCoordinationTest(ServerWebApplicatio
         {
             services.RemoveAll<AccountPairingCoordinationOptions>();
             services.AddSingleton(new AccountPairingCoordinationOptions(TimeSpan.FromMilliseconds(100)));
+            services.RemoveAll<DailyCloseAccountCoordinationOptions>();
+            services.AddSingleton(new DailyCloseAccountCoordinationOptions(TimeSpan.FromMilliseconds(100)));
         }));
         using var client = busyFactory.CreateClient();
         await using var heldLock = await HoldPairingLockAsync(ctx.BranchId);
@@ -120,12 +122,14 @@ public sealed class AccountControllerPairingCoordinationTest(ServerWebApplicatio
         var pairResponse = await Pair(client, ctx);
         var deactivateResponse = await client.DeleteAuthAsync($"/account/{ctx.TabId}", ctx.Token);
 
+        // Pairing and deactivation now wait on the pairing key inside the §6.20 account coordination (M9.6 Phase 2), so a
+        // held pairing key surfaces as that coordination's retryable busy key.
         pairResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict, await pairResponse.Content.ReadAsStringAsync());
         (await pairResponse.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
-            .ShouldContain(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+            .ShouldContain(ResourcesErrorMessages.DAILYCLOSE_LEDGER_COORDINATION_BUSY);
         deactivateResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         (await deactivateResponse.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
-            .ShouldContain(ResourcesErrorMessages.ACCOUNT_PAIRING_COORDINATION_BUSY);
+            .ShouldContain(ResourcesErrorMessages.DAILYCLOSE_LEDGER_COORDINATION_BUSY);
         (await factory.ReloadAsync<Account>(ctx.TerminalId))!.TabAccountId.ShouldBeNull();
         (await factory.ReloadAsync<Account>(ctx.TabId))!.Active.ShouldBeTrue();
     }

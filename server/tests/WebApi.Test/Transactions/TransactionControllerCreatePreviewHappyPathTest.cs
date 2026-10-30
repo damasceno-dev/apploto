@@ -187,29 +187,27 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         // payload is committed via POST /transaction.
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreatePreviewDeterminism", Role.Manager);
         var operatorContext = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
-        var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab, "Fiado");
+        // A cashbox row lands in its session; that session's submitted custody freezes the write (M9.6 Phase 2).
+        var cashbox = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa");
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
-        var transactionType = await factory.SeedTransactionTypeAsync(
-            category.Id,
-            settlementRule: SettlementRule.SameDay,
-            requiresTabAccountAndClient: true);
-        var client = await factory.SeedClientAsync(branch.Id, "Determinism Client");
+        var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.SameDay);
 
         var asOfDate = new DateTime(2025, 6, 30);
         var transactionDate = new DateTime(2025, 5, 16); // 45 days before as-of → Days31To60
 
         await factory.SeedProductAsync(branch.Id, name: CashVarianceProductResolver.CashVarianceProductName);
         var countedProduct = await factory.SeedProductAsync(branch.Id);
-        var close = await factory.SeedDailyCloseAsync(branch.Id, tabAccount.Id, transactionDate, DailyCloseStatus.Submitted);
+        var close = await factory.SeedDailyCloseAsync(branch.Id, cashbox.Id, transactionDate, DailyCloseStatus.Submitted);
         await factory.SeedDailyCloseItemAsync(close.Id, countedProduct.Id, value: 500m);
 
-        // Payload X: a Tab fiado create.
+        // Payload X: a cashbox outflow on the submitted session's day.
         var payloadX = new RequestCreateTransactionJsonBuilder()
             .WithDate(transactionDate)
             .WithValue(150m)
             .WithTransactionTypeId(transactionType.Id)
-            .WithAccountId(tabAccount.Id)
-            .WithClientId(client.Id)
+            .WithAccountId(cashbox.Id)
+            .WithClientId(null)
+            .WithDueDate(null)
             .WithRecordedByOperatorId(operatorContext.Id)
             .Build();
 
@@ -218,11 +216,7 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
             $"/transaction/preview?asOfDate={asOfDate:yyyy-MM-dd}", payloadX, token);
         previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var preview = await previewResponse.ReadContentAsync<ResponseCreateTransactionPreviewJson>();
-        var predictedBucket = preview.Impact.ReceivableImpact.BucketAfter;
-        predictedBucket.ShouldBe(AgingBucket.Days31To60);
-        var predictedFiadoDelta = preview.Impact.FiadoBalanceImpact.Deltas.Single();
-        predictedFiadoDelta.ClientId.ShouldBe(client.Id);
-        predictedFiadoDelta.OutstandingDelta.ShouldBe(150m);
+        preview.Impact.FiadoBalanceImpact.Deltas.ShouldBeEmpty();
         preview.Impact.CashVarianceImpact.CurrentVariance.ShouldBe(500m);
         preview.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(150m);
         preview.Impact.CashVarianceImpact.ProjectedVariance.ShouldBe(650m);
@@ -238,7 +232,7 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         // 3) No write occurred, so a diagnostic recompute still equals the frozen current snapshot.
         var actualVariance = await CalculateCashVarianceAsync(
             branch.Id,
-            tabAccount.Id,
+            cashbox.Id,
             transactionDate,
             close.Id);
         actualVariance.ShouldBe(preview.Impact.CashVarianceImpact.CurrentVariance.GetValueOrDefault());
@@ -262,14 +256,10 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         using var scope = factory.Services.CreateScope();
         var productResolver = scope.ServiceProvider.GetRequiredService<ICashVarianceProductResolver>();
         var calculator = scope.ServiceProvider.GetRequiredService<ICashVarianceCalculator>();
+        var sessions = scope.ServiceProvider.GetRequiredService<server.Domain.Interfaces.IDailyClosesRepository>();
         var cashVarianceProductId = await productResolver.GetIdAsync(branchId);
+        var session = await sessions.GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchId);
 
-        return await calculator.CalculateAsync(
-            branchId,
-            accountId,
-            date,
-            dailyCloseId,
-            cashVarianceProductId,
-            CancellationToken.None);
+        return await calculator.CalculateAsync(session!, cashVarianceProductId, CancellationToken.None);
     }
 }

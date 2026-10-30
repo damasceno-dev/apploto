@@ -37,7 +37,8 @@ public sealed class MonthLockReadinessEvaluator
             .ToList();
 
         var unapprovedCloses = closes
-            .Where(close => close.Status != DailyCloseStatus.Approved)
+            // Unresolved legacy history blocks the lock until a reviewed mapping resolves it, whatever its status.
+            .Where(close => close.Status != DailyCloseStatus.Approved || close.MappingState != SessionMappingState.Ready)
             .OrderBy(close => close.Date)
             .ThenBy(close => close.Account.Name)
             .ThenBy(close => close.Id)

@@ -20,7 +20,7 @@ public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFacto
     {
         var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
 
-        var httpResponse = await _client.PostAsJsonAsync($"/dailyclose/{Guid.NewGuid()}/reject", request);
+        var httpResponse = await _client.PostAsJsonAsync($"/session/{Guid.NewGuid()}/reject", request);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -33,7 +33,7 @@ public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFacto
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcReject400", Role.Manager);
         var request = new RequestRejectDailyCloseJson { RejectionReason = string.Empty };
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/reject", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{Guid.NewGuid()}/reject", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -46,7 +46,7 @@ public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFacto
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcRejectMissing", Role.Manager);
         var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{Guid.NewGuid()}/reject", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{Guid.NewGuid()}/reject", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -66,7 +66,7 @@ public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFacto
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
         var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reject", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/reject", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -90,7 +90,7 @@ public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFacto
             status: DailyCloseStatus.Rejected);
         var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reject", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/reject", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -117,7 +117,7 @@ public class DailyCloseControllerRejectUnhappyPathTest(ServerWebApplicationFacto
         await factory.SeedSettingAsync(branch.Id, lockDate: closeDate);
         var request = new RequestRejectDailyCloseJson { RejectionReason = "test" };
 
-        var httpResponse = await _client.PostAuthAsync($"/dailyclose/{close.Id}/reject", request, token);
+        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/reject", request, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();

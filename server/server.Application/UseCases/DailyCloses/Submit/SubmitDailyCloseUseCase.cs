@@ -1,6 +1,7 @@
 using System.Globalization;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
+using server.Application.Services.Sessions;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Responses;
@@ -27,6 +28,7 @@ public class SubmitDailyCloseUseCase(
     IBranchClock branchClock,
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination accountCoordination,
+    SessionOpeningResolver openingResolver,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId, CancellationToken ct = default)
@@ -51,12 +53,10 @@ public class SubmitDailyCloseUseCase(
         memberAccountScopeGuard.EnsureMemberCanActOnAccount(branchUser.Role, memberScope, close.AccountId);
         workflowGuard.EnsureCanSubmit(close, branchUser, memberScope.LinkedOperator);
 
-        var openingSource = await dailyClosesRepository
-            .GetMostRecentBeforeDateByBranchIdAndAccountIdAsNoTracking(
-                branchUser.BranchId,
-                close.AccountId,
-                close.Date,
-                ct);
+        if (close.MappingState != SessionMappingState.Ready)
+            throw new ConflictException(ResourcesErrorMessages.SESSION_UNRESOLVED_NOT_WRITABLE);
+
+        var opening = await openingResolver.ResolveForCalculation(close, ct);
         var lockDate = await lockDateReader.Read(branchUser.BranchId, ct);
         lockDateGuard.EnsureNotLocked(
             close.Date,
@@ -66,21 +66,16 @@ public class SubmitDailyCloseUseCase(
         if (close.ItemsFirstRecordedAt is null)
             throw new ConflictException(ResourcesErrorMessages.DAILYCLOSE_ITEMS_NOT_RECORDED);
 
-        await dailyCloseLedgerGuard.EnsureNoOutstandingDraftTransactions(
-            branchUser.BranchId,
-            close.AccountId,
-            close.Date,
-            ct);
+        await dailyCloseLedgerGuard.EnsureNoOutstandingDraftTransactions(close, ct);
 
-        var rangeStartExclusive = openingSource?.Date.Date ?? DateTime.MinValue;
-        if (lockDate.Date > rangeStartExclusive)
-            rangeStartExclusive = lockDate.Date;
-
-        var uncountedActivityDate = await transactionsRepository
-            .GetEarliestUncountedActivityDateByAccountAsNoTracking(
+        // Submit-gap (§6.21): no uncounted, financially active predecessor session of the same cashbox may be
+        // skipped, and unresolved legacy cashbox activity stays a blocker. Locked history is already settled.
+        var uncountedActivityDate = await dailyClosesRepository
+            .GetEarliestUncountedPredecessorActivityDateAsNoTracking(close, lockDate.Date, ct)
+            ?? await transactionsRepository.GetEarliestUnsessionedCashboxActivityDateAsNoTracking(
                 branchUser.BranchId,
                 close.AccountId,
-                rangeStartExclusive,
+                lockDate.Date,
                 close.Date.Date,
                 ct);
 
@@ -94,13 +89,10 @@ public class SubmitDailyCloseUseCase(
         }
 
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
-        var cashVariance = await cashVarianceCalculator.CalculateWithOpeningSourceAsync(
-            branchUser.BranchId,
-            close.AccountId,
-            close.Date,
-            close.Id,
+        var cashVariance = await cashVarianceCalculator.CalculateWithOpeningAsync(
+            close,
+            opening,
             cashVarianceProductId,
-            openingSource,
             ct);
 
         var existingVariance = close.Items.FirstOrDefault(item =>

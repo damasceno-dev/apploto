@@ -26,6 +26,9 @@ public class ResponseTransactionJson
     public TransactionGenerationKind? GenerationKind { get; init; }
     public Guid? GeneratedFromTransactionId { get; init; }
 
+    /// <summary>The cashbox session of this row; null on Tab/Bank rows and unresolved legacy rows.</summary>
+    public Guid? SessionId { get; init; }
+
     /// <summary>On a fiado source with a physical leg: the generated Terminal row's id (M7.7 Phase 5.6).</summary>
     public Guid? GeneratedTransactionId { get; init; }
     public Guid RecordedByOperatorId { get; init; }
