@@ -39,7 +39,8 @@ test('every public runtime export has a native case or an exhaustive label-map c
     names.filter((name) => !covered.has(name)),
     [],
   );
-  assert.equal(new Set(names).size, 99);
+  // The current core adds eight public custody/session label maps; keep exhaustive coverage.
+  assert.equal(new Set(names).size, 107);
 });
 test('portable native core cases import only public core and the local copy oracle', () => {
   const source = ts.createSourceFile('probe.ts', probe, ts.ScriptTarget.ES2022, true);

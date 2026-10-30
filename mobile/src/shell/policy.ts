@@ -30,6 +30,7 @@ export type DestinationKey =
   | 'operator-transactions'
   | 'hours'
   | 'time'
+  | 'time-detail'
   | 'operators'
   | 'assignments'
   | 'accounts'
@@ -195,6 +196,7 @@ export const destinations: readonly Destination[] = [
     undefined,
     'time',
   ),
+  item('time-detail', '/gestao/ponto/:id', 'Registro de ponto', 'management', 9, undefined, 'time'),
   item('time', '/gestao/ponto', 'Gestão de ponto', 'management', 9, 'Ponto'),
   item('operators', '/gestao/operadores', 'Operadores', 'management', 10, 'Cadastros'),
   item(

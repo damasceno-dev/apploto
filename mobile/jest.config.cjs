@@ -12,6 +12,6 @@ module.exports = {
     '^@tanstack/react-query$': '<rootDir>/node_modules/@tanstack/react-query',
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(.pnpm|((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@react-native-async-storage/.*|nativewind|react-native-css-interop|@tanstack/.*)))',
+    'node_modules/(?!(.pnpm|((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@react-native-async-storage/.*|nativewind|react-native-css-interop|@tanstack/.*|@react-navigation/.*|standard-navigation)))',
   ],
 };

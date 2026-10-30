@@ -12,6 +12,7 @@ import {
 import { Linking } from 'react-native';
 import { usePathname, useRouter, useGlobalSearchParams, type Href } from 'expo-router';
 import { useOptionalSession, useSession } from '@/session/provider';
+import { validateTimeResource } from '@/time/resources';
 import { nativeDeviceStore, emailPartitionKey } from '@/storage/native';
 import {
   destinations,
@@ -124,6 +125,7 @@ function useShellState() {
         raw,
         branch.role,
         Boolean(snapshot.selfContext?.operatorId),
+        (path) => validateTimeResource(engine, path),
       );
       if (!alive || engine.getSnapshot().scope !== scope) return;
       const accepted =
@@ -165,8 +167,31 @@ function useShellState() {
     address,
     router,
   ]);
+  useEffect(() => {
+    if (
+      !ready ||
+      !snapshot.user ||
+      !snapshot.branch ||
+      !permittedPath(address, snapshot.branch.role)
+    )
+      return;
+    void retained
+      .write(snapshot.user, snapshot.branch.id, {
+        v: 1,
+        path: address,
+        mode: effectiveMode,
+        origins,
+      })
+      .catch(() => setNotice('Não foi possível guardar a navegação neste dispositivo.'));
+  }, [ready, snapshot.user, snapshot.branch, address, effectiveMode, origins, retained]);
   const navigate = useCallback(
-    async (path: string, keepOrigin = false, replace = false) => {
+    async (
+      path: string,
+      keepOrigin = false,
+      replace = false,
+      row?: string,
+      preserveOrigins = false,
+    ) => {
       const current = engine.getSnapshot();
       if (
         !current.user ||
@@ -194,9 +219,16 @@ function useShellState() {
         !fresh.selfContext?.operatorId
           ? 'management'
           : selectedMode;
-      const nextOrigins = keepOrigin
-        ? [...live.current.origins, live.current.pathname].slice(-8)
-        : [];
+      const opener = new URL(live.current.pathname, 'https://navigation.invalid');
+      if (row) {
+        opener.searchParams.set('row', row);
+        opener.searchParams.set('focus', row);
+      }
+      const nextOrigins = preserveOrigins
+        ? live.current.origins
+        : keepOrigin
+          ? [...live.current.origins, opener.pathname + opener.search].slice(-8)
+          : [];
       const record: ShellNavigation = { v: 1, path, mode: nextMode, origins: nextOrigins };
       try {
         await retained.write(current.user, current.branch.id, record);
@@ -206,6 +238,7 @@ function useShellState() {
       if (engine.getSnapshot().scope !== current.scope) return;
       setMode(nextMode);
       setOrigins(nextOrigins);
+      if (row) router.setParams({ row, focus: row });
       if (replace || !keepOrigin) router.replace(nativeHref(path, current.branch.id));
       else router.push(nativeHref(path, current.branch.id));
     },
@@ -226,11 +259,16 @@ function useShellState() {
       return;
     const destination = matchDestination(live.current.pathname.split('?')[0]!);
     const origin = live.current.origins.at(-1);
+    const originDestination = origin ? matchDestination(origin.split('?')[0]!) : null;
+    const originMode = originDestination
+      ? destinationMode(originDestination, current.branch.role, live.current.mode)
+      : live.current.mode;
     const candidate = origin
       ? await validateShellNavigation(
-          { v: 1, path: origin, mode: live.current.mode, origins: [] },
+          { v: 1, path: origin, mode: originMode, origins: [] },
           current.branch.role,
           Boolean(current.selfContext?.operatorId),
+          (path) => validateTimeResource(engine, path),
         )
       : null;
     // A resource origin waits for its owning feature's fresh validator; no stored id proves access.
@@ -260,7 +298,8 @@ function useShellState() {
     if (engine.getSnapshot().scope !== current.scope) return;
     setMode(nextMode);
     setOrigins(nextOrigins);
-    if (candidate && router.canGoBack()) router.back();
+    // Native history may contain repeated deep-link/resource entries. Return to the validated opener.
+    if (candidate) router.dismissTo(nativeHref(target, current.branch.id));
     else router.replace(nativeHref(target, current.branch.id));
   }, [engine, router, retained]);
 
@@ -274,6 +313,7 @@ function useShellState() {
     logoutNotice,
     setLogoutNotice,
     navigate,
+    replacePreservingOrigin: (path: string) => navigate(path, false, true, undefined, true),
     back,
     async switchMode(next: WorkMode) {
       await engine.refresh({ selfContext: true });
