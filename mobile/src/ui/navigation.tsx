@@ -112,7 +112,12 @@ export function SegmentedControl<V extends string>({
   disabled = false,
   testID,
 }: {
-  readonly options: readonly { readonly value: V; readonly label: string }[];
+  readonly options: readonly {
+    readonly value: V;
+    readonly label: string;
+    readonly disabled?: boolean;
+    readonly disabledReason?: string;
+  }[];
   readonly value: V;
   readonly onValueChange: (value: V) => void;
   readonly accessibilityLabel: string;
@@ -137,14 +142,16 @@ export function SegmentedControl<V extends string>({
     >
       {options.map((option, index) => {
         const selected = option.value === value;
+        const blocked = disabled || Boolean(option.disabled);
         return (
           <Pressable
             key={option.value}
             accessibilityRole="radio"
             accessibilityLabel={option.label}
-            accessibilityState={{ checked: selected, disabled }}
+            accessibilityState={{ checked: selected, disabled: blocked }}
+            accessibilityHint={blocked ? option.disabledReason : undefined}
             onPress={() => {
-              if (!disabled) onValueChange(option.value);
+              if (!blocked) onValueChange(option.value);
             }}
             style={{
               minHeight: spacing.size['touch-target-comfortable'],
@@ -160,7 +167,7 @@ export function SegmentedControl<V extends string>({
             {selected ? <Glyph name="check" color={colors.sem.selection.indicator} /> : null}
             <AppText
               variant={selected ? 'body-strong' : 'control'}
-              tone={disabled ? 'disabled' : 'primary'}
+              tone={blocked ? 'disabled' : 'primary'}
             >
               {option.label}
             </AppText>

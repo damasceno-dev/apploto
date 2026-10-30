@@ -109,6 +109,8 @@ export function rig() {
               branchLocalDateTime: `${date}T09:00:00`,
             })
           : response({ errorMessages: ['Sessão inválida.'] }, 401);
+      if (path === '/operator/self-context')
+        return response({ operatorId: userId, availableAccounts: [], primaryAccount: null });
       if (path === '/transaction')
         return response({ transaction: { id: '30000000-0000-4000-8000-000000000001' } }, 201, {
           etag: '"123"',

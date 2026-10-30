@@ -1,5 +1,6 @@
 import type {
   ResponseTokenJson,
+  ResponseSelfContextJson,
   ResponseUserProfileJson,
   ResponseBranchSummaryJson,
   ResponseGetCurrentBranchSummaryJson,
@@ -32,6 +33,10 @@ export interface SessionSnapshot {
   readonly user: ResponseUserProfileJson | null;
   readonly branch: ResponseBranchSummaryJson | null;
   readonly clock: ResponseGetCurrentBranchSummaryJson | null;
+  readonly accessChanged: boolean;
+  readonly selfContext: ResponseSelfContextJson | null;
+  readonly selfStatus: 'idle' | 'checking' | 'ready' | 'failed';
+  readonly selfMessages: readonly string[];
   readonly dayChanged: boolean;
   readonly online: boolean;
   readonly foreground: boolean;

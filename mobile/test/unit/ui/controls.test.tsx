@@ -126,14 +126,16 @@ describe('FormField state inheritance', () => {
     expect(fromField.props.accessibilityHint).toContain('Escolha a filial primeiro');
   });
 
-  test('an explicit invalid=false from the control wins over the field error', async () => {
+  test('an explicit invalid=false cannot remove the field error state', async () => {
     renderThemed(
       <FormField label="Valor" error="Mensagem do servidor">
         <TextField value="" onChangeText={() => undefined} invalid={false} testID="control" />
       </FormField>,
     );
     const input = await screen.findByTestId('control');
-    expect(input.parent?.parent).toBeTruthy();
+    let frame = input.parent;
+    while (frame && styleOf(frame).borderColor === undefined) frame = frame.parent;
+    expect(frame && styleOf(frame).borderColor).toBe(light.sem.border['control-invalid']);
     expect(screen.getByText('Mensagem do servidor')).toBeTruthy();
   });
 
@@ -605,4 +607,18 @@ describe('choice controls', () => {
     expect(onSwitch).not.toHaveBeenCalled();
     expect(screen.getByText('Desativado', { includeHiddenElements: true })).toBeTruthy();
   });
+});
+
+test('product field errors remain inherited when a child passes invalid=false; disabled text never emits', async () => {
+  const changed = jest.fn();
+  renderThemed(
+    <FormField label="E-mail de entrada" error="Confira este campo." disabled>
+      <TextField invalid={false} value="retido" onChangeText={changed} />
+    </FormField>,
+  );
+  const field = await screen.findByLabelText('E-mail de entrada');
+  expect(field.props.accessibilityHint).toContain('Confira este campo.');
+  expect(field.props.editable).toBe(false);
+  fireEvent.changeText(field, 'outro');
+  expect(changed).not.toHaveBeenCalled();
 });

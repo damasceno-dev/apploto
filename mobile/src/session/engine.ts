@@ -6,6 +6,7 @@ import {
   postUserRenewToken,
   postBranchSession,
   getBranchCurrent,
+  getOperatorSelfContext,
   isApiError,
   ApiError,
   type ApiClient,
@@ -53,6 +54,13 @@ export class SessionEngine {
   private lastClockAt: number | null = null;
   private baselineDate: string | null = null;
   private clockReadSequence = 0;
+  private contextSequence = 0;
+  private authorityChecks = new Set<symbol>();
+  // Verified baselines survive transient failures and scoped session recreation.
+  private selfBaselines = new Map<string, string>();
+  private navigationSuppressed = false;
+  private lastNavigationUser: string | null = null;
+  private lastNavigationBranch: string | null = null;
   private observedServerMs: number | null = null;
   private snapshot: SessionSnapshot = {
     status: 'starting',
@@ -60,6 +68,10 @@ export class SessionEngine {
     user: null,
     branch: null,
     clock: null,
+    selfContext: null,
+    accessChanged: false,
+    selfStatus: 'idle',
+    selfMessages: [],
     dayChanged: false,
     online: true,
     foreground: true,
@@ -78,11 +90,24 @@ export class SessionEngine {
   get baseUrl() {
     return this.options.baseUrl;
   }
+  canCaptureNavigation = () => !this.navigationSuppressed;
+  navigationBranch = () => this.snapshot.branch?.id ?? this.lastNavigationBranch;
+  navigationOwner = () => this.snapshot.user?.userId ?? this.lastNavigationUser;
+  incomingNavigation = () => {
+    this.navigationSuppressed = false;
+    if (!this.snapshot.user) {
+      this.lastNavigationUser = null;
+      this.lastNavigationBranch = null;
+    }
+  };
+  identityRevision = () => this.identityGeneration;
   serverNow = () => this.observedServerMs;
   private publish(update: Partial<SessionSnapshot>) {
     const next = { ...this.snapshot, ...update, scope: this.scopeGeneration };
     next.writesPaused =
       next.status !== 'branch' ||
+      next.selfStatus !== 'ready' ||
+      this.authorityChecks.size > 0 ||
       next.dayChanged ||
       !next.online ||
       !next.foreground ||
@@ -94,12 +119,32 @@ export class SessionEngine {
     this.snapshot = next;
     for (const listener of this.listeners) listener();
   }
+  /** Keep verification quiet in presentation while fencing every branch write. */
+  private holdAuthorityWrites() {
+    const check = Symbol();
+    this.authorityChecks.add(check);
+    this.publish({});
+    return () => {
+      // A superseded scope's completion cannot release a newer scope's hold.
+      if (this.authorityChecks.delete(check)) this.publish({});
+    };
+  }
   private boundary() {
+    this.authorityChecks.clear();
     this.scopeAbort.abort();
     this.scopeAbort = new AbortController();
     this.scopeGeneration++;
     this.lastClockAt = null;
-    this.publish({ clock: null, branch: null, dayChanged: false });
+    this.contextSequence++;
+    this.publish({
+      clock: null,
+      branch: null,
+      dayChanged: false,
+      selfContext: null,
+      accessChanged: false,
+      selfStatus: 'idle',
+      selfMessages: [],
+    });
   }
   private assertIdentity(generation: number) {
     if (generation !== this.identityGeneration) throw new SessionSupersededError();
@@ -151,6 +196,7 @@ export class SessionEngine {
   async start(): Promise<void> {
     return this.command(async () => {
       const generation = ++this.identityGeneration;
+      this.lastNavigationBranch = null;
       this.boundary();
       this.publish({ status: 'starting', user: null, recovery: null, messages: [] });
       try {
@@ -168,8 +214,15 @@ export class SessionEngine {
           return;
         }
         if (!(await this.verifyIdentity(generation))) return;
-        if (this.envelope?.branch && this.snapshot.status !== 'branch')
-          await this.openBranch(this.envelope.branch.id, generation);
+        if (this.envelope?.branch) {
+          // A new process has no in-memory authority baseline for persisted workstation state.
+          await this.cleanupSelections(
+            { userId: this.envelope.user.userId, branchId: this.envelope.branch.id },
+            generation,
+          );
+          if (this.snapshot.status !== 'branch')
+            await this.openBranch(this.envelope.branch.id, generation);
+        }
       } catch (error) {
         await this.handleVerificationFailure(error, generation);
       }
@@ -181,7 +234,9 @@ export class SessionEngine {
         ? { userId: this.envelope.user.userId, branchId: this.envelope.branch.id }
         : null;
       const generation = ++this.identityGeneration;
+      this.lastNavigationBranch = null;
       this.boundary();
+      this.selfBaselines.clear();
       this.envelope = null;
       this.profile = null;
       this.baselineDate = null;
@@ -237,6 +292,8 @@ export class SessionEngine {
     if (profile.userId !== this.envelope?.user.userId || profile.email !== this.envelope.user.email)
       throw new SessionGateError('A identidade guardada não corresponde à sessão verificada.');
     this.profile = profile;
+    this.lastNavigationUser = profile.userId;
+    this.navigationSuppressed = false;
     const branchReady =
       this.envelope?.branch &&
       this.snapshot.branch &&
@@ -258,6 +315,7 @@ export class SessionEngine {
       if (id !== null && !isServerId(id)) throw new SessionGateError('A filial é inválida.');
       const generation = this.identityGeneration;
       const previous = this.envelope.branch;
+      if (previous || id === null) this.navigationSuppressed = true;
       this.boundary();
       this.baselineDate = null;
       this.publish({ status: 'recovering' });
@@ -280,6 +338,7 @@ export class SessionEngine {
       if (id) {
         try {
           await this.openBranch(id, generation);
+          this.navigationSuppressed = false;
         } catch (error) {
           await this.branchFailure(error, generation);
           throw error;
@@ -313,7 +372,26 @@ export class SessionEngine {
       throw new SessionGateError('O contexto da filial é inválido.');
     this.envelope = { ...this.envelope, branch: { id, token: session.token } };
     await this.durable(this.envelope, generation);
-    await this.readClock(generation, recover);
+    const scope = this.scopeGeneration;
+    try {
+      await this.readClock(generation, recover);
+    } catch (error) {
+      // A concurrent poll may already have verified this same branch. Finish self
+      // verification without abandoning the branch or repeating its session command.
+      if (
+        !(error instanceof SessionSupersededError) ||
+        generation !== this.identityGeneration ||
+        scope !== this.scopeGeneration ||
+        this.closing ||
+        this.snapshot.status !== 'branch' ||
+        this.snapshot.branch?.id !== id ||
+        this.snapshot.clock?.branch.id !== id ||
+        this.lastClockAt === null ||
+        this.options.monotonicNow() - this.lastClockAt > 60000
+      )
+        throw error;
+    }
+    await this.recheckSelfContext();
   }
   private async readClock(generation: number, recover = true) {
     const branch = this.envelope?.branch;
@@ -367,10 +445,85 @@ export class SessionEngine {
       user: this.profile,
       branch: data.branch,
       clock: data,
+      accessChanged: Boolean(roleChanged) || this.snapshot.accessChanged,
       dayChanged: this.baselineDate !== data.branchLocalDate,
       messages: [],
       recovery: null,
     });
+    this.lastNavigationBranch = data.branch.id;
+  }
+  /** Fresh self-context is authority for own work, never inferred from the navigation mode. */
+  async recheckSelfContext({ background = false } = {}): Promise<void> {
+    const scope = this.scopeGeneration;
+    const generation = this.identityGeneration;
+    const branch = this.envelope?.branch;
+    if (
+      !branch ||
+      this.snapshot.status !== 'branch' ||
+      !this.snapshot.online ||
+      !this.snapshot.foreground
+    )
+      return;
+    const sequence = ++this.contextSequence;
+    const owner = JSON.stringify([
+      this.envelope!.user.userId,
+      this.envelope!.user.email,
+      branch.id,
+    ]);
+    const previous = this.selfBaselines.get(owner);
+    const release = this.holdAuthorityWrites();
+    if (!background) this.publish({ selfStatus: 'checking', selfMessages: [] });
+    try {
+      const { data } = await getOperatorSelfContext({
+        client: this.direct(branch.token),
+        signal: this.scopeAbort.signal,
+      });
+      this.assertIdentity(generation);
+      if (scope !== this.scopeGeneration || sequence !== this.contextSequence) return;
+      if (
+        !Array.isArray(data.availableAccounts) ||
+        (data.operatorId != null && !isServerId(data.operatorId))
+      )
+        throw new SessionGateError('Não foi possível verificar seu vínculo nesta filial.');
+      const fingerprint = (value: typeof data) =>
+        JSON.stringify([
+          value.operatorId ?? null,
+          value.primaryAccount?.accountId ?? null,
+          value.availableAccounts
+            .map((a) => [
+              a.id,
+              a.accountId,
+              a.accountType,
+              a.isPrimary,
+              a.pairedTabAccountId ?? null,
+            ])
+            .sort(),
+        ]);
+      const nextFingerprint = fingerprint(data);
+      if (previous !== undefined && previous !== nextFingerprint) {
+        this.publish({ selfStatus: 'checking' });
+        await this.options.clearSelections(this.envelope!.user.userId, branch.id);
+        if (scope !== this.scopeGeneration || sequence !== this.contextSequence) return;
+        // Cancel outstanding scoped work and detach late results, retaining verified branch/clock.
+        this.authorityChecks.clear();
+        this.scopeAbort.abort();
+        this.scopeAbort = new AbortController();
+        this.scopeGeneration++;
+        this.publish({ accessChanged: true });
+      }
+      this.selfBaselines.set(owner, nextFingerprint);
+      this.publish({ selfContext: data, selfStatus: 'ready', selfMessages: [] });
+    } catch (error) {
+      if (
+        generation !== this.identityGeneration ||
+        scope !== this.scopeGeneration ||
+        sequence !== this.contextSequence
+      )
+        return;
+      this.publish({ selfContext: null, selfStatus: 'failed', selfMessages: messagesOf(error) });
+    } finally {
+      release();
+    }
   }
   private validateClock(data: ResponseGetCurrentBranchSummaryJson, id: string) {
     if (
@@ -382,12 +535,19 @@ export class SessionEngine {
       throw new SessionGateError('Não foi possível verificar o horário da filial.');
     formatWallDateTime(data.branchLocalDateTime);
   }
+  acknowledgeAccessChange() {
+    this.publish({ accessChanged: false });
+  }
   acknowledgeDayChange() {
     if (this.snapshot.clock) this.baselineDate = this.snapshot.clock.branchLocalDate;
     this.publish({ dayChanged: false });
   }
+  /** Entry/return is a fresh read boundary before any protected destination is mounted. */
+  async verifyEntry({ selfContext = false } = {}): Promise<void> {
+    await this.refresh({ selfContext, background: true });
+  }
   /** Timers/events request fresh data; they never advance business time or submit a write. */
-  async refresh(): Promise<void> {
+  async refresh({ selfContext = false, background = false } = {}): Promise<void> {
     if (
       this.closing ||
       !this.envelope ||
@@ -398,23 +558,52 @@ export class SessionEngine {
       return;
     const generation = this.identityGeneration;
     const scope = this.scopeGeneration;
+    const release = selfContext ? this.holdAuthorityWrites() : null;
     try {
       if (!(await this.verifyIdentity(generation))) return;
       if (scope !== this.scopeGeneration) return;
-      if (this.envelope?.branch) await this.readClock(generation);
+      if (this.envelope?.branch) {
+        try {
+          await this.readClock(generation);
+        } catch (error) {
+          // A newer clock-only poll may win the clock read; it cannot satisfy this
+          // foreground/reconnect check's mandatory self-context verification.
+          if (
+            !(error instanceof SessionSupersededError) ||
+            !selfContext ||
+            generation !== this.identityGeneration ||
+            scope !== this.scopeGeneration
+          )
+            throw error;
+        }
+        if (selfContext || this.snapshot.selfStatus === 'idle')
+          await this.recheckSelfContext({ background });
+      }
     } catch (error) {
       await this.handleVerificationFailure(error, generation);
+    } finally {
+      release?.();
     }
   }
   async connectivity(online: boolean) {
-    if (!online) this.lastClockAt = null;
-    this.publish({ online });
-    if (online) await this.refresh();
+    const release = online ? this.holdAuthorityWrites() : null;
+    try {
+      if (!online) this.lastClockAt = null;
+      this.publish({ online });
+      if (online) await this.refresh({ selfContext: true, background: true });
+    } finally {
+      release?.();
+    }
   }
   async foreground(active: boolean) {
-    if (!active) this.lastClockAt = null;
-    this.publish({ foreground: active });
-    if (active) await this.refresh();
+    const release = active ? this.holdAuthorityWrites() : null;
+    try {
+      if (!active) this.lastClockAt = null;
+      this.publish({ foreground: active });
+      if (active) await this.refresh({ selfContext: true, background: true });
+    } finally {
+      release?.();
+    }
   }
   async recover() {
     if (this.snapshot.status === 'storage-error' && !this.envelope) {
@@ -425,14 +614,14 @@ export class SessionEngine {
       this.lastClockAt = null;
       await this.durable(this.envelope, this.identityGeneration);
       this.publish({ status: 'recovering' });
-      await this.refresh();
+      await this.refresh({ selfContext: true });
       return;
     }
     if (this.snapshot.status === 'renewal-unconfirmed') {
       await this.renewIdentity(true);
       return;
     }
-    await this.refresh();
+    await this.refresh({ selfContext: true });
   }
   private renewIdentity(verification = false, forLogout = false): Promise<boolean> {
     if (this.renewal) return this.renewal;
@@ -540,6 +729,7 @@ export class SessionEngine {
   ) {
     const generation = ++this.identityGeneration;
     this.boundary();
+    this.selfBaselines.clear();
     this.envelope = null;
     this.profile = null;
     this.baselineDate = null;
@@ -601,6 +791,7 @@ export class SessionEngine {
     const previousSelection = this.envelope?.branch
       ? { userId: this.envelope.user.userId, branchId: this.envelope.branch.id }
       : null;
+    this.navigationSuppressed = true;
     this.closing = true;
     this.boundary();
     this.publish({ status: 'closing', user: null });
@@ -682,6 +873,16 @@ export class SessionEngine {
       if (scope !== this.scopeGeneration || signal.aborted || this.closing)
         throw new SessionSupersededError();
     };
+    const guardWrite = (tier: AuthTier | null, method: string) => {
+      if (
+        tier === 'branch' &&
+        method !== 'GET' &&
+        (this.snapshot.writesPaused ||
+          this.lastClockAt === null ||
+          this.options.monotonicNow() - this.lastClockAt > 60000)
+      )
+        throw new SessionGateError();
+    };
     const token = async (tier: AuthTier, method: string) => {
       guard();
       if (tier === 'anonymous') return null;
@@ -692,14 +893,10 @@ export class SessionEngine {
         !this.profile ||
         !['identity', 'branch'].includes(this.snapshot.status) ||
         !this.snapshot.online ||
-        !this.snapshot.foreground ||
-        (tier === 'branch' &&
-          method !== 'GET' &&
-          (this.snapshot.writesPaused ||
-            this.lastClockAt === null ||
-            this.options.monotonicNow() - this.lastClockAt > 60000))
+        !this.snapshot.foreground
       )
         throw new SessionGateError();
+      guardWrite(tier, method);
       if (tier === 'identity') return this.envelope.tokens.token;
       if (this.snapshot.status !== 'branch' || !this.envelope.branch || !this.snapshot.clock)
         throw new SessionGateError();
@@ -713,6 +910,7 @@ export class SessionEngine {
         const method = init?.method?.toUpperCase() ?? 'GET';
         const url = String(input);
         const tier = this.tier(method, url);
+        guardWrite(tier, method);
         const abort = new AbortController();
         const cancel = () => abort.abort();
         signal.addEventListener('abort', cancel, { once: true });
@@ -781,7 +979,7 @@ export class SessionEngine {
           } else if (response.status === 403 && tier === 'branch') {
             this.lastClockAt = null;
             this.publish({ recovery: 'Seu acesso precisa ser verificado novamente.' });
-            // No renewal on 403. The next explicit refresh obtains live role/grants.
+            // No renewal or write replay on 403; recheck role/grants after the refused body is delivered.
           }
           return new Proxy(response, {
             get: (target, key) => {
@@ -791,6 +989,12 @@ export class SessionEngine {
                     guard();
                     const body = await target.text();
                     guard();
+                    if (tier === 'branch' && [400, 403].includes(target.status)) {
+                      queueMicrotask(() => {
+                        if (scope === this.scopeGeneration && !this.closing)
+                          void this.refresh({ selfContext: true, background: true });
+                      });
+                    }
                     return body;
                   } finally {
                     cleanup();

@@ -195,7 +195,9 @@ export const TextField = forwardRef<InputHandle, TextFieldProps>(function TextFi
           ref={input}
           testID={testID}
           value={value}
-          onChangeText={onChangeText}
+          onChangeText={(text) => {
+            if (!control.disabled && !control.readOnly) onChangeText(text);
+          }}
           editable={!control.disabled}
           placeholder={placeholder}
           placeholderTextColor={chrome.placeholder}
@@ -333,6 +335,7 @@ export const IdentifierInput = forwardRef<InputHandle, IdentifierInputProps>(
             setControlled(undefined);
           }}
           onChangeText={(raw) => {
+            if (control.disabled || control.readOnly) return;
             const next = editIdentifier(kind, value, raw, selection.current);
             selection.current = { start: next.caret, end: next.caret };
             if (next.text !== raw) setControlled({ start: next.caret, end: next.caret });

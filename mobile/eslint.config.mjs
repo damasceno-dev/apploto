@@ -39,7 +39,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['src/app/**/{_layout,index,+not-found}.tsx'],
+    files: ['src/app/**/*.tsx'],
     rules: { 'no-restricted-syntax': 'off' },
   },
   { files: ['src/theme/token-adapter.ts'], rules: { 'loto/raw-color': 'off' } },

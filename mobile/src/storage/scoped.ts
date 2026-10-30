@@ -37,6 +37,25 @@ export class ScopedDeviceStore {
     private readonly engine: SessionEngine,
     private readonly hash: (email: string) => Promise<string>,
   ) {}
+  /** Counts only for the currently verified identity; never lets another employee's input drive shell/logout UI. */
+  inspectOwnWork(): Promise<{ readonly drafts: number; readonly operations: number }> {
+    return this.exclusive(async () => {
+      const user = this.engine.getSnapshot().user;
+      if (!user) return { drafts: 0, operations: 0 };
+      const emailKey = await this.hash(user.email);
+      const keys = await this.storage.getAllKeys();
+      const current = this.engine.getSnapshot().user;
+      if (current?.userId !== user.userId || current.email !== user.email)
+        throw new SessionSupersededError();
+      return {
+        drafts: keys.filter((key) => key.startsWith(`loto.draft.v1:${user.userId}:${emailKey}:`))
+          .length,
+        operations: keys.filter((key) =>
+          key.startsWith(`loto.operation.v1:${user.userId}:${emailKey}:`),
+        ).length,
+      };
+    });
+  }
   /** Counts only, including quarantined owners; never exposes another person's input. */
   inspectRetainedData(): Promise<RetainedDataReview> {
     return this.exclusive(async () => {

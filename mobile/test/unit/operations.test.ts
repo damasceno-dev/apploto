@@ -1,3 +1,4 @@
+import { waitFor } from '@testing-library/react-native';
 import { FinancialOperation, isOperationRecord } from '../../src/data/operations';
 import { ScopedDeviceStore } from '../../src/storage/scoped';
 import { GuardedResource } from '../../src/data/guarded';
@@ -74,7 +75,9 @@ it.each([401, 403, 429, 409])(
       return undefined;
     });
     await r.make().submit({ operation: 'transaction', payload });
-    await r.engine.refresh(); // 403 pauses writes until fresh role/clock verification.
+    await r.engine.refresh({ selfContext: true });
+    // The refused write queues a separate verification; both must finish before resubmission.
+    await waitFor(() => expect(r.engine.getSnapshot().writesPaused).toBe(false));
     expect(
       await r.make().submit({ operation: 'transaction', payload: { ...payload, value: 25 } }),
     ).toMatchObject({ kind: 'confirmed' });
@@ -96,7 +99,8 @@ it('uncertainty followed by an auth refusal still requires reconciliation before
   });
   await r.make().submit({ operation: 'transaction', payload });
   await r.make().verifyAndRetry();
-  await r.engine.refresh();
+  await r.engine.refresh({ selfContext: true });
+  await waitFor(() => expect(r.engine.getSnapshot().writesPaused).toBe(false));
   expect(
     await r.make().submit({ operation: 'transaction', payload: { ...payload, value: 25 } }),
   ).toEqual({ kind: 'unresolved' });

@@ -91,6 +91,8 @@ export class NavigationIntentStore {
     private readonly monotonicNow: () => number = () => performance.now(),
   ) {}
   async hold(destination: unknown, branchId: string | null = null, origin: readonly string[] = []) {
+    if (!this.engine.canCaptureNavigation() || this.engine.getSnapshot().status === 'closing')
+      return;
     const safe = safeDestination(destination);
     if (
       !safe ||
@@ -99,11 +101,10 @@ export class NavigationIntentStore {
       origin.some((path) => safeDestination(path) === null)
     )
       throw new SessionGateError('O destino solicitado não é válido.');
-    const snapshot = this.engine.getSnapshot();
     const record: NavigationIntent = {
       v: 1,
-      userId: snapshot.user?.userId ?? null,
-      branchId,
+      userId: this.engine.navigationOwner(),
+      branchId: branchId ?? this.engine.navigationBranch(),
       destination: safe,
       origin,
       serverCapturedAt: this.engine.serverNow(),
@@ -186,6 +187,14 @@ export class NavigationIntentStore {
     await this.storage.setItem(key, JSON.stringify(verified));
     this.pending = null;
     return this.engine.getSnapshot().scope === snapshot.scope ? verified : null;
+  }
+  async discardForeignBranch(branchId: string) {
+    try {
+      const raw = this.pending?.record ?? JSON.parse((await this.storage.getItem(key)) ?? 'null');
+      if (raw && raw.branchId !== null && raw.branchId !== branchId) await this.acknowledge();
+    } catch {
+      await this.acknowledge();
+    }
   }
   async acknowledge() {
     this.pending = null;

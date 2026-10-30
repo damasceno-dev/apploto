@@ -37,15 +37,15 @@ export interface OwnFieldState {
 
 /**
  * A control's effective state inside or outside a FormField. The field only **adds**: either the
- * control or its field disables, requires or makes it read-only; an explicit `invalid` from the
- * control wins over the field's error. Outside a field the control's own props apply unchanged.
+ * control or its field disables, requires or makes it read-only; an invalid control or field error
+ * keeps the whole control invalid. Outside a field the control's own props apply unchanged.
  */
 export function useFieldControl(own: OwnFieldState) {
   const field = useContext(FieldContext);
   const disabled = Boolean(own.disabled) || Boolean(field?.disabled);
   const readOnly = Boolean(own.readOnly) || Boolean(field?.readOnly);
   const required = Boolean(own.required) || Boolean(field?.required);
-  const invalid = own.invalid ?? Boolean(field?.error);
+  const invalid = Boolean(own.invalid) || Boolean(field?.error);
   const hint = [
     own.accessibilityHint,
     field?.helper,
