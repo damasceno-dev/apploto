@@ -41,12 +41,14 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
             })
             .ToListAsync();
 
-        // Twenty-one ordinary seeds plus the two M7.7 Phase 5.6 system-owned counterpart types.
-        persistedRows.Count.ShouldBe(23);
-        persistedRows.Count(row => row.SystemRole != null).ShouldBe(2);
+        // 25 catalog rows (the close-field and deposit types among them), the 32 Access expense types and the three
+        // automatic-leg types: 60, of which 8 are system-owned (M7.7 Phase 5.6; M9.6 Phases 6, 7 and 9).
+        persistedRows.Count.ShouldBe(60);
+        persistedRows.Count(row => row.SystemRole != null).ShouldBe(8);
 
-        persistedRows.Where(row => row.Name is "Tarifa Bolão" or "Operador")
-            .ShouldAllBe(row => row.DefaultDirection == Direction.In && row.SystemRole == null);
+        persistedRows.Where(row => row.Name is "Tarifa Bolão" or "Tarifa Especial" or "Relatório do terminal")
+            .ShouldAllBe(row => row.DefaultDirection == Direction.In && row.SystemRole != null);
+        persistedRows.ShouldNotContain(row => row.Name == "Operador");
         var products = await dbContext.Products.AsNoTracking().Where(row => row.BranchId == branch.Id).ToListAsync();
         products.Count.ShouldBe(7);
         products.ShouldNotContain(row => row.Name == "Tarifa Bolão");
@@ -100,7 +102,7 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
         return new Dictionary<(string Name, string CategoryName), (SettlementRule SettlementRule, bool RequiresTabAccountAndClient)>
         {
             [("Tarifa Bolão", "Receita")] = (SettlementRule.SameDay, false),
-            [("Operador", "Entradas")] = (SettlementRule.SameDay, false),
+            [("Relatório do terminal", "Entradas")] = (SettlementRule.SameDay, false),
             [("Cliente", "Saídas")] = (SettlementRule.SameDay, true),
             [("Depósito Dinheiro", "Saídas")] = (SettlementRule.NextCalendarDay, false),
             [("Cartão de Crédito", "Saídas")] = (SettlementRule.TwoBusinessDays, false),

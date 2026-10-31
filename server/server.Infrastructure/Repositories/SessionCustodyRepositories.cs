@@ -338,3 +338,75 @@ internal class CustodyMappingIssuesRepository(ServerDbContext dbContext) : ICust
         return rows.Select(row => new CustodyMappingIssueCountRow(row.IssueCode, row.Count)).ToList();
     }
 }
+
+internal class SessionFieldEffectsRepository(ServerDbContext dbContext) : ISessionFieldEffectsRepository
+{
+    public async Task<IReadOnlyList<SessionFieldEffect>> ListBySessionId(
+        Guid branchId,
+        Guid sessionId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.SessionFieldEffects
+            .Where(effect => effect.BranchId == branchId && effect.SessionId == sessionId)
+            .OrderBy(effect => effect.Field)
+            .ToListAsync(ct);
+    }
+
+    public async Task<IReadOnlyList<SessionFieldEffect>> ListBySessionIdAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        CancellationToken ct = default)
+    {
+        return await dbContext.SessionFieldEffects
+            .AsNoTracking()
+            .Where(effect => effect.BranchId == branchId && effect.SessionId == sessionId)
+            .OrderBy(effect => effect.Field)
+            .ToListAsync(ct);
+    }
+
+    public async Task Add(SessionFieldEffect effect, CancellationToken ct = default)
+    {
+        await dbContext.SessionFieldEffects.AddAsync(effect, ct);
+    }
+
+    public async Task AddRevision(SessionFieldEffectRevision revision, CancellationToken ct = default)
+    {
+        await dbContext.SessionFieldEffectRevisions.AddAsync(revision, ct);
+    }
+
+    public async Task<bool> ExistsUnadoptedFieldRowAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        IReadOnlyCollection<TransactionTypeSystemRole> roles,
+        CancellationToken ct = default)
+    {
+        var roleValues = roles.Cast<TransactionTypeSystemRole?>().ToList();
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .AnyAsync(row =>
+                row.BranchId == branchId &&
+                row.SessionId == sessionId &&
+                row.Active &&
+                row.GenerationKind == null &&
+                row.Status != TransactionStatus.Cancelled &&
+                roleValues.Contains(row.TransactionType.SystemRole), ct);
+    }
+}
+
+internal class CustodyTransfersRepository(ServerDbContext dbContext) : ICustodyTransfersRepository
+{
+    public async Task Add(CustodyTransfer transfer, CancellationToken ct = default)
+    {
+        await dbContext.CustodyTransfers.AddAsync(transfer, ct);
+    }
+
+    public Task<CustodyTransfer?> GetBySourceTransactionIdAsNoTracking(
+        Guid branchId,
+        Guid sourceTransactionId,
+        CancellationToken ct = default)
+    {
+        return dbContext.CustodyTransfers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(transfer => transfer.BranchId == branchId && transfer.SourceTransactionId == sourceTransactionId, ct);
+    }
+}

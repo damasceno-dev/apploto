@@ -131,7 +131,7 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
     private static Task<HttpResponseMessage> Send(HttpClient client, FiadoLinkedMovementTestContext ctx, PhysicalOperation operation)
     {
         return operation == PhysicalOperation.CountedStockSale
-            ? client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m, handsOutCountedStock: true), ctx.Token)
+            ? client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m), ctx.Token)
             : client.PostAuthAsync("/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.CashMethodId, 5m), ctx.Token);
     }
 

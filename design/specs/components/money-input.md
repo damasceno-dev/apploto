@@ -1,6 +1,6 @@
 # MoneyInput
 
-**Purpose.** Entry of a BRL amount where a blank and a zero mean different things: the Close day count per product, a transaction or payment value, installment rows. The parsing and formatting rules are owned by [formatting §2](../formatting-ptbr.md) and implemented in `@loto/core`; this spec owns presentation and behavior around them.
+**Purpose.** Entry of a BRL amount where a blank and a zero mean different things: the Close day count per product, a transaction or payment value, installment rows, the close-form fields. The parsing and formatting rules are owned by [formatting §2](../formatting-ptbr.md) and implemented in `@loto/core`; this spec owns presentation and behavior around them.
 
 ## Anatomy
 
@@ -12,22 +12,25 @@
 - **Count** — a Close day product row: blank is **não informado**, `R$ 0,00` is a recorded zero; the screen distinguishes them in text and in the payload.
 - **Read-only amount** — the opening value and any system-calculated figure: plain right-aligned text with its provenance label (**calculado pelo sistema** / **informado pelo operador**, copy §7), never a disabled input.
 
-There is no signed MoneyInput: signed figures (variance, deltas) are always computed by the server and displayed, never typed.
+- **Signed amount** *(M9.6 P7, v61)* — the one operator-entered signed figure: **Relatório do terminal** on Close day / Fix & resubmit. The field holds the **magnitude** exactly like Amount, and a separate sign control beside it (a two-option [Radio](choice-controls.md) group **Positivo** / **Negativo**, default **Positivo**, inline at every width) sets the sign; the committed value is `±magnitude` in integer cents. A zero magnitude is always zero (the control shows **Positivo** and is ignored). Display of the committed value follows [formatting §3](../formatting-ptbr.md) (`+R$ …` / `−R$ …`, U+2212, zero unsigned). An arithmetic expression (Design 4.9.7) is evaluated with `allowNegative: true` only in this variant; a negative result sets the control to **Negativo** and the field to its magnitude, so the field never contains a minus sign.
+
+Every other money field stays unsigned: computed signed figures (variance, deltas) are displayed from the server, never typed.
 
 ## States
 
-Default; focus; invalid (`sem.border.control-invalid`); disabled; read-only; **blank** (placeholder **não informado** in `sem.text.placeholder`, value absent from the candidate); **dirty** (the screen's SaveStatus reports it); **pending recovery** (value restored from the device store — the screen shows its retained-input notice).
+Default; focus; invalid (`sem.border.control-invalid`; in Signed amount the invalid state covers the field and its sign control together); disabled; read-only; **blank** (placeholder **não informado** in `sem.text.placeholder`, value absent from the candidate); **dirty** (the screen's SaveStatus reports it); **pending recovery** (value restored from the device store — the screen shows its retained-input notice).
 
 ## Behavior
 
 - Typing digits builds the value right-to-left in cents (`1234` → `R$ 12,34`); paste tolerates `R$`, dots and spaces; the parsed result is integer cents handed to `@loto/core`. No float arithmetic in the component.
-- Clearing the field returns it to **blank**, not zero. Typing `0` produces a recorded zero.
+- Clearing the field returns it to **blank**, not zero. Typing `0` produces a recorded zero. (Close-form fields have no blank state: the screen commits a cleared field as zero, see Close day.)
+- **Signed amount:** the sign is never typed into the field (numeric keypads have no reliable minus key, and a stray hyphen must not flip a report); it is chosen in the sign control, which is keyboard- and switch-operable, and changing it marks the field dirty exactly like a value change. Paste of a value with a leading `-` or `−` sets **Negativo** and keeps the magnitude; in every other variant a signed paste is refused as today.
 - The component reports the exact typed state (blank, partial, complete) so the durable-input store and the variance preview receive the true candidate.
 - **Repetir abertura** and **Desfazer repetição** are row actions owned by Close day (catalog): the component exposes a `setValue` that keeps undo semantics with the screen, and never animates the value change beyond `motion.transition.control`.
 
 ## Accessibility
 
-The accessible value is spoken as money (**doze reais e trinta e quatro centavos**, through the platform's number formatting) with the product name in the label (**Contagem de Raspadinha**). Blank announces **não informado**; zero announces **zero reais**. The unit adornment is hidden from assistive tech because the label and value already carry it.
+The accessible value is spoken as money (**doze reais e trinta e quatro centavos**, through the platform's number formatting) with the product name in the label (**Contagem de Raspadinha**). Blank announces **não informado**; zero announces **zero reais**. The unit adornment is hidden from assistive tech because the label and value already carry it. Signed amount: the sign control is labelled with the field (**Sinal do Relatório do terminal**) and the spoken value includes the sign (**menos sessenta reais**).
 
 ## Touch and scale
 

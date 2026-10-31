@@ -23,7 +23,6 @@ export interface RequestCreateTransactionJson {
   /** @nullable */
   recordedByOperatorId?: string | null;
   saveAsDraft?: boolean;
-  handsOutCountedStock?: boolean;
   /** @nullable */
   sessionId?: string | null;
   /** @nullable */

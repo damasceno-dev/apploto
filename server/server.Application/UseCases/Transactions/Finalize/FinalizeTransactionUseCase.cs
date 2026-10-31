@@ -6,6 +6,7 @@ using server.Application.Services.Transactions;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
@@ -14,6 +15,7 @@ namespace server.Application.UseCases.Transactions.Finalize;
 public class FinalizeTransactionUseCase(
     IAuthenticationService authenticationService,
     ITransactionsRepository transactionsRepository,
+    ITransactionTypesRepository transactionTypesRepository,
     IMemberAccountScopeResolver memberAccountScopeResolver,
     MemberAccountScopeGuard memberAccountScopeGuard,
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
@@ -68,6 +70,14 @@ public class FinalizeTransactionUseCase(
         // single-row path can activate part of a plan. A standalone Draft keeps this individual finalize.
         if (transaction.OriginTransactionId is not null)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_PLAN_FINALIZE_REQUIRED);
+
+        // M9.6 Phase 7: a legacy Draft fee/report row whose type is now a close-field system type would become a
+        // second effect beside the field; it can only be cancelled, and the field set on the close form.
+        var type = await transactionTypesRepository.GetActiveByIdWithCategoryAndBranchIdAsNoTracking(
+            transaction.TransactionTypeId,
+            branchUser.BranchId);
+        if (type?.SystemRole is { } systemRole && FinancialRoleRules.IsSessionFieldRole(systemRole))
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
 
         if (transaction.Version != expectedVersion)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_STALE_WRITE);

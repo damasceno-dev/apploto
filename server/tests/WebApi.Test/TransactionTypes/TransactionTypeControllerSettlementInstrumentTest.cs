@@ -255,7 +255,8 @@ public class TransactionTypeControllerSettlementInstrumentTest(ServerWebApplicat
             .ShouldBe([
                 ("Sobra de Bolão", MonthlyFinancialRole.CommercialLeftover),
                 ("Sobra de Federal", MonthlyFinancialRole.CommercialLeftover),
-                ("Tarifa Bolão", MonthlyFinancialRole.BolaoServiceFee)
+                ("Tarifa Bolão", MonthlyFinancialRole.BolaoServiceFee),
+                ("Tarifa Especial", MonthlyFinancialRole.SpecialDrawServiceFee)
             ]);
     }
 }

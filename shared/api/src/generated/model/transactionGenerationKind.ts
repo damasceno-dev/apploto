@@ -9,6 +9,10 @@ export type TransactionGenerationKind =
   (typeof TransactionGenerationKind)[keyof typeof TransactionGenerationKind];
 
 export const TransactionGenerationKind = {
-  FiadoCountedStockSale: 'FiadoCountedStockSale',
+  FiadoSale: 'FiadoSale',
   FiadoCashRepayment: 'FiadoCashRepayment',
+  SessionTerminalReport: 'SessionTerminalReport',
+  SessionBolaoFee: 'SessionBolaoFee',
+  SessionSpecialFee: 'SessionSpecialFee',
+  SafeCashDeposit: 'SafeCashDeposit',
 } as const;

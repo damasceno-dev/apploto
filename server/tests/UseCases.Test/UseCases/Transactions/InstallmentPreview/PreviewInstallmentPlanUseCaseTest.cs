@@ -191,8 +191,10 @@ public class PreviewInstallmentPlanUseCaseTest
     }
 
     [Fact]
-    public async Task Execute_ShouldReturnOneAggregatedFiadoDelta_ForTabPlanWithClient()
+    public async Task Execute_ShouldRefuseATabPlan_BecauseAFiadoSaleMustPairItsCashboxLeg()
     {
+        // M9.6 Phase 6: a plan on a Tab would be a fiado sale without its cashbox Out; the preview refuses it exactly
+        // as the write does.
         var ctx = BuildHappyPathContext(
             SettlementRule.OperatorEnteredCheque,
             accountType: AccountType.Tab,
@@ -208,18 +210,9 @@ public class PreviewInstallmentPlanUseCaseTest
             .Build();
 
         var useCase = CreateUseCase(ctx);
-        var response = await useCase.Execute(ctx.Request, DateTime.Today.AddDays(40));
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.Request, DateTime.Today.AddDays(40)));
 
-        // §6.4 Out raises outstanding (+): the whole plan lands as one +300 delta on the client.
-        response.Impact.FiadoBalanceImpact.Deltas.Count.ShouldBe(1);
-        var delta = response.Impact.FiadoBalanceImpact.Deltas.Single();
-        delta.ClientId.ShouldBe(ctx.ClientId!.Value);
-        delta.ClientName.ShouldBe("Tab Client");
-        delta.OutstandingDelta.ShouldBe(300m);
-
-        // The open-cheque group carries the same client identity.
-        response.Impact.OpenChequeAgingImpact.ClientId.ShouldBe(ctx.ClientId!.Value);
-        response.Impact.OpenChequeAgingImpact.ClientName.ShouldBe("Tab Client");
+        exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE);
     }
 
     [Fact]
@@ -310,7 +303,7 @@ public class PreviewInstallmentPlanUseCaseTest
         var date = DateTime.Today;
         var ctx = BuildHappyPathContext(
             SettlementRule.OperatorEnteredCheque,
-            accountType: AccountType.Tab,
+            accountType: AccountType.Terminal,
             direction: Direction.Out,
             withClient: true);
         ctx.Request = new RequestCreateTransactionInstallmentJsonBuilder()

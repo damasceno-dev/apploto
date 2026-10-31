@@ -87,13 +87,10 @@ public class TransactionCreatePreamble(
 
         EnsureOrdinaryManualWrite(context);
 
-        if (request.HandsOutCountedStock &&
-            (context.Account!.Type != AccountType.Tab ||
-             context.TransactionType.Category.DefaultDirection != Direction.Out ||
-             request.ClientId is null))
-        {
-            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE);
-        }
+        // A Tab Out is a new counter fiado sale (M9.6 Phase 6): its debt needs a client, or the paired cashbox Out
+        // would remove expected cash without anybody owing it.
+        if (IsCounterFiadoSale(context) && request.ClientId is null)
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_SALE_CLIENT_REQUIRED);
 
         return await CompleteSingleCreate(
             context,
@@ -101,6 +98,14 @@ public class TransactionCreatePreamble(
             request.DueDate,
             ct);
     }
+
+    /// <summary>
+    /// A generic create on a Tab is a new counter fiado sale: a Tab <c>In</c> is refused before this is asked
+    /// (repayments go through <i>Receber pagamento</i>), so the Tab <c>Out</c> is the only shape left.
+    /// </summary>
+    public static bool IsCounterFiadoSale(TransactionCreateContext context) =>
+        context.Account!.Type == AccountType.Tab &&
+        context.TransactionType.Category.DefaultDirection == Direction.Out;
 
     /// <summary>
     /// Resolves the context for <i>Receber pagamento</i> (M7.7 Phase 5.1): the same branch/operator/scope checks as
@@ -126,6 +131,30 @@ public class TransactionCreatePreamble(
         {
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAYMENT_METHOD_INVALID);
         }
+
+        return await CompleteSingleCreate(context, request.Date, request.DueDate, ct);
+    }
+
+    /// <summary>
+    /// Resolves the source side of <i>Depósito Dinheiro</i> (M9.6 Phase 9): the same branch/operator/scope checks as a
+    /// create on the cashbox, with the branch's system deposit type; the source must be a cashbox. The destination
+    /// cofre is checked by the command itself.
+    /// </summary>
+    public async Task<TransactionCreateContext> ResolveSafeDeposit(
+        RequestCreateTransactionJson request,
+        CancellationToken ct = default)
+    {
+        var context = await ResolveCommon(
+            requestedRecordedByOperatorId: request.RecordedByOperatorId,
+            accountId: request.AccountId,
+            clientId: null,
+            transactionTypeId: request.TransactionTypeId,
+            ct: ct);
+
+        if (context.Account!.Type != AccountType.Terminal)
+            throw new ConflictException(ResourcesErrorMessages.SAFE_DEPOSIT_SOURCE_NOT_CASHBOX);
+        if (context.TransactionType.SystemRole != TransactionTypeSystemRole.SafeDepositOut)
+            throw new ConflictException(ResourcesErrorMessages.BRANCH_FINANCIAL_SEEDS_MISSING);
 
         return await CompleteSingleCreate(context, request.Date, request.DueDate, ct);
     }
@@ -199,6 +228,11 @@ public class TransactionCreatePreamble(
             ct: ct);
 
         EnsureOrdinaryManualWrite(context);
+
+        // A Tab plan would be a fiado sale with no cashbox leg (M9.6 Phase 6): counter fiado sales go through the
+        // single create, which always pairs them.
+        if (IsCounterFiadoSale(context))
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE);
 
         await lockDateGuard.EnsureNotLocked(
             context.BranchUser.BranchId,

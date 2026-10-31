@@ -8,8 +8,14 @@ public class TransactionType : EntityBase
     public SettlementRule SettlementRule { get; set; }
     public bool RequiresTabAccountAndClient { get; set; }
 
-    /// <summary>Non-null for the two system-owned counterpart types; such a type is never used for a manual write.</summary>
+    /// <summary>Non-null for a system-owned type; such a type is never used by a generic manual write.</summary>
     public TransactionTypeSystemRole? SystemRole { get; init; }
+
+    /// <summary>
+    /// Server-only identity of a seeded row (M9.6 Phase 9), e.g. <c>expense.agua</c>. Seeding finds its own rows by
+    /// this key and never adopts a same-name custom type; null on every type an admin created.
+    /// </summary>
+    public string? SeedKey { get; init; }
 
     /// <summary>
     /// Non-null marks a fiado repayment method usable by <i>Receber pagamento</i>; the value decides whether the

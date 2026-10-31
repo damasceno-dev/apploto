@@ -59,7 +59,7 @@ internal sealed class FinancialHeadersOpenApiOperationTransformer : IOpenApiOper
                 "session/handover/{handoverId}/dispute" or
                 "session/handover/{handoverId}/withdraw" or
                 "session/opening-discrepancy/{discrepancyId}/attribution" => method == "POST",
-            "transaction" or "transaction/installment" or "transaction/fiado-payment" => method == "POST",
+            "transaction" or "transaction/installment" or "transaction/fiado-payment" or "transaction/safe-deposit" => method == "POST",
             "transaction/{transactionId}" or
                 "transaction/{transactionId}/finalize" or
                 "transaction/{transactionId}/cancel" => true,

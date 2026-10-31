@@ -65,7 +65,7 @@ public class CreateTerminalAccountUseCase(
 
             terminalAccount.TabAccountId = request.ExistingTabAccountId.Value;
         }
-        else if (request.CreateTabAccount)
+        else if (request.CreateTabAccount is not false)
         {
             var newTabAccount = AccountSharedMapper.ToDomain(
                 AccountType.Tab,

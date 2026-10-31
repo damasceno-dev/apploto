@@ -26,8 +26,8 @@ public class CreateTransactionTypeUseCase(
         var category = await categoriesRepository.GetActiveByIdAndBranchIdAsNoTracking(request.CategoryId, branchUser.BranchId)
             ?? throw new NotFoundException(ResourcesErrorMessages.CATEGORY_NOT_FOUND);
 
-        // M7.7 Phase 5.6: a system category only classifies the system-owned counterpart types.
-        if (await transactionTypesRepository.CategoryHostsSystemTypeAsNoTracking(category.Id))
+        // M7.7 Phase 5.6: a dedicated system category only classifies its system-owned counterpart types.
+        if (await transactionTypesRepository.IsSystemCategoryAsNoTracking(category.Id))
             throw new ConflictException(ResourcesErrorMessages.CATEGORY_SYSTEM_READ_ONLY);
 
         TransactionTypeFiadoRules.EnsureValidPaymentKind(

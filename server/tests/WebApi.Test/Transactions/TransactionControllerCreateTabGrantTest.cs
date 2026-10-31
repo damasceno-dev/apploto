@@ -38,20 +38,28 @@ public class TransactionControllerCreateTabGrantTest(ServerWebApplicationFactory
     }
 
     [Fact]
-    public async Task Create_ShouldRecordOnEveryGrantedTab_WhenSeniorHoldsTwoTerminalsTabs()
+    public async Task Create_ShouldNeedThePairedCashboxToo_WhenASeniorHoldsTwoTabGrants()
     {
+        // Tab grants stay explicit and may span terminals (decision 1.8). Since M9.6 Phase 6 every counter fiado sale
+        // also writes its paired cashbox Out, so the sale needs that cashbox in scope and in the caller's custody.
         var ctx = await SeedContext("TabGrantSenior");
         await factory.SeedOperatorAccountAsync(ctx.OperatorId, ctx.TerminalOneId, isPrimary: true);
         await factory.SeedOperatorAccountAsync(ctx.OperatorId, ctx.TabOneId);
         await factory.SeedOperatorAccountAsync(ctx.OperatorId, ctx.TabTwoId);
+        await factory.SeedFiadoSystemTypesAsync(ctx.BranchId);
+        await factory.EnsureCashVarianceProductAsync(ctx.BranchId);
+        await _client.StartSessionAsync(ctx.TerminalOneId, ctx.Token);
 
         var first = await CreateFiado(ctx, ctx.TabOneId);
         var second = await CreateFiado(ctx, ctx.TabTwoId);
 
         first.StatusCode.ShouldBe(HttpStatusCode.Created, await first.Content.ReadAsStringAsync());
-        second.StatusCode.ShouldBe(HttpStatusCode.Created, await second.Content.ReadAsStringAsync());
-        (await first.ReadContentAsync<ResponseTransactionJson>()).AccountId.ShouldBe(ctx.TabOneId);
-        (await second.ReadContentAsync<ResponseTransactionJson>()).AccountId.ShouldBe(ctx.TabTwoId);
+        var created = await first.ReadContentAsync<ResponseCreateTransactionJson>();
+        created.AccountId.ShouldBe(ctx.TabOneId);
+        created.GeneratedTransactionId.ShouldNotBeNull();
+        second.StatusCode.ShouldBe(HttpStatusCode.Forbidden, await second.Content.ReadAsStringAsync());
+        (await second.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldContain(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         (await CountTransactionsAsync(ctx.BranchId)).ShouldBe(2);
     }
 

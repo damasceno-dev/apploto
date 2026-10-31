@@ -9,9 +9,9 @@ using server.Exceptions.Exceptions;
 namespace server.Application.Services.Transactions;
 
 /// <summary>
-/// Builds the generated Terminal leg of a physical fiado operation (M7.7 Phase 5.6, decision 1.3 amendment (i)):
-/// a fiado sale that hands out counted stock writes a Terminal <c>Out</c>, a counted-cash repayment a Terminal
-/// <c>In</c>, both on the Tab's paired terminal and with the source's value, date, status and recording identity.
+/// Builds the generated cashbox leg of a physical fiado operation (M7.7 Phase 5.6; M9.6 Phase 6): every new counter
+/// fiado sale writes a cashbox <c>Out</c> (the expected cash the drawer never received), a counted-cash repayment a
+/// cashbox <c>In</c>, both on the Tab's paired cashbox and with the source's value, date, status and recording identity.
 /// The pairing names the routing target only; a Member still needs that terminal in their own explicit scope
 /// (decision 1.8). Callers hold one coordination scope over both accounts and write both rows in one commit.
 /// </summary>
@@ -48,11 +48,11 @@ public class FiadoPhysicalPairService(
             lockedTerminalId,
             ct);
 
-        var role = kind == TransactionGenerationKind.FiadoCountedStockSale
-            ? TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart
+        var role = kind == TransactionGenerationKind.FiadoSale
+            ? TransactionTypeSystemRole.FiadoSaleCounterpart
             : TransactionTypeSystemRole.FiadoCashRepaymentCounterpart;
         var systemType = await transactionTypesRepository.GetActiveSystemTypeByBranchIdAsNoTracking(source.BranchId, role, ct)
-            ?? throw new InvalidOperationException($"Branch {source.BranchId} has no active system type {role}.");
+            ?? throw new ConflictException(ResourcesErrorMessages.BRANCH_FINANCIAL_SEEDS_MISSING);
 
         var counterpart = new Transaction
         {

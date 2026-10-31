@@ -4,7 +4,7 @@ namespace server.Communication.Responses;
 
 /// <summary>
 /// Matrix row 12: the selected month's totals from <c>GET /report/monthly-financial/{Year}/{Month}</c>. Separate
-/// figures, never summed together; a figure whose marker is unset is null. <c>NotConfigured</c> when neither marker is.
+/// figures, never summed together; a figure whose marker is unset is null. <c>NotConfigured</c> when no marker is.
 /// </summary>
 public class ResponseManagementOverviewMonthlyFinancialJson
 {
@@ -18,6 +18,8 @@ public class ResponseManagementOverviewMonthlyFinancialJson
     public int OfficialCloseCount { get; init; }
     public bool IsBolaoServiceFeeConfigured { get; init; }
     public decimal? BolaoServiceFeeTotal { get; init; }
+    public bool IsSpecialDrawServiceFeeConfigured { get; init; }
+    public decimal? SpecialDrawServiceFeeTotal { get; init; }
     public bool IsCommercialLeftoverConfigured { get; init; }
     public decimal? CommercialLeftoverTotal { get; init; }
     public decimal HoursTotal { get; init; }

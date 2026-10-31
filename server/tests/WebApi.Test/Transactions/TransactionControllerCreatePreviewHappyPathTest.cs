@@ -9,6 +9,7 @@ using server.Domain.Models;
 using server.Exceptions;
 using Shouldly;
 using WebApi.Test.Infrastructure;
+using WebApi.Test.Sessions;
 using Xunit;
 
 namespace WebApi.Test.Transactions;
@@ -24,12 +25,17 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreatePreviewHappy", Role.Manager);
         var operatorContext = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab, "Fiado");
+        // M9.6 Phase 6: a fiado sale is previewed with its paired cashbox leg, so the Tab is paired and the cashbox
+        // holds today's Draft session, exactly as the write needs.
+        var cashbox = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa", tabAccountId: tabAccount.Id);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id, settlementRule: SettlementRule.SameDay);
         var client = await factory.SeedClientAsync(branch.Id, "Preview Client");
 
-        var asOfDate = new DateTime(2025, 6, 30);
-        var transactionDate = new DateTime(2025, 5, 16); // 45 days before as-of → Days31To60
+        var transactionDate = SessionFlow.LocalToday();
+        var asOfDate = transactionDate.AddDays(45); // 45 days after the sale → Days31To60
+        await factory.EnsureCashVarianceProductAsync(branch.Id);
+        await factory.SeedDailyCloseAsync(branch.Id, cashbox.Id, transactionDate, DailyCloseStatus.Draft, itemsRecorded: false);
         var request = new RequestCreateTransactionJsonBuilder()
             .WithDate(transactionDate)
             .WithValue(200m)
@@ -61,9 +67,10 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         delta.ClientName.ShouldBe("Preview Client");
         delta.OutstandingDelta.ShouldBe(200m);
 
-        // Cash variance: the new Out row moves the day's variance by +200 (no close → no current number).
+        // Cash variance: the paired cashbox's generated Out moves its session by +200; the Draft session stays blind.
+        payload.Impact.CashVarianceImpact.AccountId.ShouldBe(cashbox.Id);
         payload.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(200m);
-        payload.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
+        payload.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBe(DailyCloseStatus.Draft);
         payload.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
         payload.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
 
@@ -154,12 +161,15 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnCreatePreviewDraft", Role.Manager);
         var operatorContext = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab, "Fiado");
+        var cashbox = await factory.SeedAccountAsync(branch.Id, AccountType.Terminal, "Caixa", tabAccountId: tabAccount.Id);
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(category.Id);
         var client = await factory.SeedClientAsync(branch.Id, "Draft Client");
+        await factory.EnsureCashVarianceProductAsync(branch.Id);
+        await factory.SeedDailyCloseAsync(branch.Id, cashbox.Id, SessionFlow.LocalToday(), DailyCloseStatus.Draft, itemsRecorded: false);
 
         var request = new RequestCreateTransactionJsonBuilder()
-            .WithDate(new DateTime(2025, 5, 16))
+            .WithDate(SessionFlow.LocalToday())
             .WithValue(200m)
             .WithTransactionTypeId(transactionType.Id)
             .WithAccountId(tabAccount.Id)
@@ -177,7 +187,7 @@ public class TransactionControllerCreatePreviewHappyPathTest(ServerWebApplicatio
         payload.Impact.ReceivableImpact.BucketAfter.ShouldBeNull();
         payload.Impact.FiadoBalanceImpact.Deltas.ShouldBeEmpty();
         payload.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(0m);
-        payload.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
+        payload.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
     }
 
     [Fact]

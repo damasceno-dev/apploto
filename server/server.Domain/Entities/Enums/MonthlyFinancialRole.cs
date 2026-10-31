@@ -13,5 +13,8 @@ public enum MonthlyFinancialRole
     BolaoServiceFee = 1,
 
     /// <summary>Unsold bolão quotas / Federal fractions the shop kept (working answer SQ4): an <c>Out</c> commercial loss.</summary>
-    CommercialLeftover = 2
+    CommercialLeftover = 2,
+
+    /// <summary>The session's <i>Tarifa Especial</i> (M9.6 Phase 7): an <c>In</c> type, summed per session.</summary>
+    SpecialDrawServiceFee = 3
 }

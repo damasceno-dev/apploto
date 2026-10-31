@@ -53,11 +53,16 @@ internal class TransactionTypesRepository(ServerDbContext dbContext) : ITransact
                 ct);
     }
 
-    public async Task<bool> CategoryHostsSystemTypeAsNoTracking(Guid categoryId, CancellationToken ct = default)
+    public async Task<bool> IsSystemCategoryAsNoTracking(Guid categoryId, CancellationToken ct = default)
     {
+        // Only the dedicated automatic-movement categories are system categories (M9.6 Phase 7): Receita, Entradas
+        // and Saídas also host system types (fees, report, deposit) and stay open for custom types.
         return await dbContext.TransactionTypes
             .AsNoTracking()
-            .AnyAsync(transactionType => transactionType.CategoryId == categoryId && transactionType.SystemRole != null, ct);
+            .AnyAsync(transactionType => transactionType.CategoryId == categoryId && (
+                transactionType.SystemRole == TransactionTypeSystemRole.FiadoSaleCounterpart ||
+                transactionType.SystemRole == TransactionTypeSystemRole.FiadoCashRepaymentCounterpart ||
+                transactionType.SystemRole == TransactionTypeSystemRole.SafeDepositIn), ct);
     }
 
     public async Task<TransactionType?> GetActiveByIdAndBranchIdWithCategoryAsNoTracking(

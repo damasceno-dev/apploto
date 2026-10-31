@@ -2718,6 +2718,22 @@ The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and
 
 ### Phase 6 — Fiado boundaries (plan A2) **[FIX]** + **[KEEP]**
 
+> **Phases 6, 7, 9 and 10.1 status (2026-10-31) — implemented, canonical v61; independent technical review pending; ticks stay open until it accepts.**
+>
+> | Item | Requirement → implementation | Tests |
+> |---|---|---|
+> | 6.1/6.2 | Every generic Tab `Out` pairs its cashbox `Out` (`FiadoSale`); `HandsOutCountedStock` removed; client required; Tab plan refused; `FiadoDebtOrigin` keeps dedicated origins legless | `FiadoBoundariesGoldenTest` (E04 ×2, E05, unpaired, grants, inline/rollback, exact session), `FinancialRoleRulesTest`, adapted fiado suites |
+> | 6.3 | `POST /account/terminal` pairs a new Tab by default (`CreateTabAccount` `bool?`) | `CreateTerminalAccountUseCaseTest`, scenario setup |
+> | 6.4 | Dinheiro/PIX seeded, method mandatory, no default | Golden method refusal, `CreateBranchFinancialSeedTest` |
+> | 7.1–7.3 | `CloseFields` on the count save; `SessionFieldEffect` + immutable revisions; system types Tarifa Bolão/Especial/Relatório do terminal (±); `SpecialDrawServiceFee` report figure | `SessionControllerCloseFieldsTest` (E09, omit/zero/null/precision, sign flip, races, DB guards, Conferir invalidation, lock) |
+> | 7.3 migration / 9.2 seeds | `M9_6Phase6To9FinancialFoundation` + `loto_m96_apply_financial_seeds(map)`; 32 expense types | `FinancialSeedFunctionTest`, `M9_6FinancialFoundationMigrationTest` |
+> | 9.1 | `AccountType.Safe`, `POST /account/safe`, `POST /transaction/safe-deposit` + `CustodyTransfer` | `TransactionControllerSafeDepositTest` (E08, replay/race, destinations, grants, legs, rollback, DB guards) |
+> | 10.1 | Integrated day | `M9_6IntegratedDayDemonstrationTest` |
+>
+> **Verification (2026-10-31):** Validators 380, UseCases 1,226 + new, WebApi 1,404 green on real PostgreSQL; OpenAPI snapshot updated; shared/api export/generate checks, typecheck, lint, 103 tests; shared/core 308; web typecheck/lint/334 tests; Web BFF, Mobile auth-policy and both token adapters regenerated; mobile typecheck/lint, jest 259; contrast 1,178 pairs + 40 negatives; design-doc 45/45 + 14 negatives; doc-sync canonical v61 aligned, 34 regressions pass on a disposable copy with v61 markers.
+>
+> **Blockers / next action:** design markers stay v59 until the independent semantic review of the v60+v61 catalog reconciliation; mobile's hand-kept label oracle (`mobile/src/probes/label-reference.json`, mobile lane) lacks the P2, P4–P5 and v61 labels; Design 4.9.3 (close fields in `operator-day.md`) and 4.9.8 (`administration.md`) blueprint revisions not yet written; existing branches need a reviewed seed map or a disposable reset.
+
 *Why fix:* fiado covers bills and games, which the CAIXA report counts as cash received; without the linked movement the operator shows a shortage on most real days (M9.5 Phase 5). *Why keep pairing* instead of Access's balance-in-totals: it reproduces Access in the characterized scenarios, the movement freezes with the session and is cancelled only with its source and a reason, the operator sees it in their own list, and non-cash repayments stay expressible.
 
 - [ ] **6.1** Only a **new counter sale on fiado** generates the linked cashbox `Out`, on the active session of the paired cashbox. Imported debts, opening balances and cheque → fiado conversions (M9.7) use their own operations and generate **no** cashbox leg.

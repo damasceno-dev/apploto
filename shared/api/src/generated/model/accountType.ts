@@ -11,4 +11,5 @@ export const AccountType = {
   Terminal: 'Terminal',
   BankAccount: 'BankAccount',
   Tab: 'Tab',
+  Safe: 'Safe',
 } as const;

@@ -181,7 +181,7 @@ public class GetMonthlyFinancialReportUseCaseTest
 
         var totals = await ctx.Reader.ReadTotals(branchUser.BranchId, 2026, 9, AsOfDate, [Op(8m, true, 2), Op(4m, false, 1)]);
 
-        totals.ShouldBe(new MonthlyFinancialTotals(monthStart, monthEnd, false, 4m, 1, 3, true, 90m, 5, true, 28m, 4, 12m, 3, true));
+        totals.ShouldBe(new MonthlyFinancialTotals(monthStart, monthEnd, false, 4m, 1, 3, true, 90m, 5, false, null, 0, true, 28m, 4, 12m, 3, true));
     }
 
     [Fact]

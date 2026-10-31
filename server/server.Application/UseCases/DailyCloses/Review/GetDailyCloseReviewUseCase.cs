@@ -49,6 +49,8 @@ public class GetDailyCloseReviewUseCase(
 
         var (count, actions) = await countProjector.Build(dailyClose, branchUser, memberScope, ct);
 
-        return dailyClose.ToReviewResponse(opening, discrepancy, activeProducts, cashVarianceProductId, count, actions);
+        var closeFields = await countProjector.ReadCloseFields(dailyClose, ct);
+
+        return dailyClose.ToReviewResponse(opening, discrepancy, activeProducts, cashVarianceProductId, count, actions, closeFields);
     }
 }

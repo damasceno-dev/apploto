@@ -21,11 +21,11 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task CountedStockSale_ShouldReconcileAtZero_WhenStockIsCountedAt995()
+    public async Task CounterFiadoSale_ShouldReconcileAtZero_WhenStockIsCountedAt995()
     {
         var (ctx, products) = await SeedWithOpeningAsync("FiadoRecStock");
 
-        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m, handsOutCountedStock: true), ctx.Token);
+        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m), ctx.Token);
 
         // Stock 1000 → 995 and the generated Terminal Out 5: zero difference; the Tab's R$ 5 is not in the formula.
         (await Preview(ctx, products, stock: 995m, cash: 1000m)).ShouldBe(0m);
@@ -37,7 +37,7 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     public async Task CashRepayment_ShouldReconcileAtZero_WhenCashIsCountedAt1005()
     {
         var (ctx, products) = await SeedWithOpeningAsync("FiadoRecCash");
-        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m, handsOutCountedStock: false), ctx.Token);
+        await ctx.SeedOpeningDebtAsync(5m);
 
         await Created("/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.CashMethodId, 5m), ctx.Token);
 
@@ -52,7 +52,7 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     public async Task NonCashRepayment_ShouldMoveOnlyTheTab_WithNoTerminalLegOrCountChange()
     {
         var (ctx, products) = await SeedWithOpeningAsync("FiadoRecPix");
-        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 20m, handsOutCountedStock: false), ctx.Token);
+        await ctx.SeedOpeningDebtAsync(20m);
 
         var payment = await Created(
             "/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.NonCashMethodId, 5m), ctx.Token);
@@ -66,13 +66,15 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     [Fact]
     public async Task PhysicalCounterparts_ShouldBeTheOnlyReasonTheCountsReconcile()
     {
-        // Control: the same R$ 5 counts WITHOUT the generated legs leave the signed ±5 difference the 1.3 amendment
-        // exists to remove (an ordinary fiado sale and a non-cash repayment write no Terminal row).
+        // Control: a debt from a dedicated origin (opening obligation, §6.19 O19) writes no cashbox leg, so the same
+        // R$ 5 stock departure or cash arrival is unexplained and leaves the signed ±5 the generated legs remove.
         var (ctx, products) = await SeedWithOpeningAsync("FiadoRecControl");
-        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m, handsOutCountedStock: false), ctx.Token);
+        await ctx.SeedOpeningDebtAsync(5m);
 
+        (await Preview(ctx, products, stock: 1000m, cash: 1000m)).ShouldBe(0m);
         (await Preview(ctx, products, stock: 995m, cash: 1000m)).ShouldBe(-5m);
         (await Preview(ctx, products, stock: 1000m, cash: 1005m)).ShouldBe(5m);
+        (await Statement(ctx)).OutstandingTotal.ShouldBe(5m);
     }
 
     [Fact]
@@ -80,10 +82,10 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
     {
         var (ctx, _) = await SeedWithOpeningAsync("FiadoRecTabs");
         var otherTab = await factory.SeedAccountAsync(ctx.BranchId, AccountType.Tab, "Fiado balcão");
-        // Same-day settlement types derive DueDate from Date, so distinct sale dates fix the FIFO order (a tie would
-        // fall back to Id order). Tab rows need no open close, so earlier dates are fine.
-        var firstSale = await Created("/transaction", Sale(ctx, ctx.TabId, 100m, ctx.Today.AddDays(-2)), ctx.Token);
-        var secondSale = await Created("/transaction", Sale(ctx, otherTab.Id, 50m, ctx.Today.AddDays(-1)), ctx.Token);
+        // Debts from a dedicated origin (opening obligations, §6.19 O19: no cashbox leg) on two Tabs; distinct dates fix
+        // the FIFO order (a tie would fall back to Id order).
+        var firstSale = await OpeningDebt(ctx, ctx.TabId, 100m, ctx.Today.AddDays(-2));
+        var secondSale = await OpeningDebt(ctx, otherTab.Id, 50m, ctx.Today.AddDays(-1));
 
         // Partial payment on the other Tab settles the branch-wide oldest-due sale first.
         var partial = await Created("/transaction/fiado-payment", Payment(ctx, otherTab.Id, 60m), ctx.Token);
@@ -191,12 +193,11 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
         return await response.ReadContentAsync<ResponseCreateTransactionJson>();
     }
 
-    private static RequestCreateTransactionJson Sale(FiadoLinkedMovementTestContext ctx, Guid tabId, decimal value, DateTime date)
+    private Task<server.Domain.Entities.Transaction> OpeningDebt(FiadoLinkedMovementTestContext ctx, Guid tabId, decimal value, DateTime date)
     {
-        return new RequestCreateTransactionJson
-        {
-            Date = date, Value = value, TransactionTypeId = ctx.SaleTypeId, AccountId = tabId, ClientId = ctx.ClientId
-        };
+        return factory.SeedTransactionAsync(
+            ctx.BranchId, tabId, ctx.SaleTypeId, ctx.SaleCategoryId, Direction.Out, ctx.OperatorId, ctx.UserId,
+            date: date, value: value, clientId: ctx.ClientId, dueDate: date);
     }
 
     private static RequestReceiveFiadoPaymentJson Payment(FiadoLinkedMovementTestContext ctx, Guid tabId, decimal value)

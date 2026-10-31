@@ -321,8 +321,8 @@ public class TransactionEditImpactProjector(
         // §6.12's inputs.
         var varianceDelta = -NetFlow(create.Direction, create.Value);
 
-        // A counted-stock fiado sale moves no close on its Tab; the affected close is its paired terminal's, which
-        // receives the generated Terminal Out of the same value (M7.7 Phase 5.6).
+        // A counter fiado sale moves no close on its Tab; the affected session is its paired cashbox's, which
+        // receives the generated cashbox Out of the same value (M9.6 Phase 6).
         if (create.PairedTerminalAccountId is { } terminalId)
             return BuildCashVarianceSection(branchId, terminalId, create.Date, -NetFlow(Direction.Out, create.Value), ct);
 

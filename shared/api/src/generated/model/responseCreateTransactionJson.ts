@@ -32,6 +32,8 @@ export interface ResponseCreateTransactionJson {
   /** @nullable */
   generatedTransactionId?: string | null;
   /** @nullable */
+  custodyTransferId?: string | null;
+  /** @nullable */
   sessionId?: string | null;
   /** @nullable */
   startedSessionId?: string | null;

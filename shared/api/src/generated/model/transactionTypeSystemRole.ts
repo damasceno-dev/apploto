@@ -9,6 +9,12 @@ export type TransactionTypeSystemRole =
   (typeof TransactionTypeSystemRole)[keyof typeof TransactionTypeSystemRole];
 
 export const TransactionTypeSystemRole = {
-  FiadoCountedStockSaleCounterpart: 'FiadoCountedStockSaleCounterpart',
+  FiadoSaleCounterpart: 'FiadoSaleCounterpart',
   FiadoCashRepaymentCounterpart: 'FiadoCashRepaymentCounterpart',
+  TerminalReportIn: 'TerminalReportIn',
+  TerminalReportOut: 'TerminalReportOut',
+  BolaoFee: 'BolaoFee',
+  SpecialFee: 'SpecialFee',
+  SafeDepositOut: 'SafeDepositOut',
+  SafeDepositIn: 'SafeDepositIn',
 } as const;

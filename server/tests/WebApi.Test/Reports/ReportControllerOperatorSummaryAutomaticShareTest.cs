@@ -28,7 +28,7 @@ public class ReportControllerOperatorSummaryAutomaticShareTest(ServerWebApplicat
 
         // The initiating operator: one counted-stock sale and one cash repayment (R$ 5 each, both paired), one
         // non-cash repayment, and one ordinary Terminal expense.
-        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m, handsOutCountedStock: true), ctx.Token);
+        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m), ctx.Token);
         await Created("/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.CashMethodId, 5m), ctx.Token);
         await Created("/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.NonCashMethodId, 30m), ctx.Token);
         await Created(
@@ -36,22 +36,22 @@ public class ReportControllerOperatorSummaryAutomaticShareTest(ServerWebApplicat
             new RequestCreateTransactionJson { Date = ctx.Today, Value = 12m, TransactionTypeId = expenseType.Id, AccountId = ctx.TerminalId },
             ctx.Token);
         // Excluded: a Draft pair, a cancelled pair, and another operator's pair.
-        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 100m, handsOutCountedStock: true, saveAsDraft: true), ctx.Token);
-        var cancelled = await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 200m, handsOutCountedStock: true), ctx.Token);
+        await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 100m, saveAsDraft: true), ctx.Token);
+        var cancelled = await Created("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 200m), ctx.Token);
         var cancel = await _client.PostAuthAsync(
             $"/transaction/{cancelled.Id}/cancel",
             new RequestCancelTransactionJson { CancellationReason = "Lançada por engano" },
             ctx.Token,
             expectedVersion: cancelled.Version);
         cancel.StatusCode.ShouldBe(HttpStatusCode.OK, await cancel.Content.ReadAsStringAsync());
-        var otherSale = TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 70m, handsOutCountedStock: true);
+        var otherSale = TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 70m);
         await Created(
             "/transaction",
             new RequestCreateTransactionJson
             {
                 Date = otherSale.Date, Value = otherSale.Value, TransactionTypeId = otherSale.TransactionTypeId,
                 AccountId = otherSale.AccountId, ClientId = otherSale.ClientId, DueDate = otherSale.DueDate,
-                HandsOutCountedStock = true, RecordedByOperatorId = otherOperator.Id
+                RecordedByOperatorId = otherOperator.Id
             },
             ctx.Token);
 

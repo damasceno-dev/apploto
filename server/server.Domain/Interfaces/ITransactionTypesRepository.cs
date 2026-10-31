@@ -17,7 +17,8 @@ public interface ITransactionTypesRepository
         Guid branchId, TransactionTypeSystemRole role, CancellationToken ct = default);
 
     /// <summary>True when the category classifies a system-owned type (such a category is read-only).</summary>
-    Task<bool> CategoryHostsSystemTypeAsNoTracking(Guid categoryId, CancellationToken ct = default);
+    /// <summary>True for a dedicated automatic-movement category, which classifies only its system types.</summary>
+    Task<bool> IsSystemCategoryAsNoTracking(Guid categoryId, CancellationToken ct = default);
     Task<bool> ExistsActiveByCategoryIdAndName(Guid categoryId, string name, Guid? exceptId = null);
 
     /// <summary>

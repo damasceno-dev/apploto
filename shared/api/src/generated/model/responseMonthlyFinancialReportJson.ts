@@ -22,6 +22,9 @@ export interface ResponseMonthlyFinancialReportJson {
   isBolaoServiceFeeConfigured: boolean;
   /** @nullable */
   bolaoServiceFeeTotal?: number | null;
+  isSpecialDrawServiceFeeConfigured: boolean;
+  /** @nullable */
+  specialDrawServiceFeeTotal?: number | null;
   isCommercialLeftoverConfigured: boolean;
   /** @nullable */
   commercialLeftoverTotal?: number | null;

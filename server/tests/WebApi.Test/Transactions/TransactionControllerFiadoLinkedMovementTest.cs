@@ -1,3 +1,4 @@
+using CommonTestUtilities.Requests;
 using System.Net;
 using System.Net.Http.Json;
 using server.Communication.Requests;
@@ -22,11 +23,11 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
     private readonly HttpClient _client = factory.CreateClient();
 
     [Fact]
-    public async Task CountedStockSale_ShouldWriteTheTabOutAndAGeneratedTerminalOut_InOneCommit()
+    public async Task CounterFiadoSale_ShouldWriteTheTabOutAndAGeneratedCashboxOut_InOneCommit()
     {
         var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoPairSale", Role.Manager);
 
-        var response = await _client.PostAuthAsync("/transaction", Sale(ctx, 5m, handsOutCountedStock: true), ctx.Token);
+        var response = await _client.PostAuthAsync("/transaction", Sale(ctx, 5m), ctx.Token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         var created = await response.ReadContentAsync<ResponseCreateTransactionJson>();
@@ -44,7 +45,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         generated.Date.ShouldBe(source.Date);
         generated.Status.ShouldBe(TransactionStatus.Active);
         generated.TransactionTypeId.ShouldBe(ctx.StockSaleSystemTypeId);
-        generated.GenerationKind.ShouldBe(TransactionGenerationKind.FiadoCountedStockSale);
+        generated.GenerationKind.ShouldBe(TransactionGenerationKind.FiadoSale);
         generated.GeneratedFromTransactionId.ShouldBe(source.Id);
         generated.ClientId.ShouldBeNull();
         generated.RecordedByOperatorId.ShouldBe(source.RecordedByOperatorId);
@@ -54,27 +55,75 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         var sourceDetail = await GetAsync<ResponseTransactionJson>($"/transaction/{source.Id}", ctx.Token);
         var generatedDetail = await GetAsync<ResponseTransactionJson>($"/transaction/{generated.Id}", ctx.Token);
         sourceDetail.GeneratedTransactionId.ShouldBe(generated.Id);
-        generatedDetail.GenerationKind.ShouldBe(TransactionGenerationKind.FiadoCountedStockSale);
+        generatedDetail.GenerationKind.ShouldBe(TransactionGenerationKind.FiadoSale);
         generatedDetail.GeneratedFromTransactionId.ShouldBe(source.Id);
         // SV17's type filter finds the actual generated rows by their system type.
         var byType = await GetAsync<ResponseListTransactionsJson>(
             $"/transaction?transactionTypeId={ctx.StockSaleSystemTypeId}", ctx.Token);
         var item = byType.Items.ShouldHaveSingleItem();
         item.Id.ShouldBe(generated.Id);
-        item.GenerationKind.ShouldBe(TransactionGenerationKind.FiadoCountedStockSale);
+        item.GenerationKind.ShouldBe(TransactionGenerationKind.FiadoSale);
         item.GeneratedFromTransactionId.ShouldBe(source.Id);
     }
 
     [Fact]
-    public async Task OrdinaryFiadoSale_ShouldWriteNoTerminalRow_WhenCountedStockIsNotDeclared()
+    public async Task EveryCounterFiadoSale_ShouldPair_WithNoCallerSwitch()
     {
-        var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoPairNoStock", Role.Manager, openClose: false);
+        // M9.6 Phase 6: the counted-stock declaration is gone. A bill/game sale on fiado leaves the expected cash
+        // unreceived exactly like a stock sale (§6.19 O05), so every new counter sale writes the cashbox Out.
+        var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoPairAlways", Role.Manager);
 
-        var response = await _client.PostAuthAsync("/transaction", Sale(ctx, 40m, handsOutCountedStock: false), ctx.Token);
+        var response = await _client.PostAuthAsync("/transaction", Sale(ctx, 40m), ctx.Token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
-        (await response.ReadContentAsync<ResponseCreateTransactionJson>()).GeneratedTransactionId.ShouldBeNull();
-        (await ctx.ListBranchTransactionsAsync()).ShouldHaveSingleItem().AccountId.ShouldBe(ctx.TabId);
+        var created = await response.ReadContentAsync<ResponseCreateTransactionJson>();
+        var rows = await ctx.ListBranchTransactionsAsync();
+        rows.Count.ShouldBe(2);
+        var generated = rows.Single(row => row.Id == created.GeneratedTransactionId);
+        generated.AccountId.ShouldBe(ctx.TerminalId);
+        generated.Direction.ShouldBe(Direction.Out);
+        generated.Value.ShouldBe(40m);
+        generated.SessionId.ShouldNotBeNull();
+        rows.Single(row => row.Id == created.Id).SessionId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task FiadoSale_ShouldBeRefusedWithoutAClient_AndWriteNothing()
+    {
+        var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoSaleNoClient", Role.Manager);
+        var outCategory = await factory.SeedCategoryAsync(ctx.BranchId, "Saídas avulsas", Direction.Out);
+        var ordinary = await factory.SeedTransactionTypeAsync(outCategory.Id, "Saída sem cliente");
+
+        var response = await _client.PostAuthAsync(
+            "/transaction",
+            new RequestCreateTransactionJson { Date = ctx.Today, Value = 10m, TransactionTypeId = ordinary.Id, AccountId = ctx.TabId },
+            ctx.Token);
+
+        await ShouldFail(response, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_FIADO_SALE_CLIENT_REQUIRED);
+        (await ctx.ListBranchTransactionsAsync()).ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task FiadoInstallmentPlan_ShouldBeRefused_BecauseItWouldBeAnUnpairedSale()
+    {
+        var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoSalePlan", Role.Manager);
+        var category = await factory.SeedCategoryAsync(ctx.BranchId, "Saídas cheque", Direction.Out);
+        var cheque = await factory.SeedTransactionTypeAsync(
+            category.Id, settlementRule: SettlementRule.OperatorEnteredCheque, requiresTabAccountAndClient: true);
+        var request = new RequestCreateTransactionInstallmentJsonBuilder()
+            .WithDate(ctx.Today)
+            .WithValue(300m)
+            .WithTransactionTypeId(cheque.Id)
+            .WithAccountId(ctx.TabId)
+            .WithClientId(ctx.ClientId)
+            .WithAutoGeneration(3, ctx.Today.AddDays(30))
+            .Build();
+
+        await ShouldFail(await _client.PostAuthAsync("/transaction/installment", request, ctx.Token),
+            HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE);
+        await ShouldFail(await _client.PostAuthAsync("/transaction/installment/preview", request, ctx.Token),
+            HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE);
+        (await ctx.ListBranchTransactionsAsync()).ShouldBeEmpty();
     }
 
     [Fact]
@@ -148,11 +197,6 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         {
             Date = ctx.Today, Value = 10m, TransactionTypeId = ctx.StockSaleSystemTypeId, AccountId = ctx.TerminalId
         };
-        var stockOnTerminal = new RequestCreateTransactionJson
-        {
-            Date = ctx.Today, Value = 10m, TransactionTypeId = ctx.SaleTypeId, AccountId = ctx.TabId, ClientId = ctx.ClientId,
-            HandsOutCountedStock = true
-        };
 
         await ShouldFail(await _client.PostAuthAsync("/transaction", tabIn, ctx.Token), HttpStatusCode.Conflict,
             ResourcesErrorMessages.TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND);
@@ -162,36 +206,15 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
             ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
         (await ctx.ListBranchTransactionsAsync()).ShouldBeEmpty();
 
-        // A counted-stock declaration is valid only on a fiado sale.
-        var terminalSale = await _client.PostAuthAsync(
+        // The generated cashbox legs' system types are never written by hand either.
+        var repaymentLeg = await _client.PostAuthAsync(
             "/transaction",
             new RequestCreateTransactionJson
             {
-                Date = ctx.Today, Value = 10m, TransactionTypeId = ctx.CashRepaymentSystemTypeId, AccountId = ctx.TerminalId,
-                HandsOutCountedStock = true
+                Date = ctx.Today, Value = 10m, TransactionTypeId = ctx.CashRepaymentSystemTypeId, AccountId = ctx.TerminalId
             },
             ctx.Token);
-        await ShouldFail(terminalSale, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
-        stockOnTerminal.HandsOutCountedStock.ShouldBeTrue();
-    }
-
-    [Fact]
-    public async Task CountedStockDeclaration_ShouldBeRejected_OnARowThatIsNotAFiadoSale()
-    {
-        var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoStockNotSale", Role.Manager);
-        var outCategory = await factory.SeedCategoryAsync(ctx.BranchId, "Despesas", Direction.Out);
-        var ordinary = await factory.SeedTransactionTypeAsync(outCategory.Id, "Outras despesas");
-
-        var response = await _client.PostAuthAsync(
-            "/transaction",
-            new RequestCreateTransactionJson
-            {
-                Date = ctx.Today, Value = 10m, TransactionTypeId = ordinary.Id, AccountId = ctx.TerminalId, HandsOutCountedStock = true
-            },
-            ctx.Token);
-
-        await ShouldFail(response, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE);
-        (await ctx.ListBranchTransactionsAsync()).ShouldBeEmpty();
+        await ShouldFail(repaymentLeg, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
     }
 
     [Fact]
@@ -203,13 +226,13 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         await submitted.SetCloseStatusAsync(DailyCloseStatus.Submitted);
 
         await ShouldFail(
-            await _client.PostAuthAsync("/transaction", Sale(unpaired, 5m, handsOutCountedStock: true), unpaired.Token),
+            await _client.PostAuthAsync("/transaction", Sale(unpaired, 5m), unpaired.Token),
             HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED);
         await ShouldFail(
             await _client.PostAuthAsync("/transaction/fiado-payment", Payment(unpaired, unpaired.CashMethodId, 5m), unpaired.Token),
             HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED);
         await ShouldFail(
-            await _client.PostAuthAsync("/transaction", Sale(noClose, 5m, handsOutCountedStock: true), noClose.Token),
+            await _client.PostAuthAsync("/transaction", Sale(noClose, 5m), noClose.Token),
             HttpStatusCode.Conflict, ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED);
         await ShouldFail(
             await _client.PostAuthAsync("/transaction/fiado-payment", Payment(submitted, submitted.CashMethodId, 5m), submitted.Token),
@@ -231,7 +254,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         var both = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoMemberBoth", Role.Member);
 
         await ShouldFail(
-            await _client.PostAuthAsync("/transaction", Sale(tabOnly, 5m, handsOutCountedStock: true), tabOnly.Token),
+            await _client.PostAuthAsync("/transaction", Sale(tabOnly, 5m), tabOnly.Token),
             HttpStatusCode.Forbidden, ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await ShouldFail(
             await _client.PostAuthAsync("/transaction/fiado-payment", Payment(tabOnly, tabOnly.CashMethodId, 5m), tabOnly.Token),
@@ -243,7 +266,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         (await tabOnly.ListBranchTransactionsAsync()).ShouldBeEmpty();
         (await terminalOnly.ListBranchTransactionsAsync()).ShouldBeEmpty();
 
-        var sale = await _client.PostAuthAsync("/transaction", Sale(both, 5m, handsOutCountedStock: true), both.Token);
+        var sale = await _client.PostAuthAsync("/transaction", Sale(both, 5m), both.Token);
         var cash = await _client.PostAuthAsync("/transaction/fiado-payment", Payment(both, both.CashMethodId, 5m), both.Token);
         sale.StatusCode.ShouldBe(HttpStatusCode.Created, await sale.Content.ReadAsStringAsync());
         cash.StatusCode.ShouldBe(HttpStatusCode.Created, await cash.Content.ReadAsStringAsync());
@@ -402,7 +425,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
     public async Task Create_ShouldIgnoreForgedOriginFields()
     {
         var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoForgedOrigin", Role.Manager);
-        var victim = await CreateSaleAsync(ctx, 9m, saveAsDraft: false, handsOutCountedStock: false);
+        var victim = await CreateSaleAsync(ctx, 9m, saveAsDraft: false);
         var forged = new
         {
             Date = ctx.Today,
@@ -410,7 +433,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
             TransactionTypeId = ctx.SaleTypeId,
             AccountId = ctx.TabId,
             ClientId = ctx.ClientId,
-            GenerationKind = (int)TransactionGenerationKind.FiadoCountedStockSale,
+            GenerationKind = (int)TransactionGenerationKind.FiadoSale,
             GeneratedFromTransactionId = victim.Id
         };
 
@@ -450,7 +473,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
             ctx.Token);
 
         list.Items.Single(type => type.Id == ctx.StockSaleSystemTypeId).SystemRole
-            .ShouldBe(TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart);
+            .ShouldBe(TransactionTypeSystemRole.FiadoSaleCounterpart);
         list.Items.Single(type => type.Id == ctx.CashMethodId).FiadoPaymentKind.ShouldBe(FiadoPaymentKind.CountedCash);
         await ShouldFail(update, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_READ_ONLY);
         await ShouldFail(deactivate, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_READ_ONLY);
@@ -486,13 +509,13 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         var both = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoPreviewBoth", Role.Member);
 
         await ShouldFail(
-            await _client.PostAuthAsync("/transaction/preview", Sale(tabOnly, 5m, handsOutCountedStock: true), tabOnly.Token),
+            await _client.PostAuthAsync("/transaction/preview", Sale(tabOnly, 5m), tabOnly.Token),
             HttpStatusCode.Forbidden, ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         await ShouldFail(
-            await _client.PostAuthAsync("/transaction/preview", Sale(noClose, 5m, handsOutCountedStock: true), noClose.Token),
+            await _client.PostAuthAsync("/transaction/preview", Sale(noClose, 5m), noClose.Token),
             HttpStatusCode.Conflict, ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED);
 
-        var preview = await _client.PostAuthAsync("/transaction/preview", Sale(both, 5m, handsOutCountedStock: true), both.Token);
+        var preview = await _client.PostAuthAsync("/transaction/preview", Sale(both, 5m), both.Token);
 
         preview.StatusCode.ShouldBe(HttpStatusCode.OK, await preview.Content.ReadAsStringAsync());
         var impact = (await preview.ReadContentAsync<ResponseCreateTransactionPreviewJson>()).Impact;
@@ -509,8 +532,8 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
         var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoPreviewCredit", Role.Manager);
         await _client.PostAuthAsync("/transaction/fiado-payment", Payment(ctx, ctx.NonCashMethodId, 20m), ctx.Token);
 
-        var preview = await _client.PostAuthAsync("/transaction/preview", Sale(ctx, 5m, handsOutCountedStock: false), ctx.Token);
-        var created = await CreateSaleAsync(ctx, 5m, saveAsDraft: false, handsOutCountedStock: false);
+        var preview = await _client.PostAuthAsync("/transaction/preview", Sale(ctx, 5m), ctx.Token);
+        var created = await CreateSaleAsync(ctx, 5m, saveAsDraft: false);
         var aging = await GetAsync<ResponseFiadoAgingJson>($"/report/fiado/aging?clientId={ctx.ClientId}&page=1&pageSize=50", ctx.Token);
 
         preview.StatusCode.ShouldBe(HttpStatusCode.OK, await preview.Content.ReadAsStringAsync());
@@ -522,10 +545,10 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
 
         // Without credit the same preview does report the sale entering aging, and the write agrees.
         var debtor = await FiadoLinkedMovementTestContext.SeedAsync(factory, "FiadoPreviewDebtor", Role.Manager);
-        var debtorPreview = await _client.PostAuthAsync("/transaction/preview", Sale(debtor, 5m, handsOutCountedStock: false), debtor.Token);
+        var debtorPreview = await _client.PostAuthAsync("/transaction/preview", Sale(debtor, 5m), debtor.Token);
         (await debtorPreview.ReadContentAsync<ResponseCreateTransactionPreviewJson>()).Impact.ReceivableImpact
             .RowAppearsInOpenReceivables.ShouldBeTrue();
-        var debtorSale = await CreateSaleAsync(debtor, 5m, saveAsDraft: false, handsOutCountedStock: false);
+        var debtorSale = await CreateSaleAsync(debtor, 5m, saveAsDraft: false);
         (await GetAsync<ResponseFiadoAgingJson>($"/report/fiado/aging?clientId={debtor.ClientId}&page=1&pageSize=50", debtor.Token))
             .Items.ShouldHaveSingleItem().TransactionId.ShouldBe(debtorSale.Id);
     }
@@ -552,10 +575,9 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
     private async Task<ResponseCreateTransactionJson> CreateSaleAsync(
         FiadoLinkedMovementTestContext ctx,
         decimal value,
-        bool saveAsDraft,
-        bool handsOutCountedStock = true)
+        bool saveAsDraft)
     {
-        var response = await _client.PostAuthAsync("/transaction", Sale(ctx, value, handsOutCountedStock, saveAsDraft), ctx.Token);
+        var response = await _client.PostAuthAsync("/transaction", Sale(ctx, value, saveAsDraft), ctx.Token);
         response.StatusCode.ShouldBe(HttpStatusCode.Created, await response.Content.ReadAsStringAsync());
         return await response.ReadContentAsync<ResponseCreateTransactionJson>();
     }
@@ -577,7 +599,6 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
     internal static RequestCreateTransactionJson Sale(
         FiadoLinkedMovementTestContext ctx,
         decimal value,
-        bool handsOutCountedStock,
         bool saveAsDraft = false)
     {
         return new RequestCreateTransactionJson
@@ -588,8 +609,7 @@ public class TransactionControllerFiadoLinkedMovementTest(ServerWebApplicationFa
             AccountId = ctx.TabId,
             ClientId = ctx.ClientId,
             DueDate = ctx.Today.AddDays(30),
-            SaveAsDraft = saveAsDraft,
-            HandsOutCountedStock = handsOutCountedStock
+            SaveAsDraft = saveAsDraft
         };
     }
 

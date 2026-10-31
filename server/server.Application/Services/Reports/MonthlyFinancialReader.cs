@@ -20,6 +20,9 @@ public sealed record MonthlyFinancialTotals(
     bool IsBolaoServiceFeeConfigured,
     decimal? BolaoServiceFeeTotal,
     int BolaoServiceFeeRowCount,
+    bool IsSpecialDrawServiceFeeConfigured,
+    decimal? SpecialDrawServiceFeeTotal,
+    int SpecialDrawServiceFeeRowCount,
     bool IsCommercialLeftoverConfigured,
     decimal? CommercialLeftoverTotal,
     int CommercialLeftoverRowCount,
@@ -53,6 +56,7 @@ public class MonthlyFinancialReader(
         var operators = hoursRollUp ?? await timeEntryBalanceProjector.BuildBranchWide(branchId, dateFrom, dateTo, branchLocalNow, ct);
         var totals = await ReadTotals(branchId, year, month, asOfDate, operators, ct);
         var feeConfigured = totals.IsBolaoServiceFeeConfigured;
+        var specialFeeConfigured = totals.IsSpecialDrawServiceFeeConfigured;
         var leftoverConfigured = totals.IsCommercialLeftoverConfigured;
 
         var productId = await cashVarianceProductResolver.GetIdAsync(branchId, ct);
@@ -65,28 +69,37 @@ public class MonthlyFinancialReader(
             ? await transactionsRepository.ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
                 branchId, MonthlyFinancialRole.BolaoServiceFee, dateFrom, dateTo, ct)
             : [];
+        IReadOnlyList<MonthlyFinancialRoleRow> specialFeeRows = specialFeeConfigured
+            ? await transactionsRepository.ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
+                branchId, MonthlyFinancialRole.SpecialDrawServiceFee, dateFrom, dateTo, ct)
+            : [];
         IReadOnlyList<MonthlyFinancialRoleRow> leftoverRows = leftoverConfigured
             ? await transactionsRepository.ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
                 branchId, MonthlyFinancialRole.CommercialLeftover, dateFrom, dateTo, ct)
             : [];
 
-
         // Official variance is keyed by close id: a Draft close never has a row here, so its retained value is suppressed.
         var varianceByClose = varianceRows.ToDictionary(row => row.DailyCloseId, row => row.Value);
         // Fees attach to their own session (a shared cashbox has several per day); unresolved legacy rows carry no
-        // session and stay keyed to their account/day.
-        var feeByTerminalDay = feeRows
-            .GroupBy(row => (row.Date.Date, row.AccountId, row.SessionId))
-            .ToDictionary(group => group.Key, group => (
-                Value: group.Sum(row => row.InTotal - row.OutTotal),
-                RowCount: group.Sum(row => row.RowCount),
-                group.First().AccountName,
-                group.First().AccountActive));
+        // session and stay keyed to their account/day. Each fee is In − Out of its own marked rows (M9.6 Phase 7 adds
+        // Tarifa Especial beside Tarifa Bolão; the two are never added together).
+        var feeBySession = GroupFees(feeRows);
+        var specialFeeBySession = GroupFees(specialFeeRows);
 
-        (decimal Value, int RowCount, string AccountName, bool AccountActive) FeeFor(DailyCloseSummaryRow close) =>
-            feeByTerminalDay.TryGetValue((close.Date.Date, close.AccountId, close.DailyCloseId), out var own)
+        static (decimal Value, int RowCount, string AccountName, bool AccountActive) FeeFor(
+            Dictionary<(DateTime Date, Guid AccountId, Guid? SessionId), (decimal Value, int RowCount, string AccountName, bool AccountActive)> fees,
+            DailyCloseSummaryRow close) =>
+            fees.TryGetValue((close.Date.Date, close.AccountId, close.DailyCloseId), out var own)
                 ? own
-                : feeByTerminalDay.GetValueOrDefault((close.Date.Date, close.AccountId, null));
+                : fees.GetValueOrDefault((close.Date.Date, close.AccountId, null));
+
+        var orphanKeys = feeBySession.Keys
+            .Concat(specialFeeBySession.Keys)
+            .Distinct()
+            .Where(key => closes.All(close =>
+                (close.Date.Date, close.AccountId) != (key.Date, key.AccountId)
+                || (key.SessionId is { } sessionId && sessionId != close.DailyCloseId)))
+            .ToList();
 
         var terminalDays = closes
             .Select(close => new ResponseMonthlyFinancialTerminalDayJson
@@ -98,8 +111,10 @@ public class MonthlyFinancialReader(
                 DailyCloseId = close.DailyCloseId,
                 CloseStatus = close.Status,
                 OfficialVariance = varianceByClose.TryGetValue(close.DailyCloseId, out var variance) ? variance : null,
-                BolaoServiceFee = feeConfigured ? FeeFor(close).Value : null,
-                BolaoServiceFeeRowCount = FeeFor(close).RowCount,
+                BolaoServiceFee = feeConfigured ? FeeFor(feeBySession, close).Value : null,
+                BolaoServiceFeeRowCount = FeeFor(feeBySession, close).RowCount,
+                SpecialDrawServiceFee = specialFeeConfigured ? FeeFor(specialFeeBySession, close).Value : null,
+                SpecialDrawServiceFeeRowCount = FeeFor(specialFeeBySession, close).RowCount,
                 RecordedByUserId = close.RecordedByUserId,
                 RecordedByUserName = close.RecordedByUserName,
                 RecordedByOperatorId = close.RecordedByOperatorId,
@@ -109,19 +124,23 @@ public class MonthlyFinancialReader(
                 SubmittedByOperatorId = close.SubmittedByOperatorId,
                 SubmittedByOperatorName = close.SubmittedByOperatorName
             })
-            .Concat(feeByTerminalDay
-                .Where(pair => closes.All(close =>
-                    (close.Date.Date, close.AccountId) != (pair.Key.Date, pair.Key.AccountId)
-                    || (pair.Key.SessionId is { } sessionId && sessionId != close.DailyCloseId)))
-                .Select(pair => new ResponseMonthlyFinancialTerminalDayJson
+            .Concat(orphanKeys.Select(key =>
+            {
+                var fee = feeBySession.GetValueOrDefault(key);
+                var special = specialFeeBySession.GetValueOrDefault(key);
+                var named = feeBySession.ContainsKey(key) ? fee : special;
+                return new ResponseMonthlyFinancialTerminalDayJson
                 {
-                    Date = pair.Key.Date,
-                    AccountId = pair.Key.AccountId,
-                    AccountName = pair.Value.AccountName,
-                    AccountActive = pair.Value.AccountActive,
-                    BolaoServiceFee = pair.Value.Value,
-                    BolaoServiceFeeRowCount = pair.Value.RowCount
-                }))
+                    Date = key.Date,
+                    AccountId = key.AccountId,
+                    AccountName = named.AccountName,
+                    AccountActive = named.AccountActive,
+                    BolaoServiceFee = feeConfigured ? fee.Value : null,
+                    BolaoServiceFeeRowCount = fee.RowCount,
+                    SpecialDrawServiceFee = specialFeeConfigured ? special.Value : null,
+                    SpecialDrawServiceFeeRowCount = special.RowCount
+                };
+            }))
             .OrderBy(day => day.Date)
             .ThenBy(day => day.AccountName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(day => day.AccountId)
@@ -196,6 +215,8 @@ public class MonthlyFinancialReader(
             OfficialCloseCount = totals.OfficialCloseCount,
             IsBolaoServiceFeeConfigured = feeConfigured,
             BolaoServiceFeeTotal = totals.BolaoServiceFeeTotal,
+            IsSpecialDrawServiceFeeConfigured = specialFeeConfigured,
+            SpecialDrawServiceFeeTotal = totals.SpecialDrawServiceFeeTotal,
             IsCommercialLeftoverConfigured = leftoverConfigured,
             CommercialLeftoverTotal = totals.CommercialLeftoverTotal,
             LeftoversByType = leftoversByType,
@@ -223,6 +244,7 @@ public class MonthlyFinancialReader(
 
         var roles = await transactionTypesRepository.ListConfiguredMonthlyFinancialRolesByBranchIdAsNoTracking(branchId, ct);
         var feeConfigured = roles.Contains(MonthlyFinancialRole.BolaoServiceFee);
+        var specialFeeConfigured = roles.Contains(MonthlyFinancialRole.SpecialDrawServiceFee);
         var leftoverConfigured = roles.Contains(MonthlyFinancialRole.CommercialLeftover);
 
         var productId = await cashVarianceProductResolver.GetIdAsync(branchId, ct);
@@ -233,6 +255,10 @@ public class MonthlyFinancialReader(
         var fee = feeConfigured
             ? await transactionsRepository.GetMonthlyFinancialRoleTotalAsNoTracking(
                 branchId, MonthlyFinancialRole.BolaoServiceFee, dateFrom, dateTo, ct)
+            : null;
+        var specialFee = specialFeeConfigured
+            ? await transactionsRepository.GetMonthlyFinancialRoleTotalAsNoTracking(
+                branchId, MonthlyFinancialRole.SpecialDrawServiceFee, dateFrom, dateTo, ct)
             : null;
         var leftover = leftoverConfigured
             ? await transactionsRepository.GetMonthlyFinancialRoleTotalAsNoTracking(
@@ -249,6 +275,9 @@ public class MonthlyFinancialReader(
             feeConfigured,
             fee is null ? null : fee.InTotal - fee.OutTotal,
             fee?.RowCount ?? 0,
+            specialFeeConfigured,
+            specialFee is null ? null : specialFee.InTotal - specialFee.OutTotal,
+            specialFee?.RowCount ?? 0,
             leftoverConfigured,
             leftover is null ? null : leftover.OutTotal - leftover.InTotal,
             leftover?.RowCount ?? 0,
@@ -256,6 +285,16 @@ public class MonthlyFinancialReader(
             hoursRollUp.Sum(op => op.Days.Count),
             hoursRollUp.Any(op => op.ContainsInProgress));
     }
+
+    private static Dictionary<(DateTime Date, Guid AccountId, Guid? SessionId), (decimal Value, int RowCount, string AccountName, bool AccountActive)>
+        GroupFees(IReadOnlyList<MonthlyFinancialRoleRow> rows) =>
+        rows
+            .GroupBy(row => (row.Date.Date, row.AccountId, row.SessionId))
+            .ToDictionary(group => group.Key, group => (
+                Value: group.Sum(row => row.InTotal - row.OutTotal),
+                RowCount: group.Sum(row => row.RowCount),
+                group.First().AccountName,
+                group.First().AccountActive));
 
     /// <summary>
     /// The month's report window: the whole calendar month once it has ended, else its first day through

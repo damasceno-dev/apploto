@@ -63,37 +63,38 @@ public class SessionControllerLedgerRevisionTest(ServerWebApplicationFactory fac
         var ctx = await FiadoLinkedMovementTestContext.SeedAsync(factory, "RevisionPairs", Role.Manager);
         var baseline = await Revision(ctx);
 
-        var sale = await _client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m, handsOutCountedStock: true), ctx.Token);
+        var sale = await _client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 5m), ctx.Token);
         sale.StatusCode.ShouldBe(HttpStatusCode.Created, await sale.Content.ReadAsStringAsync());
         await ShouldBump(ctx, baseline, 1);
 
-        var plainSale = await _client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 7m, handsOutCountedStock: false), ctx.Token);
-        plainSale.StatusCode.ShouldBe(HttpStatusCode.Created, await plainSale.Content.ReadAsStringAsync());
-        await ShouldBump(ctx, baseline, 1);
+        // Every counter sale now pairs (M9.6 Phase 6): a second sale is a second ledger change.
+        var secondSale = await _client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 7m), ctx.Token);
+        secondSale.StatusCode.ShouldBe(HttpStatusCode.Created, await secondSale.Content.ReadAsStringAsync());
+        await ShouldBump(ctx, baseline, 2);
 
         var cashRepayment = await _client.PostAuthAsync("/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.CashMethodId, 3m), ctx.Token);
         cashRepayment.StatusCode.ShouldBe(HttpStatusCode.Created, await cashRepayment.Content.ReadAsStringAsync());
-        await ShouldBump(ctx, baseline, 2);
+        await ShouldBump(ctx, baseline, 3);
 
         var nonCash = await _client.PostAuthAsync("/transaction/fiado-payment", TransactionControllerFiadoLinkedMovementTest.Payment(ctx, ctx.NonCashMethodId, 2m), ctx.Token);
         nonCash.StatusCode.ShouldBe(HttpStatusCode.Created, await nonCash.Content.ReadAsStringAsync());
-        await ShouldBump(ctx, baseline, 2);
+        await ShouldBump(ctx, baseline, 3);
 
         // Cancelling the source cancels its generated leg in the same command: one bump.
         var source = await sale.ReadContentAsync<ResponseCreateTransactionJson>();
         var sourceRow = (await factory.ReloadAsync<Transaction>(source.Id))!;
         var cancel = await Cancel(ctx, source.Id, sourceRow.Version);
         cancel.StatusCode.ShouldBe(HttpStatusCode.OK, await cancel.Content.ReadAsStringAsync());
-        await ShouldBump(ctx, baseline, 3);
+        await ShouldBump(ctx, baseline, 4);
 
         // A Draft pair is finalized together: one bump.
-        var draftSale = await _client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 4m, handsOutCountedStock: true, saveAsDraft: true), ctx.Token);
+        var draftSale = await _client.PostAuthAsync("/transaction", TransactionControllerFiadoLinkedMovementTest.Sale(ctx, 4m, saveAsDraft: true), ctx.Token);
         draftSale.StatusCode.ShouldBe(HttpStatusCode.Created, await draftSale.Content.ReadAsStringAsync());
-        await ShouldBump(ctx, baseline, 3);
+        await ShouldBump(ctx, baseline, 4);
         var draftSource = await draftSale.ReadContentAsync<ResponseCreateTransactionJson>();
         var finalize = await _client.PostAuthAsync($"/transaction/{draftSource.Id}/finalize", ctx.Token, expectedVersion: draftSource.Version);
         finalize.StatusCode.ShouldBe(HttpStatusCode.OK, await finalize.Content.ReadAsStringAsync());
-        await ShouldBump(ctx, baseline, 4);
+        await ShouldBump(ctx, baseline, 5);
     }
 
     [Fact]

@@ -19,5 +19,17 @@ public class PutDailyCloseItemsFluentValidation : AbstractValidator<RequestPutDa
 
         RuleFor(r => r.Notes)
             .ValidateDailyCloseNotes();
+
+        RuleFor(r => r.CloseFields)
+            .Must(fields => fields is null || fields.GroupBy(field => field.Field).All(group => group.Count() == 1))
+            .WithMessage(ResourcesErrorMessages.SESSION_CLOSE_FIELD_DUPLICATE);
+
+        When(r => r.CloseFields is not null, () =>
+        {
+            RuleForEach(r => r.CloseFields)
+                .NotNull()
+                .WithMessage(ResourcesErrorMessages.SESSION_CLOSE_FIELD_INVALID)
+                .SetValidator(new SessionCloseFieldFluentValidation());
+        });
     }
 }

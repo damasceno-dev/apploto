@@ -8,6 +8,7 @@ using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
@@ -50,11 +51,10 @@ public class CreateTransactionUseCase(
         if (replay is not null)
             return replay;
 
-        // A counted-stock fiado sale also writes its paired terminal's ledger (M7.7 Phase 5.6): discover the pairing
-        // without tracking, lock both accounts in the canonical order, and re-check the pairing inside the scope.
-        var pairedTerminalId = request.HandsOutCountedStock
-            ? await accountsRepository.GetActiveTerminalIdByTabAccountId(request.AccountId, branchUser.BranchId)
-            : null;
+        // Every new counter fiado sale also writes its paired cashbox's ledger (M9.6 Phase 6, §6.19 O05): discover the
+        // pairing without tracking, lock both accounts in the canonical order, and re-check the pairing inside the scope.
+        // A sale on an unpaired Tab is refused when the counterpart is built, before anything is written.
+        var pairedTerminalId = await accountsRepository.GetActiveTerminalIdByTabAccountId(request.AccountId, branchUser.BranchId);
 
         await using var coordination = pairedTerminalId is { } terminalToLock
             ? await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, [request.AccountId, terminalToLock], ct)
@@ -92,10 +92,13 @@ public class CreateTransactionUseCase(
             request.SessionId,
             request.HistoricalReason,
             request.OpeningAcknowledgment);
+        // The generic create is the counter: its fiado sales are counter sales, which always carry the cashbox leg.
+        var isFiadoSale = TransactionCreatePreamble.IsCounterFiadoSale(createContext)
+            && FinancialRoleRules.RequiresCashboxLeg(FiadoDebtOrigin.CounterSale);
         TransactionSessionBinding.EnsureUsed(
             request.SessionId,
             request.OpeningAcknowledgment,
-            createContext.Account!.Type == AccountType.Terminal || request.HandsOutCountedStock);
+            createContext.Account!.Type == AccountType.Terminal || isFiadoSale);
         var ownSession = await dailyCloseLedgerGuard.ResolveSessionForNewRow(
             request.AccountId,
             createContext.Account!.Type,
@@ -113,12 +116,12 @@ public class CreateTransactionUseCase(
         transaction.SessionId = ownSession.SessionId;
         Transaction? counterpart = null;
         SessionRowResolution? counterpartSession = null;
-        if (request.HandsOutCountedStock)
+        if (isFiadoSale)
         {
             (counterpart, counterpartSession) = await fiadoPhysicalPairService.BuildCounterpart(
                 transaction,
                 pairedTerminalId ?? throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED),
-                TransactionGenerationKind.FiadoCountedStockSale,
+                TransactionGenerationKind.FiadoSale,
                 sessionContext,
                 ct);
         }

@@ -11,4 +11,5 @@ export const MonthlyFinancialRole = {
   None: 'None',
   BolaoServiceFee: 'BolaoServiceFee',
   CommercialLeftover: 'CommercialLeftover',
+  SpecialDrawServiceFee: 'SpecialDrawServiceFee',
 } as const;

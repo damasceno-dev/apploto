@@ -51,6 +51,9 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<CustodyMappingIssue> CustodyMappingIssues => Set<CustodyMappingIssue>();
     public DbSet<OpeningCount> OpeningCounts => Set<OpeningCount>();
     public DbSet<OpeningCountItem> OpeningCountItems => Set<OpeningCountItem>();
+    public DbSet<SessionFieldEffect> SessionFieldEffects => Set<SessionFieldEffect>();
+    public DbSet<SessionFieldEffectRevision> SessionFieldEffectRevisions => Set<SessionFieldEffectRevision>();
+    public DbSet<CustodyTransfer> CustodyTransfers => Set<CustodyTransfer>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -45,4 +45,10 @@ public class ResponseDailyCloseJson
     /// <summary>The caller's permitted actions; present wherever <see cref="Count"/> is.</summary>
     public ResponseSessionAllowedActionsJson? AllowedActions { get; set; }
     public IReadOnlyList<ResponseDailyCloseItemJson> Items { get; init; } = [];
+
+    /// <summary>
+    /// M9.6 Phase 7: the three close-form fields, on the session read and every count/Conferir/Recontar response;
+    /// null on list rows.
+    /// </summary>
+    public IReadOnlyList<ResponseSessionCloseFieldJson>? CloseFields { get; set; }
 }

@@ -352,26 +352,22 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
     }
 
     [Fact]
-    public async Task PreviewInstallment_FiadoImpact_ShouldMatchBalanceDelta_WhenTabPlanWritten()
+    public async Task PreviewInstallment_ShouldRefuseATabPlan_LikeTheWrite_AndLeaveTheBalanceUnchanged()
     {
-        // Determinism: post-write fiado balance moves by exactly the previewed aggregated delta.
-        // The client starts with a NON-zero balance so the test does not assume a zero baseline.
-        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevFiadoDet", Role.Manager);
+        // M9.6 Phase 6: a plan on a Tab would be a fiado sale without its paired cashbox Out, so both the preview and
+        // the write refuse it; the client's existing balance is untouched.
+        var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("TxnPrevFiadoPlan", Role.Manager);
         var op = await factory.SeedOperatorAsync(branch.Id, userId: user.Id);
         var tabAccount = await factory.SeedAccountAsync(branch.Id, AccountType.Tab, "Fiado");
         var category = await factory.SeedCategoryAsync(branch.Id, "Saídas", Direction.Out);
         var transactionType = await factory.SeedTransactionTypeAsync(
             category.Id, settlementRule: SettlementRule.OperatorEnteredCheque, requiresTabAccountAndClient: true);
         var client = await factory.SeedClientAsync(branch.Id, "Fiado Client");
-
         var date = DateTime.Today;
         var asOfDate = date.AddDays(1);
-
-        // Pre-existing non-zero balance: a prior Out 50 on the same Tab client.
         await factory.SeedTransactionAsync(
             branch.Id, tabAccount.Id, transactionType.Id, category.Id, Direction.Out,
             op.Id, user.Id, date: date, value: 50m, clientId: client.Id, dueDate: date);
-
         var request = new RequestCreateTransactionInstallmentJsonBuilder()
             .WithDate(date)
             .WithValue(300m)
@@ -381,23 +377,19 @@ public class TransactionControllerInstallmentPreviewHappyPathTest(ServerWebAppli
             .WithRecordedByOperatorId(op.Id)
             .WithAutoGeneration(3, date.AddDays(30))
             .Build();
-
         var beforeBalance = await ClientBalanceAsync(token, client.Id, asOfDate);
 
         var previewResponse = await _client.PostAuthAsync(
             $"/transaction/installment/preview?asOfDate={asOfDate:yyyy-MM-dd}", request, token);
-        previewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var preview = await previewResponse.ReadContentAsync<ResponseInstallmentPreviewJson>();
-        var previewDelta = preview.Impact.FiadoBalanceImpact.Deltas.Single();
-        previewDelta.ClientId.ShouldBe(client.Id);
-        previewDelta.OutstandingDelta.ShouldBe(300m);
-
         var createResponse = await _client.PostAuthAsync("/transaction/installment", request, token);
-        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
 
-        var afterBalance = await ClientBalanceAsync(token, client.Id, asOfDate);
-
-        (afterBalance - beforeBalance).ShouldBe(previewDelta.OutstandingDelta);
+        foreach (var response in new[] { previewResponse, createResponse })
+        {
+            response.StatusCode.ShouldBe(HttpStatusCode.Conflict, await response.Content.ReadAsStringAsync());
+            (await response.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+                .ShouldContain(ResourcesErrorMessages.TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE);
+        }
+        (await ClientBalanceAsync(token, client.Id, asOfDate)).ShouldBe(beforeBalance);
     }
 
     [Fact]

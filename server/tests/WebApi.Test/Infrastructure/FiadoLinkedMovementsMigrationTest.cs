@@ -128,7 +128,7 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
                     .ToListAsync();
 
                 systemTypes.Count.ShouldBe(2);
-                var stock = systemTypes.Single(type => type.SystemRole == TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart);
+                var stock = systemTypes.Single(type => type.SystemRole == TransactionTypeSystemRole.FiadoSaleCounterpart);
                 var cash = systemTypes.Single(type => type.SystemRole == TransactionTypeSystemRole.FiadoCashRepaymentCounterpart);
                 stock.Name.ShouldBe("Saída de estoque contado — venda fiado");
                 stock.Category.DefaultDirection.ShouldBe(Direction.Out);
@@ -167,7 +167,7 @@ public class FiadoLinkedMovementsMigrationTest : IAsyncLifetime
                 .Select(type => type.Id).ToListAsync()).ShouldBe([ManagerTypeId]);
             // An inactive same-name category does not collide with the active-name index: branch B keeps the default name.
             (await dbContext.TransactionTypes.AsNoTracking()
-                .Where(type => type.SystemRole == TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart && type.Category.BranchId == BranchB)
+                .Where(type => type.SystemRole == TransactionTypeSystemRole.FiadoSaleCounterpart && type.Category.BranchId == BranchB)
                 .Select(type => type.Category.Name)
                 .SingleAsync()).ShouldBe("Movimentos automáticos de fiado (saída)");
         }

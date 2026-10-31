@@ -76,7 +76,7 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **Direction** *(§4)*: `In` → "Entrada" · `Out` → "Saída".
 
-**AccountType** *(§4)*: `Terminal` → "Terminal" · `BankAccount` → "Conta bancária" · `Tab` → "Conta fiado".
+**AccountType** *(§4)*: `Terminal` → "Terminal" · `BankAccount` → "Conta bancária" · `Tab` → "Conta fiado" · `Safe` → "Cofre".
 
 **TransactionStatus** *(§4)*: `Draft` → "Rascunho" · `Active` → "Ativa" · `Cancelled` → "Cancelada". *(Feminine — agrees with "transação".)*
 
@@ -104,11 +104,11 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **DailyCloseReviewEventType** *(§3.21, Fix & resubmit)*: `Rejected` → "Rejeitado na conferência" · `OpeningChanged` → "Abertura alterada".
 
-**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoCountedStockSale` → "venda fiado com entrega de mercadoria" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro".
+**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoSale` → "venda fiado no balcão" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro" · `SessionTerminalReport` → "relatório do terminal informado no fechamento" · `SessionBolaoFee` → "tarifa de bolão informada no fechamento" · `SessionSpecialFee` → "tarifa especial informada no fechamento" · `SafeCashDeposit` → "depósito de dinheiro do caixa no cofre".
 
 **FiadoPaymentKind** *(§6.4, admin types and Receber pagamento)*: `CountedCash` → "Dinheiro (entra no caixa)" · `NonCash` → "Outro meio (não entra no caixa)".
 
-**TransactionTypeSystemRole** *(admin types, read-only)*: `FiadoCountedStockSaleCounterpart` → "Saída automática de mercadoria (venda fiado)" · `FiadoCashRepaymentCounterpart` → "Entrada automática de dinheiro (recebimento de fiado)".
+**TransactionTypeSystemRole** *(admin types, read-only)*: `FiadoSaleCounterpart` → "Saída automática do caixa (venda fiado)" · `FiadoCashRepaymentCounterpart` → "Entrada automática de dinheiro (recebimento de fiado)" · `TerminalReportIn` → "Relatório do terminal (campo do fechamento)" · `TerminalReportOut` → "Relatório do terminal negativo (campo do fechamento)" · `BolaoFee` → "Tarifa de bolão (campo do fechamento)" · `SpecialFee` → "Tarifa especial (campo do fechamento)" · `SafeDepositOut` → "Depósito de dinheiro no cofre (saída do caixa)" · `SafeDepositIn` → "Entrada automática no cofre (depósito do caixa)".
 
 **InvitationStatus** *(§6.16)*: `Pending` → "Pendente" · `Accepted` → "Aceito" · `Declined` → "Recusado" · `Expired` → "Expirado". *(Masculine — agrees with "convite".)*
 
@@ -116,7 +116,7 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **SettlementInstrument** *(§3.10, admin types, Upcoming settlements and the Dashboard)*: `None` → "Sem classificação" · `Cheque` → "Cheque" · `CreditCard` → "Cartão de crédito" · `DebitCard` → "Cartão de débito". *(A receivable class set by the manager on the type; never inferred from the type's name.)*
 
-**MonthlyFinancialRole** *(§3.10, admin types and the Monthly financial report)*: `None` → "Nenhuma" · `BolaoServiceFee` → "Tarifa de bolão" · `CommercialLeftover` → "Sobra (perda comercial)". *(Feminine — agrees with "classificação".)*
+**MonthlyFinancialRole** *(§3.10, admin types and the Monthly financial report)*: `None` → "Nenhuma" · `BolaoServiceFee` → "Tarifa de bolão" · `CommercialLeftover` → "Sobra (perda comercial)" · `SpecialDrawServiceFee` → "Tarifa especial". *(Feminine — agrees with "classificação".)*
 
 **OverviewSectionStatus** *(§6.14, Dashboard sections)*: `Ready` → "Atualizado" · `Empty` → "Nada no período" · `NotConfigured` → "Não configurado". *(A section's state, never a figure: `NotConfigured` is never rendered as zero — see §7.5.)*
 
@@ -143,6 +143,8 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 **SessionCountAttemptKind** *(§6.20, count attempts in history)*: `Initial` → "Primeira conferência" · `Correction` → "Após correção" · `Recount` → "Recontagem" · `StillObserved` → "Contagem mantida após mudança no caixa".
 
 **SessionApprovalMode** *(§6.20, approval)*: `Independent` → "Aprovação independente" · `SingleActiveManager` → "Aprovar como único gestor".
+
+**SessionCloseField** *(§6.20, close form)*: `TerminalReport` → "Relatório do terminal" · `BolaoFee` → "Tarifa Bolão" · `SpecialFee` → "Tarifa Especial".
 
 ## 6. Error display
 

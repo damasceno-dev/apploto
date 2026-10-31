@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Accounts.CreateBank;
+using server.Application.UseCases.Accounts.CreateSafe;
 using server.Application.UseCases.Accounts.CreateTab;
 using server.Application.UseCases.Accounts.CreateTerminal;
 using server.Application.UseCases.Accounts.Deactivate;
@@ -31,6 +32,21 @@ public class AccountController : ControllerBase
         [FromBody] RequestCreateBankAccountJson request)
     {
         var response = await createBankAccountUseCase.Execute(request);
+        return Created(string.Empty, response);
+    }
+
+    [HttpPost]
+    [Route("safe")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseCreateAccountJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> CreateSafe(
+        [FromServices] CreateSafeAccountUseCase createSafeAccountUseCase,
+        [FromBody] RequestCreateSafeAccountJson request)
+    {
+        var response = await createSafeAccountUseCase.Execute(request);
         return Created(string.Empty, response);
     }
 

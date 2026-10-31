@@ -96,6 +96,18 @@ internal sealed class FiadoLinkedMovementTestContext
         };
     }
 
+    /// <summary>
+    /// A client debt recorded through a dedicated origin (opening obligation / import, §6.19 O19): a Tab Out with no
+    /// cashbox leg. No public route records one yet (M10), so the fixture writes it directly.
+    /// </summary>
+    public Task<Transaction> SeedOpeningDebtAsync(decimal value, DateTime? date = null)
+    {
+        var debtDate = date ?? Today.AddDays(-1);
+        return _factory.SeedTransactionAsync(
+            BranchId, TabId, SaleTypeId, SaleCategoryId, Direction.Out, OperatorId, UserId,
+            date: debtDate, value: value, clientId: ClientId, dueDate: debtDate);
+    }
+
     public async Task<IReadOnlyList<Transaction>> ListBranchTransactionsAsync()
     {
         await using var scope = _factory.Services.CreateAsyncScope();

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using server.Application.UseCases.Transactions.Cancel;
 using server.Application.UseCases.Transactions.Create;
 using server.Application.UseCases.Transactions.ReceiveFiadoPayment;
+using server.Application.UseCases.Transactions.SafeDeposit;
 using server.Application.UseCases.Transactions.CreateInstallment;
 using server.Application.UseCases.Transactions.CreatePreview;
 using server.Application.UseCases.Transactions.EditPreview;
@@ -91,6 +92,26 @@ public class TransactionController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await receiveFiadoPaymentUseCase.Execute(request, idempotencyKey, cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
+        return Created(string.Empty, response);
+    }
+
+    [HttpPost]
+    [Route("safe-deposit")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseCreateTransactionJson), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SafeDeposit(
+        [FromServices] SafeDepositUseCase safeDepositUseCase,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
+        [FromBody] RequestSafeDepositJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await safeDepositUseCase.Execute(request, idempotencyKey, cancellationToken);
         EntityTagHeader.Set(Response, response.Version);
         return Created(string.Empty, response);
     }

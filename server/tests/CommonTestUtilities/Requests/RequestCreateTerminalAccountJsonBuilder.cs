@@ -10,7 +10,7 @@ public class RequestCreateTerminalAccountJsonBuilder
     private string? _institution;
     private string? _number;
     private Guid? _existingTabAccountId;
-    private bool _createTabAccount;
+    private bool? _createTabAccount;
 
     public RequestCreateTerminalAccountJsonBuilder()
     {
@@ -41,7 +41,7 @@ public class RequestCreateTerminalAccountJsonBuilder
         return this;
     }
 
-    public RequestCreateTerminalAccountJsonBuilder WithCreateTabAccount(bool createTabAccount)
+    public RequestCreateTerminalAccountJsonBuilder WithCreateTabAccount(bool? createTabAccount)
     {
         _createTabAccount = createTabAccount;
         return this;

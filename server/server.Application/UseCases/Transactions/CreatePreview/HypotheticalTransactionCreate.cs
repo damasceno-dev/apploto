@@ -36,8 +36,8 @@ public sealed class HypotheticalTransactionCreate(RequestCreateTransactionJson r
     public DateTime DueDate { get; } = context.DueDate ?? request.Date;
 
     /// <summary>
-    /// Set when the would-be row is a counted-stock fiado sale (M7.7 Phase 5.6): the paired terminal that would
-    /// receive the generated Terminal <c>Out</c>, already validated exactly as the write validates it.
+    /// Set when the would-be row is a counter fiado sale (M9.6 Phase 6): the paired cashbox that would receive the
+    /// generated cashbox <c>Out</c>, already validated exactly as the write validates it.
     /// </summary>
     public Guid? PairedTerminalAccountId { get; init; }
 }

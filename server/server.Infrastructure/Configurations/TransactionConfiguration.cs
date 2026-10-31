@@ -100,13 +100,22 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // One generated counterpart per source, and the generation kind and source link exist together or not at all.
+        // One generated counterpart per source. Fiado and cofre legs (kinds 1, 2, 6) hang off their source row; a
+        // close-field effect (kinds 3–5) has none and is owned by its session's field slot instead (M9.6 Phase 7).
         builder.HasIndex(t => t.GeneratedFromTransactionId)
             .IsUnique()
             .HasFilter("\"GeneratedFromTransactionId\" IS NOT NULL");
         builder.ToTable(table => table.HasCheckConstraint(
             "CK_Transactions_GenerationOrigin",
-            "(\"GenerationKind\" IS NULL) = (\"GeneratedFromTransactionId\" IS NULL)"));
+            "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR " +
+            "(\"GenerationKind\" IN (1, 2, 6) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR " +
+            "(\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)"));
+
+        // At most one live (non-cancelled) effect per session and close field, whatever the save path.
+        builder.HasIndex(t => new { t.SessionId, t.GenerationKind })
+            .IsUnique()
+            .HasDatabaseName("IX_Transactions_SessionId_GenerationKind_LiveFieldEffect")
+            .HasFilter("\"GenerationKind\" IN (3, 4, 5) AND \"Status\" <> 2");
 
         builder.HasIndex(t => new { t.BranchId, t.Status });
         builder.HasIndex(t => new { t.BranchId, t.RecordedByOperatorId, t.Date });

@@ -644,6 +644,10 @@
           "CommercialLeftover": {
             "fg": "{color.semantic.light.feedback.warning.fg}",
             "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "SpecialDrawServiceFee": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
           }
         },
         "overview-section-status": {
@@ -906,6 +910,10 @@
           "CommercialLeftover": {
             "fg": "{color.semantic.dark.feedback.warning.fg}",
             "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "SpecialDrawServiceFee": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
           }
         },
         "overview-section-status": {

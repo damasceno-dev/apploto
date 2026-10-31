@@ -20,6 +20,9 @@ export interface ResponseMonthlyFinancialTerminalDayJson {
   bolaoServiceFee?: number | null;
   bolaoServiceFeeRowCount: number;
   /** @nullable */
+  specialDrawServiceFee?: number | null;
+  specialDrawServiceFeeRowCount: number;
+  /** @nullable */
   recordedByUserId?: string | null;
   /** @nullable */
   recordedByUserName?: string | null;

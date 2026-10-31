@@ -193,6 +193,7 @@ export const domainColors = {
       None: ['bg', 'fg'],
       BolaoServiceFee: ['bg', 'fg'],
       CommercialLeftover: ['bg', 'fg'],
+      SpecialDrawServiceFee: ['bg', 'fg'],
     },
   },
   'overview-section-status': {

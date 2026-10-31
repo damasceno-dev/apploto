@@ -439,10 +439,11 @@ public class ManagementOverviewBuilder(
     {
         // Totals only, folded in the database from the full report's own predicates; no day, leftover or close list.
         var totals = await monthlyFinancialReader.ReadTotals(branchId, year, month, asOfDate, hoursRollUp, ct);
-        var status = totals.IsBolaoServiceFeeConfigured is false && totals.IsCommercialLeftoverConfigured is false
+        var status = totals.IsBolaoServiceFeeConfigured is false && totals.IsSpecialDrawServiceFeeConfigured is false &&
+                     totals.IsCommercialLeftoverConfigured is false
             ? OverviewSectionStatus.NotConfigured
-            : totals.CloseCount == 0 && totals.BolaoServiceFeeRowCount == 0 && totals.CommercialLeftoverRowCount == 0 &&
-              totals.HourDayCount == 0
+            : totals.CloseCount == 0 && totals.BolaoServiceFeeRowCount == 0 && totals.SpecialDrawServiceFeeRowCount == 0 &&
+              totals.CommercialLeftoverRowCount == 0 && totals.HourDayCount == 0
                 ? OverviewSectionStatus.Empty
                 : OverviewSectionStatus.Ready;
 
@@ -458,6 +459,8 @@ public class ManagementOverviewBuilder(
             OfficialCloseCount = totals.OfficialCloseCount,
             IsBolaoServiceFeeConfigured = totals.IsBolaoServiceFeeConfigured,
             BolaoServiceFeeTotal = totals.BolaoServiceFeeTotal,
+            IsSpecialDrawServiceFeeConfigured = totals.IsSpecialDrawServiceFeeConfigured,
+            SpecialDrawServiceFeeTotal = totals.SpecialDrawServiceFeeTotal,
             IsCommercialLeftoverConfigured = totals.IsCommercialLeftoverConfigured,
             CommercialLeftoverTotal = totals.CommercialLeftoverTotal,
             HoursTotal = totals.HoursTotal,

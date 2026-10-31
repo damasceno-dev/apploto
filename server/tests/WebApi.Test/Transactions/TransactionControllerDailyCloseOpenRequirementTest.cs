@@ -23,7 +23,8 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
     [InlineData(AccountType.Terminal, CloseCase.Submitted, HttpStatusCode.Conflict)]
     [InlineData(AccountType.Terminal, CloseCase.Approved, HttpStatusCode.Conflict)]
     [InlineData(AccountType.Terminal, CloseCase.Rejected, HttpStatusCode.Conflict)]
-    [InlineData(AccountType.Tab, CloseCase.Missing, HttpStatusCode.Created)]
+    // M9.6 Phase 6: a Tab Out is a counter fiado sale, no longer exempt — it needs a client and its paired cashbox.
+    [InlineData(AccountType.Tab, CloseCase.Missing, HttpStatusCode.Conflict)]
     [InlineData(AccountType.BankAccount, CloseCase.Missing, HttpStatusCode.Created)]
     public async Task Create_ShouldApplyTerminalOpenMatrix(
         AccountType accountType,
@@ -47,9 +48,11 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
         if (expectedStatus == HttpStatusCode.Conflict)
         {
             var error = await response.ReadContentAsync<TestResponseErrorJson>();
-            error.ErrorMessages.ShouldContain(closeCase == CloseCase.Missing
-                ? ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED
-                : ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
+            error.ErrorMessages.ShouldContain(accountType == AccountType.Tab
+                ? ResourcesErrorMessages.TRANSACTION_FIADO_SALE_CLIENT_REQUIRED
+                : closeCase == CloseCase.Missing
+                    ? ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED
+                    : ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
         }
     }
 
@@ -59,7 +62,8 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
     [InlineData(AccountType.Terminal, CloseCase.Submitted, HttpStatusCode.Conflict)]
     [InlineData(AccountType.Terminal, CloseCase.Approved, HttpStatusCode.Conflict)]
     [InlineData(AccountType.Terminal, CloseCase.Rejected, HttpStatusCode.Conflict)]
-    [InlineData(AccountType.Tab, CloseCase.Missing, HttpStatusCode.Created)]
+    // M9.6 Phase 6: a Tab plan would be an unpaired fiado sale and is refused.
+    [InlineData(AccountType.Tab, CloseCase.Missing, HttpStatusCode.Conflict)]
     [InlineData(AccountType.BankAccount, CloseCase.Missing, HttpStatusCode.Created)]
     public async Task CreateInstallment_ShouldApplyTerminalOpenMatrix(
         AccountType accountType,
@@ -87,9 +91,11 @@ public class TransactionControllerDailyCloseOpenRequirementTest(ServerWebApplica
         if (expectedStatus == HttpStatusCode.Conflict)
         {
             var error = await response.ReadContentAsync<TestResponseErrorJson>();
-            error.ErrorMessages.ShouldContain(closeCase == CloseCase.Missing
-                ? ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED
-                : ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
+            error.ErrorMessages.ShouldContain(accountType == AccountType.Tab
+                ? ResourcesErrorMessages.TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE
+                : closeCase == CloseCase.Missing
+                    ? ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED
+                    : ResourcesErrorMessages.TRANSACTION_DAILY_CLOSE_LEDGER_FROZEN);
         }
     }
 

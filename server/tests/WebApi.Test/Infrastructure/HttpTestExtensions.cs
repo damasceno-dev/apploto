@@ -90,7 +90,7 @@ internal static class HttpTestExtensions
     private static bool RequiresIdempotencyKey(string requestUri)
     {
         var path = requestUri.Split('?', 2)[0];
-        return path is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment"
+        return path is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment" or "/transaction/safe-deposit"
                    or "/session/start" or "/session/declare" or "/session/approve-day"
                || (path.StartsWith("/session/", StringComparison.Ordinal)
                    && (path.EndsWith("/handover", StringComparison.Ordinal)

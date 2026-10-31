@@ -28,6 +28,8 @@ public class PutDailyCloseItemsUseCase(
     IBranchClock branchClock,
     IDailyCloseAccountCoordination accountCoordination,
     server.Application.UseCases.Sessions.SessionCountProjector countProjector,
+    SessionFieldEffectService fieldEffects,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponsePutDailyCloseItemsJson> Execute(
@@ -129,6 +131,13 @@ public class PutDailyCloseItemsUseCase(
 
         close.UpdatedAt = now;
         close.UpdatedByUserId = branchUser.UserId;
+
+        // M9.6 Phase 7: the close-form fields keep their generated effects in this same transaction. A changed effect
+        // is a ledger change of this session (revision + token, so any Conferir result becomes unconfirmed); an
+        // unchanged or omitted field writes nothing.
+        var fieldRows = await fieldEffects.Apply(close, request.CloseFields, branchUser, now, ct);
+        if (fieldRows.Count > 0)
+            await sessionRevisions.RecordLedgerChange(branchUser.BranchId, fieldRows, ct);
 
         DailyCloseSuccessorInvalidation? invalidation = null;
         if (countedInputChanged)

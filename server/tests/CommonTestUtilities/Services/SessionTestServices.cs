@@ -128,6 +128,19 @@ public static class SessionTestServices
             dailyClosesRepository,
             cashVarianceProductResolver,
             countService,
-            actions);
+            actions,
+            FieldEffects());
+    }
+
+    /// <summary>A field-effect service over empty substitutes: no slot exists, so every field reads zero.</summary>
+    public static SessionFieldEffectService FieldEffects(
+        ISessionFieldEffectsRepository? fieldEffectsRepository = null,
+        ITransactionTypesRepository? transactionTypesRepository = null,
+        ITransactionsRepository? transactionsRepository = null)
+    {
+        return new SessionFieldEffectService(
+            fieldEffectsRepository ?? Substitute.For<ISessionFieldEffectsRepository>(),
+            transactionTypesRepository ?? Substitute.For<ITransactionTypesRepository>(),
+            transactionsRepository ?? Substitute.For<ITransactionsRepository>());
     }
 }

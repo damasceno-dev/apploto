@@ -1,3 +1,4 @@
+using server.Domain.Entities.Enums;
 using server.Domain.Entities;
 
 namespace server.Domain.Interfaces;
@@ -80,3 +81,29 @@ public interface ICustodyMappingIssuesRepository
 }
 
 public sealed record CustodyMappingIssueCountRow(Entities.Enums.CustodyMappingIssueCode IssueCode, int Count);
+
+/// <summary>Close-form field slots and their history (M9.6 Phase 7).</summary>
+public interface ISessionFieldEffectsRepository
+{
+    Task<IReadOnlyList<SessionFieldEffect>> ListBySessionId(Guid branchId, Guid sessionId, CancellationToken ct = default);
+    Task<IReadOnlyList<SessionFieldEffect>> ListBySessionIdAsNoTracking(Guid branchId, Guid sessionId, CancellationToken ct = default);
+    Task Add(SessionFieldEffect effect, CancellationToken ct = default);
+    Task AddRevision(SessionFieldEffectRevision revision, CancellationToken ct = default);
+
+    /// <summary>
+    /// True while the session holds an ordinary (not generated), non-cancelled row of a close field's system types:
+    /// legacy fee/report rows the migration could not adopt. The field refuses saves until they are resolved.
+    /// </summary>
+    Task<bool> ExistsUnadoptedFieldRowAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        IReadOnlyCollection<TransactionTypeSystemRole> roles,
+        CancellationToken ct = default);
+}
+
+/// <summary>Cashbox → cofre transfers (M9.6 Phase 9).</summary>
+public interface ICustodyTransfersRepository
+{
+    Task Add(CustodyTransfer transfer, CancellationToken ct = default);
+    Task<CustodyTransfer?> GetBySourceTransactionIdAsNoTracking(Guid branchId, Guid sourceTransactionId, CancellationToken ct = default);
+}

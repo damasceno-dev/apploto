@@ -339,6 +339,10 @@ export const nativeTokens = {
             fg: '#8f5300',
             bg: '#f3920024',
           },
+          SpecialDrawServiceFee: {
+            fg: '#005592',
+            bg: '#0067ad17',
+          },
         },
         'overview-section-status': {
           Ready: {
@@ -751,6 +755,10 @@ export const nativeTokens = {
           CommercialLeftover: {
             fg: '#f2b347',
             bg: '#f3920029',
+          },
+          SpecialDrawServiceFee: {
+            fg: '#9fd5f5',
+            bg: '#63b8f021',
           },
         },
         'overview-section-status': {
@@ -1296,6 +1304,8 @@ export const colorVariables = {
     '--dom-monthly-financial-role-BolaoServiceFee-bg': '#0067ad17',
     '--dom-monthly-financial-role-CommercialLeftover-fg': '#8f5300',
     '--dom-monthly-financial-role-CommercialLeftover-bg': '#f3920024',
+    '--dom-monthly-financial-role-SpecialDrawServiceFee-fg': '#005592',
+    '--dom-monthly-financial-role-SpecialDrawServiceFee-bg': '#0067ad17',
     '--dom-overview-section-status-Ready-fg': '#005592',
     '--dom-overview-section-status-Ready-bg': '#0067ad17',
     '--dom-overview-section-status-Empty-fg': '#33495a',
@@ -1486,6 +1496,8 @@ export const colorVariables = {
     '--dom-monthly-financial-role-BolaoServiceFee-bg': '#63b8f021',
     '--dom-monthly-financial-role-CommercialLeftover-fg': '#f2b347',
     '--dom-monthly-financial-role-CommercialLeftover-bg': '#f3920029',
+    '--dom-monthly-financial-role-SpecialDrawServiceFee-fg': '#9fd5f5',
+    '--dom-monthly-financial-role-SpecialDrawServiceFee-bg': '#63b8f021',
     '--dom-overview-section-status-Ready-fg': '#9fd5f5',
     '--dom-overview-section-status-Ready-bg': '#63b8f021',
     '--dom-overview-section-status-Empty-fg': '#b6c6d0',
@@ -1567,6 +1579,8 @@ export const colorNames = [
   'dom-monthly-financial-role-CommercialLeftover-fg',
   'dom-monthly-financial-role-None-bg',
   'dom-monthly-financial-role-None-fg',
+  'dom-monthly-financial-role-SpecialDrawServiceFee-bg',
+  'dom-monthly-financial-role-SpecialDrawServiceFee-fg',
   'dom-operator-link-request-status-Pending-bg',
   'dom-operator-link-request-status-Pending-fg',
   'dom-operator-link-request-status-Resolved-bg',

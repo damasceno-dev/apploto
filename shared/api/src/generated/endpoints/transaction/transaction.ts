@@ -11,6 +11,7 @@ import type {
   PostTransactionInstallmentHeaders,
   PostTransactionInstallmentPreviewParams,
   PostTransactionPreviewParams,
+  PostTransactionSafeDepositHeaders,
   PostTransactionTransactionIdCancelHeaders,
   PostTransactionTransactionIdEditPreviewParams,
   PostTransactionTransactionIdFinalizeHeaders,
@@ -20,6 +21,7 @@ import type {
   RequestCreateTransactionJson,
   RequestFinalizeInstallmentPlanJson,
   RequestReceiveFiadoPaymentJson,
+  RequestSafeDepositJson,
   RequestUpdateTransactionJson,
   ResponseCreateTransactionInstallmentJson,
   ResponseCreateTransactionJson,
@@ -682,6 +684,160 @@ export const postTransactionFiadoPayment = async (
     headers: { 'Content-Type': 'application/json', ...headers },
     callerHeaders: options?.headers,
     body: JSON.stringify(requestReceiveFiadoPaymentJson),
+  });
+};
+
+export type postTransactionSafeDepositResponse201TextPlain = {
+  data: ResponseCreateTransactionJson;
+  status: 201;
+};
+
+export type postTransactionSafeDepositResponse201ApplicationJson = {
+  data: ResponseCreateTransactionJson;
+  status: 201;
+};
+
+export type postTransactionSafeDepositResponse201TextJson = {
+  data: ResponseCreateTransactionJson;
+  status: 201;
+};
+
+export type postTransactionSafeDepositResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionSafeDepositResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionSafeDepositResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionSafeDepositResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionSafeDepositResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionSafeDepositResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionSafeDepositResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionSafeDepositResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionSafeDepositResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionSafeDepositResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionSafeDepositResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionSafeDepositResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionSafeDepositResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionSafeDepositResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionSafeDepositResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionSafeDepositResponseSuccess = (
+  | postTransactionSafeDepositResponse201TextPlain
+  | postTransactionSafeDepositResponse201ApplicationJson
+  | postTransactionSafeDepositResponse201TextJson
+) & {
+  headers: Headers;
+};
+export type postTransactionSafeDepositResponseError = (
+  | postTransactionSafeDepositResponse400TextPlain
+  | postTransactionSafeDepositResponse400ApplicationJson
+  | postTransactionSafeDepositResponse400TextJson
+  | postTransactionSafeDepositResponse401TextPlain
+  | postTransactionSafeDepositResponse401ApplicationJson
+  | postTransactionSafeDepositResponse401TextJson
+  | postTransactionSafeDepositResponse403TextPlain
+  | postTransactionSafeDepositResponse403ApplicationJson
+  | postTransactionSafeDepositResponse403TextJson
+  | postTransactionSafeDepositResponse404TextPlain
+  | postTransactionSafeDepositResponse404ApplicationJson
+  | postTransactionSafeDepositResponse404TextJson
+  | postTransactionSafeDepositResponse409TextPlain
+  | postTransactionSafeDepositResponse409ApplicationJson
+  | postTransactionSafeDepositResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostTransactionSafeDepositUrl = () => {
+  return `/transaction/safe-deposit`;
+};
+
+export const postTransactionSafeDeposit = async (
+  requestSafeDepositJson: RequestSafeDepositJson,
+  headers: PostTransactionSafeDepositHeaders,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postTransactionSafeDepositResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postTransactionSafeDepositResponseSuccess>(getPostTransactionSafeDepositUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    callerHeaders: options?.headers,
+    body: JSON.stringify(requestSafeDepositJson),
   });
 };
 

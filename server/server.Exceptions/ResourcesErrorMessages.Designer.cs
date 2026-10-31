@@ -1539,12 +1539,6 @@ namespace server.Exceptions {
             }
         }
 
-        public static string TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE {
-            get {
-                return ResourceManager.GetString("TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE", resourceCulture);
-            }
-        }
-
         public static string TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED {
             get {
                 return ResourceManager.GetString("TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED", resourceCulture);
@@ -1726,5 +1720,18 @@ namespace server.Exceptions {
         public static string SESSION_CONFIRMATION_TOKEN_REQUIRED => ResourceManager.GetString("SESSION_CONFIRMATION_TOKEN_REQUIRED", resourceCulture);
         public static string SESSION_CONFIRMATION_ATTEMPT_REQUIRED => ResourceManager.GetString("SESSION_CONFIRMATION_ATTEMPT_REQUIRED", resourceCulture);
         public static string SESSION_REVISION_INVALID => ResourceManager.GetString("SESSION_REVISION_INVALID", resourceCulture);
+        public static string TRANSACTION_FIADO_SALE_CLIENT_REQUIRED => ResourceManager.GetString("TRANSACTION_FIADO_SALE_CLIENT_REQUIRED", resourceCulture);
+        public static string TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE => ResourceManager.GetString("TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE", resourceCulture);
+        public static string SESSION_CLOSE_FIELD_INVALID => ResourceManager.GetString("SESSION_CLOSE_FIELD_INVALID", resourceCulture);
+        public static string SESSION_CLOSE_FIELD_DUPLICATE => ResourceManager.GetString("SESSION_CLOSE_FIELD_DUPLICATE", resourceCulture);
+        public static string SESSION_CLOSE_FIELD_VALUE_REQUIRED => ResourceManager.GetString("SESSION_CLOSE_FIELD_VALUE_REQUIRED", resourceCulture);
+        public static string SESSION_CLOSE_FIELD_VALUE_PRECISION => ResourceManager.GetString("SESSION_CLOSE_FIELD_VALUE_PRECISION", resourceCulture);
+        public static string SESSION_CLOSE_FIELD_FEE_NEGATIVE => ResourceManager.GetString("SESSION_CLOSE_FIELD_FEE_NEGATIVE", resourceCulture);
+        public static string SESSION_CLOSE_FIELD_LEGACY_ROWS_UNRESOLVED => ResourceManager.GetString("SESSION_CLOSE_FIELD_LEGACY_ROWS_UNRESOLVED", resourceCulture);
+        public static string BRANCH_FINANCIAL_SEEDS_MISSING => ResourceManager.GetString("BRANCH_FINANCIAL_SEEDS_MISSING", resourceCulture);
+        public static string SAFE_DEPOSIT_DESTINATION_REQUIRED => ResourceManager.GetString("SAFE_DEPOSIT_DESTINATION_REQUIRED", resourceCulture);
+        public static string SAFE_DEPOSIT_SAME_ACCOUNT => ResourceManager.GetString("SAFE_DEPOSIT_SAME_ACCOUNT", resourceCulture);
+        public static string SAFE_DEPOSIT_SOURCE_NOT_CASHBOX => ResourceManager.GetString("SAFE_DEPOSIT_SOURCE_NOT_CASHBOX", resourceCulture);
+        public static string ACCOUNT_SAFE_NOT_FOUND => ResourceManager.GetString("ACCOUNT_SAFE_NOT_FOUND", resourceCulture);
     }
 }

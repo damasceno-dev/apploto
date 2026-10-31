@@ -122,6 +122,123 @@
         ]
       }
     },
+    "/account/safe": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreateSafeAccountJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreateSafeAccountJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestCreateSafeAccountJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseCreateAccountJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseCreateAccountJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseCreateAccountJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
     "/account/terminal": {
       "post": {
         "tags": [
@@ -16954,6 +17071,179 @@
         ]
       }
     },
+    "/transaction/safe-deposit": {
+      "post": {
+        "tags": [
+          "Transaction"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSafeDepositJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSafeDepositJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSafeDepositJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "headers": {
+              "ETag": {
+                "description": "Strong ETag containing the quoted decimal PostgreSQL xmin value.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseCreateTransactionJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseCreateTransactionJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseCreateTransactionJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [ ]
+          }
+        ]
+      }
+    },
     "/transaction/preview": {
       "post": {
         "tags": [
@@ -19374,7 +19664,8 @@
         "enum": [
           "Terminal",
           "BankAccount",
-          "Tab"
+          "Tab",
+          "Safe"
         ],
         "type": "string"
       },
@@ -19487,7 +19778,8 @@
         "enum": [
           "None",
           "BolaoServiceFee",
-          "CommercialLeftover"
+          "CommercialLeftover",
+          "SpecialDrawServiceFee"
         ],
         "type": "string"
       },
@@ -19922,6 +20214,29 @@
           }
         }
       },
+      "RequestCreateSafeAccountJson": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "institution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "number": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RequestCreateTabAccountJson": {
         "required": [
           "terminalAccountId"
@@ -19963,7 +20278,10 @@
             "format": "uuid"
           },
           "createTabAccount": {
-            "type": "boolean"
+            "type": [
+              "null",
+              "boolean"
+            ]
           },
           "terminalId": {
             "type": [
@@ -20186,9 +20504,6 @@
             "format": "uuid"
           },
           "saveAsDraft": {
-            "type": "boolean"
-          },
-          "handsOutCountedStock": {
             "type": "boolean"
           },
           "sessionId": {
@@ -20627,6 +20942,15 @@
               "null",
               "string"
             ]
+          },
+          "closeFields": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RequestSessionCloseFieldJson"
+            }
           }
         }
       },
@@ -20860,6 +21184,103 @@
           },
           "explicitZero": {
             "type": "boolean"
+          }
+        }
+      },
+      "RequestSafeDepositJson": {
+        "required": [
+          "date",
+          "value",
+          "accountId",
+          "safeAccountId"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "transactionTime": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "time"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "safeAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordedByOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "saveAsDraft": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "historicalReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "openingAcknowledgment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RequestSessionOpeningAcknowledgmentJson"
+              }
+            ]
+          }
+        }
+      },
+      "RequestSessionCloseFieldJson": {
+        "required": [
+          "field"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "$ref": "#/components/schemas/SessionCloseField"
+          },
+          "value": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           }
         }
       },
@@ -22569,6 +22990,13 @@
             ],
             "format": "uuid"
           },
+          "custodyTransferId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
           "sessionId": {
             "type": [
               "null",
@@ -23039,6 +23467,15 @@
             "items": {
               "$ref": "#/components/schemas/ResponseDailyCloseItemJson"
             }
+          },
+          "closeFields": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ResponseSessionCloseFieldJson"
+            }
           }
         }
       },
@@ -23148,6 +23585,7 @@
           "custody",
           "count",
           "allowedActions",
+          "closeFields",
           "items"
         ],
         "type": "object",
@@ -23330,6 +23768,12 @@
           },
           "allowedActions": {
             "$ref": "#/components/schemas/ResponseSessionAllowedActionsJson"
+          },
+          "closeFields": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseSessionCloseFieldJson"
+            }
           },
           "openingDiscrepancy": {
             "oneOf": [
@@ -25201,6 +25645,7 @@
           "officialVarianceTotal",
           "officialCloseCount",
           "isBolaoServiceFeeConfigured",
+          "isSpecialDrawServiceFeeConfigured",
           "isCommercialLeftoverConfigured",
           "hoursTotal",
           "containsInProgress"
@@ -25241,6 +25686,16 @@
             "type": "boolean"
           },
           "bolaoServiceFeeTotal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "isSpecialDrawServiceFeeConfigured": {
+            "type": "boolean"
+          },
+          "specialDrawServiceFeeTotal": {
             "type": [
               "null",
               "number"
@@ -26268,6 +26723,7 @@
           "officialVarianceTotal",
           "officialCloseCount",
           "isBolaoServiceFeeConfigured",
+          "isSpecialDrawServiceFeeConfigured",
           "isCommercialLeftoverConfigured",
           "leftoversByType",
           "hoursTotal",
@@ -26323,6 +26779,16 @@
             ],
             "format": "double"
           },
+          "isSpecialDrawServiceFeeConfigured": {
+            "type": "boolean"
+          },
+          "specialDrawServiceFeeTotal": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
           "isCommercialLeftoverConfigured": {
             "type": "boolean"
           },
@@ -26372,7 +26838,8 @@
           "accountId",
           "accountName",
           "accountActive",
-          "bolaoServiceFeeRowCount"
+          "bolaoServiceFeeRowCount",
+          "specialDrawServiceFeeRowCount"
         ],
         "type": "object",
         "properties": {
@@ -26422,6 +26889,17 @@
             "format": "double"
           },
           "bolaoServiceFeeRowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "specialDrawServiceFee": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "specialDrawServiceFeeRowCount": {
             "type": "integer",
             "format": "int32"
           },
@@ -27625,6 +28103,48 @@
             "items": {
               "$ref": "#/components/schemas/ResponseAffectedSessionJson"
             }
+          }
+        }
+      },
+      "ResponseSessionCloseFieldJson": {
+        "required": [
+          "field",
+          "value",
+          "revision"
+        ],
+        "type": "object",
+        "properties": {
+          "field": {
+            "$ref": "#/components/schemas/SessionCloseField"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "updatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "updatedByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },
@@ -29122,6 +29642,14 @@
         ],
         "type": "string"
       },
+      "SessionCloseField": {
+        "enum": [
+          "TerminalReport",
+          "BolaoFee",
+          "SpecialFee"
+        ],
+        "type": "string"
+      },
       "SessionCountAttemptKind": {
         "enum": [
           "Initial",
@@ -29235,8 +29763,12 @@
       },
       "TransactionGenerationKind": {
         "enum": [
-          "FiadoCountedStockSale",
-          "FiadoCashRepayment"
+          "FiadoSale",
+          "FiadoCashRepayment",
+          "SessionTerminalReport",
+          "SessionBolaoFee",
+          "SessionSpecialFee",
+          "SafeCashDeposit"
         ],
         "type": "string"
       },
@@ -29250,8 +29782,14 @@
       },
       "TransactionTypeSystemRole": {
         "enum": [
-          "FiadoCountedStockSaleCounterpart",
-          "FiadoCashRepaymentCounterpart"
+          "FiadoSaleCounterpart",
+          "FiadoCashRepaymentCounterpart",
+          "TerminalReportIn",
+          "TerminalReportOut",
+          "BolaoFee",
+          "SpecialFee",
+          "SafeDepositOut",
+          "SafeDepositIn"
         ],
         "type": "string"
       }

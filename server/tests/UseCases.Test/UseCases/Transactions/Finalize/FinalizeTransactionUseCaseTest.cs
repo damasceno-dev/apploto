@@ -285,6 +285,7 @@ public class FinalizeTransactionUseCaseTest
         return new FinalizeTransactionUseCase(
             ctx.AuthenticationService,
             ctx.TransactionsRepository,
+            Substitute.For<ITransactionTypesRepository>(),
             ctx.MemberAccountScopeResolver,
             memberAccountScopeGuard,
             ctx.MutationPermissionGuard,

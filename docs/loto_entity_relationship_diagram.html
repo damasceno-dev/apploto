@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v60
+Spec revision: v61
 -->
 <html lang="en">
 <head>
@@ -196,8 +196,8 @@ Spec revision: v60
 </div>
 <div id="error"></div>
 <details id="proposed-custody-model" style="position:fixed;top:12px;left:12px;z-index:1000;max-width:680px;max-height:82vh;overflow:auto;background:Canvas;color:CanvasText;padding:14px;border:1px solid #888;border-radius:8px;font:14px/1.5 system-ui">
-<summary>v60 session relationships · M9.6 P2–P5 shipped, later phases proposed</summary>
-<p>The interactive graph still draws the <b>30-entity pre-session schema</b>. v59 ships (M9.6 P2–P3) Terminal, the session columns on DailyClose/Account/Transaction, SessionOpening, SessionHandover, SessionOpeningDiscrepancy with revisions and attribution events, SessionEvent, CustodyMappingIssue and OpeningCount; v60 ships (M9.6 P4–P5) SessionCountAttempt with items, the session revision/token columns and approval events; FieldEffect (P7) and CustodyTransfer (P9) remain proposed. DailyClose.Id is the SessionId, Account.Id the cashbox, Type.Terminal the existing wire value.</p>
+<summary>v61 session relationships · M9.6 P2–P7 and P9 shipped</summary>
+<p>The interactive graph still draws the <b>30-entity pre-session schema</b>. v59 ships (M9.6 P2–P3) Terminal, the session columns on DailyClose/Account/Transaction, SessionOpening, SessionHandover, SessionOpeningDiscrepancy with revisions and attribution events, SessionEvent, CustodyMappingIssue and OpeningCount; v60 ships (M9.6 P4–P5) SessionCountAttempt with items, the session revision/token columns and approval events; v61 ships (M9.6 P6, P7, P9) SessionFieldEffect with its immutable revisions, the cash CustodyTransfer, AccountType Safe, TransactionType.SeedKey and the new system roles and generation kinds. DailyClose.Id is the SessionId, Account.Id the cashbox, Type.Terminal the existing wire value.</p>
 <table><thead><tr><th>Relationship</th><th>Proposed cardinality / constraint</th></tr></thead><tbody>
 <tr><td>Branch → physical Terminal → cashbox Account</td><td>one-to-many → one-to-many; same branch; parallel boxes, no unique Terminal/day close</td></tr>
 <tr><td>Cashbox Account → Tab Account</td><td>zero/one paired Tab, uniquely owned as today; explicit Tab grants still required</td></tr>
@@ -209,8 +209,9 @@ Spec revision: v60
 <tr><td>SessionOpening → SessionOpeningDiscrepancy → revisions</td><td>zero/one discrepancy per opening, immutable comparison revisions; optional HandoverId and evidenced predecessor. Covers direct handover, Finish→Start/inline and first opening-count differences</td></tr>
 <tr><td>OpeningDiscrepancy → OpeningDiscrepancyAttributionEvent</td><td>one-to-many immutable decisions bound to comparison revision; initially Unattributed, outgoing/incoming/neither with reason/audit; Outgoing unavailable without evidenced predecessor custodian; no automatic personal totals or extra month-lock blocker</td></tr>
 <tr><td>Session → CountAttempt → items</td><td>one-to-many immutable attempts (database trigger refuses update/delete), unique session/attempt number AND session/server ConfirmationToken, same-branch composite FK; one CountConferred SessionEvent per attempt even across different request keys; token issued at session start (existing sessions once by the upgrade), ledger/count/opening revision change or Recontar rotates it without recording a count; Session → SubmittedAttemptId and Handover → OfferedAttemptId point at the confirmed attempt; shipped P4 (v60)</td></tr>
-<tr><td>Session → FieldEffect → Transaction</td><td>three unique role slots; zero has no active effect, audit retained; P7</td></tr>
-<tr><td>CustodyTransfer → protected legs</td><td>one source operation, two atomic cash legs; Safe is AccountType future P9; cheque custody keeps same open receivable, C2</td></tr>
+<tr><td>Session → SessionFieldEffect → Transaction; SessionFieldEffect → SessionFieldEffectRevision</td><td>at most one slot per session and field (unique SessionId+Field), pointing at zero or one live generated row of the matching kind (unique; DB trigger); at most one non-cancelled effect per session and field on Transactions too; zero has no live effect; each change appends an immutable revision (created/cancelled row ids, actor, origin Save or MigratedLegacyRow); shipped P7 (v61)</td></tr>
+<tr><td>CustodyTransfer → source cashbox Transaction + generated Safe Transaction</td><td>one immutable transfer per source and per destination row (unique each); source a cashbox Out on its session, destination its generated Safe In of equal value with no session (DB trigger); finalize/cancel through the source; shipped P9 cash (v61); cheque custody keeps the same open receivable, C2</td></tr>
+<tr><td>Category → TransactionType (SeedKey)</td><td>seeded types carry a unique-per-category SeedKey; same-name custom types are never adopted; system roles 1–8, fee roles fixed by system role; v61</td></tr>
 <tr><td>Unresolved legacy Session → CustodyMappingIssue</td><td>one-to-many source/digest/versioned resolution evidence; MappingState Unresolved keeps unknown fields null and blocks affected cutover/lock; Ready activates operational constraints</td></tr>
 <tr><td>Session → SessionEvent / existing review events</td><td>one-to-many; preserve incomplete-history flags and original actors; correction links only next same-box dependency</td></tr>
 </tbody></table>

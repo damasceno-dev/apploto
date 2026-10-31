@@ -4,7 +4,7 @@ namespace server.Communication.Responses;
 
 /// <summary>
 /// One Terminal/day: its close (when one exists) with recorder and submitter, its official variance (null without a
-/// close or while Draft) and the day's bolão service fee. Never split between the operators who shared the Terminal.
+/// close or while Draft) and the day's bolão and special-draw service fees. Never split between the operators who shared the Terminal.
 /// </summary>
 public class ResponseMonthlyFinancialTerminalDayJson
 {
@@ -19,6 +19,13 @@ public class ResponseMonthlyFinancialTerminalDayJson
     /// <summary>The day's fee (<c>Σ In − Σ Out</c> of marked rows); <c>null</c> when the fee marker is not configured.</summary>
     public decimal? BolaoServiceFee { get; init; }
     public int BolaoServiceFeeRowCount { get; init; }
+
+    /// <summary>
+    /// M9.6 Phase 7: the session's <i>Tarifa Especial</i> (<c>Σ In − Σ Out</c> of rows marked
+    /// <c>SpecialDrawServiceFee</c>); <c>null</c> when no type carries that marker. Never added to the bolão fee.
+    /// </summary>
+    public decimal? SpecialDrawServiceFee { get; init; }
+    public int SpecialDrawServiceFeeRowCount { get; init; }
     public Guid? RecordedByUserId { get; init; }
     public string? RecordedByUserName { get; init; }
     public Guid? RecordedByOperatorId { get; init; }

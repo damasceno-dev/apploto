@@ -23,7 +23,7 @@ scheme BranchBearer http bearer
 scheme IdentityBearer http bearer
 
 ## enums
-enum AccountType string: Terminal, BankAccount, Tab
+enum AccountType string: Terminal, BankAccount, Tab, Safe
 enum AgingBucket string: Current, Days0To30, Days31To60, Days61To90, Days91Plus
 enum BrazilianHolidayCalendarSource string: Composite, Canonical, BrasilApi, Nager
 enum BrazilianHolidayImportStatus string: Imported, Skipped
@@ -37,7 +37,7 @@ enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum InvitationStatus string: Pending, Accepted, Declined, Expired
 enum MailDeliveryStatus string: Pending, Sent, Failed
-enum MonthlyFinancialRole string: None, BolaoServiceFee, CommercialLeftover
+enum MonthlyFinancialRole string: None, BolaoServiceFee, CommercialLeftover, SpecialDrawServiceFee
 enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions, MissingExpectedClose
 enum OpeningDiscrepancyAttribution string: Unattributed, Outgoing, Incoming, Neither
 enum OperatorLinkRequestStatus string: Pending, Resolved
@@ -45,6 +45,7 @@ enum OverviewSectionStatus string: Ready, Empty, NotConfigured
 enum Role string: Admin, Manager, Member
 enum SessionApprovalMode string: Independent, SingleActiveManager
 enum SessionCandidateState string: NotConferred, Current, Outdated, Unconfirmed, Recounting
+enum SessionCloseField string: TerminalReport, BolaoFee, SpecialFee
 enum SessionCountAttemptKind string: Initial, Correction, Recount, StillObserved
 enum SessionCustodyState string: Active, HandedOver, Finished
 enum SessionEventKind string: SessionStarted, OpeningAcknowledged, OpeningDiscrepancyOpened, OpeningDiscrepancyRevised, HandoverOffered, HandoverAccepted, HandoverDisputed, HandoverWithdrawn, SessionFinished, CustodyExceptionResolved, SessionDeclared, SessionRearranged, AttributionRecorded, CountConferred, RecountStarted, SessionApproved
@@ -56,9 +57,9 @@ enum SettlementInstrument string: None, Cheque, CreditCard, DebitCard
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
 enum TimeEntryTapAction string: Open, Close
-enum TransactionGenerationKind string: FiadoCountedStockSale, FiadoCashRepayment
+enum TransactionGenerationKind string: FiadoSale, FiadoCashRepayment, SessionTerminalReport, SessionBolaoFee, SessionSpecialFee, SafeCashDeposit
 enum TransactionStatus string: Draft, Active, Cancelled
-enum TransactionTypeSystemRole string: FiadoCountedStockSaleCounterpart, FiadoCashRepaymentCounterpart
+enum TransactionTypeSystemRole string: FiadoSaleCounterpart, FiadoCashRepaymentCounterpart, TerminalReportIn, TerminalReportOut, BolaoFee, SpecialFee, SafeDepositOut, SafeDepositIn
 
 ## schemas
 
@@ -149,11 +150,16 @@ schema RequestCreateProductJson
   displayOrder required integer|string
   name required string
 
+schema RequestCreateSafeAccountJson
+  institution optional string?
+  name required string
+  number optional string?
+
 schema RequestCreateTabAccountJson
   terminalAccountId required string
 
 schema RequestCreateTerminalAccountJson
-  createTabAccount optional boolean
+  createTabAccount optional boolean?
   existingTabAccountId optional string?
   institution optional string?
   name required string
@@ -192,7 +198,6 @@ schema RequestCreateTransactionJson
   date required string
   description optional string?
   dueDate optional string?
-  handsOutCountedStock optional boolean
   historicalReason optional string?
   openingAcknowledgment optional RequestSessionOpeningAcknowledgmentJson?
   recordedByOperatorId optional string?
@@ -284,6 +289,7 @@ schema RequestPairTabAccountJson
   terminalAccountId required string
 
 schema RequestPutDailyCloseItemsJson
+  closeFields optional RequestSessionCloseFieldJson[]?
   items optional RequestUpsertDailyCloseItemJson[]?
   notes optional string?
 
@@ -333,6 +339,23 @@ schema RequestResolveCustodyExceptionJson
   incomingOperatorId optional string?
   items optional RequestSessionOpeningItemJson[]?
   reason optional string?
+
+schema RequestSafeDepositJson
+  accountId required string
+  date required string
+  description optional string?
+  historicalReason optional string?
+  openingAcknowledgment optional RequestSessionOpeningAcknowledgmentJson?
+  recordedByOperatorId optional string?
+  safeAccountId required string
+  saveAsDraft optional boolean
+  sessionId optional string?
+  transactionTime optional string?
+  value required number|string
+
+schema RequestSessionCloseFieldJson
+  field required enum:SessionCloseField
+  value optional number|string?
 
 schema RequestSessionOpeningAcknowledgmentJson
   custodianOperatorId optional string?
@@ -670,6 +693,7 @@ schema ResponseCreateTransactionJson
   clientId optional string?
   createdAt required string
   createdByUserId required string
+  custodyTransferId optional string?
   date required string
   description optional string?
   direction required enum:Direction
@@ -735,6 +759,7 @@ schema ResponseDailyCloseJson
   approvedByUserId optional string?
   approvedByUserName optional string?
   branchId required string
+  closeFields optional ResponseSessionCloseFieldJson[]?
   count optional ResponseSessionCountJson?
   createdAt required string
   custody required ResponseSessionCustodyJson
@@ -790,6 +815,7 @@ schema ResponseDailyCloseReviewJson
   approvedByUserId optional string?
   approvedByUserName optional string?
   branchId required string
+  closeFields required ResponseSessionCloseFieldJson[]
   count required ResponseSessionCountJson
   createdAt required string
   custody required ResponseSessionCustodyJson
@@ -1212,9 +1238,11 @@ schema ResponseManagementOverviewMonthlyFinancialJson
   isBolaoServiceFeeConfigured required boolean
   isCommercialLeftoverConfigured required boolean
   isPartialMonth required boolean
+  isSpecialDrawServiceFeeConfigured required boolean
   month required integer
   officialCloseCount required integer
   officialVarianceTotal required number
+  specialDrawServiceFeeTotal optional number?
   status required enum:OverviewSectionStatus
   year required integer
 
@@ -1432,11 +1460,13 @@ schema ResponseMonthlyFinancialReportJson
   isBolaoServiceFeeConfigured required boolean
   isCommercialLeftoverConfigured required boolean
   isPartialMonth required boolean
+  isSpecialDrawServiceFeeConfigured required boolean
   leftovers required ResponseMonthlyFinancialLeftoverJson[]
   leftoversByType required ResponseMonthlyFinancialLeftoverTypeTotalJson[]
   month required integer
   officialCloseCount required integer
   officialVarianceTotal required number
+  specialDrawServiceFeeTotal optional number?
   terminalDays required ResponseMonthlyFinancialTerminalDayJson[]
   year required integer
 
@@ -1454,6 +1484,8 @@ schema ResponseMonthlyFinancialTerminalDayJson
   recordedByOperatorName optional string?
   recordedByUserId optional string?
   recordedByUserName optional string?
+  specialDrawServiceFee optional number?
+  specialDrawServiceFeeRowCount required integer
   submittedByOperatorId optional string?
   submittedByOperatorName optional string?
   submittedByUserId optional string?
@@ -1691,6 +1723,14 @@ schema ResponseSessionChainChangeJson
   affectedSessions required ResponseAffectedSessionJson[]
   movedTransactionIds required string[]
   session required ResponseDailyCloseJson
+
+schema ResponseSessionCloseFieldJson
+  field required enum:SessionCloseField
+  revision required integer
+  transactionId optional string?
+  updatedAt optional string?
+  updatedByUserId optional string?
+  value required number
 
 schema ResponseSessionCountAttemptItemJson
   countedValue optional number?
@@ -2011,6 +2051,14 @@ operation POST /account/pair-tab
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
+
+operation POST /account/safe
+  security BranchBearer[Admin,Manager]
+  body required RequestCreateSafeAccountJson
+  response 201 ResponseCreateAccountJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
 
 operation POST /account/tab
   security BranchBearer[Admin,Manager]
@@ -3217,6 +3265,17 @@ operation POST /transaction/preview
   query asOfDate optional string
   body required RequestCreateTransactionJson
   response 200 ResponseCreateTransactionPreviewJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /transaction/safe-deposit
+  security BranchBearer[]
+  header Idempotency-Key required string
+  body required RequestSafeDepositJson
+  response 201 ResponseCreateTransactionJson headers=ETag
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

@@ -13,7 +13,7 @@ public class CreateTerminalAccountFluentValidation : AbstractValidator<RequestCr
         RuleFor(request => request.Number).ValidateOptionalAccountNumber();
 
         RuleFor(request => request)
-            .Must(request => request.ExistingTabAccountId.HasValue is false || request.CreateTabAccount is false)
+            .Must(request => request.ExistingTabAccountId.HasValue is false || request.CreateTabAccount is not true)
             .WithMessage(ResourcesErrorMessages.ACCOUNT_TERMINAL_CREATE_CANNOT_USE_EXISTING_AND_NEW_TAB);
 
         RuleFor(request => request.ExistingTabAccountId)

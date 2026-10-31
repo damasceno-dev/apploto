@@ -25,6 +25,7 @@ import type {
   OverviewSectionStatus,
   Role,
   SessionApprovalMode,
+  SessionCloseField,
   SessionCandidateState,
   SessionCountAttemptKind,
   SessionCustodyState,
@@ -56,6 +57,7 @@ export const accountTypeLabels: Labels<AccountType> = {
   Terminal: 'Terminal',
   BankAccount: 'Conta bancária',
   Tab: 'Conta fiado',
+  Safe: 'Cofre',
 };
 
 /** Feminine — agrees with *transação*. */
@@ -152,8 +154,12 @@ export const dailyCloseReviewEventTypeLabels: Labels<DailyCloseReviewEventType> 
 
 /** The source phrase of a generated movement; the marker itself is `generatedMovementMarker`. */
 export const transactionGenerationKindLabels: Labels<TransactionGenerationKind> = {
-  FiadoCountedStockSale: 'venda fiado com entrega de mercadoria',
+  FiadoSale: 'venda fiado no balcão',
   FiadoCashRepayment: 'recebimento de fiado em dinheiro',
+  SessionTerminalReport: 'relatório do terminal informado no fechamento',
+  SessionBolaoFee: 'tarifa de bolão informada no fechamento',
+  SessionSpecialFee: 'tarifa especial informada no fechamento',
+  SafeCashDeposit: 'depósito de dinheiro do caixa no cofre',
 };
 
 export const fiadoPaymentKindLabels: Labels<FiadoPaymentKind> = {
@@ -162,8 +168,14 @@ export const fiadoPaymentKindLabels: Labels<FiadoPaymentKind> = {
 };
 
 export const transactionTypeSystemRoleLabels: Labels<TransactionTypeSystemRole> = {
-  FiadoCountedStockSaleCounterpart: 'Saída automática de mercadoria (venda fiado)',
+  FiadoSaleCounterpart: 'Saída automática do caixa (venda fiado)',
   FiadoCashRepaymentCounterpart: 'Entrada automática de dinheiro (recebimento de fiado)',
+  TerminalReportIn: 'Relatório do terminal (campo do fechamento)',
+  TerminalReportOut: 'Relatório do terminal negativo (campo do fechamento)',
+  BolaoFee: 'Tarifa de bolão (campo do fechamento)',
+  SpecialFee: 'Tarifa especial (campo do fechamento)',
+  SafeDepositOut: 'Depósito de dinheiro no cofre (saída do caixa)',
+  SafeDepositIn: 'Entrada automática no cofre (depósito do caixa)',
 };
 
 /** Masculine — agrees with *convite*. */
@@ -193,6 +205,7 @@ export const monthlyFinancialRoleLabels: Labels<MonthlyFinancialRole> = {
   None: 'Nenhuma',
   BolaoServiceFee: 'Tarifa de bolão',
   CommercialLeftover: 'Sobra (perda comercial)',
+  SpecialDrawServiceFee: 'Tarifa especial',
 };
 
 /** A section's state, never a figure: `NotConfigured` is never rendered as zero. */
@@ -298,6 +311,13 @@ export const sessionApprovalModeLabels: Labels<SessionApprovalMode> = {
   SingleActiveManager: 'Aprovar como único gestor',
 };
 
+/** A close-form field of the session (M9.6 Phase 7). */
+export const sessionCloseFieldLabels: Labels<SessionCloseField> = {
+  TerminalReport: 'Relatório do terminal',
+  BolaoFee: 'Tarifa Bolão',
+  SpecialFee: 'Tarifa Especial',
+};
+
 /** The provenance marker of a generated movement (copy §4, §5): never a status. */
 export const generatedMovementMarker = 'Automática';
 
@@ -339,6 +359,7 @@ export const enumLabels = {
   SessionCandidateState: sessionCandidateStateLabels,
   SessionCountAttemptKind: sessionCountAttemptKindLabels,
   SessionApprovalMode: sessionApprovalModeLabels,
+  SessionCloseField: sessionCloseFieldLabels,
 } as const;
 
 export type EnumLabel =

@@ -765,9 +765,6 @@
     <data name="TRANSACTION_FIADO_PAYMENT_REQUIRES_COMMAND" xml:space="preserve">
         <value>Recebimentos de fiado devem ser registrados pelo Receber pagamento</value>
     </data>
-    <data name="TRANSACTION_COUNTED_STOCK_REQUIRES_FIADO_SALE" xml:space="preserve">
-        <value>Somente uma venda fiado (saída em conta fiado com cliente) pode declarar saída de estoque contado</value>
-    </data>
     <data name="TRANSACTION_FIADO_PAIRED_TERMINAL_REQUIRED" xml:space="preserve">
         <value>A conta fiado não está vinculada a um caixa ativo; vincule-a antes de registrar uma movimentação física</value>
     </data>
@@ -926,4 +923,43 @@
   <data name="SESSION_CONFIRMATION_TOKEN_REQUIRED" xml:space="preserve"><value>Informe o código de conferência recebido do servidor.</value></data>
   <data name="SESSION_CONFIRMATION_ATTEMPT_REQUIRED" xml:space="preserve"><value>Informe a conferência que está sendo enviada.</value></data>
   <data name="SESSION_REVISION_INVALID" xml:space="preserve"><value>As versões informadas da contagem são inválidas.</value></data>
+    <data name="TRANSACTION_FIADO_SALE_CLIENT_REQUIRED" xml:space="preserve">
+        <value>Informe o cliente da venda fiado</value>
+    </data>
+    <data name="TRANSACTION_FIADO_SALE_REQUIRES_SINGLE_CREATE" xml:space="preserve">
+        <value>Uma venda fiado é registrada como lançamento único, que gera a saída do caixa vinculado; parcelamento não está disponível para conta fiado</value>
+    </data>
+    <data name="SESSION_CLOSE_FIELD_INVALID" xml:space="preserve">
+        <value>Campo do fechamento inválido.</value>
+    </data>
+    <data name="SESSION_CLOSE_FIELD_DUPLICATE" xml:space="preserve">
+        <value>Cada campo do fechamento pode ser informado uma única vez.</value>
+    </data>
+    <data name="SESSION_CLOSE_FIELD_VALUE_REQUIRED" xml:space="preserve">
+        <value>Informe o valor do campo do fechamento; use zero para cancelá-lo.</value>
+    </data>
+    <data name="SESSION_CLOSE_FIELD_VALUE_PRECISION" xml:space="preserve">
+        <value>O valor do campo do fechamento deve ter no máximo duas casas decimais e caber em R$ 999.999.999.999,99.</value>
+    </data>
+    <data name="SESSION_CLOSE_FIELD_FEE_NEGATIVE" xml:space="preserve">
+        <value>A tarifa não pode ser negativa.</value>
+    </data>
+    <data name="SESSION_CLOSE_FIELD_LEGACY_ROWS_UNRESOLVED" xml:space="preserve">
+        <value>Este turno tem lançamentos antigos deste campo que não foram convertidos; cancele-os ou resolva a pendência antes de alterar o campo.</value>
+    </data>
+    <data name="BRANCH_FINANCIAL_SEEDS_MISSING" xml:space="preserve">
+        <value>A configuração financeira desta lotérica está incompleta (tipos do sistema ausentes); conclua a configuração antes desta operação.</value>
+    </data>
+    <data name="SAFE_DEPOSIT_DESTINATION_REQUIRED" xml:space="preserve">
+        <value>Informe o cofre de destino.</value>
+    </data>
+    <data name="SAFE_DEPOSIT_SAME_ACCOUNT" xml:space="preserve">
+        <value>A origem e o destino do depósito devem ser contas diferentes.</value>
+    </data>
+    <data name="SAFE_DEPOSIT_SOURCE_NOT_CASHBOX" xml:space="preserve">
+        <value>O depósito no cofre sai de um caixa.</value>
+    </data>
+    <data name="ACCOUNT_SAFE_NOT_FOUND" xml:space="preserve">
+        <value>Cofre não encontrado.</value>
+    </data>
 </root>

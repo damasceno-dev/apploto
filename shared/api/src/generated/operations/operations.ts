@@ -7,6 +7,7 @@ export const operations = [
   { method: 'GET', path: '/account', authTier: 'branch', headers: [] },
   { method: 'POST', path: '/account/bank', authTier: 'branch', headers: [] },
   { method: 'POST', path: '/account/pair-tab', authTier: 'branch', headers: [] },
+  { method: 'POST', path: '/account/safe', authTier: 'branch', headers: [] },
   { method: 'POST', path: '/account/tab', authTier: 'branch', headers: [] },
   { method: 'POST', path: '/account/terminal', authTier: 'branch', headers: [] },
   {
@@ -249,6 +250,12 @@ export const operations = [
     headers: [],
   },
   { method: 'POST', path: '/transaction/preview', authTier: 'branch', headers: [] },
+  {
+    method: 'POST',
+    path: '/transaction/safe-deposit',
+    authTier: 'branch',
+    headers: ['Idempotency-Key'],
+  },
   { method: 'GET', path: '/transaction/{transactionId}', authTier: 'branch', headers: [] },
   {
     method: 'PUT',

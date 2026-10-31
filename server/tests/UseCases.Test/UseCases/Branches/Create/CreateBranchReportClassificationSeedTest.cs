@@ -46,15 +46,19 @@ public class CreateBranchReportClassificationSeedTest
         marked.Select(type => (type.Name, type.MonthlyFinancialRole)).OrderBy(pair => pair.Name).ShouldBe([
             ("Sobra de Bolão", MonthlyFinancialRole.CommercialLeftover),
             ("Sobra de Federal", MonthlyFinancialRole.CommercialLeftover),
-            ("Tarifa Bolão", MonthlyFinancialRole.BolaoServiceFee)
+            ("Tarifa Bolão", MonthlyFinancialRole.BolaoServiceFee),
+            ("Tarifa Especial", MonthlyFinancialRole.SpecialDrawServiceFee)
         ]);
         foreach (var type in marked)
         {
             var direction = categories.Single(category => category.Id == type.CategoryId).DefaultDirection;
-            direction.ShouldBe(type.MonthlyFinancialRole == MonthlyFinancialRole.BolaoServiceFee ? Direction.In : Direction.Out);
+            direction.ShouldBe(type.MonthlyFinancialRole == MonthlyFinancialRole.CommercialLeftover ? Direction.Out : Direction.In);
         }
-        // Operador (question 9) is a separate inflow, never the fee.
-        types.Single(type => type.Name == "Operador").MonthlyFinancialRole.ShouldBe(MonthlyFinancialRole.None);
-        types.Where(type => type.SystemRole != null).ShouldAllBe(type => type.MonthlyFinancialRole == MonthlyFinancialRole.None);
+        // The terminal report (formerly Operador, question 9) is a separate signed expectation, never a fee.
+        types.Single(type => type.Name == "Relatório do terminal").MonthlyFinancialRole.ShouldBe(MonthlyFinancialRole.None);
+        types.Single(type => type.Name == "Relatório do terminal (negativo)").MonthlyFinancialRole.ShouldBe(MonthlyFinancialRole.None);
+        // Only the two fee system types carry a role, the one their system role fixes (the database check agrees).
+        types.Where(type => type.SystemRole is not null and not TransactionTypeSystemRole.BolaoFee and not TransactionTypeSystemRole.SpecialFee)
+            .ShouldAllBe(type => type.MonthlyFinancialRole == MonthlyFinancialRole.None);
     }
 }

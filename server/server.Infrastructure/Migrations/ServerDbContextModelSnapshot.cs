@@ -284,6 +284,71 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("CustodyMappingIssues", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.CustodyTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<short>("AssetKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DestinationAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DestinationTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SourceSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("DestinationAccountId");
+
+                    b.HasIndex("DestinationTransactionId")
+                        .IsUnique();
+
+                    b.HasIndex("SourceAccountId");
+
+                    b.HasIndex("SourceSessionId");
+
+                    b.HasIndex("SourceTransactionId")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId", "DestinationAccountId");
+
+                    b.ToTable("CustodyTransfers", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CustodyTransfers_DistinctAccounts", "\"SourceAccountId\" <> \"DestinationAccountId\"");
+
+                            t.HasCheckConstraint("CK_CustodyTransfers_ValuePositive", "\"Value\" > 0");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.DailyClose", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1514,6 +1579,120 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("SessionEvents", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SessionFieldEffect", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CurrentTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Field")
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CurrentTransactionId")
+                        .IsUnique()
+                        .HasFilter("\"CurrentTransactionId\" IS NOT NULL");
+
+                    b.HasIndex("UpdatedByUserId");
+
+                    b.HasIndex("SessionId", "Field")
+                        .IsUnique();
+
+                    b.ToTable("SessionFieldEffects", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SessionFieldEffects_EffectMatchesValue", "(\"Value\" = 0) = (\"CurrentTransactionId\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_SessionFieldEffects_FeeNonNegative", "\"Field\" = 1 OR \"Value\" >= 0");
+
+                            t.HasCheckConstraint("CK_SessionFieldEffects_FieldValid", "\"Field\" IN (1, 2, 3)");
+
+                            t.HasCheckConstraint("CK_SessionFieldEffects_RevisionPositive", "\"Revision\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionFieldEffectRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CancelledTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Origin")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("PreviousValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("RecordedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionFieldEffectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Value")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("CancelledTransactionId");
+
+                    b.HasIndex("CreatedTransactionId");
+
+                    b.HasIndex("SessionFieldEffectId", "Revision")
+                        .IsUnique();
+
+                    b.ToTable("SessionFieldEffectRevisions", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2201,6 +2380,11 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("BranchId", "Status");
 
+                    b.HasIndex("SessionId", "GenerationKind")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Transactions_SessionId_GenerationKind_LiveFieldEffect")
+                        .HasFilter("\"GenerationKind\" IN (3, 4, 5) AND \"Status\" <> 2");
+
                     b.HasIndex("SessionId", "Status")
                         .HasFilter("\"SessionId\" IS NOT NULL");
 
@@ -2212,7 +2396,7 @@ namespace server.Infrastructure.Migrations
 
                     b.ToTable("Transactions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL) = (\"GeneratedFromTransactionId\" IS NULL)");
+                            t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR (\"GenerationKind\" IN (1, 2, 6) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR (\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)");
                         });
                 });
 
@@ -2245,6 +2429,10 @@ namespace server.Infrastructure.Migrations
                     b.Property<bool>("RequiresTabAccountAndClient")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("SeedKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<short>("SettlementInstrument")
                         .HasColumnType("smallint");
 
@@ -2261,9 +2449,14 @@ namespace server.Infrastructure.Migrations
                         .HasDatabaseName("IX_TransactionTypes_CategoryId_Name")
                         .HasFilter("\"Active\" = true");
 
+                    b.HasIndex("CategoryId", "SeedKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_TransactionTypes_CategoryId_SeedKey")
+                        .HasFilter("\"SeedKey\" IS NOT NULL");
+
                     b.ToTable("TransactionTypes", null, t =>
                         {
-                            t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoMonthlyFinancialRole", "\"SystemRole\" IS NULL OR \"MonthlyFinancialRole\" = 0");
+                            t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoMonthlyFinancialRole", "\"SystemRole\" IS NULL OR \"MonthlyFinancialRole\" = CASE \"SystemRole\" WHEN 5 THEN 1 WHEN 6 THEN 3 ELSE 0 END");
 
                             t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoSettlementInstrument", "\"SystemRole\" IS NULL OR \"SettlementInstrument\" = 0");
 
@@ -2387,6 +2580,58 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("BranchId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CustodyTransfer", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Account", "DestinationAccount")
+                        .WithMany()
+                        .HasForeignKey("DestinationAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", "DestinationTransaction")
+                        .WithMany()
+                        .HasForeignKey("DestinationTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Account", "SourceAccount")
+                        .WithMany()
+                        .HasForeignKey("SourceAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", null)
+                        .WithMany()
+                        .HasForeignKey("SourceSessionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Transaction", "SourceTransaction")
+                        .WithMany()
+                        .HasForeignKey("SourceTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DestinationAccount");
+
+                    b.Navigation("DestinationTransaction");
+
+                    b.Navigation("SourceAccount");
+
+                    b.Navigation("SourceTransaction");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.DailyClose", b =>
@@ -2891,6 +3136,61 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Session");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SessionFieldEffect", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", "CurrentTransaction")
+                        .WithMany()
+                        .HasForeignKey("CurrentTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UpdatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CurrentTransaction");
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionFieldEffectRevision", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("CancelledTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.SessionFieldEffect", "SessionFieldEffect")
+                        .WithMany("Revisions")
+                        .HasForeignKey("SessionFieldEffectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SessionFieldEffect");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>
                 {
                     b.HasOne("server.Domain.Entities.DailyClose", "IncomingSession")
@@ -3274,6 +3574,11 @@ namespace server.Infrastructure.Migrations
             modelBuilder.Entity("server.Domain.Entities.SessionCountAttempt", b =>
                 {
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionFieldEffect", b =>
+                {
+                    b.Navigation("Revisions");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>

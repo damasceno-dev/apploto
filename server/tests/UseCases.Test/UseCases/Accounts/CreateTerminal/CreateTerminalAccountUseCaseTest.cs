@@ -17,10 +17,33 @@ namespace UseCases.Test.UseCases.Accounts.CreateTerminal;
 public class CreateTerminalAccountUseCaseTest
 {
     [Fact]
-    public async Task Execute_ShouldCreateTerminalWithoutTab_WhenRequestHasNoTab()
+    public async Task Execute_ShouldCreateTerminalWithPairedTab_WhenTheRequestSaysNothing()
+    {
+        // M9.6 Phase 6: a cashbox is created with its paired fiado account by default.
+        var branchUser = new BranchUserBuilder().Build();
+        var request = new RequestCreateTerminalAccountJsonBuilder().WithName("Caixa 3").Build();
+
+        var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
+        var accountsRepo = new AccountsRepositoryBuilder().Build();
+        var unitOfWork = new UnitOfWorkBuilder().Build();
+
+        var useCase = CreateUseCase(authService, accountsRepo, unitOfWork);
+
+        var response = await useCase.Execute(request);
+
+        response.TabAccountId.ShouldNotBeNull();
+        await accountsRepo.Received(1).Add(Arg.Is<Account>(account =>
+            account.Type == AccountType.Tab && account.Id == response.TabAccountId!.Value && account.Name == "Caixa 3"));
+        await accountsRepo.Received(1).Add(Arg.Is<Account>(account =>
+            account.Type == AccountType.Terminal && account.TabAccountId == response.TabAccountId));
+        await unitOfWork.Received(1).Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldCreateTerminalWithoutTab_WhenTheRequestExplicitlyDeclines()
     {
         var branchUser = new BranchUserBuilder().Build();
-        var request = new RequestCreateTerminalAccountJsonBuilder().Build();
+        var request = new RequestCreateTerminalAccountJsonBuilder().WithCreateTabAccount(false).Build();
 
         var authService = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(branchUser).Build();
         var accountsRepo = new AccountsRepositoryBuilder().Build();

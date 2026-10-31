@@ -61,7 +61,7 @@ export type MoneyExpressionResult =
     };
 
 export interface MoneyExpressionOptions {
-  /** Money fields are unsigned (MoneyInput has no signed variant), so a negative result is rejected unless allowed. */
+  /** Money fields are unsigned except the MoneyInput Signed amount variant (Relatório do terminal), so a negative result is rejected unless allowed. */
   readonly allowNegative?: boolean;
 }
 

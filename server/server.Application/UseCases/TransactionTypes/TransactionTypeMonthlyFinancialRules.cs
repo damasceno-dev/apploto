@@ -15,6 +15,7 @@ internal static class TransactionTypeMonthlyFinancialRules
         var valid = role switch
         {
             MonthlyFinancialRole.BolaoServiceFee => categoryDirection == Direction.In,
+            MonthlyFinancialRole.SpecialDrawServiceFee => categoryDirection == Direction.In,
             MonthlyFinancialRole.CommercialLeftover => categoryDirection == Direction.Out,
             _ => true
         };

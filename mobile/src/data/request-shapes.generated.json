@@ -17,7 +17,6 @@
       "dueDate": { "type": ["null", "string"], "format": "date-time" },
       "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
       "saveAsDraft": { "type": "boolean" },
-      "handsOutCountedStock": { "type": "boolean" },
       "sessionId": { "type": ["null", "string"], "format": "uuid" },
       "historicalReason": { "type": ["null", "string"] },
       "openingAcknowledgment": {

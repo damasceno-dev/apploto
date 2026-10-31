@@ -13,7 +13,8 @@ export interface RequestCreateTerminalAccountJson {
   number?: string | null;
   /** @nullable */
   existingTabAccountId?: string | null;
-  createTabAccount?: boolean;
+  /** @nullable */
+  createTabAccount?: boolean | null;
   /** @nullable */
   terminalId?: string | null;
 }

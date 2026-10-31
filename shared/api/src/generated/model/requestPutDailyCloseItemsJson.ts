@@ -4,6 +4,7 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { RequestSessionCloseFieldJson } from './requestSessionCloseFieldJson';
 import type { RequestUpsertDailyCloseItemJson } from './requestUpsertDailyCloseItemJson';
 
 export interface RequestPutDailyCloseItemsJson {
@@ -11,4 +12,6 @@ export interface RequestPutDailyCloseItemsJson {
   items?: RequestUpsertDailyCloseItemJson[] | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  closeFields?: RequestSessionCloseFieldJson[] | null;
 }

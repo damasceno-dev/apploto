@@ -57,7 +57,12 @@ public class PreviewCreateTransactionUseCaseTest
         // Cash variance: the new row adds its net flow (Out = −200) to (In − Out), so the variance
         // moves by the negative of that → +200. Genuinely non-zero — the whole point of this phase.
         response.Impact.CashVarianceImpact.VarianceDelta.ShouldBe(200m);
-        // No daily close exists for the Tab account/date → no current/projected variance surfaced.
+        // The variance is the paired cashbox's (the generated Out), never the Tab's: its session is the one looked up.
+        await ctx.DailyClosesRepository.Received().GetActiveCustodyByAccountIdAsNoTracking(
+            ctx.BranchUser.BranchId, ctx.PairedTerminalId!.Value, Arg.Any<CancellationToken>());
+        await ctx.DailyClosesRepository.DidNotReceive().GetActiveCustodyByAccountIdAsNoTracking(
+            ctx.BranchUser.BranchId, ctx.Account.Id, Arg.Any<CancellationToken>());
+        // No session exists for the cashbox/date → no current/projected variance surfaced.
         response.Impact.CashVarianceImpact.DailyCloseStatus.ShouldBeNull();
         response.Impact.CashVarianceImpact.CurrentVariance.ShouldBeNull();
         response.Impact.CashVarianceImpact.ProjectedVariance.ShouldBeNull();
@@ -498,8 +503,11 @@ public class PreviewCreateTransactionUseCaseTest
             .GetActiveLinkedByUserIdAndBranchIdAsNoTracking(branchUser.UserId, branchUser.BranchId, callerOperator)
             .GetActiveByIdAndBranchIdAsNoTracking(callerOperator.Id, branchUser.BranchId, callerOperator)
             .Build();
+        // M9.6 Phase 6: every counter fiado sale pairs, so a Tab is paired with a cashbox like a real one.
+        Guid? pairedTerminalId = accountType == AccountType.Tab ? Guid.NewGuid() : null;
         var accountsRepository = new AccountsRepositoryBuilder()
             .GetActiveByIdAndBranchIdAsNoTracking(accountId, branchUser.BranchId, account)
+            .GetActiveTerminalIdByTabAccountId(accountId, branchUser.BranchId, pairedTerminalId)
             .Build();
         var transactionTypesRepository = new TransactionTypesRepositoryBuilder()
             .GetActiveByIdAndBranchIdWithCategoryAsNoTrackingReturns(transactionType.Id, branchUser.BranchId, transactionType)
@@ -523,6 +531,7 @@ public class PreviewCreateTransactionUseCaseTest
             BranchUser = branchUser,
             CallerOperator = callerOperator,
             Account = account,
+            PairedTerminalId = pairedTerminalId,
             TransactionType = transactionType,
             ClientId = clientId,
             Request = request,
@@ -548,6 +557,7 @@ public class PreviewCreateTransactionUseCaseTest
         public required BranchUser BranchUser { get; init; }
         public required Operator CallerOperator { get; init; }
         public required Account Account { get; init; }
+        public Guid? PairedTerminalId { get; init; }
         public required TransactionType TransactionType { get; init; }
         public required Guid? ClientId { get; init; }
         public required RequestCreateTransactionJson Request { get; set; }

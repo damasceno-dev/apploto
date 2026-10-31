@@ -14,13 +14,8 @@ public class RequestCreateTransactionJson
     public bool SaveAsDraft { get; init; }
 
     /// <summary>
-    /// M7.7 Phase 5.6: true only on a fiado sale (Tab <c>Out</c> with a client) that hands the client counted stock;
-    /// the server then also writes the generated Terminal <c>Out</c> on the Tab's paired terminal. Never assumed.
-    /// </summary>
-    public bool HandsOutCountedStock { get; init; }
-    /// <summary>
-    /// Cashbox session binding (M9.6 Phase 2). Omitted: the cashbox's active session. A manager's historical write
-    /// names the exact Draft session and a reason. When no session is active, <see cref="OpeningAcknowledgment"/>
+    /// Cashbox session binding (M9.6 Phase 2); a fiado sale (Tab <c>Out</c>) binds its generated cashbox leg the same
+    /// way. Omitted: the cashbox's active session. A manager's historical write names the exact Draft session and a reason. When no session is active, <see cref="OpeningAcknowledgment"/>
     /// starts (or accepts) custody atomically with this operation under the same Idempotency-Key.
     /// </summary>
     public Guid? SessionId { get; init; }

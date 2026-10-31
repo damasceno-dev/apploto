@@ -33,6 +33,12 @@ public class ResponseMonthlyFinancialReportJson
     /// <summary>Sum of the daily Terminal fee figures; <c>null</c> when not configured (never shown as zero).</summary>
     public decimal? BolaoServiceFeeTotal { get; init; }
 
+    /// <summary>True when any branch type, active or retired, is marked <c>SpecialDrawServiceFee</c> (M9.6 Phase 7).</summary>
+    public bool IsSpecialDrawServiceFeeConfigured { get; init; }
+
+    /// <summary>Sum of the <i>Tarifa Especial</i> figures; <c>null</c> when not configured (never shown as zero).</summary>
+    public decimal? SpecialDrawServiceFeeTotal { get; init; }
+
     /// <summary>True when any branch type, active or retired, is marked <c>CommercialLeftover</c>.</summary>
     public bool IsCommercialLeftoverConfigured { get; init; }
 

@@ -761,6 +761,8 @@ public class PutDailyCloseItemsUseCaseTest
             new FixedBranchClock(ctx.Now),
             accountCoordination,
             SessionTestServices.CountProjector(ctx.DailyClosesRepository, ctx.CashVarianceProductResolver),
+            SessionTestServices.FieldEffects(),
+            SessionTestServices.Revisions(ctx.DailyClosesRepository),
             ctx.UnitOfWork);
     }
 

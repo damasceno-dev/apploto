@@ -22,6 +22,7 @@ import type {
 
 import type {
   RequestCreateBankAccountJson,
+  RequestCreateSafeAccountJson,
   RequestCreateTabAccountJson,
   RequestCreateTerminalAccountJson,
   RequestPairTabAccountJson,
@@ -236,6 +237,187 @@ export const usePostAccountBank = <TError = ErrorType<ResponseErrorJson>, TConte
   TContext
 > => {
   return useMutation(getPostAccountBankMutationOptions(options), queryClient);
+};
+export type postAccountSafeResponse201TextPlain = {
+  data: ResponseCreateAccountJson;
+  status: 201;
+};
+
+export type postAccountSafeResponse201ApplicationJson = {
+  data: ResponseCreateAccountJson;
+  status: 201;
+};
+
+export type postAccountSafeResponse201TextJson = {
+  data: ResponseCreateAccountJson;
+  status: 201;
+};
+
+export type postAccountSafeResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postAccountSafeResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postAccountSafeResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postAccountSafeResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postAccountSafeResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postAccountSafeResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postAccountSafeResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postAccountSafeResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postAccountSafeResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postAccountSafeResponseSuccess = (
+  | postAccountSafeResponse201TextPlain
+  | postAccountSafeResponse201ApplicationJson
+  | postAccountSafeResponse201TextJson
+) & {
+  headers: Headers;
+};
+export type postAccountSafeResponseError = (
+  | postAccountSafeResponse400TextPlain
+  | postAccountSafeResponse400ApplicationJson
+  | postAccountSafeResponse400TextJson
+  | postAccountSafeResponse401TextPlain
+  | postAccountSafeResponse401ApplicationJson
+  | postAccountSafeResponse401TextJson
+  | postAccountSafeResponse403TextPlain
+  | postAccountSafeResponse403ApplicationJson
+  | postAccountSafeResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostAccountSafeUrl = () => {
+  return `/account/safe`;
+};
+
+export const postAccountSafe = async (
+  requestCreateSafeAccountJson: RequestCreateSafeAccountJson,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postAccountSafeResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postAccountSafeResponseSuccess>(getPostAccountSafeUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    callerHeaders: options?.headers,
+    body: JSON.stringify(requestCreateSafeAccountJson),
+  });
+};
+
+export const getPostAccountSafeMutationKey = () => ['postAccountSafe'] as const;
+
+export const getPostAccountSafeMutationOptions = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postAccountSafe>>,
+    TError,
+    PostAccountSafeMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postAccountSafe>>,
+  TError,
+  PostAccountSafeMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPostAccountSafeMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postAccountSafe>>,
+    PostAccountSafeMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return postAccountSafe(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostAccountSafeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postAccountSafe>>
+>;
+export type PostAccountSafeMutationBody = RequestCreateSafeAccountJson;
+export type PostAccountSafeMutationError = ErrorType<ResponseErrorJson>;
+export type PostAccountSafeMutationVariables = { data: RequestCreateSafeAccountJson };
+
+export const usePostAccountSafe = <TError = ErrorType<ResponseErrorJson>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof postAccountSafe>>,
+      TError,
+      PostAccountSafeMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof postAccountSafe>>,
+  TError,
+  PostAccountSafeMutationVariables,
+  TContext
+> => {
+  return useMutation(getPostAccountSafeMutationOptions(options), queryClient);
 };
 export type postAccountTerminalResponse201TextPlain = {
   data: ResponseCreateAccountJson;

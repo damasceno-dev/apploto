@@ -34,6 +34,7 @@ Some values are **signed by nature** and carry their sign explicitly. These are 
 - Cash variance (Diferença de Caixa): `DailyCloseItem` variance row, manager-queue `TotalVariance` / `MeanVariance` / per-close `VarianceValue`, monthly-reconciliation `NetVariance`.
 - Impact-preview deltas (§6.14): `CashVarianceImpact.VarianceDelta`, `CurrentVariance` / `ProjectedVariance`, fiado balance deltas.
 - Time-entry hour balances (see §5, signed durations).
+- The close-form **Relatório do terminal** (M9.6 P7, v61) — the only signed value an operator enters, through the MoneyInput *Signed amount* variant (magnitude in the field, sign in its own control; the field itself never holds a minus sign).
 
 **Display:** `+R$ 12,00` · `−R$ 12,00` · `R$ 0,00`
 

@@ -281,6 +281,7 @@ describe('public API', () => {
       'roleLabels',
       'sessionApprovalModeLabels',
       'sessionCandidateStateLabels',
+      'sessionCloseFieldLabels',
       'sessionCountAttemptKindLabels',
       'sessionCustodyStateLabels',
       'sessionEventKindLabels',

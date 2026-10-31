@@ -283,6 +283,8 @@ public class ArchitectureTest
             "server.Application.UseCases.Transactions.Cancel.CancelTransactionUseCase",
             // M7.7 Phase 5.1/5.6: Receber pagamento writes the Tab and, for counted cash, the paired terminal.
             "server.Application.UseCases.Transactions.ReceiveFiadoPayment.ReceiveFiadoPaymentUseCase",
+            // M9.6 Phase 9: Depósito Dinheiro locks the cashbox and the cofre (ascending) for its two legs.
+            "server.Application.UseCases.Transactions.SafeDeposit.SafeDepositUseCase",
             // M9.6 Phase 2: pairing, unpairing, deactivation and Terminal reassignment of a cashbox take the full §6.20
             // order (month → pairing → account keys) before any Account-row write.
             "server.Application.UseCases.Accounts.PairTab.PairTabAccountUseCase",

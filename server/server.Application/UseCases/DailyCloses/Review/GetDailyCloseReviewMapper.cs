@@ -16,7 +16,8 @@ internal static class GetDailyCloseReviewMapper
             IReadOnlyList<Product> activeProducts,
             Guid cashVarianceProductId,
             ResponseSessionCountJson count,
-            ResponseSessionAllowedActionsJson allowedActions)
+            ResponseSessionAllowedActionsJson allowedActions,
+            IReadOnlyList<ResponseSessionCloseFieldJson> closeFields)
         {
             // The opening column is the acknowledged opening when one exists, otherwise the inherited closing of the
             // counted predecessor (§6.20) — the same TotalOpening the calculator uses.
@@ -67,6 +68,7 @@ internal static class GetDailyCloseReviewMapper
                 Custody = close.ToCustodyResponse(),
                 Count = count,
                 AllowedActions = allowedActions,
+                CloseFields = closeFields,
                 OpeningDiscrepancy = discrepancy?.ToResponse(),
                 Items = productsToReview
                     .Select(product =>

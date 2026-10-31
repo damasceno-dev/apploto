@@ -366,7 +366,7 @@ internal static class TestSeeder
             var stockSale = await factory.SeedTransactionTypeAsync(
                 outCategory.Id,
                 "Saída de estoque contado — venda fiado",
-                systemRole: TransactionTypeSystemRole.FiadoCountedStockSaleCounterpart);
+                systemRole: TransactionTypeSystemRole.FiadoSaleCounterpart);
             var cashRepayment = await factory.SeedTransactionTypeAsync(
                 inCategory.Id,
                 "Entrada de dinheiro — recebimento fiado",

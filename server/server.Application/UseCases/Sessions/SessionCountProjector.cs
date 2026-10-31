@@ -18,7 +18,8 @@ public sealed class SessionCountProjector(
     IDailyClosesRepository dailyClosesRepository,
     ICashVarianceProductResolver cashVarianceProductResolver,
     SessionCountService countService,
-    SessionAllowedActionsResolver allowedActionsResolver)
+    SessionAllowedActionsResolver allowedActionsResolver,
+    SessionFieldEffectService fieldEffects)
 {
     public async Task<ResponseDailyCloseJson> Load(
         Guid sessionId,
@@ -42,6 +43,7 @@ public sealed class SessionCountProjector(
         var (count, actions) = await Build(session, caller, scope, ct);
         response.Count = count;
         response.AllowedActions = actions;
+        response.CloseFields = await fieldEffects.Read(session.BranchId, session.Id, ct);
         return response;
     }
 
@@ -61,4 +63,7 @@ public sealed class SessionCountProjector(
             ct);
         return (count, actions);
     }
+
+    public Task<IReadOnlyList<ResponseSessionCloseFieldJson>> ReadCloseFields(DailyClose session, CancellationToken ct = default) =>
+        fieldEffects.Read(session.BranchId, session.Id, ct);
 }

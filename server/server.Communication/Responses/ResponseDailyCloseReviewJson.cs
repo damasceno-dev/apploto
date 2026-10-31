@@ -52,6 +52,9 @@ public class ResponseDailyCloseReviewJson
     public ResponseSessionCountJson Count { get; init; } = new();
     public ResponseSessionAllowedActionsJson AllowedActions { get; init; } = new();
 
+    /// <summary>M9.6 Phase 7: the three close-form fields and their generated rows.</summary>
+    public IReadOnlyList<ResponseSessionCloseFieldJson> CloseFields { get; init; } = [];
+
     /// <summary>The opening's current comparison against its proposal; null when it matched or is inherited.</summary>
     public ResponseOpeningDiscrepancyJson? OpeningDiscrepancy { get; init; }
     public IReadOnlyList<ResponseDailyCloseReviewItemJson> Items { get; init; } = [];

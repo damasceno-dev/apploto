@@ -45,10 +45,10 @@ public class PreviewCreateTransactionUseCase(
 
         var createContext = await transactionCreatePreamble.Resolve(request, ct);
 
-        // A counted-stock fiado sale is previewed as the whole pair the write would record (M7.7 Phase 5.6): the
-        // same pairing, Member terminal scope and terminal open-close checks, then the terminal's impact below.
+        // A counter fiado sale is previewed as the whole pair the write would record (M9.6 Phase 6): the same
+        // pairing, Member cashbox scope and session checks, then the cashbox's impact below.
         Guid? pairedTerminalId = null;
-        if (request.HandsOutCountedStock)
+        if (TransactionCreatePreamble.IsCounterFiadoSale(createContext))
         {
             (pairedTerminalId, _) = await fiadoPhysicalPairService.ValidateCounterpart(
                 branchUser.BranchId,
