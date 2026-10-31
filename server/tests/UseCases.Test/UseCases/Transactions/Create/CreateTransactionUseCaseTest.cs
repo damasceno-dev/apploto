@@ -598,6 +598,7 @@ public class CreateTransactionUseCaseTest
                 ctx.DailyCloseLedgerGuard,
                 memberAccountScopeGuard),
             Substitute.For<IAccountsRepository>(),
+            SessionTestServices.Revisions(),
             ctx.UnitOfWork);
     }
 

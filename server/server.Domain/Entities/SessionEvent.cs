@@ -16,6 +16,10 @@ public class SessionEvent : EntityBase
     public string? Reason { get; init; }
     public Guid? RelatedId { get; init; }
 
+    /// <summary>The count attempt a <c>CountConferred</c> event records; unique per attempt for that kind.</summary>
+    public Guid? AttemptId { get; init; }
+    public SessionCountAttempt? Attempt { get; init; }
+
     /// <summary>Server-serialized before/after snapshot; never bound from a request.</summary>
     public string Details { get; init; } = "{}";
 }

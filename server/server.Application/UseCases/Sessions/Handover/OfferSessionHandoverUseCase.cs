@@ -90,6 +90,7 @@ public class OfferSessionHandoverUseCase(
                     OutgoingSessionId = session.Id,
                     IntendedIncomingOperatorId = incoming.Id,
                     OfferedCountRevision = session.CountRevision,
+                    OfferedAttemptId = session.SubmittedAttemptId,
                     OfferedByUserId = branchUser.UserId,
                     OfferedAt = now,
                     Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),

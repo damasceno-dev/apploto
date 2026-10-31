@@ -30,7 +30,8 @@ internal static class PostgresExceptionHandler
             ["CK_Transactions_SessionImmutable"] = ResourcesErrorMessages.SESSION_NOT_FOR_ACCOUNT,
             ["CK_Transactions_CashboxRowRequiresSession"] = ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED,
             ["CK_Transactions_SessionOnlyOnCashbox"] = ResourcesErrorMessages.SESSION_ONLY_ON_CASHBOX,
-            ["FK_Transactions_DailyCloses_BranchId_AccountId_SessionId"] = ResourcesErrorMessages.SESSION_NOT_FOR_ACCOUNT
+            ["FK_Transactions_DailyCloses_BranchId_AccountId_SessionId"] = ResourcesErrorMessages.SESSION_NOT_FOR_ACCOUNT,
+            ["CK_SessionCountAttempts_Immutable"] = ResourcesErrorMessages.SESSION_CONFIRMATION_TOKEN_CONFLICT
         };
 
     private static readonly Dictionary<string, string> UniqueConstraintMessages =
@@ -43,6 +44,10 @@ internal static class PostgresExceptionHandler
             ["IX_Operators_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED,
             ["IX_DailyCloses_BranchId_AccountId_ActiveCustody"] = ResourcesErrorMessages.SESSION_ACTIVE_CUSTODY_CONFLICT,
             ["IX_DailyCloses_BranchId_AccountId_Sequence"] = ResourcesErrorMessages.SESSION_STALE_WRITE,
+            // Conferir serializes on the cashbox key, so these are a backstop for a writer that bypassed it.
+            ["IX_SessionCountAttempts_SessionId_ConfirmationToken"] = ResourcesErrorMessages.SESSION_CONFIRMATION_TOKEN_STALE,
+            ["IX_SessionCountAttempts_SessionId_AttemptNumber"] = ResourcesErrorMessages.SESSION_CONFIRMATION_TOKEN_STALE,
+            ["IX_SessionEvents_AttemptId_CountConferred"] = ResourcesErrorMessages.SESSION_CONFIRMATION_TOKEN_STALE,
             ["IX_SessionHandovers_OutgoingSessionId_Unresolved"] = ResourcesErrorMessages.SESSION_HANDOVER_PENDING,
             ["IX_SessionHandovers_IncomingSessionId"] = ResourcesErrorMessages.SESSION_HANDOVER_NOT_PENDING,
             ["IX_SessionOpenings_SessionId"] = ResourcesErrorMessages.SESSION_ACTIVE_CUSTODY_CONFLICT,

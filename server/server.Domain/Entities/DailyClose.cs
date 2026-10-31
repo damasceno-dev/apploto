@@ -81,6 +81,27 @@ public class DailyClose : EntityBase
     /// <summary>Durable revision of the session's count, bumped by every changed count save.</summary>
     public long CountRevision { get; set; }
 
+    /// <summary>
+    /// Durable revision of the session's calculation opening. An acknowledged opening is immutable, so only an inherited
+    /// (unacknowledged) opening moves it, when its counted predecessor changes (M9.6 Phase 4).
+    /// </summary>
+    public long OpeningRevision { get; set; }
+
+    /// <summary>
+    /// Server-issued Conferir token (§6.20). Rotated with every count, opening or ledger revision change and by
+    /// BeginRecount; never chosen by a client. A token admits at most one count attempt.
+    /// </summary>
+    public Guid CurrentConfirmationToken { get; set; } = Guid.NewGuid();
+
+    /// <summary>AttemptNumber of the latest count attempt (0 before the first Conferir).</summary>
+    public int LastAttemptNumber { get; set; }
+
+    /// <summary>The attempt an explicit Recontar started from, cleared by the next Conferir.</summary>
+    public Guid? RecountStartedForAttemptId { get; set; }
+
+    /// <summary>The attempt the latest submission confirmed; its calculation is the official snapshot.</summary>
+    public Guid? SubmittedAttemptId { get; set; }
+
     public bool CustodyHistoryComplete { get; init; } = true;
 
     public SessionOpening? Opening { get; init; }

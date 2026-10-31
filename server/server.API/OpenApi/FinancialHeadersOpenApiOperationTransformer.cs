@@ -63,9 +63,10 @@ internal sealed class FinancialHeadersOpenApiOperationTransformer : IOpenApiOper
             "transaction/{transactionId}" or
                 "transaction/{transactionId}/finalize" or
                 "transaction/{transactionId}/cancel" => true,
-            // Variance preview and the review-event history return no versioned session, so they carry no ETag.
+            // The review-event history returns no versioned session, so it carries no ETag; neither does the multi-session
+            // approve-day batch, which names each session's version in its body.
             _ => path.StartsWith("session/{sessionId}", StringComparison.Ordinal) &&
-                 path is not ("session/{sessionId}/variance-preview" or "session/{sessionId}/history")
+                 path is not "session/{sessionId}/history"
         };
     }
 }

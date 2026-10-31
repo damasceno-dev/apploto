@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.Members;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
@@ -21,6 +22,7 @@ public class FinalizeTransactionUseCase(
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     FiadoPhysicalPairService fiadoPhysicalPairService,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseTransactionJson> Execute(
@@ -111,6 +113,10 @@ public class FinalizeTransactionUseCase(
             counterpart.UpdatedByUserId = branchUser.UserId;
         }
 
+        await sessionRevisions.RecordLedgerChange(
+            branchUser.BranchId,
+            new[] { transaction, counterpart }.OfType<server.Domain.Entities.Transaction>(),
+            ct);
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 

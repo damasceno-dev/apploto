@@ -416,7 +416,8 @@ public class GetDailyCloseReviewUseCaseTest
             memberAccountScopeResolver,
             context.CashVarianceProductResolver,
             SessionTestServices.OpeningResolver(context.DailyClosesRepository, context.CashVarianceProductResolver),
-            Substitute.For<ISessionOpeningDiscrepanciesRepository>());
+            Substitute.For<ISessionOpeningDiscrepanciesRepository>(),
+            SessionTestServices.CountProjector(context.DailyClosesRepository, context.CashVarianceProductResolver));
     }
 
     private static TestContext BuildContext(

@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Idempotency;
 using server.Application.Services.Settings;
@@ -32,6 +33,7 @@ public class ReceiveFiadoPaymentUseCase(
     FiadoPhysicalPairService fiadoPhysicalPairService,
     IBranchClock branchClock,
     LockDateGuard lockDateGuard,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     public const string IdempotencyEndpoint = "POST /transaction/fiado-payment";
@@ -134,6 +136,10 @@ public class ReceiveFiadoPaymentUseCase(
         await transactionsRepository.Add(payment, ct);
         if (counterpart is not null)
             await transactionsRepository.Add(counterpart, ct);
+        await sessionRevisions.RecordLedgerChange(
+            context.BranchUser.BranchId,
+            new[] { payment, counterpart }.OfType<Transaction>().Where(row => row.Status == TransactionStatus.Active),
+            ct);
         await unitOfWork.Commit(ct);
         var response = payment.ToCreateResponse();
         response.GeneratedTransactionId = counterpart?.Id;

@@ -7,6 +7,8 @@
 import type { DailyCloseStatus } from './dailyCloseStatus';
 import type { ResponseDailyCloseReviewItemJson } from './responseDailyCloseReviewItemJson';
 import type { ResponseOpeningDiscrepancyJson } from './responseOpeningDiscrepancyJson';
+import type { ResponseSessionAllowedActionsJson } from './responseSessionAllowedActionsJson';
+import type { ResponseSessionCountJson } from './responseSessionCountJson';
 import type { ResponseSessionCustodyJson } from './responseSessionCustodyJson';
 
 export interface ResponseDailyCloseReviewJson {
@@ -61,6 +63,8 @@ export interface ResponseDailyCloseReviewJson {
   /** @nullable */
   updatedByUserId?: string | null;
   custody: ResponseSessionCustodyJson;
+  count: ResponseSessionCountJson;
+  allowedActions: ResponseSessionAllowedActionsJson;
   openingDiscrepancy?: null | ResponseOpeningDiscrepancyJson;
   items: ResponseDailyCloseReviewItemJson[];
 }

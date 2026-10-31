@@ -1,6 +1,7 @@
 using server.Application.UseCases.Sessions;
 using server.Domain.Entities.Enums;
 using server.Application.Services.Members;
+using server.Application.Services.Sessions;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
@@ -20,7 +21,8 @@ public class GetDailyCloseHistoryUseCase(
     IDailyCloseReviewEventsRepository reviewEventsRepository,
     IMemberAccountScopeResolver memberAccountScopeResolver,
     ISessionEventsRepository sessionEventsRepository,
-    ISessionHandoversRepository sessionHandoversRepository)
+    ISessionHandoversRepository sessionHandoversRepository,
+    ISessionCountAttemptsRepository countAttemptsRepository)
 {
     public async Task<ResponseDailyCloseHistoryJson> Execute(Guid dailyCloseId, CancellationToken ct = default)
     {
@@ -29,10 +31,9 @@ public class GetDailyCloseHistoryUseCase(
         var dailyClose = await dailyClosesRepository
             .GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
         if (branchUser.Role is Role.Member)
         {
-            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
-
             if (memberScope.LinkedOperator is null)
                 throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
 
@@ -53,6 +54,13 @@ public class GetDailyCloseHistoryUseCase(
         var custodyEvents = await sessionEventsRepository.ListBySessionIdAsNoTracking(branchUser.BranchId, dailyClose.Id, ct);
         var handovers = await sessionHandoversRepository.ListBySessionIdAsNoTracking(branchUser.BranchId, dailyClose.Id, ct);
 
+        // Every attempt is past evidence for a manager; a Member sees them only for a session in their own custody.
+        var seesAttempts = branchUser.Role is not Role.Member
+                           || (memberScope.LinkedOperator is { } linked && linked.Id == dailyClose.CustodianOperatorId);
+        var attempts = seesAttempts
+            ? await countAttemptsRepository.ListBySessionIdAsNoTracking(branchUser.BranchId, dailyClose.Id, ct)
+            : null;
+
         return new ResponseDailyCloseHistoryJson
         {
             DailyCloseId = dailyClose.Id,
@@ -60,6 +68,7 @@ public class GetDailyCloseHistoryUseCase(
             IsCustodyHistoryComplete = dailyClose.CustodyHistoryComplete,
             CustodyEvents = custodyEvents.Select(sessionEvent => sessionEvent.ToResponse()).ToList(),
             Handovers = handovers.Select(handover => handover.ToResponse()).ToList(),
+            CountAttempts = attempts?.Select(attempt => attempt.ToResponse()).ToList(),
             CurrentOpeningSource = currentOpeningSource is null
                 ? null
                 : new ResponseDailyCloseOpeningSourceJson

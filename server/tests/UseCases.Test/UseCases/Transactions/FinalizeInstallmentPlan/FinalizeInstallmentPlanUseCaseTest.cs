@@ -156,6 +156,7 @@ public class FinalizeInstallmentPlanUseCaseTest
             new BranchClock(),
             ctx.LedgerGuard,
             ctx.Coordination,
+            SessionTestServices.Revisions(),
             ctx.UnitOfWork);
     }
 

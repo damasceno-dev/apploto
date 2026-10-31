@@ -52,6 +52,19 @@ public interface ISessionEventsRepository
     Task<IReadOnlyList<SessionEvent>> ListBySessionIdAsNoTracking(Guid branchId, Guid sessionId, CancellationToken ct = default);
 }
 
+public interface ISessionCountAttemptsRepository
+{
+    Task Add(SessionCountAttempt attempt, CancellationToken ct = default);
+
+    /// <summary>The attempt a confirmation token produced, with items, or null when the token is unused.</summary>
+    Task<SessionCountAttempt?> GetBySessionIdAndTokenAsNoTracking(Guid branchId, Guid sessionId, Guid token, CancellationToken ct = default);
+    Task<SessionCountAttempt?> GetBySessionIdAndNumberAsNoTracking(Guid branchId, Guid sessionId, int attemptNumber, CancellationToken ct = default);
+    Task<SessionCountAttempt?> GetByIdAndSessionIdAsNoTracking(Guid branchId, Guid sessionId, Guid attemptId, CancellationToken ct = default);
+
+    /// <summary>Every attempt of the session with items, by AttemptNumber.</summary>
+    Task<IReadOnlyList<SessionCountAttempt>> ListBySessionIdAsNoTracking(Guid branchId, Guid sessionId, CancellationToken ct = default);
+}
+
 public interface IOpeningCountsRepository
 {
     Task Add(OpeningCount openingCount, CancellationToken ct = default);

@@ -447,6 +447,7 @@ public class CreateTransactionInstallmentUseCaseTest
             financialCommandIdempotency,
             branchClock,
             lockDateGuard,
+            SessionTestServices.Revisions(),
             ctx.UnitOfWork);
     }
 

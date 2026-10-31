@@ -91,12 +91,15 @@ internal static class HttpTestExtensions
     {
         var path = requestUri.Split('?', 2)[0];
         return path is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment"
-                   or "/session/start" or "/session/declare"
+                   or "/session/start" or "/session/declare" or "/session/approve-day"
                || (path.StartsWith("/session/", StringComparison.Ordinal)
                    && (path.EndsWith("/handover", StringComparison.Ordinal)
                        || path.EndsWith("/accept", StringComparison.Ordinal)
                        || path.EndsWith("/finish", StringComparison.Ordinal)
-                       || path.EndsWith("/custody-exception", StringComparison.Ordinal)));
+                       || path.EndsWith("/custody-exception", StringComparison.Ordinal)
+                       || path.EndsWith("/conferir", StringComparison.Ordinal)
+                       || path.EndsWith("/recount", StringComparison.Ordinal)
+                       || path.EndsWith("/approve", StringComparison.Ordinal)));
     }
 
     private static async Task<HttpResponseMessage> SendAuthAsync(HttpClient client,

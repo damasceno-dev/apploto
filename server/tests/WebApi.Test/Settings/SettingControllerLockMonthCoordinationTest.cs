@@ -391,9 +391,9 @@ public sealed class SettingControllerLockMonthCoordinationTest(ServerWebApplicat
         correctionPayload.AffectedSuccessor.ShouldNotBeNull();
         correctionPayload.AffectedSuccessor.DailyCloseId.ShouldBe(successor.Id);
 
-        var submit = await client.PostAuthAsync($"/session/{predecessor.Id}/submit", ctx.Token);
+        var submit = await client.SubmitSessionAsync(predecessor.Id, ctx.Token);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
-        var approve = await client.PostAuthAsync($"/session/{predecessor.Id}/approve", ctx.Token);
+        var approve = await client.ApproveAsSingleManagerAsync(predecessor.Id, ctx.Token);
         approve.StatusCode.ShouldBe(HttpStatusCode.OK, await approve.Content.ReadAsStringAsync());
 
         var lockResponse = await Lock(client, ctx);

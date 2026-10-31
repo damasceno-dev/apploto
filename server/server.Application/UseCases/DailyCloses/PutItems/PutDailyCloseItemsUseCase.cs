@@ -1,5 +1,6 @@
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
+using server.Application.Services.Sessions;
 using server.Application.Services.Settings;
 using server.Application.Services.Transactions;
 using server.Communication.Requests;
@@ -26,6 +27,7 @@ public class PutDailyCloseItemsUseCase(
     LockDateGuard lockDateGuard,
     IBranchClock branchClock,
     IDailyCloseAccountCoordination accountCoordination,
+    server.Application.UseCases.Sessions.SessionCountProjector countProjector,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponsePutDailyCloseItemsJson> Execute(
@@ -131,7 +133,7 @@ public class PutDailyCloseItemsUseCase(
         DailyCloseSuccessorInvalidation? invalidation = null;
         if (countedInputChanged)
         {
-            close.CountRevision++;
+            SessionRevisionService.RecordCountChange(close);
             invalidation = await successorInvalidator.InvalidateNextEligible(
                 close,
                 afterMap,
@@ -175,13 +177,19 @@ public class PutDailyCloseItemsUseCase(
         await coordination.Complete(ct);
 
         var productMap = resolvedProducts.ToDictionary(product => product.Id);
-        return new ResponsePutDailyCloseItemsJson
-        {
-            DailyClose = close.ToResponse(
+        var sessionResponse = await countProjector.Project(
+            close,
+            close.ToResponse(
                 productMap,
                 cashVarianceProductId,
                 firstEligibilityChange ? branchUser.User : null,
                 firstEligibilityChange ? memberScope.LinkedOperator : null),
+            branchUser,
+            memberScope,
+            ct);
+        return new ResponsePutDailyCloseItemsJson
+        {
+            DailyClose = sessionResponse,
             AffectedSuccessor = invalidation is not { Demoted: true }
                 ? null
                 : new ResponseAffectedDailyCloseSuccessorJson

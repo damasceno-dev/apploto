@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v59
+Spec revision: v60
 -->
 <html lang="en">
 <head>
@@ -196,8 +196,8 @@ Spec revision: v59
 </div>
 <div id="error"></div>
 <details id="proposed-custody-model" style="position:fixed;top:12px;left:12px;z-index:1000;max-width:680px;max-height:82vh;overflow:auto;background:Canvas;color:CanvasText;padding:14px;border:1px solid #888;border-radius:8px;font:14px/1.5 system-ui">
-<summary>v59 session relationships · M9.6 P2–P3 shipped, later phases proposed</summary>
-<p>The interactive graph still draws the <b>30-entity pre-session schema</b>. v59 ships (M9.6 P2–P3) Terminal, the session columns on DailyClose/Account/Transaction, SessionOpening, SessionHandover, SessionOpeningDiscrepancy with revisions and attribution events, SessionEvent, CustodyMappingIssue and OpeningCount; CountAttempt (P4), FieldEffect (P7) and CustodyTransfer (P9) remain proposed. DailyClose.Id is the SessionId, Account.Id the cashbox, Type.Terminal the existing wire value.</p>
+<summary>v60 session relationships · M9.6 P2–P5 shipped, later phases proposed</summary>
+<p>The interactive graph still draws the <b>30-entity pre-session schema</b>. v59 ships (M9.6 P2–P3) Terminal, the session columns on DailyClose/Account/Transaction, SessionOpening, SessionHandover, SessionOpeningDiscrepancy with revisions and attribution events, SessionEvent, CustodyMappingIssue and OpeningCount; v60 ships (M9.6 P4–P5) SessionCountAttempt with items, the session revision/token columns and approval events; FieldEffect (P7) and CustodyTransfer (P9) remain proposed. DailyClose.Id is the SessionId, Account.Id the cashbox, Type.Terminal the existing wire value.</p>
 <table><thead><tr><th>Relationship</th><th>Proposed cardinality / constraint</th></tr></thead><tbody>
 <tr><td>Branch → physical Terminal → cashbox Account</td><td>one-to-many → one-to-many; same branch; parallel boxes, no unique Terminal/day close</td></tr>
 <tr><td>Cashbox Account → Tab Account</td><td>zero/one paired Tab, uniquely owned as today; explicit Tab grants still required</td></tr>
@@ -208,7 +208,7 @@ Spec revision: v59
 <tr><td>Outgoing Session → Handover → Incoming Session</td><td>one-to-many offers over time, one unresolved offer; each offer has one outgoing and zero/one incoming until accepted; accepted incoming unique; same box, next Sequence</td></tr>
 <tr><td>SessionOpening → SessionOpeningDiscrepancy → revisions</td><td>zero/one discrepancy per opening, immutable comparison revisions; optional HandoverId and evidenced predecessor. Covers direct handover, Finish→Start/inline and first opening-count differences</td></tr>
 <tr><td>OpeningDiscrepancy → OpeningDiscrepancyAttributionEvent</td><td>one-to-many immutable decisions bound to comparison revision; initially Unattributed, outgoing/incoming/neither with reason/audit; Outgoing unavailable without evidenced predecessor custodian; no automatic personal totals or extra month-lock blocker</td></tr>
-<tr><td>Session → CountAttempt → items</td><td>one-to-many immutable attempts, unique session/attempt number AND session/server ConfirmationToken; one CountConferred per attempt even across different request keys; initial token issued at session start, mutation/Recontar rotates it without recording a count; P4</td></tr>
+<tr><td>Session → CountAttempt → items</td><td>one-to-many immutable attempts (database trigger refuses update/delete), unique session/attempt number AND session/server ConfirmationToken, same-branch composite FK; one CountConferred SessionEvent per attempt even across different request keys; token issued at session start (existing sessions once by the upgrade), ledger/count/opening revision change or Recontar rotates it without recording a count; Session → SubmittedAttemptId and Handover → OfferedAttemptId point at the confirmed attempt; shipped P4 (v60)</td></tr>
 <tr><td>Session → FieldEffect → Transaction</td><td>three unique role slots; zero has no active effect, audit retained; P7</td></tr>
 <tr><td>CustodyTransfer → protected legs</td><td>one source operation, two atomic cash legs; Safe is AccountType future P9; cheque custody keeps same open receivable, C2</td></tr>
 <tr><td>Unresolved legacy Session → CustodyMappingIssue</td><td>one-to-many source/digest/versioned resolution evidence; MappingState Unresolved keeps unknown fields null and blocks affected cutover/lock; Ready activates operational constraints</td></tr>
@@ -216,7 +216,7 @@ Spec revision: v59
 </tbody></table>
 <p>Custody Active → HandedOver/Finished is separate from review Draft/Submitted/Approved/Rejected. Recall/reject/reopen preserves custody. Outgoing closing and incoming acknowledgment never replace one another. Opening correction changes proposal/comparison, not real accepted count; the acknowledged opening is the session's variance opening, so an acknowledged successor is never demoted by a predecessor correction. A manager-declared or rearranged past session (F2) keeps an inherited opening, ManagerDeclared evidence and SessionDeclared/SessionRearranged events; Sequence follows interval order and its rows' dates follow the session. Opening discrepancies reference SessionOpeningId; a direct HandoverId is optional. A new comparison revision invalidates personal attribution until explicitly reviewed again. Unresolved migration evidence is quarantined/read-only and blocks affected cutover, not converted wholesale to Finished.</p>
 <p><b>Future relationships:</b> settlement events → immutable receivable, open PostedOn/OccurredOn, partials and a single pending bank receipt confirmed by matching (M9.7); pay items/commission, special draws and hour-bank adjustments (M9.8); exportMestre TblItemRel/TblRelMensal/TblLoteriaEspecial/TblMovimentacaoBancoHoras map there, version tables map to M10 provenance. No new shipped entity count.</p>
-<p>Q2 deposited, Q6 cofre/customer PIX, Q7 one-sided bank, Q10 both custody arrangements supersede older assumptions. Tarifa Especial and single-cheque counts remain bounded inferences; reported 220/232 and 227/232 replays were not rerun. Q9 report definition/label/sign and R inclusion remain pending. Read <a href="loto-specs.md#330-custody-model--m96-phases-23-shipped-later-phases-proposed">canonical §3.30</a> and §6.19–§6.23 for fields, DB constraints, commands and migration; §9 for provenance. Design markers aligned to v58 at the owner’s explicit request on 2026-10-27; final independent acceptance is not inferred.</p>
+<p>Q2 deposited, Q6 cofre/customer PIX, Q7 one-sided bank, Q10 both custody arrangements supersede older assumptions. Tarifa Especial and single-cheque counts remain bounded inferences; reported 220/232 and 227/232 replays were not rerun. Q9 report definition/label/sign and R inclusion remain pending. Read <a href="loto-specs.md#330-custody-model--m96-phases-25-shipped-later-phases-proposed">canonical §3.30</a> and §6.19–§6.23 for fields, DB constraints, commands and migration; §9 for provenance. Design markers aligned to v58 at the owner’s explicit request on 2026-10-27; final independent acceptance is not inferred.</p>
 </details>
 
 

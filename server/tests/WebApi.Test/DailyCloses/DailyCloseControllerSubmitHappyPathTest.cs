@@ -34,7 +34,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.In, 100m);
         await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.Out, 25m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await httpResponse.Content.ReadAsStringAsync());
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();
@@ -81,7 +81,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         await SeedTransactionAsync(branch.Id, siblingAccount.Id, op.Id, user.Id, close.Date, Direction.In, 9_000m);
         await SeedTransactionAsync(branch.Id, siblingAccount.Id, op.Id, user.Id, close.Date, Direction.Out, 4_000m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
@@ -103,7 +103,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         await factory.SeedDailyCloseItemAsync(close.Id, product.Id, value: 400m);
         var existingCashVariance = await factory.SeedDailyCloseItemAsync(close.Id, cvProduct.Id, value: 1m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
@@ -125,7 +125,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         var opened = (await _client.StartSessionAsync(account.Id, token)).Session;
 
         await PutItemsAsync(opened.Id, product.Id, 100m, token);
-        var firstSubmit = await _client.PostAuthAsync($"/session/{opened.Id}/submit", token);
+        var firstSubmit = await _client.SubmitSessionAsync(opened.Id, token);
         firstSubmit.StatusCode.ShouldBe(HttpStatusCode.OK);
         var firstCashVariance = (await factory.ListDailyCloseItemsByDailyCloseIdAsync(opened.Id))
             .Single(item => item.ProductId == cvProduct.Id);
@@ -134,7 +134,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         var recall = await _client.PostAuthAsync($"/session/{opened.Id}/recall", token);
         recall.StatusCode.ShouldBe(HttpStatusCode.OK);
         await PutItemsAsync(opened.Id, product.Id, 150m, token);
-        var secondSubmit = await _client.PostAuthAsync($"/session/{opened.Id}/submit", token);
+        var secondSubmit = await _client.SubmitSessionAsync(opened.Id, token);
 
         secondSubmit.StatusCode.ShouldBe(HttpStatusCode.OK);
         var secondCashVariance = (await factory.ListDailyCloseItemsByDailyCloseIdAsync(opened.Id))
@@ -180,7 +180,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
             status: DailyCloseStatus.Draft);
         await factory.SeedDailyCloseItemAsync(close.Id, product.Id, value: 500m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
@@ -209,7 +209,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
             status: DailyCloseStatus.Draft);
         await factory.SeedDailyCloseItemAsync(close.Id, product.Id, value: 200m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);
@@ -230,7 +230,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
             status: DailyCloseStatus.Draft);
         await factory.SeedDailyCloseItemAsync(close.Id, product.Id, value: 90m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var persisted = await factory.ReloadAsync<DailyClose>(close.Id);
@@ -283,7 +283,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
             date.AddDays(-1),
             status: TransactionStatus.Draft);
 
-        var response = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var response = await _client.SubmitSessionAsync(close.Id, token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submitted = await response.ReadContentAsync<ResponseDailyCloseJson>();
@@ -330,7 +330,7 @@ public class DailyCloseControllerSubmitHappyPathTest(ServerWebApplicationFactory
         await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.Out, 800m);
         await SeedTransactionAsync(branch.Id, account.Id, op.Id, user.Id, close.Date, Direction.Out, 200m);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(close.Id);

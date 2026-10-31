@@ -48,7 +48,7 @@ public class SessionControllerPastSessionTest(ServerWebApplicationFactory factor
         // Draft with activity blocks the successor's submit.
         var next = await _client.StartSessionAsync(scenario.Cashbox.Id, scenario.MemberB.Token);
         await _client.CountAsync(next.Session.Id, scenario.MemberB.Token, new Dictionary<Guid, decimal> { [scenario.Cash.Id] = 0m });
-        var submit = await _client.PostAuthAsync($"/session/{next.Session.Id}/submit", scenario.MemberB.Token);
+        var submit = await _client.SubmitSessionAsync(next.Session.Id, scenario.MemberB.Token);
         submit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 

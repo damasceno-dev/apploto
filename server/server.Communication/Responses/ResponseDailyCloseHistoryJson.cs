@@ -23,4 +23,10 @@ public class ResponseDailyCloseHistoryJson
     public IReadOnlyList<ResponseSessionEventJson> CustodyEvents { get; init; } = [];
     public IReadOnlyList<ResponseSessionHandoverJson> Handovers { get; init; } = [];
     public bool IsCustodyHistoryComplete { get; init; }
+
+    /// <summary>
+    /// Every Conferir attempt of the session, oldest first, with its immutable calculation. Null when the caller may not
+    /// see them: a Member other than the session's custodian.
+    /// </summary>
+    public IReadOnlyList<ResponseSessionCountAttemptJson>? CountAttempts { get; init; }
 }

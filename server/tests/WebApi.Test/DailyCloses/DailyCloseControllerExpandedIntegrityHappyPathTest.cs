@@ -30,7 +30,7 @@ public class DailyCloseControllerExpandedIntegrityHappyPathTest(ServerWebApplica
             LocalToday(),
             itemsRecorded: false);
 
-        var rejectedSubmit = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var rejectedSubmit = await _client.SubmitSessionAsync(close.Id, token);
 
         rejectedSubmit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await rejectedSubmit.ReadContentAsync<TestResponseErrorJson>();
@@ -52,7 +52,7 @@ public class DailyCloseControllerExpandedIntegrityHappyPathTest(ServerWebApplica
         saved.DailyClose.Items.ShouldBeEmpty();
         saved.AffectedSuccessor.ShouldBeNull();
 
-        var submitResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var submitResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submitted = await submitResponse.ReadContentAsync<ResponseDailyCloseJson>();

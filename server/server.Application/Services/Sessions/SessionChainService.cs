@@ -53,6 +53,10 @@ public sealed class SessionChainService(
                 target.Session.Sequence = target.Sequence;
         }
 
+        // An inherited opening follows its counted predecessor, the changed session's own included.
+        if (before.TryGetValue(changed.Id, out var changedPrevious) is false || changedPrevious?.Id != after[changed.Id]?.Id)
+            SessionRevisionService.RecordInheritedOpeningChange(changed);
+
         var effects = new List<SessionChainEffect>();
         foreach (var session in ordered.Where(session => session.Id != changed.Id))
         {
@@ -60,6 +64,7 @@ public sealed class SessionChainService(
             var currentPredecessor = after[session.Id];
             if (previousPredecessor?.Id == currentPredecessor?.Id)
                 continue;
+            SessionRevisionService.RecordInheritedOpeningChange(session);
             if (session.ItemsFirstRecordedAt is null && session.Opening is null)
                 continue;
 

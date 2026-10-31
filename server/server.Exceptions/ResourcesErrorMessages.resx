@@ -903,4 +903,27 @@
   <data name="ACCOUNT_TERMINAL_REASSIGN_ACTIVE_CUSTODY" xml:space="preserve"><value>Encerre o turno em custódia antes de trocar o terminal deste caixa.</value></data>
   <data name="SESSION_CUSTODY_STATE_INVALID" xml:space="preserve"><value>Informe um estado de custódia válido: em custódia, passado adiante ou encerrado.</value></data>
   <data name="SESSION_OPENING_SOURCE_KIND_INVALID" xml:space="preserve"><value>Informe uma origem de abertura válida.</value></data>
+  <data name="SESSION_CONFIRMATION_TOKEN_STALE" xml:space="preserve"><value>A contagem, o caixa ou a abertura mudou desde a sua leitura. Atualize e confira novamente.</value></data>
+  <data name="SESSION_CONFIRMATION_TOKEN_CONFLICT" xml:space="preserve"><value>Esta conferência já foi registrada com outra versão da contagem. Atualize e confira novamente.</value></data>
+  <data name="SESSION_CONFIRMATION_REVISION_STALE" xml:space="preserve"><value>A contagem, o caixa ou a abertura mudou desde a sua leitura. Atualize e confira novamente.</value></data>
+  <data name="SESSION_CONFIRMATION_REQUIRES_DRAFT" xml:space="preserve"><value>Só é possível conferir a contagem de um turno em rascunho ou devolvido para correção.</value></data>
+  <data name="SESSION_CONFIRM_STILL_OBSERVED_REQUIRED" xml:space="preserve"><value>O caixa mudou depois da última conferência. Confirme que esta contagem ainda representa o caixa ou recomece a contagem.</value></data>
+  <data name="SESSION_CONFIRMATION_NOT_CURRENT" xml:space="preserve"><value>Confira a contagem antes de enviar: o resultado conferido não corresponde mais ao caixa.</value></data>
+  <data name="SESSION_RECOUNT_NOT_AVAILABLE" xml:space="preserve"><value>Ainda não há conferência para recontar.</value></data>
+  <data name="SESSION_RECOUNT_ATTEMPT_MISMATCH" xml:space="preserve"><value>Há uma conferência mais recente deste turno. Atualize e tente novamente.</value></data>
+  <data name="SESSION_APPROVER_IS_RECORDER" xml:space="preserve"><value>Quem registrou a contagem deste turno não pode aprová-lo.</value></data>
+  <data name="SESSION_APPROVER_IS_SUBMITTER" xml:space="preserve"><value>Quem enviou este turno não pode aprová-lo.</value></data>
+  <data name="SESSION_APPROVER_IS_CUSTODIAN" xml:space="preserve"><value>O operador responsável por este turno não pode aprová-lo.</value></data>
+  <data name="SESSION_SINGLE_MANAGER_APPROVAL_NOT_AVAILABLE" xml:space="preserve"><value>Aprovar como único gestor só é permitido quando a filial tem um único gestor ativo.</value></data>
+  <data name="SESSION_SINGLE_MANAGER_APPROVAL_REQUIRES_REASON" xml:space="preserve"><value>Informe o motivo para aprovar como único gestor.</value></data>
+  <data name="SESSION_APPROVAL_REASON_TOO_LONG" xml:space="preserve"><value>O motivo da aprovação deve ter no máximo 500 caracteres.</value></data>
+  <data name="SESSION_APPROVAL_MODE_INVALID" xml:space="preserve"><value>Informe um modo de aprovação válido.</value></data>
+  <data name="SESSION_BATCH_APPROVAL_EMPTY" xml:space="preserve"><value>Informe ao menos um turno para aprovar.</value></data>
+  <data name="SESSION_BATCH_APPROVAL_TOO_LARGE" xml:space="preserve"><value>Aprove no máximo 100 turnos de uma vez.</value></data>
+  <data name="SESSION_BATCH_APPROVAL_DUPLICATE" xml:space="preserve"><value>Um turno aparece mais de uma vez na aprovação.</value></data>
+  <data name="SESSION_BATCH_APPROVAL_SCOPE_MIXED" xml:space="preserve"><value>Aprovar dia do caixa aceita somente turnos de um mesmo caixa e de um mesmo dia.</value></data>
+  <data name="SESSION_BATCH_APPROVAL_ITEM_FAILED" xml:space="preserve"><value>Turno {0}: {1}</value></data>
+  <data name="SESSION_CONFIRMATION_TOKEN_REQUIRED" xml:space="preserve"><value>Informe o código de conferência recebido do servidor.</value></data>
+  <data name="SESSION_CONFIRMATION_ATTEMPT_REQUIRED" xml:space="preserve"><value>Informe a conferência que está sendo enviada.</value></data>
+  <data name="SESSION_REVISION_INVALID" xml:space="preserve"><value>As versões informadas da contagem são inválidas.</value></data>
 </root>

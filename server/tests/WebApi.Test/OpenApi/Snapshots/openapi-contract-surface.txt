@@ -43,8 +43,11 @@ enum OpeningDiscrepancyAttribution string: Unattributed, Outgoing, Incoming, Nei
 enum OperatorLinkRequestStatus string: Pending, Resolved
 enum OverviewSectionStatus string: Ready, Empty, NotConfigured
 enum Role string: Admin, Manager, Member
+enum SessionApprovalMode string: Independent, SingleActiveManager
+enum SessionCandidateState string: NotConferred, Current, Outdated, Unconfirmed, Recounting
+enum SessionCountAttemptKind string: Initial, Correction, Recount, StillObserved
 enum SessionCustodyState string: Active, HandedOver, Finished
-enum SessionEventKind string: SessionStarted, OpeningAcknowledged, OpeningDiscrepancyOpened, OpeningDiscrepancyRevised, HandoverOffered, HandoverAccepted, HandoverDisputed, HandoverWithdrawn, SessionFinished, CustodyExceptionResolved, SessionDeclared, SessionRearranged, AttributionRecorded
+enum SessionEventKind string: SessionStarted, OpeningAcknowledged, OpeningDiscrepancyOpened, OpeningDiscrepancyRevised, HandoverOffered, HandoverAccepted, HandoverDisputed, HandoverWithdrawn, SessionFinished, CustodyExceptionResolved, SessionDeclared, SessionRearranged, AttributionRecorded, CountConferred, RecountStarted, SessionApproved
 enum SessionHandoverState string: Offered, Accepted, Disputed, Withdrawn
 enum SessionMappingState string: Ready, Unresolved
 enum SessionOpeningSourceKind string: ExplicitZero, OpeningCount, PreviousSession, ImportedSession
@@ -68,6 +71,19 @@ schema RequestAddTimeEntrySegmentJson
   clockIn required string
   clockOut optional string?
 
+schema RequestApproveSessionBatchItemJson
+  sessionId required string
+  version required integer|string
+
+schema RequestApproveSessionBatchJson
+  mode optional enum:SessionApprovalMode
+  reason optional string?
+  sessions optional RequestApproveSessionBatchItemJson[]?
+
+schema RequestApproveSessionJson
+  mode optional enum:SessionApprovalMode
+  reason optional string?
+
 schema RequestAssignAccountJson
   accountId required string
 
@@ -79,12 +95,22 @@ schema RequestAttributeOpeningDiscrepancyJson
   reason optional string?
   target optional enum:OpeningDiscrepancyAttribution
 
+schema RequestBeginSessionRecountJson
+  previousAttemptId required string
+
 schema RequestCancelTransactionJson
   cancellationReason required string
 
 schema RequestChangePasswordJson
   currentPassword required string
   newPassword required string
+
+schema RequestConferSessionCountJson
+  confirmCountStillObserved optional boolean
+  confirmationToken required string
+  countRevision required integer|string
+  ledgerRevision required integer|string
+  openingRevision required integer|string
 
 schema RequestCreateBankAccountJson
   institution optional string?
@@ -184,9 +210,6 @@ schema RequestCreateTransactionTypeJson
   requiresTabAccountAndClient optional boolean
   settlementInstrument optional enum:SettlementInstrument?
   settlementRule optional enum:SettlementRule
-
-schema RequestDailyCloseVariancePreviewJson
-  items optional RequestUpsertDailyCloseItemJson[]?
 
 schema RequestDeclarePastSessionJson
   accountId required string
@@ -333,6 +356,12 @@ schema RequestStartSessionJson
   accountId required string
   opening optional RequestSessionOpeningAcknowledgmentJson?
 
+schema RequestSubmitSessionJson
+  attemptId required string
+  countRevision required integer|string
+  ledgerRevision required integer|string
+  openingRevision required integer|string
+
 schema RequestTimeEntrySegmentJson
   clockIn required string
   clockOut optional string?
@@ -457,6 +486,9 @@ schema ResponseAgingBucketTotalJson
   bucket required enum:AgingBucket
   rowCount required integer
   value required number
+
+schema ResponseApproveSessionBatchJson
+  sessions required ResponseDailyCloseJson[]
 
 schema ResponseBranchSummaryJson
   address optional string?
@@ -586,6 +618,11 @@ schema ResponseClientJson
   phone required string
   phoneSecondary optional string?
 
+schema ResponseConferSessionCountJson
+  attempt required ResponseSessionCountAttemptJson
+  replayed required boolean
+  session required ResponseDailyCloseJson
+
 schema ResponseCreateAccountJson
   branchId required string
   id required string
@@ -674,6 +711,7 @@ schema ResponseDailyCloseHistoryEventJson
   type required enum:DailyCloseReviewEventType
 
 schema ResponseDailyCloseHistoryJson
+  countAttempts optional ResponseSessionCountAttemptJson[]?
   currentOpeningSource optional ResponseDailyCloseOpeningSourceJson?
   custodyEvents required ResponseSessionEventJson[]
   dailyCloseId required string
@@ -692,10 +730,12 @@ schema ResponseDailyCloseItemJson
 schema ResponseDailyCloseJson
   accountId required string
   accountName required string
+  allowedActions optional ResponseSessionAllowedActionsJson?
   approvedAt optional string?
   approvedByUserId optional string?
   approvedByUserName optional string?
   branchId required string
+  count optional ResponseSessionCountJson?
   createdAt required string
   custody required ResponseSessionCustodyJson
   date required string
@@ -745,10 +785,12 @@ schema ResponseDailyCloseReviewItemJson
 schema ResponseDailyCloseReviewJson
   accountId required string
   accountName required string
+  allowedActions required ResponseSessionAllowedActionsJson
   approvedAt optional string?
   approvedByUserId optional string?
   approvedByUserName optional string?
   branchId required string
+  count required ResponseSessionCountJson
   createdAt required string
   custody required ResponseSessionCustodyJson
   date required string
@@ -776,9 +818,6 @@ schema ResponseDailyCloseReviewJson
   updatedAt optional string?
   updatedByUserId optional string?
   version required integer
-
-schema ResponseDailyCloseVariancePreviewJson
-  cashVariance required number
 
 schema ResponseDailyLedgerItemJson
   categoryName required string
@@ -1636,10 +1675,61 @@ schema ResponseSelfContextJson
   operatorName optional string?
   primaryAccount optional ResponseOperatorAccountJson?
 
+schema ResponseSessionAllowedActionsJson
+  approvalBlockedReason optional string?
+  canApprove required boolean
+  canApproveAsSingleManager required boolean
+  canConferir required boolean
+  canRecall required boolean
+  canRecount required boolean
+  canReject required boolean
+  canReopen required boolean
+  canSaveCount required boolean
+  canSubmit required boolean
+
 schema ResponseSessionChainChangeJson
   affectedSessions required ResponseAffectedSessionJson[]
   movedTransactionIds required string[]
   session required ResponseDailyCloseJson
+
+schema ResponseSessionCountAttemptItemJson
+  countedValue optional number?
+  openingValue optional number?
+  productId required string
+  productName required string
+
+schema ResponseSessionCountAttemptJson
+  attemptNumber required integer
+  conferredAt required string
+  conferredByName required string
+  conferredByOperatorId optional string?
+  conferredByUserId required string
+  countRevision required integer
+  difference required number
+  expectedClosing required number
+  id required string
+  items required ResponseSessionCountAttemptItemJson[]
+  kind required enum:SessionCountAttemptKind
+  ledgerRevision required integer
+  openingRevision required integer
+  sessionId required string
+  totalClosing required number
+  totalIn required number
+  totalOpening required number
+  totalOut required number
+
+schema ResponseSessionCountJson
+  candidateState required enum:SessionCandidateState
+  confirmationToken required string
+  confirmedAttempt optional ResponseSessionCountAttemptJson?
+  countRevision required integer
+  latestAttemptId optional string?
+  latestAttemptNumber optional integer?
+  ledgerRevision required integer
+  openingRevision required integer
+  requiresStillObservedConfirmation required boolean
+  submittedAttemptId optional string?
+  unconfirmedRecalculation optional ResponseSessionUnconfirmedRecalculationJson?
 
 schema ResponseSessionCustodyJson
   countRevision required integer
@@ -1651,6 +1741,7 @@ schema ResponseSessionCustodyJson
   ledgerRevision required integer
   mappingState required enum:SessionMappingState
   openingAcknowledged required boolean
+  openingRevision required integer
   origin required enum:SessionOrigin
   sequence optional integer?
   startedAt optional string?
@@ -1678,6 +1769,7 @@ schema ResponseSessionHandoverJson
   intendedIncomingOperatorName required string
   items required ResponseSessionHandoverItemJson[]
   offeredAt required string
+  offeredAttemptId optional string?
   offeredByUserId required string
   offeredCountRevision required integer
   outgoingSessionId required string
@@ -1707,6 +1799,17 @@ schema ResponseSessionOpeningProposalJson
   sourceKind optional enum:SessionOpeningSourceKind?
   sourceRevision optional integer?
   terminalId optional string?
+
+schema ResponseSessionUnconfirmedRecalculationJson
+  countRevision required integer
+  difference required number
+  expectedClosing required number
+  ledgerRevision required integer
+  openingRevision required integer
+  totalClosing required number
+  totalIn required number
+  totalOpening required number
+  totalOut required number
 
 schema ResponseSettingJson
   active required boolean
@@ -2581,6 +2684,17 @@ operation GET /session
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
 
+operation POST /session/approve-day
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestApproveSessionBatchJson
+  response 200 ResponseApproveSessionBatchJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation POST /session/declare
   security BranchBearer[Admin,Manager]
   header Idempotency-Key required string
@@ -2691,7 +2805,24 @@ operation GET /session/{sessionId}
 operation POST /session/{sessionId}/approve
   security BranchBearer[Admin,Manager]
   path sessionId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestApproveSessionJson
   response 200 ResponseDailyCloseJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /session/{sessionId}/conferir
+  security BranchBearer[]
+  path sessionId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestConferSessionCountJson
+  response 200 ResponseConferSessionCountJson headers=ETag
+  response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
@@ -2777,6 +2908,19 @@ operation POST /session/{sessionId}/recall
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation POST /session/{sessionId}/recount
+  security BranchBearer[]
+  path sessionId required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestBeginSessionRecountJson
+  response 200 ResponseDailyCloseJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation POST /session/{sessionId}/reject
   security BranchBearer[Admin,Manager]
   path sessionId required string
@@ -2808,17 +2952,9 @@ operation GET /session/{sessionId}/review
 operation POST /session/{sessionId}/submit
   security BranchBearer[]
   path sessionId required string
+  header If-Match required string
+  body required RequestSubmitSessionJson
   response 200 ResponseDailyCloseJson headers=ETag
-  response 401 ResponseErrorJson
-  response 403 ResponseErrorJson
-  response 404 ResponseErrorJson
-  response 409 ResponseErrorJson
-
-operation POST /session/{sessionId}/variance-preview
-  security BranchBearer[]
-  path sessionId required string
-  body required RequestDailyCloseVariancePreviewJson
-  response 200 ResponseDailyCloseVariancePreviewJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

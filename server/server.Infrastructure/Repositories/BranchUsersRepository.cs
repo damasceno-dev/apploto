@@ -46,6 +46,33 @@ internal class BranchUsersRepository(ServerDbContext dbContext) : IBranchUsersRe
             .FirstOrDefaultAsync(branchUser => branchUser.UserId == userId && branchUser.BranchId == branchId);
     }
 
+    public async Task LockMembershipsByBranchId(Guid branchId, CancellationToken ct = default)
+    {
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"""
+             SELECT bu."Id" FROM "BranchUsers" bu
+             JOIN "Users" u ON u."Id" = bu."UserId"
+             WHERE bu."BranchId" = {branchId}
+             ORDER BY bu."Id"
+             FOR SHARE
+             """,
+            ct);
+    }
+
+    public async Task<int> CountActiveManagersByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.BranchUsers
+            .AsNoTracking()
+            .CountAsync(branchUser =>
+                branchUser.BranchId == branchId &&
+                branchUser.Active &&
+                branchUser.Branch.Active &&
+                branchUser.User.Active &&
+                (branchUser.Role == server.Domain.Entities.Enums.Role.Admin ||
+                 branchUser.Role == server.Domain.Entities.Enums.Role.Manager),
+                ct);
+    }
+
     public async Task<int> CountActiveAdminsByBranchId(Guid branchId)
     {
         return await dbContext.BranchUsers

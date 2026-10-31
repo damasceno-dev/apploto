@@ -13,6 +13,7 @@ public class ResponseSessionHandoverJson
     public string IntendedIncomingOperatorName { get; init; } = string.Empty;
     public SessionHandoverState State { get; init; }
     public long OfferedCountRevision { get; init; }
+    public Guid? OfferedAttemptId { get; init; }
     public Guid OfferedByUserId { get; init; }
     public DateTime OfferedAt { get; init; }
     public Guid? ResolvedByUserId { get; init; }

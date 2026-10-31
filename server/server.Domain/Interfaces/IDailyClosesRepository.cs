@@ -9,6 +9,12 @@ public interface IDailyClosesRepository
     Task Add(DailyClose dailyClose, CancellationToken ct = default);
     Task<DailyClose?> GetByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default);
     Task<DailyClose?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
+
+    /// <summary>
+    /// The session root alone, tracked, for a revision bump: the instance already tracked by this unit of work (an
+    /// added inline start included) when there is one, otherwise loaded. Null when missing or foreign.
+    /// </summary>
+    Task<DailyClose?> GetRootForRevision(Guid id, Guid branchId, CancellationToken ct = default);
     /// <summary>
     /// The counted session whose closing is the inherited opening of <paramref name="session"/>: the latest Ready
     /// session of the same cashbox with a lower Sequence and a recorded count. An Unresolved legacy row keeps the

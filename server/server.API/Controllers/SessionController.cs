@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using server.Application.UseCases.DailyCloses.Approve;
 using server.Application.UseCases.DailyCloses.Get;
 using server.Application.UseCases.DailyCloses.History;
 using server.Application.UseCases.DailyCloses.List;
@@ -9,14 +8,15 @@ using server.Application.UseCases.DailyCloses.Recall;
 using server.Application.UseCases.DailyCloses.Reopen;
 using server.Application.UseCases.DailyCloses.Review;
 using server.Application.UseCases.DailyCloses.Submit;
-using server.Application.UseCases.DailyCloses.VariancePreview;
 using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Filters;
 using server.Domain.Entities.Enums;
 using server.Headers;
 using server.Application.Services.Idempotency;
+using server.Application.UseCases.Sessions.Approve;
 using server.Application.UseCases.Sessions.Attribution;
+using server.Application.UseCases.Sessions.Count;
 using server.Application.UseCases.Sessions.CustodyException;
 using server.Application.UseCases.Sessions.Declare;
 using server.Application.UseCases.Sessions.Finish;
@@ -76,6 +76,7 @@ public class SessionController : ControllerBase
     [Route("{sessionId:guid}/submit")]
     [TokenAuthenticateBranch]
     [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
@@ -83,9 +84,15 @@ public class SessionController : ControllerBase
     public async Task<IActionResult> Submit(
         [FromServices] SubmitDailyCloseUseCase useCase,
         [FromRoute] Guid sessionId,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
+        [FromBody] RequestSubmitSessionJson request,
         CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(sessionId, cancellationToken);
+        var response = await useCase.Execute(
+            sessionId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            cancellationToken);
         EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
@@ -94,16 +101,98 @@ public class SessionController : ControllerBase
     [Route("{sessionId:guid}/approve")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Approve(
-        [FromServices] ApproveDailyCloseUseCase useCase,
+        [FromServices] ApproveSessionUseCase useCase,
         [FromRoute] Guid sessionId,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
+        [FromBody] RequestApproveSessionJson request,
         CancellationToken cancellationToken)
     {
-        var response = await useCase.Execute(sessionId, cancellationToken);
+        var response = await useCase.Execute(
+            sessionId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            idempotencyKey,
+            cancellationToken);
+        EntityTagHeader.Set(Response, response.Version);
+        return Ok(response);
+    }
+
+    // Aprovar dia do caixa: every named session of one cashbox day, each with the version read; all or nothing.
+    [HttpPost]
+    [Route("approve-day")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseApproveSessionBatchJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ApproveDay(
+        [FromServices] ApproveSessionUseCase useCase,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
+        [FromBody] RequestApproveSessionBatchJson request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await useCase.ExecuteBatch(request, idempotencyKey, cancellationToken));
+    }
+
+    [HttpPost]
+    [Route("{sessionId:guid}/conferir")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseConferSessionCountJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Conferir(
+        [FromServices] ConferSessionCountUseCase useCase,
+        [FromRoute] Guid sessionId,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
+        [FromBody] RequestConferSessionCountJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(
+            sessionId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            idempotencyKey,
+            cancellationToken);
+        EntityTagHeader.Set(Response, response.Session.Version);
+        return Ok(response);
+    }
+
+    [HttpPost]
+    [Route("{sessionId:guid}/recount")]
+    [TokenAuthenticateBranch]
+    [ProducesResponseType(typeof(ResponseDailyCloseJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Recount(
+        [FromServices] BeginSessionRecountUseCase useCase,
+        [FromRoute] Guid sessionId,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? idempotencyKey,
+        [FromHeader(Name = EntityTagHeader.IfMatchName)] string? ifMatch,
+        [FromBody] RequestBeginSessionRecountJson request,
+        CancellationToken cancellationToken)
+    {
+        var response = await useCase.Execute(
+            sessionId,
+            request,
+            EntityTagHeader.ParseRequired(ifMatch),
+            idempotencyKey,
+            cancellationToken);
         EntityTagHeader.Set(Response, response.Version);
         return Ok(response);
     }
@@ -214,25 +303,6 @@ public class SessionController : ControllerBase
         CancellationToken cancellationToken)
     {
         var response = await useCase.Execute(sessionId, cancellationToken);
-        return Ok(response);
-    }
-
-    [HttpPost]
-    [Route("{sessionId:guid}/variance-preview")]
-    [TokenAuthenticateBranch]
-    [ProducesResponseType(typeof(ResponseDailyCloseVariancePreviewJson), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> VariancePreview(
-        [FromServices] PreviewDailyCloseVarianceUseCase useCase,
-        [FromRoute] Guid sessionId,
-        [FromBody] RequestDailyCloseVariancePreviewJson request,
-        CancellationToken cancellationToken)
-    {
-        var response = await useCase.Execute(sessionId, request, cancellationToken);
         return Ok(response);
     }
 

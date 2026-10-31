@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.Members;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Settings;
@@ -22,6 +23,7 @@ public class CancelTransactionUseCase(
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     FiadoPhysicalPairService fiadoPhysicalPairService,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseTransactionJson> Execute(
@@ -105,7 +107,9 @@ public class CancelTransactionUseCase(
             await fiadoPhysicalPairService.EnsureCounterpartMutable(counterpart, branchUser.Role, memberScope, ct);
 
         var reason = request.CancellationReason.Trim();
-        foreach (var row in counterpart is null ? [transaction] : new[] { transaction, counterpart })
+        var cancelledRows = counterpart is null ? [transaction] : new[] { transaction, counterpart };
+        var contributingRows = cancelledRows.Where(row => SessionRevisionService.Contributes(row.Status)).ToList();
+        foreach (var row in cancelledRows)
         {
             row.Status = TransactionStatus.Cancelled;
             row.CancelledAt = utcNow;
@@ -115,6 +119,7 @@ public class CancelTransactionUseCase(
             row.UpdatedByUserId = branchUser.UserId;
         }
 
+        await sessionRevisions.RecordLedgerChange(branchUser.BranchId, contributingRows, ct);
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 

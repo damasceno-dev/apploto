@@ -213,6 +213,7 @@ public static class InfraDependencyInjection
         services.AddScoped<ISessionHandoversRepository, SessionHandoversRepository>();
         services.AddScoped<ISessionOpeningDiscrepanciesRepository, SessionOpeningDiscrepanciesRepository>();
         services.AddScoped<ISessionEventsRepository, SessionEventsRepository>();
+        services.AddScoped<ISessionCountAttemptsRepository, SessionCountAttemptsRepository>();
         services.AddScoped<IOpeningCountsRepository, OpeningCountsRepository>();
         services.AddScoped<ICustodyMappingIssuesRepository, CustodyMappingIssuesRepository>();
         services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();

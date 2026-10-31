@@ -8,20 +8,28 @@ import type {
   GetSessionOpeningCountParams,
   GetSessionOpeningProposalParams,
   GetSessionParams,
+  PostSessionApproveDayHeaders,
   PostSessionDeclareHeaders,
   PostSessionHandoverHandoverIdAcceptHeaders,
   PostSessionHandoverHandoverIdDisputeHeaders,
   PostSessionHandoverHandoverIdWithdrawHeaders,
   PostSessionOpeningDiscrepancyDiscrepancyIdAttributionHeaders,
+  PostSessionSessionIdApproveHeaders,
+  PostSessionSessionIdConferirHeaders,
   PostSessionSessionIdCustodyExceptionHeaders,
   PostSessionSessionIdFinishHeaders,
   PostSessionSessionIdHandoverHeaders,
   PostSessionSessionIdRearrangeHeaders,
+  PostSessionSessionIdRecountHeaders,
+  PostSessionSessionIdSubmitHeaders,
   PostSessionStartHeaders,
   PutSessionSessionIdItemsHeaders,
   RequestAcceptSessionHandoverJson,
+  RequestApproveSessionBatchJson,
+  RequestApproveSessionJson,
   RequestAttributeOpeningDiscrepancyJson,
-  RequestDailyCloseVariancePreviewJson,
+  RequestBeginSessionRecountJson,
+  RequestConferSessionCountJson,
   RequestDeclarePastSessionJson,
   RequestFinishSessionJson,
   RequestOfferSessionHandoverJson,
@@ -32,11 +40,13 @@ import type {
   RequestResolveCustodyExceptionJson,
   RequestSessionReasonJson,
   RequestStartSessionJson,
+  RequestSubmitSessionJson,
   ResponseAcceptSessionHandoverJson,
+  ResponseApproveSessionBatchJson,
+  ResponseConferSessionCountJson,
   ResponseDailyCloseHistoryJson,
   ResponseDailyCloseJson,
   ResponseDailyCloseReviewJson,
-  ResponseDailyCloseVariancePreviewJson,
   ResponseErrorJson,
   ResponseListDailyClosesJson,
   ResponseOpeningCountJson,
@@ -311,6 +321,21 @@ export type postSessionSessionIdSubmitResponse200TextJson = {
   status: 200;
 };
 
+export type postSessionSessionIdSubmitResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdSubmitResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdSubmitResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
 export type postSessionSessionIdSubmitResponse401TextPlain = {
   data: ResponseErrorJson;
   status: 401;
@@ -379,6 +404,9 @@ export type postSessionSessionIdSubmitResponseSuccess = (
   headers: Headers;
 };
 export type postSessionSessionIdSubmitResponseError = (
+  | postSessionSessionIdSubmitResponse400TextPlain
+  | postSessionSessionIdSubmitResponse400ApplicationJson
+  | postSessionSessionIdSubmitResponse400TextJson
   | postSessionSessionIdSubmitResponse401TextPlain
   | postSessionSessionIdSubmitResponse401ApplicationJson
   | postSessionSessionIdSubmitResponse401TextJson
@@ -401,13 +429,37 @@ export const getPostSessionSessionIdSubmitUrl = (sessionId: string) => {
 
 export const postSessionSessionIdSubmit = async (
   sessionId: string,
+  requestSubmitSessionJson: RequestSubmitSessionJson,
+  headers: PostSessionSessionIdSubmitHeaders,
   options?: Parameters<typeof apiFetch>[1],
 ): Promise<postSessionSessionIdSubmitResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
   return apiFetch<postSessionSessionIdSubmitResponseSuccess>(
     getPostSessionSessionIdSubmitUrl(sessionId),
     {
       ...options,
       method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestSubmitSessionJson),
     },
   );
 };
@@ -425,6 +477,21 @@ export type postSessionSessionIdApproveResponse200ApplicationJson = {
 export type postSessionSessionIdApproveResponse200TextJson = {
   data: ResponseDailyCloseJson;
   status: 200;
+};
+
+export type postSessionSessionIdApproveResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdApproveResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdApproveResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
 };
 
 export type postSessionSessionIdApproveResponse401TextPlain = {
@@ -495,6 +562,9 @@ export type postSessionSessionIdApproveResponseSuccess = (
   headers: Headers;
 };
 export type postSessionSessionIdApproveResponseError = (
+  | postSessionSessionIdApproveResponse400TextPlain
+  | postSessionSessionIdApproveResponse400ApplicationJson
+  | postSessionSessionIdApproveResponse400TextJson
   | postSessionSessionIdApproveResponse401TextPlain
   | postSessionSessionIdApproveResponse401ApplicationJson
   | postSessionSessionIdApproveResponse401TextJson
@@ -517,13 +587,507 @@ export const getPostSessionSessionIdApproveUrl = (sessionId: string) => {
 
 export const postSessionSessionIdApprove = async (
   sessionId: string,
+  requestApproveSessionJson: RequestApproveSessionJson,
+  headers: PostSessionSessionIdApproveHeaders,
   options?: Parameters<typeof apiFetch>[1],
 ): Promise<postSessionSessionIdApproveResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
   return apiFetch<postSessionSessionIdApproveResponseSuccess>(
     getPostSessionSessionIdApproveUrl(sessionId),
     {
       ...options,
       method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestApproveSessionJson),
+    },
+  );
+};
+
+export type postSessionApproveDayResponse200TextPlain = {
+  data: ResponseApproveSessionBatchJson;
+  status: 200;
+};
+
+export type postSessionApproveDayResponse200ApplicationJson = {
+  data: ResponseApproveSessionBatchJson;
+  status: 200;
+};
+
+export type postSessionApproveDayResponse200TextJson = {
+  data: ResponseApproveSessionBatchJson;
+  status: 200;
+};
+
+export type postSessionApproveDayResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionApproveDayResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionApproveDayResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionApproveDayResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionApproveDayResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionApproveDayResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionApproveDayResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionApproveDayResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionApproveDayResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionApproveDayResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionApproveDayResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionApproveDayResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionApproveDayResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionApproveDayResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionApproveDayResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionApproveDayResponseSuccess = (
+  | postSessionApproveDayResponse200TextPlain
+  | postSessionApproveDayResponse200ApplicationJson
+  | postSessionApproveDayResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postSessionApproveDayResponseError = (
+  | postSessionApproveDayResponse400TextPlain
+  | postSessionApproveDayResponse400ApplicationJson
+  | postSessionApproveDayResponse400TextJson
+  | postSessionApproveDayResponse401TextPlain
+  | postSessionApproveDayResponse401ApplicationJson
+  | postSessionApproveDayResponse401TextJson
+  | postSessionApproveDayResponse403TextPlain
+  | postSessionApproveDayResponse403ApplicationJson
+  | postSessionApproveDayResponse403TextJson
+  | postSessionApproveDayResponse404TextPlain
+  | postSessionApproveDayResponse404ApplicationJson
+  | postSessionApproveDayResponse404TextJson
+  | postSessionApproveDayResponse409TextPlain
+  | postSessionApproveDayResponse409ApplicationJson
+  | postSessionApproveDayResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostSessionApproveDayUrl = () => {
+  return `/session/approve-day`;
+};
+
+export const postSessionApproveDay = async (
+  requestApproveSessionBatchJson: RequestApproveSessionBatchJson,
+  headers: PostSessionApproveDayHeaders,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postSessionApproveDayResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postSessionApproveDayResponseSuccess>(getPostSessionApproveDayUrl(), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    callerHeaders: options?.headers,
+    body: JSON.stringify(requestApproveSessionBatchJson),
+  });
+};
+
+export type postSessionSessionIdConferirResponse200TextPlain = {
+  data: ResponseConferSessionCountJson;
+  status: 200;
+};
+
+export type postSessionSessionIdConferirResponse200ApplicationJson = {
+  data: ResponseConferSessionCountJson;
+  status: 200;
+};
+
+export type postSessionSessionIdConferirResponse200TextJson = {
+  data: ResponseConferSessionCountJson;
+  status: 200;
+};
+
+export type postSessionSessionIdConferirResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdConferirResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdConferirResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdConferirResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionSessionIdConferirResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionSessionIdConferirResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionSessionIdConferirResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionSessionIdConferirResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionSessionIdConferirResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionSessionIdConferirResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionSessionIdConferirResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionSessionIdConferirResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionSessionIdConferirResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionSessionIdConferirResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionSessionIdConferirResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionSessionIdConferirResponseSuccess = (
+  | postSessionSessionIdConferirResponse200TextPlain
+  | postSessionSessionIdConferirResponse200ApplicationJson
+  | postSessionSessionIdConferirResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postSessionSessionIdConferirResponseError = (
+  | postSessionSessionIdConferirResponse400TextPlain
+  | postSessionSessionIdConferirResponse400ApplicationJson
+  | postSessionSessionIdConferirResponse400TextJson
+  | postSessionSessionIdConferirResponse401TextPlain
+  | postSessionSessionIdConferirResponse401ApplicationJson
+  | postSessionSessionIdConferirResponse401TextJson
+  | postSessionSessionIdConferirResponse403TextPlain
+  | postSessionSessionIdConferirResponse403ApplicationJson
+  | postSessionSessionIdConferirResponse403TextJson
+  | postSessionSessionIdConferirResponse404TextPlain
+  | postSessionSessionIdConferirResponse404ApplicationJson
+  | postSessionSessionIdConferirResponse404TextJson
+  | postSessionSessionIdConferirResponse409TextPlain
+  | postSessionSessionIdConferirResponse409ApplicationJson
+  | postSessionSessionIdConferirResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostSessionSessionIdConferirUrl = (sessionId: string) => {
+  return `/session/${sessionId}/conferir`;
+};
+
+export const postSessionSessionIdConferir = async (
+  sessionId: string,
+  requestConferSessionCountJson: RequestConferSessionCountJson,
+  headers: PostSessionSessionIdConferirHeaders,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postSessionSessionIdConferirResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postSessionSessionIdConferirResponseSuccess>(
+    getPostSessionSessionIdConferirUrl(sessionId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestConferSessionCountJson),
+    },
+  );
+};
+
+export type postSessionSessionIdRecountResponse200TextPlain = {
+  data: ResponseDailyCloseJson;
+  status: 200;
+};
+
+export type postSessionSessionIdRecountResponse200ApplicationJson = {
+  data: ResponseDailyCloseJson;
+  status: 200;
+};
+
+export type postSessionSessionIdRecountResponse200TextJson = {
+  data: ResponseDailyCloseJson;
+  status: 200;
+};
+
+export type postSessionSessionIdRecountResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdRecountResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdRecountResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionSessionIdRecountResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionSessionIdRecountResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionSessionIdRecountResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionSessionIdRecountResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionSessionIdRecountResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionSessionIdRecountResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionSessionIdRecountResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionSessionIdRecountResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionSessionIdRecountResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionSessionIdRecountResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionSessionIdRecountResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionSessionIdRecountResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionSessionIdRecountResponseSuccess = (
+  | postSessionSessionIdRecountResponse200TextPlain
+  | postSessionSessionIdRecountResponse200ApplicationJson
+  | postSessionSessionIdRecountResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postSessionSessionIdRecountResponseError = (
+  | postSessionSessionIdRecountResponse400TextPlain
+  | postSessionSessionIdRecountResponse400ApplicationJson
+  | postSessionSessionIdRecountResponse400TextJson
+  | postSessionSessionIdRecountResponse401TextPlain
+  | postSessionSessionIdRecountResponse401ApplicationJson
+  | postSessionSessionIdRecountResponse401TextJson
+  | postSessionSessionIdRecountResponse403TextPlain
+  | postSessionSessionIdRecountResponse403ApplicationJson
+  | postSessionSessionIdRecountResponse403TextJson
+  | postSessionSessionIdRecountResponse404TextPlain
+  | postSessionSessionIdRecountResponse404ApplicationJson
+  | postSessionSessionIdRecountResponse404TextJson
+  | postSessionSessionIdRecountResponse409TextPlain
+  | postSessionSessionIdRecountResponse409ApplicationJson
+  | postSessionSessionIdRecountResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostSessionSessionIdRecountUrl = (sessionId: string) => {
+  return `/session/${sessionId}/recount`;
+};
+
+export const postSessionSessionIdRecount = async (
+  sessionId: string,
+  requestBeginSessionRecountJson: RequestBeginSessionRecountJson,
+  headers: PostSessionSessionIdRecountHeaders,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postSessionSessionIdRecountResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postSessionSessionIdRecountResponseSuccess>(
+    getPostSessionSessionIdRecountUrl(sessionId),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestBeginSessionRecountJson),
     },
   );
 };
@@ -1204,163 +1768,6 @@ export const getSessionSessionIdHistory = async (
     {
       ...options,
       method: 'GET',
-    },
-  );
-};
-
-export type postSessionSessionIdVariancePreviewResponse200TextPlain = {
-  data: ResponseDailyCloseVariancePreviewJson;
-  status: 200;
-};
-
-export type postSessionSessionIdVariancePreviewResponse200ApplicationJson = {
-  data: ResponseDailyCloseVariancePreviewJson;
-  status: 200;
-};
-
-export type postSessionSessionIdVariancePreviewResponse200TextJson = {
-  data: ResponseDailyCloseVariancePreviewJson;
-  status: 200;
-};
-
-export type postSessionSessionIdVariancePreviewResponse400TextPlain = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postSessionSessionIdVariancePreviewResponse400ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postSessionSessionIdVariancePreviewResponse400TextJson = {
-  data: ResponseErrorJson;
-  status: 400;
-};
-
-export type postSessionSessionIdVariancePreviewResponse401TextPlain = {
-  data: ResponseErrorJson;
-  status: 401;
-};
-
-export type postSessionSessionIdVariancePreviewResponse401ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 401;
-};
-
-export type postSessionSessionIdVariancePreviewResponse401TextJson = {
-  data: ResponseErrorJson;
-  status: 401;
-};
-
-export type postSessionSessionIdVariancePreviewResponse403TextPlain = {
-  data: ResponseErrorJson;
-  status: 403;
-};
-
-export type postSessionSessionIdVariancePreviewResponse403ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 403;
-};
-
-export type postSessionSessionIdVariancePreviewResponse403TextJson = {
-  data: ResponseErrorJson;
-  status: 403;
-};
-
-export type postSessionSessionIdVariancePreviewResponse404TextPlain = {
-  data: ResponseErrorJson;
-  status: 404;
-};
-
-export type postSessionSessionIdVariancePreviewResponse404ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 404;
-};
-
-export type postSessionSessionIdVariancePreviewResponse404TextJson = {
-  data: ResponseErrorJson;
-  status: 404;
-};
-
-export type postSessionSessionIdVariancePreviewResponse409TextPlain = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postSessionSessionIdVariancePreviewResponse409ApplicationJson = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postSessionSessionIdVariancePreviewResponse409TextJson = {
-  data: ResponseErrorJson;
-  status: 409;
-};
-
-export type postSessionSessionIdVariancePreviewResponseSuccess = (
-  | postSessionSessionIdVariancePreviewResponse200TextPlain
-  | postSessionSessionIdVariancePreviewResponse200ApplicationJson
-  | postSessionSessionIdVariancePreviewResponse200TextJson
-) & {
-  headers: Headers;
-};
-export type postSessionSessionIdVariancePreviewResponseError = (
-  | postSessionSessionIdVariancePreviewResponse400TextPlain
-  | postSessionSessionIdVariancePreviewResponse400ApplicationJson
-  | postSessionSessionIdVariancePreviewResponse400TextJson
-  | postSessionSessionIdVariancePreviewResponse401TextPlain
-  | postSessionSessionIdVariancePreviewResponse401ApplicationJson
-  | postSessionSessionIdVariancePreviewResponse401TextJson
-  | postSessionSessionIdVariancePreviewResponse403TextPlain
-  | postSessionSessionIdVariancePreviewResponse403ApplicationJson
-  | postSessionSessionIdVariancePreviewResponse403TextJson
-  | postSessionSessionIdVariancePreviewResponse404TextPlain
-  | postSessionSessionIdVariancePreviewResponse404ApplicationJson
-  | postSessionSessionIdVariancePreviewResponse404TextJson
-  | postSessionSessionIdVariancePreviewResponse409TextPlain
-  | postSessionSessionIdVariancePreviewResponse409ApplicationJson
-  | postSessionSessionIdVariancePreviewResponse409TextJson
-) & {
-  headers: Headers;
-};
-
-export const getPostSessionSessionIdVariancePreviewUrl = (sessionId: string) => {
-  return `/session/${sessionId}/variance-preview`;
-};
-
-export const postSessionSessionIdVariancePreview = async (
-  sessionId: string,
-  requestDailyCloseVariancePreviewJson: RequestDailyCloseVariancePreviewJson,
-  options?: Parameters<typeof apiFetch>[1],
-): Promise<postSessionSessionIdVariancePreviewResponseSuccess> => {
-  const getHeaders = (
-    h?: NonNullable<RequestInit['headers']>,
-  ): Record<string, string | readonly string[]> => {
-    if (!h) return {};
-    if (h instanceof Headers) return Object.fromEntries(h.entries());
-    if (Symbol.iterator in h) {
-      return Object.fromEntries(
-        Array.from(
-          h as Iterable<Iterable<string>>,
-          (entry) => Array.from(entry) as [string, string],
-        ),
-      );
-    }
-    const headers: Record<string, string | readonly string[]> = {};
-    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
-      if (value !== undefined) headers[name] = value;
-    }
-    return headers;
-  };
-  return apiFetch<postSessionSessionIdVariancePreviewResponseSuccess>(
-    getPostSessionSessionIdVariancePreviewUrl(sessionId),
-    {
-      ...options,
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      callerHeaders: options?.headers,
-      body: JSON.stringify(requestDailyCloseVariancePreviewJson),
     },
   );
 };

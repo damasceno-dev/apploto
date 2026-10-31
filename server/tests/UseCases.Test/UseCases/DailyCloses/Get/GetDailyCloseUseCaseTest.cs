@@ -222,13 +222,15 @@ public class GetDailyCloseUseCaseTest
             ctx.OperatorsRepository,
             ctx.OperatorAccountsRepository);
 
+        var cashVarianceProductResolver = new CashVarianceProductResolverBuilder()
+            .ReturnsId(ctx.BranchUser.BranchId, ctx.CashVarianceProductId)
+            .Build();
         return new GetDailyCloseUseCase(
             ctx.AuthenticationService,
             ctx.DailyClosesRepository,
             memberAccountScopeResolver,
-            new CashVarianceProductResolverBuilder()
-                .ReturnsId(ctx.BranchUser.BranchId, ctx.CashVarianceProductId)
-                .Build());
+            cashVarianceProductResolver,
+            SessionTestServices.CountProjector(ctx.DailyClosesRepository, cashVarianceProductResolver));
     }
 
     private static TestContext BuildContext(

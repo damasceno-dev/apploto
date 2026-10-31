@@ -10381,8 +10381,37 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Required strong ETag containing the quoted decimal PostgreSQL xmin value (for example \"123\").",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSubmitSessionJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSubmitSessionJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestSubmitSessionJson"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -10408,6 +10437,26 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResponseDailyCloseJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
                 }
               }
             }
@@ -10514,8 +10563,46 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Required strong ETag containing the quoted decimal PostgreSQL xmin value (for example \"123\").",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproveSessionJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproveSessionJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproveSessionJson"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -10541,6 +10628,26 @@
               "text/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ResponseDailyCloseJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
                 }
               }
             }
@@ -10632,6 +10739,556 @@
               "Admin",
               "Manager"
             ]
+          }
+        ]
+      }
+    },
+    "/session/approve-day": {
+      "post": {
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproveSessionBatchJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproveSessionBatchJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestApproveSessionBatchJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseApproveSessionBatchJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseApproveSessionBatchJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseApproveSessionBatchJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/session/{sessionId}/conferir": {
+      "post": {
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Required strong ETag containing the quoted decimal PostgreSQL xmin value (for example \"123\").",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestConferSessionCountJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestConferSessionCountJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestConferSessionCountJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Strong ETag containing the quoted decimal PostgreSQL xmin value.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseConferSessionCountJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseConferSessionCountJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseConferSessionCountJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [ ]
+          }
+        ]
+      }
+    },
+    "/session/{sessionId}/recount": {
+      "post": {
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "description": "Required strong ETag containing the quoted decimal PostgreSQL xmin value (for example \"123\").",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBeginSessionRecountJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBeginSessionRecountJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestBeginSessionRecountJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {
+              "ETag": {
+                "description": "Strong ETag containing the quoted decimal PostgreSQL xmin value.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseDailyCloseJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseDailyCloseJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseDailyCloseJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [ ]
           }
         ]
       }
@@ -11386,171 +12043,6 @@
           },
           "404": {
             "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "BranchBearer": [ ]
-          }
-        ]
-      }
-    },
-    "/session/{sessionId}/variance-preview": {
-      "post": {
-        "tags": [
-          "Session"
-        ],
-        "parameters": [
-          {
-            "name": "sessionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestDailyCloseVariancePreviewJson"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestDailyCloseVariancePreviewJson"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RequestDailyCloseVariancePreviewJson"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseDailyCloseVariancePreviewJson"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseDailyCloseVariancePreviewJson"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseDailyCloseVariancePreviewJson"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ResponseErrorJson"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict",
             "content": {
               "text/plain": {
                 "schema": {
@@ -19073,6 +19565,64 @@
           }
         }
       },
+      "RequestApproveSessionBatchItemJson": {
+        "required": [
+          "sessionId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "uint32"
+          }
+        }
+      },
+      "RequestApproveSessionBatchJson": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/RequestApproveSessionBatchItemJson"
+            }
+          },
+          "mode": {
+            "$ref": "#/components/schemas/SessionApprovalMode"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RequestApproveSessionJson": {
+        "type": "object",
+        "properties": {
+          "mode": {
+            "$ref": "#/components/schemas/SessionApprovalMode"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "RequestAssignAccountJson": {
         "required": [
           "accountId"
@@ -19122,6 +19672,18 @@
           }
         }
       },
+      "RequestBeginSessionRecountJson": {
+        "required": [
+          "previousAttemptId"
+        ],
+        "type": "object",
+        "properties": {
+          "previousAttemptId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "RequestCancelTransactionJson": {
         "required": [
           "cancellationReason"
@@ -19145,6 +19707,48 @@
           },
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "RequestConferSessionCountJson": {
+        "required": [
+          "confirmationToken",
+          "countRevision",
+          "ledgerRevision",
+          "openingRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmationToken": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "countRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "ledgerRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "openingRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "confirmCountStillObserved": {
+            "type": "boolean"
           }
         }
       },
@@ -19661,20 +20265,6 @@
                 "$ref": "#/components/schemas/MonthlyFinancialRole"
               }
             ]
-          }
-        }
-      },
-      "RequestDailyCloseVariancePreviewJson": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": [
-              "null",
-              "array"
-            ],
-            "items": {
-              "$ref": "#/components/schemas/RequestUpsertDailyCloseItemJson"
-            }
           }
         }
       },
@@ -20399,6 +20989,45 @@
           }
         }
       },
+      "RequestSubmitSessionJson": {
+        "required": [
+          "attemptId",
+          "countRevision",
+          "ledgerRevision",
+          "openingRevision"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "countRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "ledgerRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "openingRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "RequestTimeEntrySegmentJson": {
         "required": [
           "clockIn"
@@ -21008,6 +21637,20 @@
           }
         }
       },
+      "ResponseApproveSessionBatchJson": {
+        "required": [
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseDailyCloseJson"
+            }
+          }
+        }
+      },
       "ResponseBranchSummaryJson": {
         "required": [
           "id",
@@ -21607,6 +22250,25 @@
           }
         }
       },
+      "ResponseConferSessionCountJson": {
+        "required": [
+          "attempt",
+          "replayed",
+          "session"
+        ],
+        "type": "object",
+        "properties": {
+          "attempt": {
+            "$ref": "#/components/schemas/ResponseSessionCountAttemptJson"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "session": {
+            "$ref": "#/components/schemas/ResponseDailyCloseJson"
+          }
+        }
+      },
       "ResponseCreateAccountJson": {
         "required": [
           "id",
@@ -22119,6 +22781,15 @@
           },
           "isCustodyHistoryComplete": {
             "type": "boolean"
+          },
+          "countAttempts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ResponseSessionCountAttemptJson"
+            }
           }
         }
       },
@@ -22343,6 +23014,26 @@
           "custody": {
             "$ref": "#/components/schemas/ResponseSessionCustodyJson"
           },
+          "count": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseSessionCountJson"
+              }
+            ]
+          },
+          "allowedActions": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseSessionAllowedActionsJson"
+              }
+            ]
+          },
           "items": {
             "type": "array",
             "items": {
@@ -22455,6 +23146,8 @@
           "openedByUserName",
           "createdAt",
           "custody",
+          "count",
+          "allowedActions",
           "items"
         ],
         "type": "object",
@@ -22632,6 +23325,12 @@
           "custody": {
             "$ref": "#/components/schemas/ResponseSessionCustodyJson"
           },
+          "count": {
+            "$ref": "#/components/schemas/ResponseSessionCountJson"
+          },
+          "allowedActions": {
+            "$ref": "#/components/schemas/ResponseSessionAllowedActionsJson"
+          },
           "openingDiscrepancy": {
             "oneOf": [
               {
@@ -22647,18 +23346,6 @@
             "items": {
               "$ref": "#/components/schemas/ResponseDailyCloseReviewItemJson"
             }
-          }
-        }
-      },
-      "ResponseDailyCloseVariancePreviewJson": {
-        "required": [
-          "cashVariance"
-        ],
-        "type": "object",
-        "properties": {
-          "cashVariance": {
-            "type": "number",
-            "format": "double"
           }
         }
       },
@@ -26866,6 +27553,55 @@
           }
         }
       },
+      "ResponseSessionAllowedActionsJson": {
+        "required": [
+          "canSaveCount",
+          "canConferir",
+          "canRecount",
+          "canSubmit",
+          "canRecall",
+          "canApprove",
+          "canApproveAsSingleManager",
+          "canReject",
+          "canReopen"
+        ],
+        "type": "object",
+        "properties": {
+          "canSaveCount": {
+            "type": "boolean"
+          },
+          "canConferir": {
+            "type": "boolean"
+          },
+          "canRecount": {
+            "type": "boolean"
+          },
+          "canSubmit": {
+            "type": "boolean"
+          },
+          "canRecall": {
+            "type": "boolean"
+          },
+          "canApprove": {
+            "type": "boolean"
+          },
+          "canApproveAsSingleManager": {
+            "type": "boolean"
+          },
+          "approvalBlockedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "canReject": {
+            "type": "boolean"
+          },
+          "canReopen": {
+            "type": "boolean"
+          }
+        }
+      },
       "ResponseSessionChainChangeJson": {
         "required": [
           "session",
@@ -26892,12 +27628,218 @@
           }
         }
       },
+      "ResponseSessionCountAttemptItemJson": {
+        "required": [
+          "productId",
+          "productName"
+        ],
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "openingValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "countedValue": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "ResponseSessionCountAttemptJson": {
+        "required": [
+          "id",
+          "sessionId",
+          "attemptNumber",
+          "kind",
+          "countRevision",
+          "ledgerRevision",
+          "openingRevision",
+          "totalOpening",
+          "totalIn",
+          "totalOut",
+          "expectedClosing",
+          "totalClosing",
+          "difference",
+          "conferredByUserId",
+          "conferredByName",
+          "conferredAt",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "attemptNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SessionCountAttemptKind"
+          },
+          "countRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ledgerRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openingRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalOpening": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOut": {
+            "type": "number",
+            "format": "double"
+          },
+          "expectedClosing": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalClosing": {
+            "type": "number",
+            "format": "double"
+          },
+          "difference": {
+            "type": "number",
+            "format": "double"
+          },
+          "conferredByUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "conferredByName": {
+            "type": "string"
+          },
+          "conferredByOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "conferredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseSessionCountAttemptItemJson"
+            }
+          }
+        }
+      },
+      "ResponseSessionCountJson": {
+        "required": [
+          "confirmationToken",
+          "countRevision",
+          "ledgerRevision",
+          "openingRevision",
+          "candidateState",
+          "requiresStillObservedConfirmation"
+        ],
+        "type": "object",
+        "properties": {
+          "confirmationToken": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "countRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ledgerRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openingRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "candidateState": {
+            "$ref": "#/components/schemas/SessionCandidateState"
+          },
+          "requiresStillObservedConfirmation": {
+            "type": "boolean"
+          },
+          "latestAttemptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "latestAttemptNumber": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "submittedAttemptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "confirmedAttempt": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseSessionCountAttemptJson"
+              }
+            ]
+          },
+          "unconfirmedRecalculation": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseSessionUnconfirmedRecalculationJson"
+              }
+            ]
+          }
+        }
+      },
       "ResponseSessionCustodyJson": {
         "required": [
           "mappingState",
           "origin",
           "countRevision",
           "ledgerRevision",
+          "openingRevision",
           "openingAcknowledged",
           "custodyHistoryComplete"
         ],
@@ -26965,6 +27907,10 @@
             "format": "int64"
           },
           "ledgerRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openingRevision": {
             "type": "integer",
             "format": "int64"
           },
@@ -27092,6 +28038,13 @@
           "offeredCountRevision": {
             "type": "integer",
             "format": "int64"
+          },
+          "offeredAttemptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           },
           "offeredByUserId": {
             "type": "string",
@@ -27241,6 +28194,58 @@
             "items": {
               "$ref": "#/components/schemas/ResponseSessionOpeningProposalItemJson"
             }
+          }
+        }
+      },
+      "ResponseSessionUnconfirmedRecalculationJson": {
+        "required": [
+          "countRevision",
+          "ledgerRevision",
+          "openingRevision",
+          "totalOpening",
+          "totalIn",
+          "totalOut",
+          "expectedClosing",
+          "totalClosing",
+          "difference"
+        ],
+        "type": "object",
+        "properties": {
+          "countRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ledgerRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "openingRevision": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalOpening": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalOut": {
+            "type": "number",
+            "format": "double"
+          },
+          "expectedClosing": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalClosing": {
+            "type": "number",
+            "format": "double"
+          },
+          "difference": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -28100,6 +29105,32 @@
         ],
         "type": "string"
       },
+      "SessionApprovalMode": {
+        "enum": [
+          "Independent",
+          "SingleActiveManager"
+        ],
+        "type": "string"
+      },
+      "SessionCandidateState": {
+        "enum": [
+          "NotConferred",
+          "Current",
+          "Outdated",
+          "Unconfirmed",
+          "Recounting"
+        ],
+        "type": "string"
+      },
+      "SessionCountAttemptKind": {
+        "enum": [
+          "Initial",
+          "Correction",
+          "Recount",
+          "StillObserved"
+        ],
+        "type": "string"
+      },
       "SessionCustodyState": {
         "enum": [
           "Active",
@@ -28122,7 +29153,10 @@
           "CustodyExceptionResolved",
           "SessionDeclared",
           "SessionRearranged",
-          "AttributionRecorded"
+          "AttributionRecorded",
+          "CountConferred",
+          "RecountStarted",
+          "SessionApproved"
         ],
         "type": "string"
       },

@@ -88,6 +88,23 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.Property(dailyClose => dailyClose.EndedAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(dailyClose => dailyClose.LedgerRevision).IsRequired();
         builder.Property(dailyClose => dailyClose.CountRevision).IsRequired();
+        builder.Property(dailyClose => dailyClose.OpeningRevision).IsRequired();
+        builder.Property(dailyClose => dailyClose.CurrentConfirmationToken)
+            .HasDefaultValueSql("gen_random_uuid()")
+            .IsRequired();
+        builder.Property(dailyClose => dailyClose.LastAttemptNumber).IsRequired();
+
+        builder.HasOne<SessionCountAttempt>()
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.SubmittedAttemptId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne<SessionCountAttempt>()
+            .WithMany()
+            .HasForeignKey(dailyClose => dailyClose.RecountStartedForAttemptId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
         builder.Property(dailyClose => dailyClose.CustodyHistoryComplete).IsRequired();
 
         builder.HasOne(dailyClose => dailyClose.CustodianOperator)
@@ -132,6 +149,9 @@ internal class DailyCloseConfiguration : IEntityTypeConfiguration<DailyClose>
         builder.ToTable(table => table.HasCheckConstraint(
             "CK_DailyCloses_IntervalOrdered",
             "\"EndedAt\" IS NULL OR \"StartedAt\" IS NULL OR \"EndedAt\" > \"StartedAt\""));
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_DailyCloses_RevisionsNonNegative",
+            "\"LedgerRevision\" >= 0 AND \"CountRevision\" >= 0 AND \"OpeningRevision\" >= 0 AND \"LastAttemptNumber\" >= 0"));
         builder.ToTable(table => table.HasCheckConstraint(
             "CK_DailyCloses_SequencePositive",
             "\"Sequence\" IS NULL OR \"Sequence\" > 0"));

@@ -21,4 +21,7 @@ export const SessionEventKind = {
   SessionDeclared: 'SessionDeclared',
   SessionRearranged: 'SessionRearranged',
   AttributionRecorded: 'AttributionRecorded',
+  CountConferred: 'CountConferred',
+  RecountStarted: 'RecountStarted',
+  SessionApproved: 'SessionApproved',
 } as const;

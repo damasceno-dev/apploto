@@ -35,5 +35,14 @@ public class ResponseDailyCloseJson
     public DateTime? UpdatedAt { get; init; }
     public Guid? UpdatedByUserId { get; init; }
     public ResponseSessionCustodyJson Custody { get; init; } = new();
+
+    /// <summary>
+    /// Blind-count state. Present on the session read, count save, Conferir and Recontar responses; null on other
+    /// commands, whose callers read the session again for it.
+    /// </summary>
+    public ResponseSessionCountJson? Count { get; set; }
+
+    /// <summary>The caller's permitted actions; present wherever <see cref="Count"/> is.</summary>
+    public ResponseSessionAllowedActionsJson? AllowedActions { get; set; }
     public IReadOnlyList<ResponseDailyCloseItemJson> Items { get; init; } = [];
 }

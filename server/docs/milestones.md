@@ -2677,6 +2677,26 @@ The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and
 
 ### Phase 4 — Blind count with Conferir (plan A5) **[BETTER]** *(owner decision 2026-10-24)*
 
+> **Phases 4–5 status (2026-10-30) — implemented together, independent technical review pending; ticks stay open until it accepts.** Canonical v60 records the shipped contract (§3.30 *Shipped in v60*, §6.5 *Blind count*, §6.20 shipped routes and revision/candidate rules). Design markers stay v59 until the reviewer accepts the v60 catalog reconciliation (Design 4.9.1 v60 increment, 4.9.3/4.9.5 blueprint revisions).
+>
+> | Item | Requirement → implementation | Tests |
+> |---|---|---|
+> | 4.1 | Opening visible, calculation hidden: `Count`/`AllowedActions` on read/save/review from `SessionCountService` + `SessionAllowedActionsResolver`; reads never write | WebApi `SessionControllerBlindCountTest` (blind read, raw-JSON scan) |
+> | 4.2 | `SessionCountAttempt` + items, UNIQUE session+token and session+number, one `CountConferred` per attempt, immutability trigger; `ConferSessionCountUseCase` resolves a used token before edit/version rules, rebuilds replays from the attempt id | BlindCount (double click with three keys, same key, old version, changed fingerprint, six concurrent requests), `SessionCountAttemptPersistenceTest` |
+> | 4.3 | Autosave changes input only; `SessionRevisionService` rotates the token on a changed count, never on identical/Notes-only saves | BlindCount (token rotation, no attempt/event after autosave) |
+> | 4.4 | `CandidateState` NotConferred/Current/Outdated/Unconfirmed/Recounting; Unconfirmed recalculation separate; `ConfirmCountStillObserved`; `BeginSessionRecountUseCase`; failed Conferir consumes nothing | BlindCount (ledger change, inherited opening change, edit, recount, Draft-row refusal) |
+> | 4.5 | Durable `LedgerRevision` (create/finalize/cancel/plan finalize/fiado payment, pair legs once), `CountRevision`, `OpeningRevision` (inherited successor, declare/rearrange); submit names the current attempt + revisions + If-Match, rechecked under lock, attempt difference becomes the official row (`SubmittedAttemptId`); handover offers record `OfferedAttemptId` | `SessionControllerLedgerRevisionTest`, BlindCount submit guards (stale, lock, lost grant), race tests in `DailyCloseControllerCoordinationHappyPathTest` and `TransactionControllerFiadoPairCoordinationTest`, UseCases `SubmitDailyCloseUseCaseTest` |
+> | 4.6 | `variance-preview` route, use case and DTOs removed; transaction previews keep `CurrentVariance = null` for Draft | OpenAPI contract test + snapshot, BlindCount (404/405) |
+> | 4.7 | Migration `M9_6Phase4BlindCountApproval` (token per existing session, no attempts) | `M9_6Phase4BlindCountMigrationTest` (upgrade/downgrade on prior-schema rows) |
+> | 5.1 | `SessionApprovalPolicy.DutyConflict` refuses the recorder, current submitter and custodian (operator, user captured at start, operator's current login link); the approver's membership is re-read inside the approval transaction after the branch security lock, so a demotion or removal committed after authentication refuses the approval | UseCases `ApproveSessionUseCaseTest`; WebApi `SessionControllerApprovalTest` (each duty, demotion before the coordination for single and day approval) |
+> | 5.2 | `SingleActiveManager` with a reason; inside the cashbox transaction the approval holds the branch security lock shared (every membership insert, reactivation, role change and removal takes it exclusively) and every membership row of the branch, active or not, `FOR SHARE`, then counts active Manager/Admin memberships; `SessionApproved` records mode, count and reason | ApprovalTest (audit, uncommitted promotion busy, held promotion, held reactivation of an inactive manager, held role command) |
+> | 5.3 | `POST /session/approve-day`: one cashbox and date, explicit SessionId+Version list, every check per session, all or nothing naming each failure | ApprovalTest (each failing position, stale/locked/Draft/mixed cashbox, replay, lost authority) |
+> | 5.4 | Idempotency-Key and If-Match on both routes; current role checked before a replay | ApprovalTest (single and day replay) |
+>
+> **Verification (2026-10-30):** UseCases.Test 1,221, WebApi.Test 1,365 (incl. new persistence/migration, membership-coordination and historical-opening tests), Validators.Test 380, all green on real PostgreSQL; OpenAPI snapshot updated; `shared/api` export/generate/drift/typecheck/lint/test, Web BFF and Mobile auth-policy regenerated with web typecheck/lint/test and mobile typecheck/lint/jest green. Mobile's hand-kept label oracle (`mobile/src/probes/label-reference.json`) lacks the P2 and P4–P5 copy §5 maps (pre-existing for P2), owned by the mobile lane. Doc-sync is green for the canonical three files; the design markers await review.
+>
+> **Next action:** independent technical review of P4/P5 and the v60 reconciliation; then the reviewer verifies the marker update and the doc-sync gate.
+
 *Why:* counting without seeing the expected amount prevents "counting to the number"; recording every attempt shows the manager what actually happened.
 
 - [ ] **4.1** **Flow:** count → **Conferir** → see the calculation → submit or **Recontar**. Only the expected closing and the difference are hidden until Conferir; opening values stay visible.

@@ -48,6 +48,10 @@ public class ResponseDailyCloseReviewJson
     public Guid? UpdatedByUserId { get; init; }
     public ResponseSessionCustodyJson Custody { get; init; } = new();
 
+    /// <summary>Blind-count state: expected closing and difference only through a confirmed attempt (§6.20).</summary>
+    public ResponseSessionCountJson Count { get; init; } = new();
+    public ResponseSessionAllowedActionsJson AllowedActions { get; init; } = new();
+
     /// <summary>The opening's current comparison against its proposal; null when it matched or is inherited.</summary>
     public ResponseOpeningDiscrepancyJson? OpeningDiscrepancy { get; init; }
     public IReadOnlyList<ResponseDailyCloseReviewItemJson> Items { get; init; } = [];

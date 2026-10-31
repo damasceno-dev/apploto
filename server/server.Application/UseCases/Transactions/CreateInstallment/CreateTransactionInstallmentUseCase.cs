@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.Transactions;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Idempotency;
@@ -21,6 +22,7 @@ public class CreateTransactionInstallmentUseCase(
     FinancialCommandIdempotency financialCommandIdempotency,
     IBranchClock branchClock,
     LockDateGuard lockDateGuard,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     private const string IdempotencyEndpoint = "POST /transaction/installment";
@@ -109,6 +111,10 @@ public class CreateTransactionInstallmentUseCase(
             transaction.SessionId = ownSession.SessionId;
 
         await transactionsRepository.AddRange(transactions, ct);
+        await sessionRevisions.RecordLedgerChange(
+            createContext.BranchUser.BranchId,
+            transactions.Where(row => row.Status == TransactionStatus.Active),
+            ct);
         await unitOfWork.Commit(ct);
         var response = transactions.ToCreateInstallmentResponse();
         FinancialCommandIdempotency.Complete(idempotency, response.Installments[0].Id, response);

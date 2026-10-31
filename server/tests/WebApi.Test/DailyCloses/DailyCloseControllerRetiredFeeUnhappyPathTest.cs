@@ -38,20 +38,16 @@ public class DailyCloseControllerRetiredFeeUnhappyPathTest(ServerWebApplicationF
         review.StatusCode.ShouldBe(HttpStatusCode.OK);
         (await review.ReadContentAsync<ResponseDailyCloseReviewJson>()).Items.ShouldContain(i => i.ProductId == fee.Id && i.ClosingValue == 120m);
         var items = new[] { new RequestUpsertDailyCloseItemJson { ProductId = fee.Id, Value = 120m } };
-        var preview = await _client.PostAuthAsync($"/session/{close.Id}/variance-preview",
-            new RequestDailyCloseVariancePreviewJson { Items = items }, token);
         var save = await _client.PutAuthAsync($"/session/{close.Id}/items",
             new VersionedRequestPutDailyCloseItemsJson { Version = close.Version, Items = items }, token);
-        preview.StatusCode.ShouldBe(locked ? HttpStatusCode.Conflict : HttpStatusCode.NotFound);
         save.StatusCode.ShouldBe(locked ? HttpStatusCode.Conflict : HttpStatusCode.NotFound);
         if (!locked)
         {
-            (await preview.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_ITEM_PRODUCT_NOT_FOUND);
             (await save.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages.ShouldContain(ResourcesErrorMessages.DAILYCLOSE_ITEM_PRODUCT_NOT_FOUND);
         }
         var unchanged = await factory.ReloadAsync<DailyClose>(close.Id);
         unchanged!.Version.ShouldBe(close.Version);
-        var submit = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var submit = await _client.SubmitSessionAsync(close.Id, token);
         submit.StatusCode.ShouldBe(locked ? HttpStatusCode.Conflict : HttpStatusCode.OK);
         var retained = await factory.ReloadAsync<DailyCloseItem>(item.Id);
         retained!.Active.ShouldBeTrue();

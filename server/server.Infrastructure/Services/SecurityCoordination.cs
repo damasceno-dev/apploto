@@ -35,6 +35,13 @@ internal sealed class SecurityCoordination(ServerDbContext dbContext) : ISecurit
         }
     }
 
+    public async Task HoldSharedInCurrentTransaction(string resource, CancellationToken ct = default)
+    {
+        if (dbContext.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("A shared security lock needs the caller's open transaction.");
+        await dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock_shared({Key(resource)})", ct);
+    }
+
     private sealed class Scope(IDbContextTransaction transaction) : ISecurityScope
     {
         public Task Complete() => transaction.CommitAsync();

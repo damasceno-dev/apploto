@@ -79,20 +79,40 @@ public class DailyCloseOpenApiContractTest(ServerWebApplicationFactory factory)
             affectedProperties.TryGetProperty(property, out _).ShouldBeTrue();
         }
 
-        var previewRequestProperties = schemas
-            .GetProperty("RequestDailyCloseVariancePreviewJson")
-            .GetProperty("properties");
-        previewRequestProperties.TryGetProperty("items", out _).ShouldBeTrue();
-        var previewResponseProperties = schemas
-            .GetProperty("ResponseDailyCloseVariancePreviewJson")
-            .GetProperty("properties");
-        AssertSchemaIsNonNullable(previewResponseProperties.GetProperty("cashVariance"));
+        // M9.6 Phase 4: the live variance preview is retired; the calculation is revealed only by Conferir.
+        root.GetProperty("paths").TryGetProperty("/session/{sessionId}/variance-preview", out _).ShouldBeFalse();
+        schemas.TryGetProperty("RequestDailyCloseVariancePreviewJson", out _).ShouldBeFalse();
+        schemas.TryGetProperty("ResponseDailyCloseVariancePreviewJson", out _).ShouldBeFalse();
 
-        var previewPath = root.GetProperty("paths")
-            .GetProperty("/session/{sessionId}/variance-preview")
-            .GetProperty("post");
-        previewPath.TryGetProperty("requestBody", out _).ShouldBeTrue();
-        previewPath.GetProperty("responses").TryGetProperty("200", out _).ShouldBeTrue();
+        foreach (var (path, guarded) in new[]
+                 {
+                     ("/session/{sessionId}/conferir", true),
+                     ("/session/{sessionId}/recount", true),
+                     ("/session/{sessionId}/approve", true),
+                     ("/session/approve-day", false)
+                 })
+        {
+            var operation = root.GetProperty("paths").GetProperty(path).GetProperty("post");
+            var parameters = operation.GetProperty("parameters").EnumerateArray()
+                .ToDictionary(parameter => parameter.GetProperty("name").GetString()!, parameter => parameter);
+            parameters["Idempotency-Key"].GetProperty("required").GetBoolean().ShouldBeTrue(path);
+            parameters.ContainsKey("If-Match").ShouldBe(guarded, path);
+            operation.TryGetProperty("requestBody", out _).ShouldBeTrue(path);
+        }
+
+        var submitOperation = root.GetProperty("paths").GetProperty("/session/{sessionId}/submit").GetProperty("post");
+        submitOperation.TryGetProperty("requestBody", out _).ShouldBeTrue();
+        submitOperation.GetProperty("parameters").EnumerateArray()
+            .Single(parameter => parameter.GetProperty("name").GetString() == "If-Match")
+            .GetProperty("required").GetBoolean().ShouldBeTrue();
+
+        var countProperties = schemas.GetProperty("ResponseSessionCountJson").GetProperty("properties");
+        foreach (var property in new[] { "confirmationToken", "countRevision", "ledgerRevision", "openingRevision", "candidateState", "confirmedAttempt", "unconfirmedRecalculation" })
+            countProperties.TryGetProperty(property, out _).ShouldBeTrue(property);
+        SchemaTypes(countProperties.GetProperty("confirmedAttempt")).ShouldContain("null");
+        var candidateStates = schemas.GetProperty("SessionCandidateState").GetProperty("enum").EnumerateArray()
+            .Select(value => value.GetString()).ToList();
+        candidateStates.ShouldBe(["NotConferred", "Current", "Outdated", "Unconfirmed", "Recounting"]);
 
         // The account/day open is retired: custody starts through the acknowledged start (M9.6 Phase 2–3).
         root.GetProperty("paths").TryGetProperty("/dailyclose", out _).ShouldBeFalse();

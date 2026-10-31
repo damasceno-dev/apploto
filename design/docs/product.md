@@ -65,7 +65,7 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 
 **Manager work queue & approvals** *(Manager/Admin)*
 - **Manager Work Queue** — exception-first home, with the owner setup checklist while required setup is pending: pending approvals, not-submitted accounts, biggest unapproved variances, an earlier-days backlog banner, rejected/fix-needed closes, draft transactions blocking lock, reconciliation blockers.
-- **Daily-close approval** — review a submitted close as a comparison (opening → closing → variance), approve or reject with reason.
+- **Daily-close approval** — review a submitted close as a comparison (opening → closing → variance) with every Conferir attempt as evidence, approve or reject with reason; the approver is never the recorder, submitter or custodian (v60), except through the explicit, reasoned **Aprovar como único gestor**; **Aprovar dia do caixa** approves a cashbox day's sessions all or nothing.
 
 **Transactions ledger** *(Member: reads + entry scoped to linked accounts, §6.10/§6.11; Manager/Admin: whole branch — same screens on both platforms)*
 - **Transactions list** — filter and browse the ledger.
@@ -86,7 +86,7 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 
 **Day close flows** *(dual-mode: the Cockpit orchestrates them in Meu turno — Member by default, linked Manager/Admin through the explicit Gestão ↔ Meu turno switch — and Gestão handles their exceptions; mobile-first)*
 - **Operator Day Cockpit** — the operator's "today" home; surfaces the next action across the steps below.
-- **Open day** (Conferir abertura e iniciar a turno, or carry the acknowledgment on the first operation) · record transactions via **Transaction — Create (fast entry)** · **Close day** (snapshot + variance) · **Fix & resubmit** on rejection.
+- **Open day** (Conferir abertura e iniciar a turno, or carry the acknowledgment on the first operation) · record transactions via **Transaction — Create (fast entry)** · **Close day** (blind count: opening visible, expected closing and difference only after **Conferir**, **Recontar** when needed, submit the confirmed attempt — v60) · **Fix & resubmit** on rejection.
 
 **Time clock & management**
 - **Clock in / out** *(Member only)* · **Time-entry management** *(Manager/Admin, including own hours)*.
@@ -96,6 +96,8 @@ One-line purpose per screen; full semantic definition (access, data, actions, st
 - **Add employee** · **Offboard employee** — guided journeys composed from the delivered operator, assignment, invitation and membership commands; partial completion is shown, never hidden.
 
 ## 5. Promises and delivery boundaries
+
+**Blind count and separation of duties — server M9.6 P4–P5, canonical v60 (technical review pending).** The operator counts without seeing what the cashbox should hold: the opening stays visible, and the expected closing and the difference appear only after **Conferir**, as an immutable server attempt that a double press never duplicates. Editing the count after Conferir makes the result outdated; a sale or correction recorded after Conferir shows a separately labelled recalculation that is never a confirmed difference, until the operator either recounts or confirms that the count still describes the cashbox. Submit carries the confirmed attempt, so the official variance is exactly what the operator saw. A manager approves only work they neither recorded, submitted nor held; a branch with one active manager uses the explicit, reasoned and audited *Aprovar como único gestor*. The app shows these states and actions from the server's `Count` and `AllowedActions`; it never calculates a Draft difference itself. The three close-form fields (P7), the handover screens and the app implementations (Web/Mobile M5, M7) are still to come.
 
 **M9.5 financial reconciliation — shipped source `07cdb76` / v55; product evidence reconciled in v58 candidate (technical review pending).** With Q3 now confirmed and Q9 report details still pending, the fresh default product catalog excludes Tarifa Bolão and Operador: operators record each actual daily amount through Transaction — Create on the Terminal, as Receita/In and Entradas/In, both SameDay with no Tab/client requirement. Cash stays in the physical count. Operador’s editable label awaits shop question 9; no automatic fee, rate, receipt or required daily row is implied. Ordinary cash sales are count-only under Q5 (stock down, cash up, no transaction), confirmed by product Q5 at equal purchase/sale value (2026-10-23). These facts do not prove historical Access parity. Retired saved fee values remain visible; AA still gates their save/preview recovery, and the migration refuses retirement on unlocked retained counts. Locked history and prior opening values remain intact, so the first transition is not certified reconciled. Existing roles, locks, statuses and navigation are unchanged; `IsCashVarianceProduct` identifies the system row in responses. Q8 keeps existing fiado linked legs with no mandatory product selector. M10 opening/import remains pending; the M11 report classification and reads shipped at v56 (see MVP reporting below). The revision marker covers these source-checked financial semantics; it does not accept the unresolved AA migration/transition policy, the separate 0.4.6 addendum or real-app behavior.
 

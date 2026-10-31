@@ -134,12 +134,14 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
 
     private async Task<decimal> Preview(FiadoLinkedMovementTestContext ctx, ReconciliationProducts products, decimal stock, decimal cash)
     {
-        var response = await _client.PostAuthAsync(
-            $"/session/{ctx.CloseId}/variance-preview",
-            new RequestDailyCloseVariancePreviewJson { Items = Items(products, stock, cash) },
+        // The live preview is retired (M9.6 Phase 4): the count is saved and confirmed, and the attempt reveals it.
+        var close = (await factory.ReloadAsync<DailyClose>(ctx.CloseId))!;
+        var put = await _client.PutAuthAsync(
+            $"/session/{ctx.CloseId}/items",
+            new VersionedRequestPutDailyCloseItemsJson { Version = close.Version, Items = Items(products, stock, cash) },
             ctx.Token);
-        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
-        return (await response.ReadContentAsync<ResponseDailyCloseVariancePreviewJson>()).CashVariance;
+        put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
+        return (await _client.ConferAsync(ctx.CloseId, ctx.Token)).Attempt.Difference;
     }
 
     private async Task<decimal> SubmitCounts(FiadoLinkedMovementTestContext ctx, ReconciliationProducts products, decimal stock, decimal cash)
@@ -150,7 +152,7 @@ public class FiadoReconciliationCoherenceTest(ServerWebApplicationFactory factor
             new VersionedRequestPutDailyCloseItemsJson { Version = close.Version, Items = Items(products, stock, cash) },
             ctx.Token);
         put.StatusCode.ShouldBe(HttpStatusCode.OK, await put.Content.ReadAsStringAsync());
-        var submit = await _client.PostAuthAsync($"/session/{ctx.CloseId}/submit", ctx.Token);
+        var submit = await _client.SubmitSessionAsync(ctx.CloseId, ctx.Token);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(ctx.CloseId);
         // Counts stay exactly as the operator entered them; only the official variance row is computed.

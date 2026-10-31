@@ -311,6 +311,11 @@ namespace server.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("CurrentConfirmationToken")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValueSql("gen_random_uuid()");
+
                     b.Property<Guid?>("CustodianOperatorId")
                         .HasColumnType("uuid");
 
@@ -331,6 +336,9 @@ namespace server.Infrastructure.Migrations
 
                     b.Property<DateTime?>("ItemsFirstRecordedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LastAttemptNumber")
+                        .HasColumnType("integer");
 
                     b.Property<long>("LedgerRevision")
                         .HasColumnType("bigint");
@@ -354,6 +362,9 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid?>("OpeningRecheckTriggeredByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<long>("OpeningRevision")
+                        .HasColumnType("bigint");
+
                     b.Property<short>("Origin")
                         .HasColumnType("smallint");
 
@@ -361,6 +372,9 @@ namespace server.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecountStartedForAttemptId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("RejectionReason")
@@ -381,6 +395,9 @@ namespace server.Infrastructure.Migrations
 
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedAttemptId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("SubmittedByOperatorId")
                         .HasColumnType("uuid");
@@ -421,6 +438,10 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("RecordedByUserId");
 
+                    b.HasIndex("RecountStartedForAttemptId");
+
+                    b.HasIndex("SubmittedAttemptId");
+
                     b.HasIndex("SubmittedByOperatorId");
 
                     b.HasIndex("SubmittedByUserId");
@@ -452,6 +473,8 @@ namespace server.Infrastructure.Migrations
                             t.HasCheckConstraint("CK_DailyCloses_ReadySessionIdentity", "\"MappingState\" <> 0 OR (\"CustodyState\" IS NOT NULL AND \"Sequence\" IS NOT NULL AND \"StartedAt\" IS NOT NULL AND \"CustodianOperatorId\" IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_DailyCloses_RecordingIdentityMatchesFirstCount", "(\"ItemsFirstRecordedAt\" IS NULL AND \"RecordedByUserId\" IS NULL AND \"RecordedByOperatorId\" IS NULL) OR (\"ItemsFirstRecordedAt\" IS NOT NULL AND \"RecordedByUserId\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_DailyCloses_RevisionsNonNegative", "\"LedgerRevision\" >= 0 AND \"CountRevision\" >= 0 AND \"OpeningRevision\" >= 0 AND \"LastAttemptNumber\" >= 0");
 
                             t.HasCheckConstraint("CK_DailyCloses_SequencePositive", "\"Sequence\" IS NULL OR \"Sequence\" > 0");
                         });
@@ -1308,6 +1331,132 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SessionCountAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CommandKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<string>("ConferredByName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid?>("ConferredByOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConferredByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ConfirmationToken")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("CountRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Difference")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("ExpectedClosing")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<long>("LedgerRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OpeningRevision")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalClosing")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("TotalIn")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("TotalOpening")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("TotalOut")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("ConferredByOperatorId");
+
+                    b.HasIndex("ConferredByUserId");
+
+                    b.HasIndex("SessionId", "AttemptNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SessionId", "ConfirmationToken")
+                        .IsUnique();
+
+                    b.ToTable("SessionCountAttempts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SessionCountAttempts_DifferenceMatches", "\"Difference\" = \"TotalClosing\" - \"ExpectedClosing\" AND \"ExpectedClosing\" = \"TotalOpening\" + \"TotalIn\" - \"TotalOut\"");
+
+                            t.HasCheckConstraint("CK_SessionCountAttempts_NumberPositive", "\"AttemptNumber\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionCountAttemptItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("CountedValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("OpeningValue")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("AttemptId", "ProductId")
+                        .IsUnique();
+
+                    b.ToTable("SessionCountAttemptItems", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.SessionEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1323,6 +1472,9 @@ namespace server.Infrastructure.Migrations
                         .HasColumnType("character varying(255)");
 
                     b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AttemptId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("BranchId")
@@ -1351,6 +1503,11 @@ namespace server.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ActorUserId");
+
+                    b.HasIndex("AttemptId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SessionEvents_AttemptId_CountConferred")
+                        .HasFilter("\"Kind\" = 13");
 
                     b.HasIndex("SessionId", "CreatedAt");
 
@@ -1383,6 +1540,9 @@ namespace server.Infrastructure.Migrations
 
                     b.Property<DateTime>("OfferedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("OfferedAttemptId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("OfferedByUserId")
                         .HasColumnType("uuid");
@@ -1419,6 +1579,8 @@ namespace server.Infrastructure.Migrations
                         .HasFilter("\"IncomingSessionId\" IS NOT NULL");
 
                     b.HasIndex("IntendedIncomingOperatorId");
+
+                    b.HasIndex("OfferedAttemptId");
 
                     b.HasIndex("OfferedByUserId");
 
@@ -2277,6 +2439,16 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("RecordedByUserId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("server.Domain.Entities.SessionCountAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("RecountStartedForAttemptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.SessionCountAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("SubmittedAttemptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("server.Domain.Entities.Operator", "SubmittedByOperator")
                         .WithMany()
                         .HasForeignKey("SubmittedByOperatorId")
@@ -2648,11 +2820,22 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("server.Domain.Entities.SessionEvent", b =>
+            modelBuilder.Entity("server.Domain.Entities.SessionCountAttempt", b =>
                 {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("ConferredByOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("server.Domain.Entities.User", null)
                         .WithMany()
-                        .HasForeignKey("ActorUserId")
+                        .HasForeignKey("ConferredByUserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2661,6 +2844,49 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("SessionId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Session");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionCountAttemptItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.SessionCountAttempt", "Attempt")
+                        .WithMany("Items")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionEvent", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionCountAttempt", "Attempt")
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
 
                     b.Navigation("Session");
                 });
@@ -2677,6 +2903,11 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("IntendedIncomingOperatorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionCountAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("OfferedAttemptId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("server.Domain.Entities.User", null)
                         .WithMany()
@@ -3038,6 +3269,11 @@ namespace server.Infrastructure.Migrations
             modelBuilder.Entity("server.Domain.Entities.Operator", b =>
                 {
                     b.Navigation("OperatorAccounts");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SessionCountAttempt", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.SessionHandover", b =>

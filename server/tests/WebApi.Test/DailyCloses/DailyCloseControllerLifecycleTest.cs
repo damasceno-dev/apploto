@@ -181,7 +181,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
     private async Task SubmitAsync(Guid closeId, string token)
     {
-        var response = await _client.PostAuthAsync($"/session/{closeId}/submit", token);
+        var response = await _client.SubmitSessionAsync(closeId, token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
@@ -202,7 +202,7 @@ public class DailyCloseControllerLifecycleTest(ServerWebApplicationFactory facto
 
     private async Task ApproveAsync(Guid closeId, string token)
     {
-        var response = await _client.PostAuthAsync($"/session/{closeId}/approve", token);
+        var response = await _client.ApproveAsSingleManagerAsync(closeId, token);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 

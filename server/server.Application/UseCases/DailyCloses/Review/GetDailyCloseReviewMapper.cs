@@ -14,7 +14,9 @@ internal static class GetDailyCloseReviewMapper
             ResolvedSessionOpening opening,
             SessionOpeningDiscrepancy? discrepancy,
             IReadOnlyList<Product> activeProducts,
-            Guid cashVarianceProductId)
+            Guid cashVarianceProductId,
+            ResponseSessionCountJson count,
+            ResponseSessionAllowedActionsJson allowedActions)
         {
             // The opening column is the acknowledged opening when one exists, otherwise the inherited closing of the
             // counted predecessor (§6.20) — the same TotalOpening the calculator uses.
@@ -63,6 +65,8 @@ internal static class GetDailyCloseReviewMapper
                 UpdatedAt = close.UpdatedAt,
                 UpdatedByUserId = close.UpdatedByUserId,
                 Custody = close.ToCustodyResponse(),
+                Count = count,
+                AllowedActions = allowedActions,
                 OpeningDiscrepancy = discrepancy?.ToResponse(),
                 Items = productsToReview
                     .Select(product =>

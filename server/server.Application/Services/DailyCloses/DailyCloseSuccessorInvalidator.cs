@@ -57,6 +57,9 @@ public sealed class DailyCloseSuccessorInvalidator(
             return null;
         }
 
+        // The inherited opening moves with the predecessor's count: any confirmed candidate of the successor is stale.
+        SessionRevisionService.RecordInheritedOpeningChange(successor);
+
         var previousStatus = successor.Status;
         if (previousStatus is not (DailyCloseStatus.Submitted or DailyCloseStatus.Approved or DailyCloseStatus.Rejected))
             return new DailyCloseSuccessorInvalidation(successor, previousStatus, null);

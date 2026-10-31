@@ -29,7 +29,7 @@ public class DailyCloseControllerApproveHappyPathTest(ServerWebApplicationFactor
             status: DailyCloseStatus.Submitted,
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/approve", token);
+        var httpResponse = await _client.ApproveAsSingleManagerAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var payload = await httpResponse.ReadContentAsync<ResponseDailyCloseJson>();

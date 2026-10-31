@@ -297,6 +297,7 @@ public class FinalizeTransactionUseCaseTest
                 Substitute.For<ITransactionTypesRepository>(),
                 ctx.DailyCloseLedgerGuard,
                 memberAccountScopeGuard),
+            SessionTestServices.Revisions(),
             ctx.UnitOfWork);
     }
 

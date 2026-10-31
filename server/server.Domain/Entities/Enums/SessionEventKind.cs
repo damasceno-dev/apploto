@@ -14,5 +14,8 @@ public enum SessionEventKind
     CustodyExceptionResolved = 9,
     SessionDeclared = 10,
     SessionRearranged = 11,
-    AttributionRecorded = 12
+    AttributionRecorded = 12,
+    CountConferred = 13,
+    RecountStarted = 14,
+    SessionApproved = 15
 }

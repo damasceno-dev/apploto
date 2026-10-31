@@ -23,6 +23,7 @@ public static class SessionResponseMapper
                 EndedAt = session.EndedAt,
                 CountRevision = session.CountRevision,
                 LedgerRevision = session.LedgerRevision,
+                OpeningRevision = session.OpeningRevision,
                 OpeningAcknowledged = session.Opening is not null,
                 CustodyHistoryComplete = session.CustodyHistoryComplete
             };
@@ -85,6 +86,7 @@ public static class SessionResponseMapper
                 IntendedIncomingOperatorName = handover.IntendedIncomingOperator?.Name ?? string.Empty,
                 State = handover.State,
                 OfferedCountRevision = handover.OfferedCountRevision,
+                OfferedAttemptId = handover.OfferedAttemptId,
                 OfferedByUserId = handover.OfferedByUserId,
                 OfferedAt = handover.OfferedAt,
                 ResolvedByUserId = handover.ResolvedByUserId,

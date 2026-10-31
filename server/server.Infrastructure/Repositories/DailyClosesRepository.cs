@@ -24,6 +24,17 @@ internal class DailyClosesRepository(ServerDbContext dbContext) : IDailyClosesRe
                 ct);
     }
 
+    public async Task<DailyClose?> GetRootForRevision(Guid id, Guid branchId, CancellationToken ct = default)
+    {
+        var tracked = dbContext.DailyCloses.Local.FirstOrDefault(dailyClose => dailyClose.Id == id);
+        if (tracked is not null)
+            return tracked.BranchId == branchId ? tracked : null;
+
+        return await dbContext.DailyCloses.FirstOrDefaultAsync(
+            dailyClose => dailyClose.Id == id && dailyClose.BranchId == branchId && dailyClose.Active,
+            ct);
+    }
+
     public async Task<DailyClose?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
     {
         return await IncludeRichResponse(dbContext.DailyCloses)

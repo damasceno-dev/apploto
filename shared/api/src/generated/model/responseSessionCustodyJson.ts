@@ -26,6 +26,7 @@ export interface ResponseSessionCustodyJson {
   endedAt?: string | null;
   countRevision: number;
   ledgerRevision: number;
+  openingRevision: number;
   openingAcknowledged: boolean;
   custodyHistoryComplete: boolean;
 }

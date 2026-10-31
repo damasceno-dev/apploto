@@ -16,6 +16,7 @@ public class ResponseSessionCustodyJson
     public DateTime? EndedAt { get; init; }
     public long CountRevision { get; init; }
     public long LedgerRevision { get; init; }
+    public long OpeningRevision { get; init; }
     public bool OpeningAcknowledged { get; init; }
     public bool CustodyHistoryComplete { get; init; }
 }

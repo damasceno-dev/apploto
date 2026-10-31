@@ -28,6 +28,12 @@ internal class SessionHandoverConfiguration : IEntityTypeConfiguration<SessionHa
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasOne<SessionCountAttempt>()
+            .WithMany()
+            .HasForeignKey(handover => handover.OfferedAttemptId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasOne(handover => handover.IntendedIncomingOperator)
             .WithMany()
             .HasForeignKey(handover => handover.IntendedIncomingOperatorId)

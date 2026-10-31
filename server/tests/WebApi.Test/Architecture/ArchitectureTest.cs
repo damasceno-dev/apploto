@@ -268,7 +268,10 @@ public class ArchitectureTest
         {
             "server.Application.UseCases.DailyCloses.PutItems.PutDailyCloseItemsUseCase",
             "server.Application.UseCases.DailyCloses.Submit.SubmitDailyCloseUseCase",
-            "server.Application.UseCases.DailyCloses.Approve.ApproveDailyCloseUseCase",
+            // M9.6 Phases 4–5: Conferir, Recontar and session/day approval serialize on the cashbox key.
+            "server.Application.UseCases.Sessions.Approve.ApproveSessionUseCase",
+            "server.Application.UseCases.Sessions.Count.ConferSessionCountUseCase",
+            "server.Application.UseCases.Sessions.Count.BeginSessionRecountUseCase",
             "server.Application.UseCases.DailyCloses.Reject.RejectDailyCloseUseCase",
             "server.Application.UseCases.DailyCloses.Recall.RecallDailyCloseUseCase",
             "server.Application.UseCases.DailyCloses.Reopen.ReopenDailyCloseUseCase",

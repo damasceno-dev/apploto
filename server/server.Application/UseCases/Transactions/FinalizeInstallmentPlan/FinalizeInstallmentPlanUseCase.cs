@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Members;
 using server.Application.Services.Settings;
@@ -28,6 +29,7 @@ public class FinalizeInstallmentPlanUseCase(
     IBranchClock branchClock,
     IDailyCloseLedgerGuard dailyCloseLedgerGuard,
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseInstallmentPlanJson> Execute(
@@ -102,6 +104,8 @@ public class FinalizeInstallmentPlanUseCase(
             draft.UpdatedAt = utcNow;
             draft.UpdatedByUserId = branchUser.UserId;
         }
+
+        await sessionRevisions.RecordLedgerChange(branchUser.BranchId, drafts, ct);
 
         // A permitted per-row edit (which takes no account coordination) can still change an installment's
         // version between the check above and this save; report it with this command's own stale error.

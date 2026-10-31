@@ -35,7 +35,7 @@ internal static class SessionFlow
 
         public async Task<ResponseDailyCloseJson> SubmitAsync(Guid sessionId, string token)
         {
-            var response = await client.PostAuthAsync($"/session/{sessionId}/submit", token);
+            var response = await client.SubmitSessionAsync(sessionId, token);
             response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
             return await response.ReadContentAsync<ResponseDailyCloseJson>();
         }

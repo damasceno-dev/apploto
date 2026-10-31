@@ -18,6 +18,8 @@ export interface ResponseSessionHandoverJson {
   intendedIncomingOperatorName: string;
   state: SessionHandoverState;
   offeredCountRevision: number;
+  /** @nullable */
+  offeredAttemptId?: string | null;
   offeredByUserId: string;
   offeredAt: string;
   /** @nullable */

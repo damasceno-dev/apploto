@@ -19,6 +19,9 @@ public class SessionHandover : EntityBase
     public Operator IntendedIncomingOperator { get; init; } = null!;
 
     public long OfferedCountRevision { get; init; }
+
+    /// <summary>The confirmed count attempt the outgoing submission carried (null for offers made before Phase 4).</summary>
+    public Guid? OfferedAttemptId { get; init; }
     public Guid OfferedByUserId { get; init; }
     public DateTime OfferedAt { get; init; }
 

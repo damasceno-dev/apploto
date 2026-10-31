@@ -760,6 +760,7 @@ public class PutDailyCloseItemsUseCaseTest
             lockDateGuard,
             new FixedBranchClock(ctx.Now),
             accountCoordination,
+            SessionTestServices.CountProjector(ctx.DailyClosesRepository, ctx.CashVarianceProductResolver),
             ctx.UnitOfWork);
     }
 

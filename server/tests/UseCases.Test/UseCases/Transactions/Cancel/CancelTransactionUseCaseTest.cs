@@ -316,6 +316,7 @@ public class CancelTransactionUseCaseTest
                 Substitute.For<ITransactionTypesRepository>(),
                 ctx.DailyCloseLedgerGuard,
                 memberAccountScopeGuard),
+            SessionTestServices.Revisions(),
             ctx.UnitOfWork);
     }
 

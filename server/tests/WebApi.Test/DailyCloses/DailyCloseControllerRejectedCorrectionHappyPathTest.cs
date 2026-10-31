@@ -46,7 +46,7 @@ public class DailyCloseControllerRejectedCorrectionHappyPathTest(ServerWebApplic
         secondSave.Status.ShouldBe(DailyCloseStatus.Draft);
         secondSave.RejectionReason.ShouldBe("corrigir contagem");
 
-        var submitResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var submitResponse = await _client.SubmitSessionAsync(close.Id, token);
         submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submitted = await submitResponse.ReadContentAsync<ResponseDailyCloseJson>();
         submitted.Status.ShouldBe(DailyCloseStatus.Submitted);

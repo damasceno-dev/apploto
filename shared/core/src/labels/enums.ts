@@ -24,6 +24,9 @@ import type {
   OperatorLinkRequestStatus,
   OverviewSectionStatus,
   Role,
+  SessionApprovalMode,
+  SessionCandidateState,
+  SessionCountAttemptKind,
   SessionCustodyState,
   SessionEventKind,
   SessionHandoverState,
@@ -269,6 +272,30 @@ export const sessionEventKindLabels: Labels<SessionEventKind> = {
   SessionDeclared: 'Turno declarado',
   SessionRearranged: 'Turno reposicionado',
   AttributionRecorded: 'Diferença atribuída',
+  CountConferred: 'Contagem conferida',
+  RecountStarted: 'Recontagem iniciada',
+  SessionApproved: 'Turno aprovado',
+};
+
+/** Feminine — agrees with *contagem*. Server-owned; `Unconfirmed` is never a confirmed difference. */
+export const sessionCandidateStateLabels: Labels<SessionCandidateState> = {
+  NotConferred: 'Não conferida',
+  Current: 'Conferida',
+  Outdated: 'Desatualizada',
+  Unconfirmed: 'Não confirmada',
+  Recounting: 'Em recontagem',
+};
+
+export const sessionCountAttemptKindLabels: Labels<SessionCountAttemptKind> = {
+  Initial: 'Primeira conferência',
+  Correction: 'Após correção',
+  Recount: 'Recontagem',
+  StillObserved: 'Contagem mantida após mudança no caixa',
+};
+
+export const sessionApprovalModeLabels: Labels<SessionApprovalMode> = {
+  Independent: 'Aprovação independente',
+  SingleActiveManager: 'Aprovar como único gestor',
 };
 
 /** The provenance marker of a generated movement (copy §4, §5): never a status. */
@@ -309,6 +336,9 @@ export const enumLabels = {
   OpeningDiscrepancyAttribution: openingDiscrepancyAttributionLabels,
   CustodyExceptionAction: custodyExceptionActionLabels,
   SessionEventKind: sessionEventKindLabels,
+  SessionCandidateState: sessionCandidateStateLabels,
+  SessionCountAttemptKind: sessionCountAttemptKindLabels,
+  SessionApprovalMode: sessionApprovalModeLabels,
 } as const;
 
 export type EnumLabel =

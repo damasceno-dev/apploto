@@ -12,7 +12,8 @@ public class GetDailyCloseUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
     IMemberAccountScopeResolver memberAccountScopeResolver,
-    ICashVarianceProductResolver cashVarianceProductResolver)
+    ICashVarianceProductResolver cashVarianceProductResolver,
+    server.Application.UseCases.Sessions.SessionCountProjector countProjector)
 {
     public async Task<ResponseDailyCloseJson> Execute(Guid dailyCloseId, CancellationToken ct = default)
     {
@@ -21,10 +22,9 @@ public class GetDailyCloseUseCase(
         var dailyClose = await dailyClosesRepository
             .GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
         if (branchUser.Role is Role.Member)
         {
-            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
-
             if (memberScope.LinkedOperator is null)
                 throw new TokenWithoutPermissionException(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
 
@@ -33,6 +33,11 @@ public class GetDailyCloseUseCase(
         }
 
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
-        return dailyClose.ToResponse(cashVarianceProductId);
+        return await countProjector.Project(
+            dailyClose,
+            dailyClose.ToResponse(cashVarianceProductId),
+            branchUser,
+            memberScope,
+            ct);
     }
 }

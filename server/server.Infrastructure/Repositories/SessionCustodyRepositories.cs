@@ -231,6 +231,69 @@ internal class SessionEventsRepository(ServerDbContext dbContext) : ISessionEven
     }
 }
 
+internal class SessionCountAttemptsRepository(ServerDbContext dbContext) : ISessionCountAttemptsRepository
+{
+    public async Task Add(SessionCountAttempt attempt, CancellationToken ct = default)
+    {
+        await dbContext.SessionCountAttempts.AddAsync(attempt, ct);
+    }
+
+    public async Task<SessionCountAttempt?> GetBySessionIdAndTokenAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        Guid token,
+        CancellationToken ct = default)
+    {
+        return await WithItems()
+            .FirstOrDefaultAsync(attempt =>
+                attempt.BranchId == branchId && attempt.SessionId == sessionId && attempt.ConfirmationToken == token,
+                ct);
+    }
+
+    public async Task<SessionCountAttempt?> GetBySessionIdAndNumberAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        int attemptNumber,
+        CancellationToken ct = default)
+    {
+        return await WithItems()
+            .FirstOrDefaultAsync(attempt =>
+                attempt.BranchId == branchId && attempt.SessionId == sessionId && attempt.AttemptNumber == attemptNumber,
+                ct);
+    }
+
+    public async Task<SessionCountAttempt?> GetByIdAndSessionIdAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        Guid attemptId,
+        CancellationToken ct = default)
+    {
+        return await WithItems()
+            .FirstOrDefaultAsync(attempt =>
+                attempt.BranchId == branchId && attempt.SessionId == sessionId && attempt.Id == attemptId,
+                ct);
+    }
+
+    public async Task<IReadOnlyList<SessionCountAttempt>> ListBySessionIdAsNoTracking(
+        Guid branchId,
+        Guid sessionId,
+        CancellationToken ct = default)
+    {
+        return await WithItems()
+            .Where(attempt => attempt.BranchId == branchId && attempt.SessionId == sessionId)
+            .OrderBy(attempt => attempt.AttemptNumber)
+            .ToListAsync(ct);
+    }
+
+    private IQueryable<SessionCountAttempt> WithItems()
+    {
+        return dbContext.SessionCountAttempts
+            .AsNoTracking()
+            .Include(attempt => attempt.Items)
+            .ThenInclude(item => item.Product);
+    }
+}
+
 internal class OpeningCountsRepository(ServerDbContext dbContext) : IOpeningCountsRepository
 {
     public async Task Add(OpeningCount openingCount, CancellationToken ct = default)

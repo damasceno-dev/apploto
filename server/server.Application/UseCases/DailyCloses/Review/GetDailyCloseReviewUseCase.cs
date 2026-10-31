@@ -16,7 +16,8 @@ public class GetDailyCloseReviewUseCase(
     IMemberAccountScopeResolver memberAccountScopeResolver,
     ICashVarianceProductResolver cashVarianceProductResolver,
     SessionOpeningResolver openingResolver,
-    ISessionOpeningDiscrepanciesRepository discrepanciesRepository)
+    ISessionOpeningDiscrepanciesRepository discrepanciesRepository,
+    server.Application.UseCases.Sessions.SessionCountProjector countProjector)
 {
     public async Task<ResponseDailyCloseReviewJson> Execute(
         Guid dailyCloseId,
@@ -29,10 +30,9 @@ public class GetDailyCloseReviewUseCase(
             .GetByIdAndBranchIdAsNoTracking(dailyCloseId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
 
+        var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
         if (branchUser.Role is Role.Member)
         {
-            var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
-
             if (memberScope.LinkedOperator is null)
                 throw new TokenWithoutPermissionException(
                     ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
@@ -47,6 +47,8 @@ public class GetDailyCloseReviewUseCase(
         var activeProducts = await productsRepository.ListActiveByBranchIdAsNoTracking(branchUser.BranchId, ct);
         var cashVarianceProductId = await cashVarianceProductResolver.GetIdAsync(branchUser.BranchId, ct);
 
-        return dailyClose.ToReviewResponse(opening, discrepancy, activeProducts, cashVarianceProductId);
+        var (count, actions) = await countProjector.Build(dailyClose, branchUser, memberScope, ct);
+
+        return dailyClose.ToReviewResponse(opening, discrepancy, activeProducts, cashVarianceProductId, count, actions);
     }
 }

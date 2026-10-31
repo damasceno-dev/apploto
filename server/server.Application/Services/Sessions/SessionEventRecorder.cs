@@ -17,7 +17,8 @@ public sealed class SessionEventRecorder(ISessionEventsRepository sessionEventsR
         object? details = null,
         string? reason = null,
         Guid? relatedId = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        Guid? attemptId = null)
     {
         return sessionEventsRepository.Add(new SessionEvent
         {
@@ -28,6 +29,7 @@ public sealed class SessionEventRecorder(ISessionEventsRepository sessionEventsR
             ActorName = actor.Name,
             Reason = reason,
             RelatedId = relatedId,
+            AttemptId = attemptId,
             CreatedAt = now,
             Details = JsonSerializer.Serialize(details ?? new { }, JsonOptions)
         }, ct);

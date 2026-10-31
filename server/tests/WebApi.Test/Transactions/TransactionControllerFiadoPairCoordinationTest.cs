@@ -17,10 +17,11 @@ using Xunit;
 namespace WebApi.Test.Transactions;
 
 /// <summary>
-/// M7.7 Phase 8 audit of the Phase 5.6 physical pairs against the paired terminal's close. Requests are queued behind
-/// the held Terminal account key and released in a known grant order (no timing sleeps): a physical operation granted
-/// first is wholly visible to the later Submit's official variance; a Submit granted first freezes the terminal day
-/// and the queued operation writes neither its Tab nor its Terminal leg.
+/// M7.7 Phase 8 audit of the Phase 5.6 physical pairs against the paired terminal's session, under the M9.6 Phase 4
+/// Conferir gate. The count is confirmed first; Submit and the physical operation are then queued behind the held
+/// cashbox key and released in a known grant order (no timing sleeps). An operation granted first changes the ledger
+/// revision, so the queued Submit refuses the stale attempt and the unchanged count is re-confirmed against the new
+/// ledger before it submits; a Submit granted first freezes the session and the queued operation writes neither leg.
 /// </summary>
 [Collection(ServerApiCollection.Name)]
 public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebApplicationFactory factory)
@@ -30,9 +31,11 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
     [Theory]
     [InlineData(PhysicalOperation.CountedStockSale)]
     [InlineData(PhysicalOperation.CashRepayment)]
-    public async Task OperationGrantedFirst_ShouldBeWhollyVisibleToTheQueuedSubmit(PhysicalOperation operation)
+    public async Task OperationGrantedFirst_ShouldInvalidateTheConfirmedAttempt_BeforeTheQueuedSubmit(PhysicalOperation operation)
     {
         var (ctx, products) = await SeedCountedDayAsync($"FiadoPairFirst{operation}", operation);
+        var client = factory.CreateClient();
+        var confirmed = (await client.ConferAsync(ctx.CloseId, ctx.Token)).Session;
         await using var grantOrderFactory = CreateGrantOrderFactory();
         using var operationClient = grantOrderFactory.CreateClient();
         using var submitClient = grantOrderFactory.CreateClient();
@@ -40,7 +43,7 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
 
         var operationTask = Send(operationClient, ctx, operation);
         await heldLock.WaitForWaitersAsync(1);
-        var submitTask = submitClient.PostAuthAsync($"/session/{ctx.CloseId}/submit", ctx.Token);
+        var submitTask = submitClient.PostSubmitAsync(confirmed, ctx.Token);
         await heldLock.WaitForWaitersAsync(2);
 
         await heldLock.ReleaseAsync();
@@ -49,7 +52,21 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
         var submit = await submitTask;
 
         operationResponse.StatusCode.ShouldBe(HttpStatusCode.Created, await operationResponse.Content.ReadAsStringAsync());
-        submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
+        submit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await submit.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldBe([ResourcesErrorMessages.SESSION_CONFIRMATION_NOT_CURRENT]);
+        (await factory.ReloadAsync<DailyClose>(ctx.CloseId))!.Status.ShouldBe(DailyCloseStatus.Draft);
+
+        // The count already describes the cashbox after the movement: the unconfirmed recalculation is zero, and the
+        // operator confirms the unchanged count against the new ledger instead of recounting.
+        var unconfirmed = (await client.TryGetSessionAsync(ctx.CloseId, ctx.Token))!.Count!;
+        unconfirmed.CandidateState.ShouldBe(SessionCandidateState.Unconfirmed);
+        unconfirmed.ConfirmedAttempt!.Difference.ShouldBe(operation == PhysicalOperation.CountedStockSale ? -5m : 5m);
+        unconfirmed.UnconfirmedRecalculation!.Difference.ShouldBe(0m);
+        var reconfirmed = await client.ConferAsync(ctx.CloseId, ctx.Token, confirmStillObserved: true);
+        reconfirmed.Attempt.Kind.ShouldBe(SessionCountAttemptKind.StillObserved);
+        var resubmit = await client.PostSubmitAsync(reconfirmed.Session, ctx.Token);
+        resubmit.StatusCode.ShouldBe(HttpStatusCode.OK, await resubmit.Content.ReadAsStringAsync());
         var rows = await ctx.ListBranchTransactionsAsync();
         rows.Count.ShouldBe(2);
         rows.Count(row => row.GenerationKind is not null).ShouldBe(1);
@@ -64,12 +81,13 @@ public sealed class TransactionControllerFiadoPairCoordinationTest(ServerWebAppl
     public async Task SubmitGrantedFirst_ShouldFreezeTheDay_AndTheQueuedOperationWritesNeitherLeg(PhysicalOperation operation)
     {
         var (ctx, products) = await SeedCountedDayAsync($"FiadoSubmitFirst{operation}", operation);
+        var confirmed = (await factory.CreateClient().ConferAsync(ctx.CloseId, ctx.Token)).Session;
         await using var grantOrderFactory = CreateGrantOrderFactory();
         using var submitClient = grantOrderFactory.CreateClient();
         using var operationClient = grantOrderFactory.CreateClient();
         await using var heldLock = await HoldAccountKeyAsync(ctx.BranchId, ctx.TerminalId);
 
-        var submitTask = submitClient.PostAuthAsync($"/session/{ctx.CloseId}/submit", ctx.Token);
+        var submitTask = submitClient.PostSubmitAsync(confirmed, ctx.Token);
         await heldLock.WaitForWaitersAsync(1);
         var operationTask = Send(operationClient, ctx, operation);
         await heldLock.WaitForWaitersAsync(2);

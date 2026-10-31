@@ -81,7 +81,10 @@ public sealed class SessionHandoverAcceptor(
             ?? throw new NotFoundException(ResourcesErrorMessages.SESSION_NOT_FOUND);
         if (outgoing.CustodyState != SessionCustodyState.Active)
             throw new ConflictException(ResourcesErrorMessages.SESSION_NOT_ACTIVE_CUSTODY);
-        if (outgoing.Status != DailyCloseStatus.Submitted || outgoing.CountRevision != handover.OfferedCountRevision)
+        // The offer stays valid only while the outgoing submission it carried is the current one (count and attempt).
+        if (outgoing.Status != DailyCloseStatus.Submitted
+            || outgoing.CountRevision != handover.OfferedCountRevision
+            || (handover.OfferedAttemptId is not null && outgoing.SubmittedAttemptId != handover.OfferedAttemptId))
             throw new ConflictException(ResourcesErrorMessages.SESSION_HANDOVER_COUNT_CHANGED);
 
         var cashbox = await accountsRepository.GetActiveByIdAndBranchIdAsNoTracking(handover.AccountId, actor.BranchId, ct)

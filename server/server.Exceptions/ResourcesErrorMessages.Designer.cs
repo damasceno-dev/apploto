@@ -1703,5 +1703,28 @@ namespace server.Exceptions {
         public static string ACCOUNT_TERMINAL_REASSIGN_ACTIVE_CUSTODY => ResourceManager.GetString("ACCOUNT_TERMINAL_REASSIGN_ACTIVE_CUSTODY", resourceCulture);
         public static string SESSION_CUSTODY_STATE_INVALID => ResourceManager.GetString("SESSION_CUSTODY_STATE_INVALID", resourceCulture);
         public static string SESSION_OPENING_SOURCE_KIND_INVALID => ResourceManager.GetString("SESSION_OPENING_SOURCE_KIND_INVALID", resourceCulture);
+        public static string SESSION_CONFIRMATION_TOKEN_STALE => ResourceManager.GetString("SESSION_CONFIRMATION_TOKEN_STALE", resourceCulture);
+        public static string SESSION_CONFIRMATION_TOKEN_CONFLICT => ResourceManager.GetString("SESSION_CONFIRMATION_TOKEN_CONFLICT", resourceCulture);
+        public static string SESSION_CONFIRMATION_REVISION_STALE => ResourceManager.GetString("SESSION_CONFIRMATION_REVISION_STALE", resourceCulture);
+        public static string SESSION_CONFIRMATION_REQUIRES_DRAFT => ResourceManager.GetString("SESSION_CONFIRMATION_REQUIRES_DRAFT", resourceCulture);
+        public static string SESSION_CONFIRM_STILL_OBSERVED_REQUIRED => ResourceManager.GetString("SESSION_CONFIRM_STILL_OBSERVED_REQUIRED", resourceCulture);
+        public static string SESSION_CONFIRMATION_NOT_CURRENT => ResourceManager.GetString("SESSION_CONFIRMATION_NOT_CURRENT", resourceCulture);
+        public static string SESSION_RECOUNT_NOT_AVAILABLE => ResourceManager.GetString("SESSION_RECOUNT_NOT_AVAILABLE", resourceCulture);
+        public static string SESSION_RECOUNT_ATTEMPT_MISMATCH => ResourceManager.GetString("SESSION_RECOUNT_ATTEMPT_MISMATCH", resourceCulture);
+        public static string SESSION_APPROVER_IS_RECORDER => ResourceManager.GetString("SESSION_APPROVER_IS_RECORDER", resourceCulture);
+        public static string SESSION_APPROVER_IS_SUBMITTER => ResourceManager.GetString("SESSION_APPROVER_IS_SUBMITTER", resourceCulture);
+        public static string SESSION_APPROVER_IS_CUSTODIAN => ResourceManager.GetString("SESSION_APPROVER_IS_CUSTODIAN", resourceCulture);
+        public static string SESSION_SINGLE_MANAGER_APPROVAL_NOT_AVAILABLE => ResourceManager.GetString("SESSION_SINGLE_MANAGER_APPROVAL_NOT_AVAILABLE", resourceCulture);
+        public static string SESSION_SINGLE_MANAGER_APPROVAL_REQUIRES_REASON => ResourceManager.GetString("SESSION_SINGLE_MANAGER_APPROVAL_REQUIRES_REASON", resourceCulture);
+        public static string SESSION_APPROVAL_REASON_TOO_LONG => ResourceManager.GetString("SESSION_APPROVAL_REASON_TOO_LONG", resourceCulture);
+        public static string SESSION_APPROVAL_MODE_INVALID => ResourceManager.GetString("SESSION_APPROVAL_MODE_INVALID", resourceCulture);
+        public static string SESSION_BATCH_APPROVAL_EMPTY => ResourceManager.GetString("SESSION_BATCH_APPROVAL_EMPTY", resourceCulture);
+        public static string SESSION_BATCH_APPROVAL_TOO_LARGE => ResourceManager.GetString("SESSION_BATCH_APPROVAL_TOO_LARGE", resourceCulture);
+        public static string SESSION_BATCH_APPROVAL_DUPLICATE => ResourceManager.GetString("SESSION_BATCH_APPROVAL_DUPLICATE", resourceCulture);
+        public static string SESSION_BATCH_APPROVAL_SCOPE_MIXED => ResourceManager.GetString("SESSION_BATCH_APPROVAL_SCOPE_MIXED", resourceCulture);
+        public static string SESSION_BATCH_APPROVAL_ITEM_FAILED => ResourceManager.GetString("SESSION_BATCH_APPROVAL_ITEM_FAILED", resourceCulture);
+        public static string SESSION_CONFIRMATION_TOKEN_REQUIRED => ResourceManager.GetString("SESSION_CONFIRMATION_TOKEN_REQUIRED", resourceCulture);
+        public static string SESSION_CONFIRMATION_ATTEMPT_REQUIRED => ResourceManager.GetString("SESSION_CONFIRMATION_ATTEMPT_REQUIRED", resourceCulture);
+        public static string SESSION_REVISION_INVALID => ResourceManager.GetString("SESSION_REVISION_INVALID", resourceCulture);
     }
 }

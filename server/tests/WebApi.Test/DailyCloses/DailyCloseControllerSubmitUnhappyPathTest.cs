@@ -28,7 +28,7 @@ public class DailyCloseControllerSubmitUnhappyPathTest(ServerWebApplicationFacto
     {
         var (_, _, _, token) = await factory.SeedFullBranchContextAsync("DcSubmitMissing", Role.Manager);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{Guid.NewGuid()}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(Guid.NewGuid(), token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -49,7 +49,7 @@ public class DailyCloseControllerSubmitUnhappyPathTest(ServerWebApplicationFacto
             status: DailyCloseStatus.Draft);
         await factory.SeedSettingAsync(branch.Id, lockDate: closeDate);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -68,7 +68,7 @@ public class DailyCloseControllerSubmitUnhappyPathTest(ServerWebApplicationFacto
             status: DailyCloseStatus.Submitted,
             submittedAt: DateTime.UtcNow.AddMinutes(-10));
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -90,7 +90,7 @@ public class DailyCloseControllerSubmitUnhappyPathTest(ServerWebApplicationFacto
             status: DailyCloseStatus.Draft,
             submittedByOperatorId: op.Id);
 
-        var httpResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var httpResponse = await _client.SubmitSessionAsync(close.Id, token);
 
         httpResponse.StatusCode.ShouldBe(HttpStatusCode.Forbidden);
         var payload = await httpResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -128,7 +128,7 @@ public class DailyCloseControllerSubmitUnhappyPathTest(ServerWebApplicationFacto
             date,
             status: TransactionStatus.Draft);
 
-        var response = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var response = await _client.SubmitSessionAsync(close.Id, token);
 
         response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await response.ReadContentAsync<TestResponseErrorJson>();

@@ -33,7 +33,7 @@ public class SubmitDailyCloseUseCaseTest
         var ctx = BuildContext(Role.Member);
         var useCase = CreateUseCase(ctx);
 
-        var response = await useCase.Execute(ctx.DailyClose.Id);
+        var response = await Submit(useCase, ctx);
 
         response.Status.ShouldBe(DailyCloseStatus.Submitted);
         ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
@@ -81,7 +81,7 @@ public class SubmitDailyCloseUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        await useCase.Execute(ctx.DailyClose.Id);
+        await Submit(useCase, ctx);
 
         ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Submitted);
         ctx.DailyClose.RejectionReason.ShouldBeNull();
@@ -108,7 +108,7 @@ public class SubmitDailyCloseUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        await useCase.Execute(ctx.DailyClose.Id);
+        await Submit(useCase, ctx);
 
         ctx.DailyClose.RecordedByUserId.ShouldBe(recordingUser.Id);
         ctx.DailyClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
@@ -127,7 +127,7 @@ public class SubmitDailyCloseUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<NotFoundException>(() => useCase.Execute(ctx.DailyClose.Id));
+        var exception = await Should.ThrowAsync<NotFoundException>(() => Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_FOUND);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -140,7 +140,7 @@ public class SubmitDailyCloseUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() =>
-            useCase.Execute(ctx.DailyClose.Id));
+            Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_REQUIRES_OPERATOR_LINK);
         ctx.WorkflowGuard.DidNotReceiveWithAnyArgs()
@@ -155,7 +155,7 @@ public class SubmitDailyCloseUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() =>
-            useCase.Execute(ctx.DailyClose.Id));
+            Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
         ctx.WorkflowGuard.DidNotReceiveWithAnyArgs()
@@ -171,7 +171,7 @@ public class SubmitDailyCloseUseCaseTest
         ctx.WorkflowGuard = new DailyCloseWorkflowGuard(ctx.BranchClock);
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.DailyClose.Id));
+        var exception = await Should.ThrowAsync<ConflictException>(() => Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_NOT_SUBMITTABLE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
@@ -193,7 +193,7 @@ public class SubmitDailyCloseUseCaseTest
 
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.DailyClose.Id));
+        var exception = await Should.ThrowAsync<ConflictException>(() => Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_LOCK_DATE_VIOLATION);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
@@ -211,7 +211,7 @@ public class SubmitDailyCloseUseCaseTest
                 ResourcesErrorMessages.DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS)));
         var useCase = CreateUseCase(ctx);
 
-        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(ctx.DailyClose.Id));
+        var exception = await Should.ThrowAsync<ConflictException>(() => Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_OUTSTANDING_DRAFT_TRANSACTIONS);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
@@ -236,7 +236,7 @@ public class SubmitDailyCloseUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<TokenWithoutPermissionException>(() =>
-            useCase.Execute(ctx.DailyClose.Id));
+            Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.TRANSACTION_UPDATE_REQUIRES_SAME_DAY);
         await ctx.CashVarianceCalculator.DidNotReceiveWithAnyArgs()
@@ -253,7 +253,7 @@ public class SubmitDailyCloseUseCaseTest
         var useCase = CreateUseCase(ctx);
 
         var exception = await Should.ThrowAsync<ConflictException>(() =>
-            useCase.Execute(ctx.DailyClose.Id));
+            Submit(useCase, ctx));
 
         exception.Message.ShouldBe(ResourcesErrorMessages.DAILYCLOSE_ITEMS_NOT_RECORDED);
         await ctx.DailyCloseLedgerGuard.DidNotReceiveWithAnyArgs()
@@ -287,7 +287,7 @@ public class SubmitDailyCloseUseCaseTest
             .Build();
         var useCase = CreateUseCase(ctx);
 
-        await useCase.Execute(ctx.DailyClose.Id);
+        await Submit(useCase, ctx);
 
         await ctx.DailyClosesRepository.Received(1)
             .GetCountedPredecessorAsNoTracking(Arg.Any<DailyClose>(), Arg.Any<CancellationToken>());
@@ -295,6 +295,67 @@ public class SubmitDailyCloseUseCaseTest
             .GetByBranchIdAsNoTracking(ctx.BranchUser.BranchId, Arg.Any<CancellationToken>());
         await ctx.CashVarianceCalculator.Received(1)
             .CalculateWithOpeningAsync(Arg.Any<DailyClose>(), Arg.Any<ResolvedSessionOpening>(), ctx.CashVarianceProductId, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRecordConfirmedAttemptAsOfficialSnapshot()
+    {
+        var ctx = BuildContext(Role.Member);
+        var useCase = CreateUseCase(ctx);
+
+        await Submit(useCase, ctx);
+
+        ctx.DailyClose.SubmittedAttemptId.ShouldBe(SessionTestServices.AttemptIdFor(ctx.DailyClose));
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRefuse_WhenTheNamedAttemptIsNotTheLatest()
+    {
+        var ctx = BuildContext(Role.Member);
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => Submit(useCase, ctx, attemptId: Guid.NewGuid()));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.SESSION_CONFIRMATION_NOT_CURRENT);
+        ctx.DailyClose.Status.ShouldBe(DailyCloseStatus.Draft);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRefuse_WhenTheLedgerChangedAfterConferir()
+    {
+        var ctx = BuildContext(Role.Member);
+        var useCase = CreateUseCase(ctx);
+        var conferredLedgerRevision = ctx.DailyClose.LedgerRevision;
+        var attemptId = SessionTestServices.AttemptIdFor(ctx.DailyClose);
+        var stale = SessionTestServices.CurrentAttempt(ctx.DailyClose, ctx.ComputedVariance);
+        ctx.DailyClose.LedgerRevision++;
+
+        var exception = await Should.ThrowAsync<ConflictException>(() =>
+            Submit(useCase, ctx, attemptId: attemptId, ledgerRevision: conferredLedgerRevision));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.SESSION_CONFIRMATION_NOT_CURRENT);
+        stale.LedgerRevision.ShouldBe(conferredLedgerRevision);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldRefuse_WhenTheVersionIsStale()
+    {
+        var ctx = BuildContext(Role.Member);
+        var useCase = CreateUseCase(ctx);
+        ctx.DailyClose.LastAttemptNumber = 1;
+
+        var exception = await Should.ThrowAsync<ConflictException>(() => useCase.Execute(
+            ctx.DailyClose.Id,
+            new server.Communication.Requests.RequestSubmitSessionJson
+            {
+                AttemptId = SessionTestServices.AttemptIdFor(ctx.DailyClose)
+            },
+            ctx.DailyClose.Version + 1));
+
+        exception.Message.ShouldBe(ResourcesErrorMessages.SESSION_STALE_WRITE);
+        await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
     private static SubmitDailyCloseUseCase CreateUseCase(TestContext ctx)
@@ -321,7 +382,32 @@ public class SubmitDailyCloseUseCaseTest
             ctx.DailyCloseLedgerGuard,
             ctx.DailyCloseLedgerCoordination,
             SessionTestServices.OpeningResolver(ctx.DailyClosesRepository, ctx.CashVarianceProductResolver),
+            SessionTestServices.CurrentAttemptCountService(
+                () => ctx.DailyClose,
+                ctx.ComputedVariance,
+                ctx.CashVarianceProductResolver,
+                ctx.DailyClosesRepository),
             ctx.UnitOfWork);
+    }
+
+    // The ordinary Conferir → Submit path: the session's latest attempt is current and named with its revisions.
+    private static Task<server.Communication.Responses.ResponseDailyCloseJson> Submit(
+        SubmitDailyCloseUseCase useCase,
+        TestContext ctx,
+        Guid? attemptId = null,
+        long? ledgerRevision = null)
+    {
+        ctx.DailyClose.LastAttemptNumber = 1;
+        return useCase.Execute(
+            ctx.DailyClose.Id,
+            new server.Communication.Requests.RequestSubmitSessionJson
+            {
+                AttemptId = attemptId ?? SessionTestServices.AttemptIdFor(ctx.DailyClose),
+                CountRevision = ctx.DailyClose.CountRevision,
+                LedgerRevision = ledgerRevision ?? ctx.DailyClose.LedgerRevision,
+                OpeningRevision = ctx.DailyClose.OpeningRevision
+            },
+            ctx.DailyClose.Version);
     }
 
     private static TestContext BuildContext(

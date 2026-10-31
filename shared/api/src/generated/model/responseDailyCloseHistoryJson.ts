@@ -6,6 +6,7 @@
  */
 import type { ResponseDailyCloseHistoryEventJson } from './responseDailyCloseHistoryEventJson';
 import type { ResponseDailyCloseOpeningSourceJson } from './responseDailyCloseOpeningSourceJson';
+import type { ResponseSessionCountAttemptJson } from './responseSessionCountAttemptJson';
 import type { ResponseSessionEventJson } from './responseSessionEventJson';
 import type { ResponseSessionHandoverJson } from './responseSessionHandoverJson';
 
@@ -17,4 +18,6 @@ export interface ResponseDailyCloseHistoryJson {
   custodyEvents: ResponseSessionEventJson[];
   handovers: ResponseSessionHandoverJson[];
   isCustodyHistoryComplete: boolean;
+  /** @nullable */
+  countAttempts?: ResponseSessionCountAttemptJson[] | null;
 }

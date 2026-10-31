@@ -51,14 +51,12 @@ public class DailyCloseControllerOpeningInflowsHappyPathTest(ServerWebApplicatio
             (await replay.ReadContentAsync<ResponseCreateTransactionJson>()).Id.ShouldBe(payload.Id);
         }
         var items = new[] { new RequestUpsertDailyCloseItemJson { ProductId = cash.Id, Value = 1_470m } };
-        var preview = await _client.PostAuthAsync($"/session/{close.Id}/variance-preview",
-            new RequestDailyCloseVariancePreviewJson { Items = items }, token);
-        preview.StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await preview.ReadContentAsync<ResponseDailyCloseVariancePreviewJson>()).CashVariance.ShouldBe(0m);
+        var current = await _client.TryGetSessionAsync(close.Id, token);
         var save = await _client.PutAuthAsync($"/session/{close.Id}/items",
-            new VersionedRequestPutDailyCloseItemsJson { Version = close.Version, Items = items }, token);
+            new VersionedRequestPutDailyCloseItemsJson { Version = current!.Version, Items = items }, token);
         save.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var submit = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        (await _client.ConferAsync(close.Id, token)).Attempt.Difference.ShouldBe(0m);
+        var submit = await _client.SubmitSessionAsync(close.Id, token);
         submit.StatusCode.ShouldBe(HttpStatusCode.OK, await submit.Content.ReadAsStringAsync());
         var review = await _client.GetAuthAsync($"/session/{close.Id}/review", token);
         var reviewed = await review.ReadContentAsync<ResponseDailyCloseReviewJson>();

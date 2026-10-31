@@ -117,7 +117,7 @@ public class DailyCloseControllerPutItemsHappyPathTest(ServerWebApplicationFacto
         putPayload.Notes.ShouldBe(notes);
         putPayload.Version.ShouldNotBe(close.Version);
 
-        var submitResponse = await _client.PostAuthAsync($"/session/{close.Id}/submit", token);
+        var submitResponse = await _client.SubmitSessionAsync(close.Id, token);
         submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var submitted = await submitResponse.ReadContentAsync<ResponseDailyCloseJson>();
         submitted.Notes.ShouldBe(notes);

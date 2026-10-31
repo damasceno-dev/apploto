@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using server.Application.Services.DailyCloses;
 using server.Application.Services.Idempotency;
 using server.Application.Services.Settings;
@@ -23,6 +24,7 @@ public class CreateTransactionUseCase(
     LockDateGuard lockDateGuard,
     FiadoPhysicalPairService fiadoPhysicalPairService,
     IAccountsRepository accountsRepository,
+    SessionRevisionService sessionRevisions,
     IUnitOfWork unitOfWork)
 {
     private const string IdempotencyEndpoint = "POST /transaction";
@@ -124,6 +126,10 @@ public class CreateTransactionUseCase(
         await transactionsRepository.Add(transaction, ct);
         if (counterpart is not null)
             await transactionsRepository.Add(counterpart, ct);
+        await sessionRevisions.RecordLedgerChange(
+            createContext.BranchUser.BranchId,
+            new[] { transaction, counterpart }.OfType<Transaction>().Where(row => row.Status == TransactionStatus.Active),
+            ct);
         await unitOfWork.Commit(ct);
         var response = transaction.ToCreateResponse();
         response.GeneratedTransactionId = counterpart?.Id;

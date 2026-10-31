@@ -104,6 +104,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
     public async Task Coordination_ShouldPreventSilentlyStaleSubmittedVariance_WhenCreateRacesSubmit()
     {
         var context = await SeedRaceContextAsync("DcCoordSubmitRace", DailyCloseStatus.Draft);
+        var confirmed = (await factory.CreateClient().ConferAsync(context.CloseId, context.Token)).Session;
         await using var heldLock = await HoldCoordinationLockAsync(
             context.BranchId,
             context.AccountId);
@@ -115,17 +116,23 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             BuildCreateRequest(context, 25m),
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
-        var submitTask = workflowClient.PostAuthAsync(
-            $"/session/{context.CloseId}/submit",
-            context.Token);
+        var submitTask = workflowClient.PostSubmitAsync(confirmed, context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
         await heldLock.ReleaseAndAssertWaitWithinAsync(GrantOrderLockTimeout);
         var mutationResponse = await mutationTask;
         var submitResponse = await submitTask;
 
-        submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        // The create changed the ledger after Conferir: the queued submit refuses the stale attempt instead of
+        // submitting a silently stale variance, and the unchanged count is confirmed against the new ledger.
         mutationResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        submitResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await submitResponse.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldBe([ResourcesErrorMessages.SESSION_CONFIRMATION_NOT_CURRENT]);
+        (await factory.ReloadAsync<DailyClose>(context.CloseId))!.Status.ShouldBe(DailyCloseStatus.Draft);
+        using var client = factory.CreateClient();
+        var reconfirmed = await client.ConferAsync(context.CloseId, context.Token, confirmStillObserved: true);
+        (await client.PostSubmitAsync(reconfirmed.Session, context.Token)).StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var persistedClose = await factory.ReloadAsync<DailyClose>(context.CloseId);
         persistedClose.ShouldNotBeNull();
@@ -151,9 +158,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             BuildCreateRequest(context, 25m),
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
-        var approveTask = workflowClient.PostAuthAsync(
-            $"/session/{context.CloseId}/approve",
-            context.Token);
+        var approveTask = workflowClient.ApproveAsSingleManagerAsync(context.CloseId, context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
         await heldLock.ReleaseAndAssertWaitWithinAsync(GrantOrderLockTimeout);
@@ -178,13 +183,12 @@ public class DailyCloseControllerCoordinationHappyPathTest(
     public async Task Coordination_ShouldFreezeQueuedMutation_WhenSubmitWinsTheGrantOrder()
     {
         var context = await SeedRaceContextAsync("DcCoordSubmitFirstRace", DailyCloseStatus.Draft);
+        var confirmed = (await factory.CreateClient().ConferAsync(context.CloseId, context.Token)).Session;
         await using var heldLock = await HoldCoordinationLockAsync(context.BranchId, context.AccountId);
         using var grantOrderFactory = CreateGrantOrderFactory();
         using var submitClient = grantOrderFactory.CreateClient();
         using var mutationClient = grantOrderFactory.CreateClient();
-        var submitTask = submitClient.PostAuthAsync(
-            $"/session/{context.CloseId}/submit",
-            context.Token);
+        var submitTask = submitClient.PostSubmitAsync(confirmed, context.Token);
         await heldLock.WaitForWaitersAsync(1);
         var mutationTask = mutationClient.PostAuthAsync(
             "/transaction",
@@ -241,12 +245,11 @@ public class DailyCloseControllerCoordinationHappyPathTest(
     public async Task Coordination_ShouldTranslateWrappedSaveLockTimeout_WithoutPartialSubmit_ThenRetryCleanly()
     {
         var context = await SeedRaceContextAsync("DcCoordWrappedTimeout", DailyCloseStatus.Draft);
-        await using var heldRowLock = await HoldDailyCloseRowLockAsync(context.CloseId);
         using var client = factory.CreateClient();
+        var confirmed = (await client.ConferAsync(context.CloseId, context.Token)).Session;
+        await using var heldRowLock = await HoldDailyCloseRowLockAsync(context.CloseId);
 
-        var blockedResponse = await client.PostAuthAsync(
-            $"/session/{context.CloseId}/submit",
-            context.Token);
+        var blockedResponse = await client.PostSubmitAsync(confirmed, context.Token);
 
         blockedResponse.StatusCode.ShouldBe(HttpStatusCode.Conflict);
         var error = await blockedResponse.ReadContentAsync<TestResponseErrorJson>();
@@ -259,9 +262,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         itemsBeforeRetry.ShouldNotContain(item => item.ProductId == context.CashVarianceProductId);
 
         await heldRowLock.ReleaseAsync();
-        var retry = await client.PostAuthAsync(
-            $"/session/{context.CloseId}/submit",
-            context.Token);
+        var retry = await client.PostSubmitAsync(confirmed, context.Token);
         retry.StatusCode.ShouldBe(HttpStatusCode.OK, await retry.Content.ReadAsStringAsync());
         (await factory.ReloadAsync<DailyClose>(context.CloseId))!.Status.ShouldBe(DailyCloseStatus.Submitted);
     }
@@ -344,6 +345,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
     public async Task Coordination_ShouldUseCorrectedPriorCount_WhenPriorSaveWinsLaterSubmitRace()
     {
         var context = await SeedChainRaceContextAsync("DcCoordPriorSubmit");
+        var confirmed = (await factory.CreateClient().ConferAsync(context.SuccessorId, context.Token)).Session;
         await using var heldLock = await HoldCoordinationLockAsync(context.BranchId, context.AccountId);
         using var grantOrderFactory = CreateGrantOrderFactory();
         using var priorClient = grantOrderFactory.CreateClient();
@@ -364,14 +366,20 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             },
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
-        var submitTask = submitClient.PostAuthAsync(
-            $"/session/{context.SuccessorId}/submit",
-            context.Token);
+        var submitTask = submitClient.PostSubmitAsync(confirmed, context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
         await heldLock.ReleaseAndAssertWaitWithinAsync(GrantOrderLockTimeout);
         (await priorTask).StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await submitTask).StatusCode.ShouldBe(HttpStatusCode.OK);
+        // The corrected predecessor moved the successor's inherited opening after Conferir: the queued submit refuses
+        // the stale attempt, and the unchanged successor count is confirmed against the corrected opening.
+        var staleSubmit = await submitTask;
+        staleSubmit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await staleSubmit.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldBe([ResourcesErrorMessages.SESSION_CONFIRMATION_NOT_CURRENT]);
+        using var client = factory.CreateClient();
+        var reconfirmed = await client.ConferAsync(context.SuccessorId, context.Token, confirmStillObserved: true);
+        (await client.PostSubmitAsync(reconfirmed.Session, context.Token)).StatusCode.ShouldBe(HttpStatusCode.OK);
         var items = await factory.ListDailyCloseItemsByDailyCloseIdAsync(context.SuccessorId);
         items.Single(item => item.ProductId == context.CashVarianceProductId).Value.ShouldBe(-40m);
     }
@@ -425,6 +433,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
         var context = await SeedChainRaceContextAsync(
             "DcCoordFirstCountSubmit",
             predecessorCounted: false);
+        var confirmed = (await factory.CreateClient().ConferAsync(context.SuccessorId, context.Token)).Session;
         await using var heldLock = await HoldCoordinationLockAsync(context.BranchId, context.AccountId);
         using var grantOrderFactory = CreateGrantOrderFactory();
         using var countClient = grantOrderFactory.CreateClient();
@@ -438,14 +447,20 @@ public class DailyCloseControllerCoordinationHappyPathTest(
             },
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
-        var submitTask = submitClient.PostAuthAsync(
-            $"/session/{context.SuccessorId}/submit",
-            context.Token);
+        var submitTask = submitClient.PostSubmitAsync(confirmed, context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
         await heldLock.ReleaseAndAssertWaitWithinAsync(GrantOrderLockTimeout);
         (await countTask).StatusCode.ShouldBe(HttpStatusCode.OK);
-        (await submitTask).StatusCode.ShouldBe(HttpStatusCode.OK);
+        // The first count makes the predecessor the successor's inherited opening source: a new opening revision, so
+        // the queued submit refuses the attempt confirmed before it, and a re-confirmation submits.
+        var staleSubmit = await submitTask;
+        staleSubmit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await staleSubmit.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldBe([ResourcesErrorMessages.SESSION_CONFIRMATION_NOT_CURRENT]);
+        using var client = factory.CreateClient();
+        var reconfirmed = await client.ConferAsync(context.SuccessorId, context.Token, confirmStillObserved: true);
+        (await client.PostSubmitAsync(reconfirmed.Session, context.Token)).StatusCode.ShouldBe(HttpStatusCode.OK);
         var predecessor = await factory.ReloadAsync<DailyClose>(context.PredecessorId);
         predecessor.ShouldNotBeNull();
         predecessor.ItemsFirstRecordedAt.ShouldNotBeNull();
@@ -473,9 +488,7 @@ public class DailyCloseControllerCoordinationHappyPathTest(
                 .Build(),
             context.Token);
         await heldLock.WaitForWaitersAsync(1);
-        var submitTask = submitClient.PostAuthAsync(
-            $"/session/{context.SuccessorId}/submit",
-            context.Token);
+        var submitTask = submitClient.SubmitSessionAsync(context.SuccessorId, context.Token);
 
         await heldLock.WaitForWaitersAsync(2);
         await heldLock.ReleaseAndAssertWaitWithinAsync(GrantOrderLockTimeout);
