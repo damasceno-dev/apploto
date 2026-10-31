@@ -15,6 +15,9 @@ const families = [
   '/relatorios',
 ];
 const parameters = new Set([
+  'mine',
+  'inProgress',
+  'inProgressFirst',
   'date',
   'from',
   'to',

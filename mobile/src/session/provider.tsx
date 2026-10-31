@@ -151,7 +151,12 @@ function ScopeBoundary({ engine, children }: { engine: SessionEngine; children: 
       void query
         .cancelQueries()
         .catch(() => undefined)
-        .then(() => query.clear());
+        .then(() => {
+          // MutationCache.clear removes entries without destroying their GC timers.
+          // Child observers have unsubscribed by this microtask, so dispose those timers too.
+          for (const mutation of query.getMutationCache().getAll()) mutation.destroy();
+          query.clear();
+        });
     },
     [query, client],
   );

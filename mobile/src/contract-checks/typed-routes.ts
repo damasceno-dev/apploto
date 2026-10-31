@@ -48,6 +48,7 @@ const catalogRoutes: readonly Href[] = [
   '/gestao/operadores',
   '/gestao/ponto/banco-de-horas',
   '/gestao/ponto',
+  { pathname: '/gestao/ponto/[id]', params: { id: '20000000-0000-4000-8000-000000000001' } },
   '/gestao/produtos',
   '/invitation',
   '/plataforma',

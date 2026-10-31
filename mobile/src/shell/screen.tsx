@@ -7,7 +7,13 @@ import {
   type ReactNode,
 } from 'react';
 import { BackHandler, Keyboard, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams, usePathname, useRouter } from 'expo-router';
+import {
+  useFocusEffect,
+  useIsFocused,
+  useLocalSearchParams,
+  usePathname,
+  useRouter,
+} from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useGetBranchMyBranches } from '@loto/api/queries';
 import { formatWallDateTime, roleLabels } from '@loto/core';
@@ -17,12 +23,14 @@ import { loginForm } from './login';
 import { sessionGate, platformGate } from '@/session/gate';
 import { useOptionalSession, useSession, useScopedApiClient } from '@/session/provider';
 import { useTheme } from '@/theme/provider';
-import { isCompact, spacing } from '@/theme/style';
+import { isCompact, spacing, layer } from '@/theme/style';
 import { AppText, Button, EmptyState, Notice, Overlay, PageHeader, Skeleton } from '@/ui';
 import { ScreenScroll } from '@/ui/screen';
 import { FocusRing, PressableBox, useFocusState } from '@/ui/focus';
 import { BranchPicker, IdentitySheet, PasswordLogin } from './entry';
 import { SessionMenu } from './menu';
+import { validateTimeResource } from '@/time/resources';
+import { TimeSurface, isTimeSurface } from '@/time/surface';
 import {
   destinations,
   canEnter,
@@ -40,7 +48,13 @@ const DevelopmentTools = __DEV__ ? require('../probes/entry-tools').DevelopmentT
 
 export function MobileScreen() {
   const optional = useOptionalSession();
-  return optional ? <GuardedScreen /> : <DevelopmentTools />;
+  return optional ? <FocusedRoute /> : <DevelopmentTools />;
+}
+function FocusedRoute() {
+  // usePathname is global, while local params belong to a particular native stack entry.
+  // An outgoing/background entry must never interpret the new route with its old params.
+  const focused = useIsFocused();
+  return focused ? <GuardedScreen /> : null;
 }
 function GuardedScreen() {
   const { engine, snapshot, navigation } = useSession();
@@ -61,6 +75,28 @@ function GuardedScreen() {
   const picker = path === '/filiais';
   const identityRoute = identityAvailability || picker;
   const gate = sessionGate(snapshot, identityRoute ? 'identity' : 'branch');
+  const needsSelfContext =
+    entry?.owner === 'shift' || (entry?.owner === 'shared' && shell.mode === 'shift');
+  // Presentation filters/focus do not change the authority or identity of a resource editor.
+  const verificationKey = JSON.stringify([
+    snapshot.scope,
+    path,
+    params.branchId ?? null,
+    needsSelfContext,
+  ]);
+  const keepTimeView = Boolean(
+    entry &&
+    isTimeSurface(entry.key) &&
+    canEnter(entry, snapshot.branch?.role ?? 'Member') &&
+    verifiedEntry === verificationKey &&
+    snapshot.user &&
+    snapshot.branch &&
+    snapshot.clock &&
+    !['starting', 'anonymous', 'identity', 'closing'].includes(snapshot.status),
+  );
+  const pauseTimeView =
+    keepTimeView &&
+    (gate !== 'allow' || snapshot.selfStatus === 'checking' || snapshot.selfStatus === 'idle');
   useEffect(() => {
     if (
       !entry ||
@@ -102,11 +138,10 @@ function GuardedScreen() {
       if (gate === 'allow' && (entry || identityRoute)) {
         void engine
           .verifyEntry({
-            selfContext:
-              entry?.owner === 'shift' || (entry?.owner === 'shared' && shell.mode === 'shift'),
+            selfContext: needsSelfContext,
           })
           .then(() => {
-            if (active) setVerifiedEntry(address);
+            if (active) setVerifiedEntry(verificationKey);
           })
           .catch(() => {
             if (active) setIntentFailure(true);
@@ -115,7 +150,7 @@ function GuardedScreen() {
       return () => {
         active = false;
       };
-    }, [engine, address, entry, identityRoute, gate, shell.mode]),
+    }, [engine, verificationKey, entry, identityRoute, gate, needsSelfContext]),
   );
   useEffect(() => {
     if (gate !== 'allow' || !snapshot.branch || !shell.ready || !['/', '/entrar'].includes(path))
@@ -126,7 +161,11 @@ function GuardedScreen() {
       .resolve(async (candidate) => {
         const target = matchDestination(candidate.split('?')[0]!);
         // Resource restoration waits for its feature-owned live resource validator.
-        return !!target && !target.path.includes(':id') && canEnter(target, snapshot.branch!.role);
+        return (
+          !!target &&
+          canEnter(target, snapshot.branch!.role) &&
+          (!target.path.includes(':id') || (await validateTimeResource(engine, candidate)))
+        );
       })
       .then(async (intent) => {
         if (!active || engine.getSnapshot().scope !== scope) return;
@@ -169,13 +208,13 @@ function GuardedScreen() {
   if (choice.pending !== null && snapshot.user) return <BranchPicker menu={null} />;
   if (gate === 'branch') return <BranchPicker menu={<SessionMenu />} />;
   if (snapshot.status === 'starting' && loginForm(engine).get().pending) return <PasswordLogin />;
-  if (gate === 'loading' || snapshot.status === 'starting')
+  if ((gate === 'loading' || snapshot.status === 'starting') && !keepTimeView)
     return (
       <IdentitySheet title={snapshot.status === 'closing' ? 'Saindo…' : 'Verificando sessão…'}>
         <Skeleton />
       </IdentitySheet>
     );
-  if (gate === 'recovery')
+  if (gate === 'recovery' && !keepTimeView)
     return (
       <IdentitySheet title="Verifique sua sessão">
         <Notice
@@ -188,7 +227,7 @@ function GuardedScreen() {
         <SessionMenu />
       </IdentitySheet>
     );
-  if ((entry || identityRoute) && gate === 'allow' && verifiedEntry !== address)
+  if ((entry || identityRoute) && gate === 'allow' && verifiedEntry !== verificationKey)
     return (
       <IdentitySheet title="Verificando destino…">
         <Skeleton />
@@ -279,7 +318,11 @@ function GuardedScreen() {
       }
     />
   );
-  if (ownShift && (snapshot.selfStatus === 'checking' || snapshot.selfStatus === 'idle'))
+  if (
+    ownShift &&
+    !keepTimeView &&
+    (snapshot.selfStatus === 'checking' || snapshot.selfStatus === 'idle')
+  )
     return (
       <BranchFrame title={entry.title}>
         {header}
@@ -288,7 +331,7 @@ function GuardedScreen() {
     );
   const linked = Boolean(snapshot.selfContext?.operatorId);
   return (
-    <BranchFrame title={entry.title}>
+    <BranchFrame title={entry.title} sessionPaused={pauseTimeView}>
       {intentFailure ? (
         <Notice
           kind="warning"
@@ -305,7 +348,11 @@ function GuardedScreen() {
             <Button label="Verificar novamente" onPress={() => void engine.recheckSelfContext()} />
           }
         />
-      ) : ownShift && !linked ? (
+      ) : ownShift &&
+        !linked &&
+        !(
+          snapshot.branch.role === 'Member' && ['my-transactions', 'my-hours'].includes(entry.key)
+        ) ? (
         <>
           <EmptyState
             kind="setup-needed"
@@ -345,7 +392,17 @@ function GuardedScreen() {
               body="Peça à administração da filial para conferir as contas atribuídas."
             />
           ) : null}
-          <Availability title={entry.title.toLowerCase()} />
+          <>
+            {isTimeSurface(entry.key) ? (
+              <TimeSurface
+                key={entry.key === 'time-detail' ? path : address}
+                destination={entry.key}
+                preserveVerifiedView={keepTimeView}
+              />
+            ) : (
+              <Availability title={entry.title.toLowerCase()} />
+            )}
+          </>
         </>
       )}
     </BranchFrame>
@@ -360,7 +417,15 @@ export function Availability({ title }: { title: string }) {
     />
   );
 }
-function BranchFrame({ title, children }: { title: string; children: ReactNode }) {
+function BranchFrame({
+  title,
+  children,
+  sessionPaused = false,
+}: {
+  title: string;
+  children: ReactNode;
+  sessionPaused?: boolean;
+}) {
   const { snapshot, engine, store } = useSession();
   const shell = useShell();
   const { colors, width, fontScale } = useTheme();
@@ -368,7 +433,10 @@ function BranchFrame({ title, children }: { title: string; children: ReactNode }
   const client = useScopedApiClient();
   const branches = useGetBranchMyBranches({
     request: { client },
-    query: { enabled: true, retry: false },
+    query: {
+      enabled: snapshot.status === 'branch' && snapshot.online && snapshot.foreground,
+      retry: false,
+    },
   });
   const [drawer, setDrawer] = useState(false);
   const [more, setMore] = useState(false);
@@ -392,6 +460,10 @@ function BranchFrame({ title, children }: { title: string; children: ReactNode }
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (sessionPaused) {
+          Keyboard.dismiss();
+          return true;
+        }
         if (Keyboard.isVisible()) {
           Keyboard.dismiss();
           return true;
@@ -408,7 +480,7 @@ function BranchFrame({ title, children }: { title: string; children: ReactNode }
         return false;
       });
       return () => sub.remove();
-    }, [path, drawer, shell]),
+    }, [path, drawer, shell, sessionPaused]),
   );
   const alerts = [
     ...(snapshot.recovery || snapshot.selfStatus === 'failed'
@@ -483,11 +555,16 @@ function BranchFrame({ title, children }: { title: string; children: ReactNode }
               {title}
             </AppText>
           )}
-          <SessionMenu />
+          <SessionMenu suspended={sessionPaused} />
         </View>
         {stackedHeader ? <AppText variant="label">{title}</AppText> : null}
       </View>
       <ScreenScroll
+        testID="branch-content"
+        style={{ opacity: sessionPaused ? 0 : 1 }}
+        pointerEvents={sessionPaused ? 'none' : 'auto'}
+        accessibilityElementsHidden={sessionPaused}
+        importantForAccessibility={sessionPaused ? 'no-hide-descendants' : 'auto'}
         contentContainerStyle={{ padding: spacing.page['inline-compact'], gap: spacing.stack.md }}
       >
         {(more ? alerts : alerts.slice(0, 2)).map((alert) => (
@@ -523,8 +600,41 @@ function BranchFrame({ title, children }: { title: string; children: ReactNode }
         ) : null}
         {children}
       </ScreenScroll>
+      {sessionPaused ? (
+        <View
+          testID="time-session-pause"
+          accessibilityViewIsModal
+          style={{
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: layer.dialog,
+            backgroundColor: colors.sem.background,
+            padding: spacing.inset.panel,
+            gap: spacing.stack.md,
+            justifyContent: 'center',
+          }}
+        >
+          <AppText variant="section-title">
+            {snapshot.status === 'recovering' ? 'Verificando sessão…' : 'Verifique sua sessão'}
+          </AppText>
+          {snapshot.status === 'recovering' || snapshot.selfStatus === 'checking' ? (
+            <Skeleton label="Verificando seu acesso…" />
+          ) : (
+            <Notice
+              kind="warning"
+              title={snapshot.recovery ?? 'Sua sessão precisa ser verificada.'}
+              messages={snapshot.messages}
+              actions={<Button label="Verificar sessão" onPress={() => void engine.recover()} />}
+            />
+          )}
+          <SessionMenu />
+        </View>
+      ) : null}
       <Overlay
-        visible={drawer}
+        visible={drawer && !sessionPaused}
         title="Menu"
         variant="drawer"
         returnFocus={trigger}
@@ -581,7 +691,7 @@ function BranchFrame({ title, children }: { title: string; children: ReactNode }
             );
           })}
         </View>
-        <SessionMenu />
+        <SessionMenu suspended={sessionPaused} />
       </Overlay>
     </SafeAreaView>
   );

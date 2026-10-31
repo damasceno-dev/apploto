@@ -128,5 +128,58 @@
   "OperatorLinkRequestStatus": {
     "Pending": "Pendente",
     "Resolved": "Resolvida"
+  },
+  "SessionCustodyState": {
+    "Active": "Em custódia",
+    "HandedOver": "Passado adiante",
+    "Finished": "Encerrado"
+  },
+  "SessionMappingState": {
+    "Ready": "Resolvido",
+    "Unresolved": "Histórico não resolvido"
+  },
+  "SessionOrigin": {
+    "Started": "Iniciado no caixa",
+    "HandoverAccepted": "Recebido em passagem",
+    "ManagerException": "Iniciado pelo gerente (exceção)",
+    "ManagerDeclared": "Declarado pelo gerente",
+    "Migrated": "Migrado do sistema anterior"
+  },
+  "SessionOpeningSourceKind": {
+    "ExplicitZero": "Abertura zerada confirmada",
+    "OpeningCount": "Saldo de implantação",
+    "PreviousSession": "Turno anterior",
+    "ImportedSession": "Turno importado"
+  },
+  "SessionHandoverState": {
+    "Offered": "Oferecida",
+    "Accepted": "Aceita",
+    "Disputed": "Contestada",
+    "Withdrawn": "Retirada"
+  },
+  "OpeningDiscrepancyAttribution": {
+    "Unattributed": "Não atribuída",
+    "Outgoing": "Operador que entregou",
+    "Incoming": "Operador que recebeu",
+    "Neither": "Nenhum dos dois"
+  },
+  "CustodyExceptionAction": {
+    "Finish": "Encerrar o turno",
+    "AcceptAndStart": "Passar o caixa ao operador"
+  },
+  "SessionEventKind": {
+    "SessionStarted": "Turno iniciado",
+    "OpeningAcknowledged": "Abertura conferida",
+    "OpeningDiscrepancyOpened": "Diferença de abertura registrada",
+    "OpeningDiscrepancyRevised": "Diferença de abertura revisada",
+    "HandoverOffered": "Passagem oferecida",
+    "HandoverAccepted": "Passagem aceita",
+    "HandoverDisputed": "Passagem contestada",
+    "HandoverWithdrawn": "Passagem retirada",
+    "SessionFinished": "Turno encerrado",
+    "CustodyExceptionResolved": "Exceção de custódia resolvida",
+    "SessionDeclared": "Turno declarado",
+    "SessionRearranged": "Turno reposicionado",
+    "AttributionRecorded": "Diferença atribuída"
   }
 }

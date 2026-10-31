@@ -344,7 +344,61 @@ Every branch destination below passes the common authority gate before its avail
 
 ## Milestone 9 — Time & Self-Service
 
-**Scope and gates:** as Web M9.
+**Status (2026-10-30):** implementation and local native verification complete in `paralell/app`, starting from `2301ad1`. External acceptance remains pending. M9 can precede M5–M8 under Web M9's dependency note. Ownership is mobile runtime, tests and disposable tooling only.
+
+**Sources:** [catalog](../../design/docs/screens.md#clock-in--out), [blueprint](../../design/specs/screens/time-and-self-service.md), actual `TimeEntryController`, upsert/segment use cases, report resolvers and committed generated API. `src/time/` owns presentation/request safeguards; M4 retains session/route authority.
+
+### Phase 1 — contracts, states and routing
+
+- [x] **1.1** Inspect current checkout, owning contracts and M2–M4 navigation/session boundaries. Member tap uses Action; elevated writes use Segments. Lists have no segment fields; fresh details supply them. No time-write ETag/If-Match or financial idempotency header exists.
+- [x] **1.2** Guard all four catalog surfaces and native detail before reads; preserve validated periods, filters and nested origins, including resource restoration.
+- [x] **1.3** Verify role/context matrix, list pagination/order and the exact server span limit `DateTo − DateFrom ≤ 366` with inclusive endpoints. Member summary without link/accounts returns empty; balance without link returns no operators. Elevated summary requires mine or explicit operator; elevated balance with neither is team.
+
+### Phase 2 — Member Ponto
+
+- [x] **2.1** Branch-local today, linked identity, list totals/status plus detail pairs; explicit yesterday Close versus today Open; suppress pending duplicates.
+- [x] **2.2** Foreground/day freshness, verbatim refusal and uncertain-outcome reread/review, including retained original date/action across restart and rollover; monotonic display-only elapsed time without live announcements.
+
+### Phase 3 — manager attendance
+
+- [x] **3.1** Current-month server-paged list with operator/status/mine/in-progress filters and in-progress-first; full-screen detail and return context.
+- [x] **3.2** Day snapshot/status/new segments, granular edit/remove and confirmed whole-day removal. Retain active IDs; existing ClockIn is readonly in snapshot. No omission-as-delete. A confirmed create retires the outgoing form while canonical detail waits for its first fresh read.
+- [x] **3.3** Locked-day read-only reason, audit identities, scoped retained input, stale/unknown outcome review. Fresh preflight is advisory, not an atomic concurrency guarantee. Acknowledgement/reread/navigation failures after success retain the confirmed receipt and require local reconciliation, never a failed-write label or replay.
+
+### Phase 4 — transaction summary
+
+- [x] **4.1** Own and explicit manager operator requests, server totals/category/generated subsets, inactive and empty states, neutral recorded-volume copy.
+- [x] **4.2** Source-supplied window and validated return; Ver transações targets guarded M6 availability with mutually exclusive context.
+
+### Phase 5 — period balance
+
+- [x] **5.1** Own/team/operator wrapper, active zero-entry and inactive history as returned, server totals and in-progress notice.
+- [x] **5.2** Exact day trail, Sem registro and per-returned-day target only; no historical Member tap or invented missing-day target. Nested return preserves context.
+
+### Phase 6 — verification
+
+- [x] **6.1** Role/generated-call/provider/UI regression tests for guards, writes, retention, stale/unknown recovery, report semantics, windows and navigation.
+- [x] **6.2** Owned disposable API fixtures and actual iOS/Android journeys with distinct synthetic users; supported API rereads prove writes. Cold entry, lock/refusal/recovery, themes and enlarged text included.
+- [x] **6.3** 31 tooling + 259 Jest/RNTL tests; workspace type/lint/format checks and final mobile rechecks; fresh both-OS production exports with proof flags enabled and exclusion/single-runtime gates.
+
+### Phase 7 — completion
+
+- [x] **7.1** Concise artifact/contract and actual verification notes; honest outstanding criteria and limitations. Proposed unsigned commit message stays in chat.
+- [ ] **7.2 External acceptance:** independent read-only review, physical-device checks and spoken VoiceOver/TalkBack verification are pending; simulator interaction and accessibility-oriented unit tests do not establish them.
+
+**Contract notes:** the catalog already flags canonical §6.7 replace-all wording as stale: shipped snapshots reconcile IDs. Granular correction is PUT despite an older use-case comment saying PATCH. No server/design/generated file is changed by this lane. Month-lock coordination and effective-dated targets remain server-owned.
+
+**Excluded:** M9.8 lifetime carry-over, Pagamento/Ajuste de horas, payroll/employee statement/commission and financial close. Period balance is never labelled lifetime carry-over. Physical-device, spoken VoiceOver/TalkBack and independent acceptance must be reported separately.
+
+**Artifacts:** `src/time/{clock,attempt,management,reports,contracts,resources}.tsx/ts`, guarded `/gestao/ponto/[id]`, and the existing M4 policy/provider/navigation. `test/unit/time-{contracts,ui,router}.test.*` and `test/unit/provider.test.tsx` cover generated calls, authority, branch/foreground fences, unknown/stale recovery, ID/ClockIn invariants, granular/day confirmation, lock/input retention, filters/paging, subsets, exact date boundaries, missing dates and nested origins/focus. The exhaustive native core oracle now covers all 107 public exports and the eight current custody/session label maps; historical M1 counts remain historical. Current native Hermes measurements passed **415/415 cases on each OS**, with their runtime Intl outputs captured outside Git.
+
+**Local verification (2026-10-30):** real iPhone 17 Pro/iOS 26.5 simulator and Lotero_API36/Android 16 emulator, Maestro 2.11.0, existing development app and checkout-local .NET/PostgreSQL stack. Final same-source Manager create→canonical detail→granular correction→new-segment snapshot journeys passed continuously on both OSs with one-minute tokens and at least one successful credential renewal after canonical detail opened. UI assertions and checkpoint API reads agreed on ClockIn 05:45 and 1.25 closed hours; the final snapshot retained the original segment ID and added one new ID. The other OS app was stopped during each renewal measurement. Final native regressions also passed nested team/list/detail returns, manager own-hours return, selected-summary return, separate segment removals, status, whole-day removal and the Member overnight/tap/report return journey. Supported API reads confirmed corrected ClockIn 05:45, retained/new IDs, separate yesterday/today open state for the Android choice, both final closed days, automatic summary subset 2/1, zero-entry/inactive team members, policy-change targets, and deleted-day 404 plus absence from active list/balance. A real locked snapshot returned 409 with its verbatim message and unchanged persisted data. Unknown response/restart recovery is covered through generated transport/provider tests; no native packet-loss experiment is claimed.
+
+Earlier owned cycles exercised both themes and enlarged text on locked screens (iOS XXXL, Android 1.5); font sizes and theme selection were restored. Keyboard-visible editing and overlay confirmations ran natively. Full nested report return passed at the original text size; the enlarged iOS report pass reached day detail and back to the report, with a later automation title/scroll assertion not completing. Captures, native measurements, API rereads and matching before/after runtime-source/server-build/OpenAPI identity are outside Git in the task-local M9 artifacts. Final `dist/m9-lifetime-final` iOS/Android exports used both proof flags; source-map and UTF-8/UTF-16 bytecode exclusion, single React 19.2.3/query context, and actual API/core inclusion gates passed. Real-Router/provider tests hold renewal responses while editing and while a granular write is in flight, preserving the buffer/confirmed receipt without replay. They also cover presentation-only address changes, branch/role rejection, and suspension/restoration of selectors and confirmations without a second native modal; later read failures retain the editor while blocking controls. Scope teardown explicitly disposes mutation-cache GC timers; the complete test command exits without forced exit or shortened cache lifetimes. A separate measured `time-ui` run passed 31 tests and exited with code 0 in 6.55 s. React act and development keyboard/measurement warnings remain observable.
+
+**Reproduction:** start `tooling/native-shell-stack.mjs`, seed with `native-time-fixture.mjs` and `native-time-share.mjs`; the owned-only `native-time-runtime.mjs` preserves the build/database and defaults to one-minute tokens, with readiness checks and route/status-only HTTP logging. An explicit 1–15-minute override supports other experiments; longer tokens do not establish renewal-lifetime behavior. Generate native-touch flows with `native-time-flow.mjs`/`native-time-finish-flow.mjs`, use the observed-IME Android runner, and reread through `native-time-verify.mjs` (`context-matrix`, `overnight-open`, `locked-refusal`, `deleted-days` with pre-delete evidence). All state/output paths are private temporary paths, never repository fixtures. No external provider setup, OS/SDK, native patch, dependency pin or server/generated contract was changed.
+
+**Next action:** independent read-only recheck of the current mobile diff and revised chat-only proposed commit message; retain physical/spoken verification for the device acceptance matrix.
 
 ## Milestone 10 — Admin & Configuration
 

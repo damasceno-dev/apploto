@@ -38,7 +38,7 @@ export async function validateShellNavigation(
     if (!permittedPath(path, role)) return null;
     const route = matchDestination(path.split('?')[0]!)!;
     if (
-      (route.owner !== 'shared' && route.owner !== entry.mode) ||
+      (path === entry.path && route.owner !== 'shared' && route.owner !== entry.mode) ||
       (route.path.includes(':id') && !(await resourceReady(path)))
     )
       return null;
@@ -95,6 +95,9 @@ export function navigationAddress(
   params: Readonly<Record<string, unknown>>,
 ): string {
   const allowed = new Set([
+    'mine',
+    'inProgress',
+    'inProgressFirst',
     'date',
     'from',
     'to',

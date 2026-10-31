@@ -12,7 +12,7 @@ import { useShell, nativeHref } from './provider';
 const DevelopmentTools = __DEV__ ? require('../probes/entry-tools').DevelopmentTools : () => null;
 /* eslint-enable @typescript-eslint/no-require-imports */
 
-export function SessionMenu() {
+export function SessionMenu({ suspended = false }: { suspended?: boolean } = {}) {
   const { engine, snapshot, store } = useSession();
   const client = useScopedApiClient();
   const shell = useShell();
@@ -78,6 +78,7 @@ export function SessionMenu() {
         ref={trigger}
         label="Conta"
         testID="session-menu"
+        disabled={suspended}
         accessibilityLabel={`Conta de ${snapshot.user?.name ?? ''}${snapshot.branch ? `, ${modeLabel}` : ''}`}
         variant="secondary"
         onPress={() => {
@@ -86,7 +87,7 @@ export function SessionMenu() {
         }}
       />
       <Overlay
-        visible={open}
+        visible={open && !suspended}
         title="Sua conta"
         variant="bottom-sheet"
         returnFocus={trigger}

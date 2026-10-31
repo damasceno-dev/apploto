@@ -20,6 +20,7 @@ const mockRouter = {
   canGoBack: () => false,
 };
 jest.mock('expo-router', () => ({
+  useIsFocused: () => true,
   usePathname: () => mockPath,
   useGlobalSearchParams: () => ({}),
   useLocalSearchParams: () => ({}),
