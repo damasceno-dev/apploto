@@ -1,5 +1,12 @@
 import { formatCount, type IdentifierKind } from '@loto/core';
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Pressable, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from '@/theme/provider';
 import { radius, spacing, textStyle } from '@/theme/style';
@@ -10,7 +17,7 @@ import { announce, AppText, Glyph } from './text';
 
 const lineHeight = textStyle('control').lineHeight ?? 24;
 
-export type InputKind = 'text' | 'email' | 'password' | 'textarea' | 'search';
+export type InputKind = 'text' | 'email' | 'password' | 'textarea' | 'search' | 'integer';
 
 export interface FieldControlProps {
   readonly disabled?: boolean;
@@ -182,7 +189,10 @@ export const TextField = forwardRef<InputHandle, TextFieldProps>(function TextFi
         ? { ...passwordProps(passwordRole), secureTextEntry: !revealed }
         : kind === 'search'
           ? { returnKeyType: 'search', autoCorrect: false }
-          : {};
+          : kind === 'integer'
+            ? // Whole numbers (orders, hours/minutes): the field still keeps any typed text verbatim.
+              { keyboardType: 'number-pad', autoCorrect: false, autoCapitalize: 'none' }
+            : {};
   return (
     <View style={{ gap: spacing.stack.xs }}>
       <View style={chrome.container}>
@@ -292,7 +302,15 @@ export const IdentifierInput = forwardRef<InputHandle, IdentifierInputProps>(
     const control = useFieldControl(own);
     const input = useRef<TextInput>(null);
     const selection = useRef<Selection>({ start: value.length, end: value.length });
-    const [controlled, setControlled] = useState<Selection | undefined>(undefined);
+    // The caret is placed imperatively after the masked value commits. A controlled `selection`
+    // prop races iOS text updates during fast typing and could drop digits at a separator.
+    const pendingCaret = useRef<number | null>(null);
+    useLayoutEffect(() => {
+      const caret = pendingCaret.current;
+      if (caret === null) return;
+      pendingCaret.current = null;
+      input.current?.setSelection?.(caret, caret);
+    }, [value]);
     const [focused, setFocused] = useState(false);
     const chrome = useControlChrome({
       focused,
@@ -313,7 +331,6 @@ export const IdentifierInput = forwardRef<InputHandle, IdentifierInputProps>(
           ref={input}
           testID={testID}
           value={value}
-          selection={controlled}
           editable={!control.disabled}
           keyboardType={kind === 'phone' ? 'phone-pad' : kind === 'cnpj' ? 'default' : 'number-pad'}
           autoComplete={kind === 'phone' ? 'tel' : kind === 'cep' ? 'postal-code' : 'off'}
@@ -332,13 +349,12 @@ export const IdentifierInput = forwardRef<InputHandle, IdentifierInputProps>(
           onBlur={() => setFocused(false)}
           onSelectionChange={(event) => {
             selection.current = event.nativeEvent.selection;
-            setControlled(undefined);
           }}
           onChangeText={(raw) => {
             if (control.disabled || control.readOnly) return;
             const next = editIdentifier(kind, value, raw, selection.current);
             selection.current = { start: next.caret, end: next.caret };
-            if (next.text !== raw) setControlled({ start: next.caret, end: next.caret });
+            if (next.text !== raw) pendingCaret.current = next.caret;
             onChangeText(next.text);
           }}
           allowFontScaling

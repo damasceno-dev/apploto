@@ -31,6 +31,8 @@ import { BranchPicker, IdentitySheet, PasswordLogin } from './entry';
 import { SessionMenu } from './menu';
 import { validateTimeResource } from '@/time/resources';
 import { TimeSurface, isTimeSurface } from '@/time/surface';
+import { AdminSurface, isAdminSurface } from '@/admin/surface';
+import { STATEMENT_SETUP, statementAllowed } from '@/admin/clients';
 import {
   destinations,
   canEnter,
@@ -84,9 +86,11 @@ function GuardedScreen() {
     params.branchId ?? null,
     needsSelfContext,
   ]);
+  // Verified M9/M10 views stay mounted (opaque, paused) through same-authority renewal so unsaved
+  // editors, pickers and confirmations survive; any scope change still discards them.
   const keepTimeView = Boolean(
     entry &&
-    isTimeSurface(entry.key) &&
+    (isTimeSurface(entry.key) || isAdminSurface(entry.key)) &&
     canEnter(entry, snapshot.branch?.role ?? 'Member') &&
     verifiedEntry === verificationKey &&
     snapshot.user &&
@@ -312,7 +316,7 @@ function GuardedScreen() {
                 matchDestination(
                   (shell.origins.at(-1) ?? fallbackPath(entry, shell.mode)).split('?')[0]!,
                 )?.title ?? 'início',
-              onPress: shell.back,
+              onPress: () => void shell.back(),
             }
           : undefined
       }
@@ -351,7 +355,8 @@ function GuardedScreen() {
       ) : ownShift &&
         !linked &&
         !(
-          snapshot.branch.role === 'Member' && ['my-transactions', 'my-hours'].includes(entry.key)
+          snapshot.branch.role === 'Member' &&
+          ['my-transactions', 'my-hours', 'clients'].includes(entry.key)
         ) ? (
         <>
           <EmptyState
@@ -398,6 +403,14 @@ function GuardedScreen() {
                 key={entry.key === 'time-detail' ? path : address}
                 destination={entry.key}
                 preserveVerifiedView={keepTimeView}
+              />
+            ) : isAdminSurface(entry.key) ? (
+              <AdminSurface destination={entry.key} preserveVerifiedView={keepTimeView} />
+            ) : entry.key === 'statement' && !statementAllowed(snapshot) ? (
+              <EmptyState
+                kind="setup-needed"
+                statement="Extrato de fiado indisponível para seu perfil."
+                explanation={STATEMENT_SETUP}
               />
             ) : (
               <Availability title={entry.title.toLowerCase()} />

@@ -20,7 +20,7 @@ for (const line of spec.split('\n')) {
 test('native label oracle stays aligned to the independent copy contract', () => {
   assert.deepEqual(reference, expected);
 });
-test('every public runtime export has a native case or an exhaustive label-map case', () => {
+function publicNames() {
   const entry = read('../../shared/core/src/index.ts');
   const source = ts.createSourceFile('index.ts', entry, ts.ScriptTarget.ES2022, true);
   const names = [];
@@ -32,15 +32,35 @@ test('every public runtime export has a native case or an exhaustive label-map c
   }
   const labels = read('../../shared/core/src/labels/enums.ts');
   for (const match of labels.matchAll(/export (?:const|function) (\w+)/g)) names.push(match[1]);
-  const covered = new Set([...probe.matchAll(/\bc\.(\w+)/g)].map((match) => match[1]));
-  for (const name of Object.keys(reference))
+  return names;
+}
+function uncovered(names, oracle, cases = probe) {
+  const covered = new Set([...cases.matchAll(/\bc\.(\w+)/g)].map((match) => match[1]));
+  for (const name of Object.keys(oracle))
     covered.add(name.charAt(0).toLowerCase() + name.slice(1) + 'Labels');
-  assert.deepEqual(
-    names.filter((name) => !covered.has(name)),
-    [],
-  );
-  // The current core adds eight public custody/session label maps; keep exhaustive coverage.
-  assert.equal(new Set(names).size, 107);
+  return names.filter((name) => !covered.has(name));
+}
+test('every public runtime export has a native case or an exhaustive label-map case', () => {
+  const names = publicNames();
+  assert.deepEqual(uncovered(names, reference), []);
+  // Shared core's pinned public surface (shared/core/test/boundary.test.ts): 111 runtime exports,
+  // including the twelve custody/session label maps. A new export must gain a native case.
+  assert.equal(new Set(names).size, 111);
+});
+test('the oracle checks discriminate stale labels, missing values and missing maps', () => {
+  const stale = structuredClone(reference);
+  stale.SessionApprovalMode.Independent = 'Aprovação';
+  assert.notDeepEqual(stale, expected);
+  const missingValue = structuredClone(reference);
+  delete missingValue.AccountType.Safe;
+  assert.notDeepEqual(missingValue, expected);
+  const missingMap = structuredClone(reference);
+  delete missingMap.SessionCloseField;
+  assert.notDeepEqual(missingMap, expected);
+  assert.deepEqual(uncovered(publicNames(), missingMap), ['sessionCloseFieldLabels']);
+  assert.deepEqual(uncovered(publicNames(), reference, probe.replace(/\bc\.formatBrl\b/g, 'x')), [
+    'formatBrl',
+  ]);
 });
 test('portable native core cases import only public core and the local copy oracle', () => {
   const source = ts.createSourceFile('probe.ts', probe, ts.ScriptTarget.ES2022, true);

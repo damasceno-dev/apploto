@@ -622,3 +622,12 @@ test('product field errors remain inherited when a child passes invalid=false; d
   fireEvent.changeText(field, 'outro');
   expect(changed).not.toHaveBeenCalled();
 });
+
+describe('Button with enlarged text', () => {
+  it('stays within its container and lets the label wrap instead of clipping', async () => {
+    renderThemed(<Button label="Adicionar cliente" onPress={() => {}} />);
+    const button = await screen.findByRole('button', { name: 'Adicionar cliente' });
+    expect(styleOf(button).maxWidth).toBe('100%');
+    expect(styleOf(screen.getByText('Adicionar cliente')).flexShrink).toBe(1);
+  });
+});

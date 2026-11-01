@@ -109,6 +109,7 @@ export function navigationAddress(
     'clientId',
     'tab',
     'section',
+    'year',
     'row',
     'focus',
   ]);

@@ -30,6 +30,7 @@ const parameters = new Set([
   'mode',
   'tab',
   'section',
+  'year',
   'row',
   'focus',
 ]);

@@ -53,6 +53,7 @@ export function rig() {
   const credentials = new MemoryCredentials();
   const calls: {
     path: string;
+    url: string;
     method: string;
     authorization: string | null;
     body: unknown;
@@ -75,6 +76,7 @@ export function rig() {
       const body = typeof init.body === 'string' ? JSON.parse(init.body) : undefined;
       calls.push({
         path,
+        url: String(input),
         method,
         authorization,
         body,

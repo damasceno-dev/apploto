@@ -244,64 +244,79 @@ function useShellState() {
     },
     [engine, retained, router],
   );
-  const back = useCallback(async () => {
-    const before = engine.getSnapshot();
-    await engine.verifyEntry();
-    const current = engine.getSnapshot();
-    if (
-      !current.branch ||
-      !current.user ||
-      current.status !== 'branch' ||
-      current.scope !== before.scope ||
-      current.branch.id !== before.branch?.id ||
-      current.user.userId !== before.user?.userId
-    )
-      return;
-    const destination = matchDestination(live.current.pathname.split('?')[0]!);
-    const origin = live.current.origins.at(-1);
-    const originDestination = origin ? matchDestination(origin.split('?')[0]!) : null;
-    const originMode = originDestination
-      ? destinationMode(originDestination, current.branch.role, live.current.mode)
-      : live.current.mode;
-    const candidate = origin
-      ? await validateShellNavigation(
-          { v: 1, path: origin, mode: originMode, origins: [] },
-          current.branch.role,
-          Boolean(current.selfContext?.operatorId),
-          (path) => validateTimeResource(engine, path),
-        )
-      : null;
-    // A resource origin waits for its owning feature's fresh validator; no stored id proves access.
-    let target =
-      candidate?.path ??
-      (destination
-        ? fallbackPath(destination, live.current.mode)
-        : destinations.find((d) => d.key === homeKey(defaultMode(current.branch!.role)))!.path);
-    if (!permittedPath(target, current.branch.role))
-      target = destinations.find((d) => d.key === homeKey(defaultMode(current.branch!.role)))!.path;
-    const nextOrigins = candidate ? live.current.origins.slice(0, -1) : [];
-    const nextMode = destinationMode(
-      matchDestination(target.split('?')[0]!)!,
-      current.branch.role,
-      live.current.mode,
-    );
-    try {
-      await retained.write(current.user, current.branch.id, {
-        v: 1,
-        path: target,
-        mode: nextMode,
-        origins: nextOrigins,
-      });
-    } catch {
-      setNotice('Não foi possível guardar a navegação neste dispositivo.');
-    }
-    if (engine.getSnapshot().scope !== current.scope) return;
-    setMode(nextMode);
-    setOrigins(nextOrigins);
-    // Native history may contain repeated deep-link/resource entries. Return to the validated opener.
-    if (candidate) router.dismissTo(nativeHref(target, current.branch.id));
-    else router.replace(nativeHref(target, current.branch.id));
-  }, [engine, router, retained]);
+  /**
+   * Returns to the validated origin. `result` carries only a resource the caller has just read
+   * fresh (for example a created client); it is attached to a validated origin, never a fallback.
+   */
+  const back = useCallback(
+    async (result?: { readonly clientId: string }) => {
+      const before = engine.getSnapshot();
+      await engine.verifyEntry();
+      const current = engine.getSnapshot();
+      if (
+        !current.branch ||
+        !current.user ||
+        current.status !== 'branch' ||
+        current.scope !== before.scope ||
+        current.branch.id !== before.branch?.id ||
+        current.user.userId !== before.user?.userId
+      )
+        return;
+      const destination = matchDestination(live.current.pathname.split('?')[0]!);
+      const origin = live.current.origins.at(-1);
+      const originDestination = origin ? matchDestination(origin.split('?')[0]!) : null;
+      const originMode = originDestination
+        ? destinationMode(originDestination, current.branch.role, live.current.mode)
+        : live.current.mode;
+      const candidate = origin
+        ? await validateShellNavigation(
+            { v: 1, path: origin, mode: originMode, origins: [] },
+            current.branch.role,
+            Boolean(current.selfContext?.operatorId),
+            (path) => validateTimeResource(engine, path),
+          )
+        : null;
+      // A resource origin waits for its owning feature's fresh validator; no stored id proves access.
+      let target =
+        candidate?.path ??
+        (destination
+          ? fallbackPath(destination, live.current.mode)
+          : destinations.find((d) => d.key === homeKey(defaultMode(current.branch!.role)))!.path);
+      if (!permittedPath(target, current.branch.role))
+        target = destinations.find(
+          (d) => d.key === homeKey(defaultMode(current.branch!.role)),
+        )!.path;
+      if (result && candidate) {
+        const url = new URL(target, 'https://navigation.invalid');
+        url.searchParams.set('clientId', result.clientId);
+        if (permittedPath(url.pathname + url.search, current.branch.role))
+          target = url.pathname + url.search;
+      }
+      const nextOrigins = candidate ? live.current.origins.slice(0, -1) : [];
+      const nextMode = destinationMode(
+        matchDestination(target.split('?')[0]!)!,
+        current.branch.role,
+        live.current.mode,
+      );
+      try {
+        await retained.write(current.user, current.branch.id, {
+          v: 1,
+          path: target,
+          mode: nextMode,
+          origins: nextOrigins,
+        });
+      } catch {
+        setNotice('Não foi possível guardar a navegação neste dispositivo.');
+      }
+      if (engine.getSnapshot().scope !== current.scope) return;
+      setMode(nextMode);
+      setOrigins(nextOrigins);
+      // Native history may contain repeated deep-link/resource entries. Return to the validated opener.
+      if (candidate) router.dismissTo(nativeHref(target, current.branch.id));
+      else router.replace(nativeHref(target, current.branch.id));
+    },
+    [engine, router, retained],
+  );
 
   return {
     mode: effectiveMode,

@@ -83,10 +83,18 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
     justifyContent: 'center',
     gap: spacing.inline.sm,
     alignSelf: fullWidth ? 'stretch' : 'flex-start',
+    // Enlarged text wraps inside the available width instead of overflowing and being clipped.
+    maxWidth: '100%',
   });
   const text = disabled ? off.fg : tokens.fg;
   return (
-    <View style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start', gap: spacing.stack.xs }}>
+    <View
+      style={{
+        alignSelf: fullWidth ? 'stretch' : 'flex-start',
+        maxWidth: '100%',
+        gap: spacing.stack.xs,
+      }}
+    >
       <PressableBox
         ref={ref}
         testID={testID}
@@ -111,7 +119,10 @@ export const Button = forwardRef<View, ButtonProps>(function Button(
           variant="button"
           color={text}
           align={isLink ? 'left' : 'center'}
-          style={isLink && !disabled ? { textDecorationLine: 'underline' } : null}
+          style={[
+            { flexShrink: 1 },
+            isLink && !disabled ? { textDecorationLine: 'underline' } : null,
+          ]}
         >
           {loading ? (loadingLabel ?? label) : label}
         </AppText>

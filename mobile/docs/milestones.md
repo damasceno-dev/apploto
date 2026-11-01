@@ -404,6 +404,70 @@ Earlier owned cycles exercised both themes and enlarged text on locked screens (
 
 **Scope and gates:** as Web M10. Products inherits gap AA only for deactivation warning/recovery (server DailyClose/Product; scheduling pending M7.7 close-out triage); ordinary Product CRUD and reads proceed.
 
+**Status (2026-10-31): PARTIAL.** The independent slice — Operators, Clients, Products, Holidays and Settings — is implemented and locally verified in `paralell/app` from `74bad83`. Accounts, Account assignment, Categories & Transaction Types, Branch members and the guided M11 Add/Offboard/invitation/link-request flows are not in this slice; their routes keep guarded, truthful availability. External acceptance is pending.
+
+**Sources:** catalog entries ([Operators](../../design/docs/screens.md#operators-admin) … [Settings](../../design/docs/screens.md#settings-admin)), [administration blueprint](../../design/specs/screens/administration.md), actual Operator/Client/Product/Holiday/Setting controllers and use cases, committed generated API. No server, design or generated file is changed.
+
+### Phase 1 — integration correction, scope and routing
+
+- [x] **1.1** Reconcile the app-owned label oracle with copy §5 (Safe, generated kinds, system roles, `SpecialDrawServiceFee`, three new event kinds and four new session maps) and cover all 111 public core exports; a discrimination test proves stale labels, missing values/maps and missing cases fail.
+- [x] **1.2** Route the five surfaces through the M4 guard (Member refused before reads on management routes; Clients shared with the entering mode kept; statement guarded before reads). Verified views stay mounted through same-authority renewal. `year` joins the allowlisted presentation parameters.
+
+### Phase 2 — Operators
+
+- [x] **2.1** List with linked identity (active membership), **Sem login**, unresolved link and **você** from self-context; create/rename/link/unlink/deactivate with contracted fields only, verbatim conflicts, retained input and confirmed unlink/deactivation copy that never implies login, membership or employee removal.
+- [x] **2.2** Self-link changes keep their receipt across the engine's scope rebuild and re-resolve self-context; row actions reach the real M9 summary with row return, Account assignment and M11 availability destinations.
+
+### Phase 3 — Clients
+
+- [x] **3.1** Complete list with local name search and announced count; all-role create/edit with masks, CPF digits, blank-to-null semantics and verbatim conflicts; Manager/Admin deactivation; statement gate; validated create-return to transaction-create origins.
+- [x] **3.2** Confirmed receipts survive reread failure; unknown create outcomes block until an explicit reread shows possible matches; nothing is resent automatically.
+
+### Phase 4 — Products
+
+- [x] **4.1** Counting order, create/edit, accessible move up/down as individual updates (tie renumbering confirmed first), per-product partial/unknown outcomes with explicit continue/keep, reserved **Diferença Caixa** protection, AA-honest deactivation copy. A product set that changed since the list was shown sends nothing, reports it and blocks moves until a reread; an already-satisfied order is reported as such, never as saved.
+
+### Phase 5 — Holidays
+
+- [x] **5.1** Branch-year default, year selector, paged list without Source, manual batch, description edit with immutable date, deactivation with shipped-effect copy.
+- [x] **5.2** Source/optional-federal selection, preview with type/source/**Já existe**, option change discards the preview and late responses, confirmation names year/source/options and states that import refetches, result counts and per-item status, verbatim provider outage, explicit retry only.
+
+### Phase 6 — Settings
+
+- [x] **6.1** Read-only lock date with Monthly reconciliation link; h/min inputs converting display units only (exact hundredths, imprecise minutes refused); no request for value-identical saves; target and lunch-only confirmations with branch-local effective date and old/new values.
+- [x] **6.2** Branch day re-read before the dialog and before dispatch; strong in-memory If-Match; stale/unknown keep the candidate and require **Recarregar e conferir** plus explicit adoption; success adopts the returned ETag.
+
+### Phase 7 — verification and delivery
+
+- [x] **7.1** Jest/RNTL and tooling coverage listed below; full mobile gates.
+- [x] **7.2** Native iOS/Android journeys against the owned stack with supported API rereads (details below).
+- [ ] **7.3 External acceptance:** independent review, physical-device and spoken VoiceOver/TalkBack checks.
+
+### Scope / test map
+
+| Surface       | Artifacts                                                              | Decisive tests                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Guard/routing | `src/admin/surface.tsx`, `src/shell/screen.tsx`, navigation allowlists | `admin-ui` role/direct-entry/revocation, statement guard                                                                                |
+| Operators     | `src/admin/operators.tsx`                                              | identities/você, verbatim link conflict, unlink confirmation + self-context recheck + receipt, summary return                           |
+| Clients       | `src/admin/clients.tsx`                                                | Member create/CPF digits, search count, deactivation, receipt after reread failure, unknown outcome, retained/cancelled drafts, renewal |
+| Products      | `src/admin/products.tsx`                                               | reserved protection, partial and unknown reorder, AA copy                                                                               |
+| Holidays      | `src/admin/holidays.tsx`                                               | branch year/paging, changed-option preview invalidation, import params/results, 502 retry, manual batch                                 |
+| Settings      | `src/admin/settings.tsx`                                               | no-op, both confirmations, If-Match, stale reconciliation, day rollover, precision                                                      |
+| Contracts     | `src/admin/contracts.ts`                                               | `admin-contracts`                                                                                                                       |
+| Oracle        | `src/probes/label-reference.json`                                      | `tooling/core-probe.test.mjs`                                                                                                           |
+
+**Local verification (2026-10-31, correction round 2026-11-01):** 32 tooling + 314 Jest/RNTL tests (new `admin-contracts` 15, `admin-ui` 39, enlarged-text Button); workspace typecheck/lint/format; Shared API 103, core 308, Web 334 unit tests. Fresh `dist/m10-final` iOS/Android exports with both proof flags pass the exclusion/single-runtime/source gates and contain the admin sources. Native core oracle: **464/464 on iPhone 17 Pro/iOS 26.5 and Lotero_API36/Android 16** (Hermes).
+
+Native journeys (Maestro 2.11.0, checkout-local .NET/PostgreSQL stack, loopback holiday provider, separate synthetic Admin/Member/spare users per OS) passed on both OSs: Member client create with masked phone/CPF and verbatim duplicate-CPF refusal without a deactivate action; Admin link of an unlinked operator, own unlink (confirmation, receipt, **você** gone), relink, M9 operator summary and return; client deactivation; product name conflict, create, edit and move-up; manual holiday, Composite preview, confirmed import with per-item results and the verbatim BrasilAPI 502; lunch-only and target confirmations; a concurrent API change producing the verbatim stale refusal, **Recarregar e conferir**, explicit adoption and saved reconciliation. Supported API rereads confirmed every persisted result, a settings version advance with the concurrent change kept, and the policy window: yesterday's attendance balance unchanged, today's recalculated under the new policy. Evidence, credentials and identity (`HEAD 74bad83`, OpenAPI sha256 `689c1608…`, no server/shared/design changes) stay outside Git.
+
+**Correction round:** reorder against a changed product set no longer reports success; deactivation dialogs (and new Operator/Product editors) close only after their reread, so a reread failure keeps the confirmed receipt and its explicit recovery; `Button` caps itself to its container and wraps its label — at the largest iOS accessibility text size **Adicionar cliente** wraps fully on the iPhone 17 Pro (simulator text size restored).
+
+**Defects found natively and fixed:** `IdentifierInput` dropped or duplicated digits at mask separators under fast iOS typing (controlled `selection` race; now imperative caret placement — earlier garbled API records remain as evidence); an explicitly cancelled editor left its device draft; a self-link receipt was lost when the engine rebuilt the scope; client search memory crossed engines; **Importar** sat under the dialog footer.
+
+**Limitations:** iOS journeys ran on progressively corrected sources, Android on the final source (later edits are formatting only). With one-minute tokens a write meeting expiry is refused once and not replayed (observed natively); remaining journeys used five-minute tokens, renewal during editing is covered by Jest. Physical-device, spoken screen-reader, enlarged-text/theme native passes for M10 and independent acceptance are not done. Remaining M10: Accounts, Account assignment, Categories & Transaction Types, Branch members; M11 guided flows; gap AA (Products deactivation warning/recovery).
+
+**Next action:** independent recheck of the correction round; then the remaining M10 surfaces.
+
 ## Milestone 11 — Account & Onboarding
 
 **Scope and gates:** as Web M11, minus the internal **Plataforma** area unless design 0.4.6 places it on mobile. **Mobile-specific:** Continuar com Google through the native sign-in flow; invitation and password-reset links open the app through the URL scheme or universal/app links when installed.

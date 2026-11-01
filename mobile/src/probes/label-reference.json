@@ -11,7 +11,8 @@
   "AccountType": {
     "Terminal": "Terminal",
     "BankAccount": "Conta bancária",
-    "Tab": "Conta fiado"
+    "Tab": "Conta fiado",
+    "Safe": "Cofre"
   },
   "TransactionStatus": {
     "Draft": "Rascunho",
@@ -87,16 +88,26 @@
     "OpeningChanged": "Abertura alterada"
   },
   "TransactionGenerationKind": {
-    "FiadoCountedStockSale": "venda fiado com entrega de mercadoria",
-    "FiadoCashRepayment": "recebimento de fiado em dinheiro"
+    "FiadoSale": "venda fiado no balcão",
+    "FiadoCashRepayment": "recebimento de fiado em dinheiro",
+    "SessionTerminalReport": "relatório do terminal informado no fechamento",
+    "SessionBolaoFee": "tarifa de bolão informada no fechamento",
+    "SessionSpecialFee": "tarifa especial informada no fechamento",
+    "SafeCashDeposit": "depósito de dinheiro do caixa no cofre"
   },
   "FiadoPaymentKind": {
     "CountedCash": "Dinheiro (entra no caixa)",
     "NonCash": "Outro meio (não entra no caixa)"
   },
   "TransactionTypeSystemRole": {
-    "FiadoCountedStockSaleCounterpart": "Saída automática de mercadoria (venda fiado)",
-    "FiadoCashRepaymentCounterpart": "Entrada automática de dinheiro (recebimento de fiado)"
+    "FiadoSaleCounterpart": "Saída automática do caixa (venda fiado)",
+    "FiadoCashRepaymentCounterpart": "Entrada automática de dinheiro (recebimento de fiado)",
+    "TerminalReportIn": "Relatório do terminal (campo do fechamento)",
+    "TerminalReportOut": "Relatório do terminal negativo (campo do fechamento)",
+    "BolaoFee": "Tarifa de bolão (campo do fechamento)",
+    "SpecialFee": "Tarifa especial (campo do fechamento)",
+    "SafeDepositOut": "Depósito de dinheiro no cofre (saída do caixa)",
+    "SafeDepositIn": "Entrada automática no cofre (depósito do caixa)"
   },
   "InvitationStatus": {
     "Pending": "Pendente",
@@ -118,7 +129,8 @@
   "MonthlyFinancialRole": {
     "None": "Nenhuma",
     "BolaoServiceFee": "Tarifa de bolão",
-    "CommercialLeftover": "Sobra (perda comercial)"
+    "CommercialLeftover": "Sobra (perda comercial)",
+    "SpecialDrawServiceFee": "Tarifa especial"
   },
   "OverviewSectionStatus": {
     "Ready": "Atualizado",
@@ -180,6 +192,31 @@
     "CustodyExceptionResolved": "Exceção de custódia resolvida",
     "SessionDeclared": "Turno declarado",
     "SessionRearranged": "Turno reposicionado",
-    "AttributionRecorded": "Diferença atribuída"
+    "AttributionRecorded": "Diferença atribuída",
+    "CountConferred": "Contagem conferida",
+    "RecountStarted": "Recontagem iniciada",
+    "SessionApproved": "Turno aprovado"
+  },
+  "SessionCandidateState": {
+    "NotConferred": "Não conferida",
+    "Current": "Conferida",
+    "Outdated": "Desatualizada",
+    "Unconfirmed": "Não confirmada",
+    "Recounting": "Em recontagem"
+  },
+  "SessionCountAttemptKind": {
+    "Initial": "Primeira conferência",
+    "Correction": "Após correção",
+    "Recount": "Recontagem",
+    "StillObserved": "Contagem mantida após mudança no caixa"
+  },
+  "SessionApprovalMode": {
+    "Independent": "Aprovação independente",
+    "SingleActiveManager": "Aprovar como único gestor"
+  },
+  "SessionCloseField": {
+    "TerminalReport": "Relatório do terminal",
+    "BolaoFee": "Tarifa Bolão",
+    "SpecialFee": "Tarifa Especial"
   }
 }
