@@ -187,6 +187,67 @@ public class TransactionControllerSafeDepositTest(ServerWebApplicationFactory fa
         session.Count!.LedgerRevision.ShouldBe(2);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task LegacyDraftDeposit_ShouldRefuseOneSidedFinalization_WithoutChangingLedger(bool typeActive)
+    {
+        var s = await FinancialDayScenario.CreateAsync(factory, _client, "SafeLegacyDraft");
+        var sessionId = await s.StartAsync();
+        var type = s.SystemTypes[TransactionTypeSystemRole.SafeDepositOut];
+        var legacy = await factory.SeedTransactionAsync(
+            s.Branch.Id, s.CashboxId, type.Id, type.CategoryId, Direction.Out,
+            s.MemberA.Operator!.Id, s.MemberA.User.Id,
+            date: s.Today, value: 80m, status: TransactionStatus.Draft, sessionId: sessionId);
+        if (!typeActive)
+            await factory.ExecuteSqlAsync($"UPDATE \"TransactionTypes\" SET \"Active\" = false WHERE \"Id\" = '{type.Id}'");
+        var before = await _client.GetSessionAsync(sessionId, s.MemberA.Token);
+
+        var response = await _client.PostAuthAsync(
+            $"/transaction/{legacy.Id}/finalize", s.MemberA.Token, expectedVersion: legacy.Version);
+        await ShouldFail(response, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
+
+        var rows = await s.RowsAsync();
+        rows.Count.ShouldBe(1);
+        rows.Single().Status.ShouldBe(TransactionStatus.Draft);
+        (await s.QueryAsync(db => db.CustodyTransfers.CountAsync(t => t.BranchId == s.Branch.Id))).ShouldBe(0);
+        var after = await _client.GetSessionAsync(sessionId, s.MemberA.Token);
+        after.Count!.LedgerRevision.ShouldBe(before.Count!.LedgerRevision);
+    }
+
+    [Theory]
+    [InlineData(TransactionTypeSystemRole.SafeDepositOut, true)]
+    [InlineData(TransactionTypeSystemRole.SafeDepositOut, false)]
+    [InlineData(TransactionTypeSystemRole.BolaoFee, true)]
+    [InlineData(TransactionTypeSystemRole.BolaoFee, false)]
+    public async Task LegacySystemPlan_ShouldRefuseActivationOfEveryInstallment(TransactionTypeSystemRole role, bool typeActive)
+    {
+        var s = await FinancialDayScenario.CreateAsync(factory, _client, "LegacyProtectedPlan");
+        var sessionId = await s.StartAsync();
+        var type = s.SystemTypes[role];
+        var originId = Guid.NewGuid();
+        foreach (var value in new[] { 20m, 30m })
+            await factory.SeedTransactionAsync(
+                s.Branch.Id, s.CashboxId, type.Id, type.CategoryId,
+                role == TransactionTypeSystemRole.BolaoFee ? Direction.In : Direction.Out,
+                s.MemberA.Operator!.Id, s.MemberA.User.Id,
+                date: s.Today, value: value, status: TransactionStatus.Draft,
+                originTransactionId: originId, sessionId: sessionId, id: value == 20m ? originId : Guid.NewGuid());
+        if (!typeActive)
+            await factory.ExecuteSqlAsync($"UPDATE \"TransactionTypes\" SET \"Active\" = false WHERE \"Id\" = '{type.Id}'");
+        var rows = await s.RowsAsync();
+        var before = await _client.GetSessionAsync(sessionId, s.MemberA.Token);
+        var response = await _client.PostAuthAsync(
+            $"/transaction/installment/{originId}/finalize",
+            new RequestFinalizeInstallmentPlanJson
+            {
+                Installments = rows.Select(row => new RequestInstallmentPlanRowVersionJson { TransactionId = row.Id, Version = row.Version }).ToList()
+            }, s.MemberA.Token);
+        await ShouldFail(response, HttpStatusCode.Conflict, ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
+        (await s.RowsAsync()).ShouldAllBe(row => row.Status == TransactionStatus.Draft);
+        (await _client.GetSessionAsync(sessionId, s.MemberA.Token)).Count!.LedgerRevision.ShouldBe(before.Count!.LedgerRevision);
+    }
+
     [Fact]
     public async Task FailureAfterTheFirstLeg_ShouldLeaveNeitherLegNorTransfer()
     {

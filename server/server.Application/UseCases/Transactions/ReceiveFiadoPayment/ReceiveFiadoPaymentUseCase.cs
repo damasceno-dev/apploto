@@ -57,7 +57,10 @@ public class ReceiveFiadoPaymentUseCase(
                 utcNow,
                 ct);
         if (replay is not null)
+        {
+            await EnsureReplayAuthority(request.AccountId, replay, branchUser.BranchId, ct);
             return replay;
+        }
 
         // Only a counted-cash method touches the paired terminal; lock it with the Tab when that is possible, and
         // re-check the method and the pairing inside the scope.
@@ -84,6 +87,7 @@ public class ReceiveFiadoPaymentUseCase(
                 ct);
         if (idempotency.IsReplay)
         {
+            await EnsureReplayAuthority(request.AccountId, idempotency.ReplayResponse!, branchUser.BranchId, ct);
             await coordination.Complete(ct);
             return idempotency.ReplayResponse!;
         }
@@ -149,6 +153,18 @@ public class ReceiveFiadoPaymentUseCase(
         await coordination.Complete(ct);
 
         return response;
+    }
+
+    private async Task EnsureReplayAuthority(Guid accountId, ResponseCreateTransactionJson replay, Guid branchId, CancellationToken ct)
+    {
+        Guid? counterpartAccountId = null;
+        if (replay.GeneratedTransactionId is { } generatedId)
+        {
+            var counterpart = await transactionsRepository.GetByIdAndBranchIdAsNoTracking(generatedId, branchId, ct)
+                ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
+            counterpartAccountId = counterpart.AccountId;
+        }
+        await transactionCreatePreamble.EnsureReplayAuthority(accountId, counterpartAccountId, ct);
     }
 
     private static void Validate(RequestReceiveFiadoPaymentJson request)

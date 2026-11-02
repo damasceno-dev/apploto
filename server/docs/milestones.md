@@ -2718,7 +2718,7 @@ The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and
 
 ### Phase 6 — Fiado boundaries (plan A2) **[FIX]** + **[KEEP]**
 
-> **Phases 6, 7, 9 and 10.1 status (2026-10-31) — implemented, canonical v61; independent technical review pending; ticks stay open until it accepts.**
+> **Phases 6, 7, 9 and 10.1 status (2026-11-02) — complete for the ready P6/P7/P9/P10.1 scope, independently accepted; canonical v61 and design semantics reconciled. Whole-M9.6 acceptance remains separate.**
 >
 > | Item | Requirement → implementation | Tests |
 > |---|---|---|
@@ -2728,28 +2728,29 @@ The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and
 > | 7.1–7.3 | `CloseFields` on the count save; `SessionFieldEffect` + immutable revisions; system types Tarifa Bolão/Especial/Relatório do terminal (±); `SpecialDrawServiceFee` report figure | `SessionControllerCloseFieldsTest` (E09, omit/zero/null/precision, sign flip, races, DB guards, Conferir invalidation, lock) |
 > | 7.3 migration / 9.2 seeds | `M9_6Phase6To9FinancialFoundation` + `loto_m96_apply_financial_seeds(map)`; 32 expense types | `FinancialSeedFunctionTest`, `M9_6FinancialFoundationMigrationTest` |
 > | 9.1 | `AccountType.Safe`, `POST /account/safe`, `POST /transaction/safe-deposit` + `CustodyTransfer` | `TransactionControllerSafeDepositTest` (E08, replay/race, destinations, grants, legs, rollback, DB guards) |
-> | 10.1 | Integrated day | `M9_6IntegratedDayDemonstrationTest` |
+> | 10.1 | Integrated day with matching and different handover openings, both custody arrangements, inline opening, blind recount, approval duties, fiado, signed fields and cofre | `M9_6IntegratedDayDemonstrationTest` |
 >
-> **Verification (2026-10-31):** Validators 380, UseCases 1,226 + new, WebApi 1,404 green on real PostgreSQL; OpenAPI snapshot updated; shared/api export/generate checks, typecheck, lint, 103 tests; shared/core 308; web typecheck/lint/334 tests; Web BFF, Mobile auth-policy and both token adapters regenerated; mobile typecheck/lint, jest 259; contrast 1,178 pairs + 40 negatives; design-doc 45/45 + 14 negatives; doc-sync canonical v61 aligned, 34 regressions pass on a disposable copy with v61 markers.
+> **Verification (2026-11-02):** Validators 380/380; UseCases 1,237/1,237; final WebApi 1,416/1,416 on real PostgreSQL, no skipped tests. Targeted fiado/cofre 45/45, cofre/plans 31/31, migration/seeds/fields 22/22; integrated matching/different handover 2/2. OpenAPI fresh export matches; 365 generated files match clean generation; API generation, Web BFF and Mobile auth policy rerun. Workspace typecheck/lint/format pass; api 103, core 308, web 334, mobile 314 tests pass. Doc-sync v61 passes on the real tree and all 34 negative scenarios; design-doc 45/45 plus 14 negatives; contrast 1,178 pairs plus 40 negatives.
 >
-> **Blockers / next action:** design markers stay v59 until the independent semantic review of the v60+v61 catalog reconciliation; mobile's hand-kept label oracle (`mobile/src/probes/label-reference.json`, mobile lane) lacks the P2, P4–P5 and v61 labels; Design 4.9.3 (close fields in `operator-day.md`) and 4.9.8 (`administration.md`) blueprint revisions not yet written; existing branches need a reviewed seed map or a disposable reset.
+> **Boundaries / next action:** carry the delivered contracts into the owning app milestones and resolve existing-data maps before a non-disposable upgrade. Existing branches require an explicit reviewed seed map; no reset or invented custody history was used. AA/AB/AC, unresolved legacy mapping and later M9.7–M10 policies remain visible. Native probe reconciliation belongs to the mobile lane; these server/API tests are not native execution proof. Design 4.9.3/4.9.6/4.9.8 semantics are reconciled; cross-screen arithmetic and real app implementation retain their owners.
+
 
 *Why fix:* fiado covers bills and games, which the CAIXA report counts as cash received; without the linked movement the operator shows a shortage on most real days (M9.5 Phase 5). *Why keep pairing* instead of Access's balance-in-totals: it reproduces Access in the characterized scenarios, the movement freezes with the session and is cancelled only with its source and a reason, the operator sees it in their own list, and non-cash repayments stay expressible.
 
-- [ ] **6.1** Only a **new counter sale on fiado** generates the linked cashbox `Out`, on the active session of the paired cashbox. Imported debts, opening balances and cheque → fiado conversions (M9.7) use their own operations and generate **no** cashbox leg.
-- [ ] **6.2** `HandsOutCountedStock` is removed from the create and preview contracts; the system type and `TransactionGenerationKind.FiadoCountedStockSale` become a plain fiado sale. A sale on an unpaired fiado account is refused (existing 409). Named contract change; Shared regeneration.
-- [ ] **6.3** A cashbox is created with its paired fiado account by default; the owner setup checklist flags a cashbox without one.
-- [ ] **6.4** Repayment methods: **Dinheiro** (`CountedCash`) and **PIX** (`NonCash`) are seeded initial options; **no default** — the method stays an explicit choice (M7.7 decision 1.3 amendment iii); admins may add other methods of either kind.
-- [ ] **6.5** Tests: every matrix fiado row; conversion and import paths never pair; finalize/cancel together; preserved protections.
+- [x] **6.1** Only a **new counter sale on fiado** generates the linked cashbox `Out`, on the active session of the paired cashbox. Imported debts, opening balances and cheque → fiado conversions (M9.7) use their own operations and generate **no** cashbox leg.
+- [x] **6.2** `HandsOutCountedStock` is removed from the create and preview contracts; the system type and `TransactionGenerationKind.FiadoCountedStockSale` become a plain fiado sale. A sale on an unpaired fiado account is refused (existing 409). Named contract change; Shared regeneration.
+- [x] **6.3** A cashbox is created with its paired fiado account by default; the owner setup checklist flags a cashbox without one.
+- [x] **6.4** Repayment methods: **Dinheiro** (`CountedCash`) and **PIX** (`NonCash`) are seeded initial options; **no default** — the method stays an explicit choice (M7.7 decision 1.3 amendment iii); admins may add other methods of either kind.
+- [x] **6.5** Tests: every matrix fiado row; conversion and import paths never pair; finalize/cancel together; preserved protections.
 
 ### Phase 7 — Close-form entries (plan A4) **[MISSING]** + **[BETTER]**
 
 *Why missing:* operators type the CAIXA report and the fees at closing today. *Why better:* as generated ledger entries they are reportable and auditable, and they exist exactly once per session — a free transaction can be forgotten or entered twice. Extends M9.5 3.6.
 
-- [ ] **7.1** The count save carries three fields: **Relatório do terminal** (formerly Operador; a **signed** amount — positive writes an `In`, negative an `Out`), **Tarifa Bolão** and **Tarifa Especial**. The server maintains one generated, system-owned entry per non-zero field in that session (new `SystemRole`/`GenerationKind` values); manual creates of these types are refused.
-- [ ] **7.2** Acceptance: the preview never writes; one entry per field per session; repeated or concurrent saves never duplicate (a unique constraint on session + field); changing a field to zero cancels its effect while keeping its audit history; edits only while the session is Draft.
-- [ ] **7.3** Seeds: **Tarifa Especial** under Receita with a new `MonthlyFinancialRole.SpecialDrawServiceFee`; "Operador" renamed **Relatório do terminal**. Migration converts the ordinary M9.5 rows (development/staging).
-- [ ] **7.4** Tests per acceptance rule; the replay scenarios of M9.5 Phase 5 as golden cases.
+- [x] **7.1** The count save carries three fields: **Relatório do terminal** (formerly Operador; a **signed** amount — positive writes an `In`, negative an `Out`), **Tarifa Bolão** and **Tarifa Especial**. The server maintains one generated, system-owned entry per non-zero field in that session (new `SystemRole`/`GenerationKind` values); manual creates of these types are refused.
+- [x] **7.2** Acceptance: the preview never writes; one entry per field per session; repeated or concurrent saves never duplicate (a unique constraint on session + field); changing a field to zero cancels its effect while keeping its audit history; edits only while the session is Draft.
+- [x] **7.3** Seeds: **Tarifa Especial** under Receita with a new `MonthlyFinancialRole.SpecialDrawServiceFee`; "Operador" renamed **Relatório do terminal**. Migration converts the ordinary M9.5 rows (development/staging).
+- [x] **7.4** Tests per acceptance rule; the replay scenarios of M9.5 Phase 5 as golden cases.
 
 ### Phase 8 — Restricted arithmetic money input (plan A9) **[MISSING]** *(may run in parallel with Phase 2)*
 
@@ -2762,13 +2763,13 @@ The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and
 
 *Why cofre now:* the Batch B cashier day includes a cofre deposit; shipping a one-sided deposit and replacing it in M9.7 would be throwaway work. *Why seeds:* a branch starting without the import must be able to record what the shop pays from the drawer.
 
-- [ ] **9.1** `AccountType.Safe` (cofre) and the cashbox → cofre transfer: one operation, two linked legs, the pairing machinery's atomicity and protections. **Depósito Dinheiro** keeps the same button and writes both legs.
-- [ ] **9.2** Seed the 32 Access expense types under Despesas Administrativas/Pessoal/Financeiras/Comerciais, the repayment methods (6.4), Tarifa Especial and the renames (7.3).
-- [ ] **9.3** Tests: transfer atomicity and session attribution; seed contents.
+- [x] **9.1** `AccountType.Safe` (cofre) and the cashbox → cofre transfer: one operation, two linked legs, the pairing machinery's atomicity and protections. **Depósito Dinheiro** keeps the same button and writes both legs.
+- [x] **9.2** Seed the 32 Access expense types under Despesas Administrativas/Pessoal/Financeiras/Comerciais, the repayment methods (6.4), Tarifa Especial and the renames (7.3).
+- [x] **9.3** Tests: transfer atomicity and session attribution; seed contents.
 
 ### Phase 10 — Spec sync and close-out
 
-- [ ] **10.1** Each phase's contract change already carried its spec bump and design reconciliation; this phase verifies the whole group, runs all three suites, the OpenAPI snapshot and the doc-sync checker, and records the API demonstration: **shared and separate custody both work through the API**.
+- [x] **10.1** Each phase's contract change already carried its spec bump and design reconciliation; this phase verifies the whole group, runs all three suites, the OpenAPI snapshot and the doc-sync checker, and records the API demonstration: **shared and separate custody both work through the API**.
 
 ### Done criteria
 

@@ -76,7 +76,14 @@ public class FinalizeTransactionUseCase(
         var type = await transactionTypesRepository.GetActiveByIdWithCategoryAndBranchIdAsNoTracking(
             transaction.TransactionTypeId,
             branchUser.BranchId);
+        type ??= transaction.TransactionType; // Historical protection also applies to a retired type.
         if (type?.SystemRole is { } systemRole && FinancialRoleRules.IsSessionFieldRole(systemRole))
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
+
+        // A legacy deposit has no cofre destination evidence. Never activate its cashbox leg alone;
+        // only deposits created by the protected operation carry the generated Safe leg.
+        if (type?.SystemRole == TransactionTypeSystemRole.SafeDepositOut
+            && counterpartKey?.GenerationKind != TransactionGenerationKind.SafeCashDeposit)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
 
         if (transaction.Version != expectedVersion)

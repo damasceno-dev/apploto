@@ -49,7 +49,10 @@ public class CreateTransactionUseCase(
                 utcNow,
                 ct);
         if (replay is not null)
+        {
+            await EnsureReplayAuthority(request.AccountId, replay, branchUser.BranchId, ct);
             return replay;
+        }
 
         // Every new counter fiado sale also writes its paired cashbox's ledger (M9.6 Phase 6, §6.19 O05): discover the
         // pairing without tracking, lock both accounts in the canonical order, and re-check the pairing inside the scope.
@@ -71,6 +74,7 @@ public class CreateTransactionUseCase(
                 ct);
         if (idempotency.IsReplay)
         {
+            await EnsureReplayAuthority(request.AccountId, idempotency.ReplayResponse!, branchUser.BranchId, ct);
             await coordination.Complete(ct);
             return idempotency.ReplayResponse!;
         }
@@ -142,6 +146,18 @@ public class CreateTransactionUseCase(
         await coordination.Complete(ct);
 
         return response;
+    }
+
+    private async Task EnsureReplayAuthority(Guid accountId, ResponseCreateTransactionJson replay, Guid branchId, CancellationToken ct)
+    {
+        Guid? counterpartAccountId = null;
+        if (replay.GeneratedTransactionId is { } generatedId)
+        {
+            var counterpart = await transactionsRepository.GetByIdAndBranchIdAsNoTracking(generatedId, branchId, ct)
+                ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
+            counterpartAccountId = counterpart.AccountId;
+        }
+        await transactionCreatePreamble.EnsureReplayAuthority(accountId, counterpartAccountId, ct);
     }
 
     private static void Validate(RequestCreateTransactionJson request)

@@ -72,6 +72,11 @@ public class FinalizeInstallmentPlanUseCase(
         if (drafts.Count == 0)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_PLAN_NOT_DRAFT);
 
+        // Legacy plans can predate conversion of their ordinary type to a protected system role.
+        // A plan cannot create session-field effects or one-sided cofre deposits.
+        if (drafts.Any(draft => draft.GenerationKind is not null || draft.TransactionType?.SystemRole is not null))
+            throw new ConflictException(ResourcesErrorMessages.TRANSACTION_TYPE_SYSTEM_ONLY);
+
         if (installments.ToPlanStatus() == InstallmentPlanStatus.Mixed && request.ConfirmMixedPlan is false)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_PLAN_MIXED_CONFIRMATION_REQUIRED);
 

@@ -59,6 +59,16 @@ public class TransactionCreatePreamble(
     LockDateGuard lockDateGuard,
     IBranchHolidaySource branchHolidaySource)
 {
+    /// <summary>Replays preserve the committed outcome, but never restore revoked account authority.</summary>
+    public async Task EnsureReplayAuthority(Guid accountId, Guid? counterpartAccountId, CancellationToken ct = default)
+    {
+        var actor = await authenticationService.GetAuthenticatedBranchUser();
+        var scope = await memberAccountScopeResolver.Resolve(actor.UserId, actor.BranchId, ct);
+        memberAccountScopeGuard.EnsureMemberCanActOnAccount(actor.Role, scope, accountId);
+        if (counterpartAccountId is { } pairedAccountId)
+            memberAccountScopeGuard.EnsureMemberCanActOnAccount(actor.Role, scope, pairedAccountId);
+    }
+
     /// <summary>
     /// Resolves the complete pre-create context for a single transaction create or create preview.
     /// It runs the common branch/user/operator/account/type/client/scope checks, rejects cheque

@@ -12,7 +12,7 @@ namespace WebApi.Test.Sessions;
 
 /// <summary>
 /// M9.6 Phase 10 demonstration through the API on a bootstrap-seeded branch: a shared cashbox (Member A → handover with
-/// a different opening → Member B) beside a separate cashbox on the same physical terminal, inline opening by the
+/// matching or different opening → Member B) beside a separate cashbox on the same physical terminal, inline opening by the
 /// first fiado sale, every fiado boundary, signed report and fees, a cofre deposit, blind count with a ledger change
 /// between Conferir and Submit (recount), and duty-checked day approval. Every number below is computed independently
 /// and every persisted amount is checked exactly once.
@@ -22,8 +22,10 @@ public class M9_6IntegratedDayDemonstrationTest(ServerWebApplicationFactory fact
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Fact]
-    public async Task SharedAndSeparateCustody_ShouldCloseTheWholeDay_WithEveryAmountExplainedOnce()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SharedAndSeparateCustody_ShouldCloseTheWholeDay_WithEveryAmountExplainedOnce(bool differentOpening)
     {
         // Opening count of the shared cashbox: cash 1,000 + stock 500.
         var s = await FinancialDayScenario.CreateAsync(factory, _client, "DemoDay", openingCash: 1_000m, openingStock: 500m);
@@ -82,7 +84,7 @@ public class M9_6IntegratedDayDemonstrationTest(ServerWebApplicationFactory fact
         await _client.SubmitAsync(sessionC, s.MemberA.Token);
         await _client.FinishAsync(sessionC, s.MemberA.Token);
 
-        // ── Handover A → B with a different opening: B counts cash 880 (−10), never A's 890 rewritten.
+        // Handover A to B: matching cash 890, or 880 with a separate -10 discrepancy; A stays unchanged.
         var offer = await _client.OfferAsync(sessionA, s.MemberB.Operator!.Id, s.MemberA.Token);
         var accept = await _client.PostAuthAsync(
             $"/session/handover/{offer.Id}/accept",
@@ -90,7 +92,7 @@ public class M9_6IntegratedDayDemonstrationTest(ServerWebApplicationFactory fact
             {
                 Items =
                 [
-                    new RequestSessionOpeningItemJson { ProductId = s.Cash.Id, Value = 880m },
+                    new RequestSessionOpeningItemJson { ProductId = s.Cash.Id, Value = differentOpening ? 880m : 890m },
                     new RequestSessionOpeningItemJson { ProductId = s.Stock.Id, Value = 420m }
                 ]
             },
@@ -99,14 +101,19 @@ public class M9_6IntegratedDayDemonstrationTest(ServerWebApplicationFactory fact
         accept.StatusCode.ShouldBe(HttpStatusCode.OK, await accept.Content.ReadAsStringAsync());
         var accepted = await accept.ReadContentAsync<ResponseAcceptSessionHandoverJson>();
         var sessionB = accepted.Incoming.Session.Id;
-        var discrepancy = accepted.Incoming.OpeningDiscrepancy.ShouldNotBeNull();
-        (discrepancy.CurrentTotalDelta, discrepancy.Attribution).ShouldBe((-10m, OpeningDiscrepancyAttribution.Unattributed));
+        if (differentOpening)
+        {
+            var discrepancy = accepted.Incoming.OpeningDiscrepancy.ShouldNotBeNull();
+            (discrepancy.CurrentTotalDelta, discrepancy.Attribution).ShouldBe((-10m, OpeningDiscrepancyAttribution.Unattributed));
+        }
+        else
+            accepted.Incoming.OpeningDiscrepancy.ShouldBeNull();
 
         // B's count is recorded, confirmed and submitted by the Manager for B (so the Manager is recorder and
-        // submitter, never its approver): R = −60 → cash 820, stock 420. B, the custodian, finishes custody.
-        await s.SaveOkAsync(sessionB, cash: 820m, stock: 420m, fields: FinancialDayScenario.Fields(report: -60m), actor: s.Manager);
+        // submitter, never its approver): report -60 gives cash 820 (different) or 830 (matching), stock 420.
+        await s.SaveOkAsync(sessionB, cash: differentOpening ? 820m : 830m, stock: 420m, fields: FinancialDayScenario.Fields(report: -60m), actor: s.Manager);
         var attemptB = (await _client.ConferAsync(sessionB, s.Manager.Token)).Attempt;
-        (attemptB.TotalOpening, attemptB.TotalIn, attemptB.TotalOut, attemptB.Difference).ShouldBe((1_300m, 0m, 60m, 0m));
+        (attemptB.TotalOpening, attemptB.TotalIn, attemptB.TotalOut, attemptB.Difference).ShouldBe((differentOpening ? 1_300m : 1_310m, 0m, 60m, 0m));
         await _client.SubmitAsync(sessionB, s.Manager.Token);
         await _client.FinishAsync(sessionB, s.MemberB.Token);
 
@@ -160,7 +167,7 @@ public class M9_6IntegratedDayDemonstrationTest(ServerWebApplicationFactory fact
         // Client debt: opening 240 + 240 + 80 + 30 − 90 (cash) − 50 (PIX) = 450.
         (await s.OutstandingAsync()).ShouldBe(450m);
 
-        // Official variances are all zero; the handover discrepancy stays separate and unattributed.
+        // Official variances are zero; a different handover opening stays separate and unattributed.
         foreach (var sessionId in new[] { sessionA, sessionB, sessionC })
         {
             var read = await _client.GetSessionAsync(sessionId, s.Manager.Token);
@@ -170,7 +177,10 @@ public class M9_6IntegratedDayDemonstrationTest(ServerWebApplicationFactory fact
         (await _client.GetSessionAsync(sessionB, s.Manager.Token)).Status.ShouldBe(DailyCloseStatus.Approved);
         var queue = await (await _client.GetAuthAsync($"/report/manager-queue?date={s.Today:yyyy-MM-dd}", s.Manager.Token))
             .ReadContentAsync<ResponseManagerQueueJson>();
-        queue.Custody.OpeningDiscrepanciesAwaitingAttribution.ShouldContain(d => d.SessionId == sessionB && d.CurrentTotalDelta == -10m);
+        if (differentOpening)
+            queue.Custody.OpeningDiscrepanciesAwaitingAttribution.ShouldContain(d => d.SessionId == sessionB && d.CurrentTotalDelta == -10m);
+        else
+            queue.Custody.OpeningDiscrepanciesAwaitingAttribution.ShouldNotContain(d => d.SessionId == sessionB);
     }
 
     private static RequestCreateTransactionJson WithOpening(RequestCreateTransactionJson request, RequestSessionOpeningAcknowledgmentJson ack) => new()

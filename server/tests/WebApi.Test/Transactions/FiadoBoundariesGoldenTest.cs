@@ -111,6 +111,39 @@ public class FiadoBoundariesGoldenTest(ServerWebApplicationFactory factory)
         (after.Count!.LedgerRevision, after.Count.ConfirmationToken).ShouldBe((before.Count!.LedgerRevision, before.Count.ConfirmationToken));
     }
 
+    [Theory]
+    [InlineData("sale", false)]
+    [InlineData("sale", true)]
+    [InlineData("cash", false)]
+    [InlineData("cash", true)]
+    [InlineData("pix", false)]
+    public async Task ExactReplay_ShouldRequireCurrentGrants_WithoutRepeatingFinancialEffects(string operation, bool revokeCashbox)
+    {
+        var s = await FinancialDayScenario.CreateAsync(factory, _client, "GoldenReplayAuthority");
+        var sessionId = await s.StartAsync();
+        var endpoint = operation == "sale" ? "/transaction" : "/transaction/fiado-payment";
+        object payload = operation == "sale"
+            ? s.FiadoSale(30m)
+            : s.Repayment(operation == "cash" ? s.CashMethod : s.PixMethod, 30m);
+        const string key = "grant-replay";
+        var created = await _client.PostAuthAsync(endpoint, payload, s.MemberA.Token, idempotencyKey: key);
+        created.StatusCode.ShouldBe(HttpStatusCode.Created, await created.Content.ReadAsStringAsync());
+        var original = await created.ReadContentAsync<ResponseCreateTransactionJson>();
+        var replay = await _client.PostAuthAsync(endpoint, payload, s.MemberA.Token, idempotencyKey: key);
+        replay.StatusCode.ShouldBe(HttpStatusCode.Created, await replay.Content.ReadAsStringAsync());
+        (await replay.ReadContentAsync<ResponseCreateTransactionJson>()).Id.ShouldBe(original.Id);
+        var before = await _client.GetSessionAsync(sessionId, s.MemberA.Token);
+        var rowCount = (await s.RowsAsync()).Count;
+        var revokedAccount = revokeCashbox ? s.CashboxId : s.TabId;
+        await factory.ExecuteSqlAsync($"UPDATE \"OperatorAccounts\" SET \"Active\" = false WHERE \"OperatorId\" = '{s.MemberA.Operator!.Id}' AND \"AccountId\" = '{revokedAccount}'");
+
+        var refused = await _client.PostAuthAsync(endpoint, payload, s.MemberA.Token, idempotencyKey: key);
+        await ShouldFail(refused, HttpStatusCode.Forbidden, ResourcesErrorMessages.TRANSACTION_MEMBER_ACCOUNT_OUT_OF_SCOPE);
+        (await s.RowsAsync()).Count.ShouldBe(rowCount);
+        var after = await _client.GetSessionAsync(sessionId, s.Manager.Token);
+        after.Count!.LedgerRevision.ShouldBe(before.Count!.LedgerRevision);
+    }
+
     [Fact]
     public async Task UnpairedTab_ShouldRefuseTheSale_AndPairingShouldGrantNothing()
     {

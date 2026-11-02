@@ -119,6 +119,7 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         CancellationToken ct = default)
     {
         return await BuildPlanInstallmentsQuery(dbContext.Transactions, originTransactionId, branchId)
+            .Include(transaction => transaction.TransactionType)
             .ToListAsync(ct);
     }
 
