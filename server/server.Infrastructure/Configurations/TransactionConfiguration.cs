@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using server.Domain.Entities;
 
@@ -18,7 +19,6 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.Property(t => t.TransactionTime).HasColumnType("time without time zone").IsRequired(false);
         builder.Property(t => t.Direction).HasConversion<short>().IsRequired();
         builder.Property(t => t.DueDate).HasColumnType("date").IsRequired();
-        builder.Property(t => t.PaidAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(t => t.UpdatedAt).HasColumnType("timestamp with time zone").IsRequired(false);
         builder.Property(t => t.UpdatedByUserId).IsRequired(false);
         builder.Property(t => t.Status).HasConversion<short>().IsRequired();
@@ -87,8 +87,31 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.HasIndex(t => new { t.BranchId, t.Date, t.AccountId });
         builder.HasIndex(t => new { t.BranchId, t.AccountId, t.Direction, t.Date });
 
-        builder.HasIndex(t => new { t.BranchId, t.DueDate })
-            .HasFilter("\"PaidAt\" IS NULL");
+        builder.HasIndex(t => new { t.BranchId, t.DueDate });
+
+        // Frozen classification (M9.7 Phase 1.3): the database captures it on posting (TR_Transactions_Classification)
+        // and changes it only with an audited revision, so the application never sends these columns; it reads back
+        // the stored values after every insert and update.
+        ConfigureDatabaseOwned(builder.Property(t => t.PostedSettlementInstrument).HasConversion<short?>());
+        ConfigureDatabaseOwned(builder.Property(t => t.PostedMonthlyFinancialRole).HasConversion<short?>());
+        ConfigureDatabaseOwned(builder.Property(t => t.PostedFinancialClass).HasConversion<short?>());
+        ConfigureDatabaseOwned(builder.Property(t => t.ClassificationProvenance).HasConversion<short?>());
+        ConfigureDatabaseOwned(builder.Property(t => t.ClassificationRevision).HasDefaultValue(0));
+        ConfigureDatabaseOwned(builder.Property(t => t.ClassifiedAt).HasColumnType("timestamp with time zone"));
+        builder.HasIndex(t => new { t.BranchId, t.PostedSettlementInstrument, t.DueDate })
+            .HasFilter("\"Status\" = 1 AND \"PostedSettlementInstrument\" <> 0");
+        builder.ToTable(table =>
+        {
+            table.HasCheckConstraint(
+                "CK_Transactions_ClassificationSnapshot",
+                "(\"ClassificationRevision\" = 0 AND \"ClassificationProvenance\" IS NULL AND \"PostedSettlementInstrument\" IS NULL " +
+                "AND \"PostedMonthlyFinancialRole\" IS NULL AND \"PostedFinancialClass\" IS NULL AND \"ClassifiedAt\" IS NULL) OR " +
+                "(\"ClassificationRevision\" >= 1 AND \"ClassificationProvenance\" IS NOT NULL AND \"PostedSettlementInstrument\" IS NOT NULL " +
+                "AND \"PostedMonthlyFinancialRole\" IS NOT NULL AND \"PostedFinancialClass\" IS NOT NULL AND \"ClassifiedAt\" IS NOT NULL)");
+            table.HasCheckConstraint(
+                "CK_Transactions_ActiveIsClassified",
+                "\"Status\" <> 1 OR \"ClassificationRevision\" >= 1");
+        });
 
         builder.HasIndex(t => t.OriginTransactionId)
             .HasFilter("\"OriginTransactionId\" IS NOT NULL");
@@ -100,7 +123,8 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // One generated counterpart per source. Fiado and cofre legs (kinds 1, 2, 6) hang off their source row; a
+        // One generated counterpart per source. Fiado, cofre and cheque-conversion rows (kinds 1, 2, 6, 7) hang off their
+        // source row; a
         // close-field effect (kinds 3–5) has none and is owned by its session's field slot instead (M9.6 Phase 7).
         builder.HasIndex(t => t.GeneratedFromTransactionId)
             .IsUnique()
@@ -108,7 +132,7 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
         builder.ToTable(table => table.HasCheckConstraint(
             "CK_Transactions_GenerationOrigin",
             "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR " +
-            "(\"GenerationKind\" IN (1, 2, 6) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR " +
+            "(\"GenerationKind\" IN (1, 2, 6, 7) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR " +
             "(\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)"));
 
         // At most one live (non-cancelled) effect per session and close field, whatever the save path.
@@ -119,5 +143,12 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
 
         builder.HasIndex(t => new { t.BranchId, t.Status });
         builder.HasIndex(t => new { t.BranchId, t.RecordedByOperatorId, t.Date });
+    }
+
+    private static void ConfigureDatabaseOwned<TProperty>(PropertyBuilder<TProperty> property)
+    {
+        property.IsRequired(typeof(TProperty) == typeof(int)).ValueGeneratedOnAddOrUpdate();
+        property.Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Ignore);
+        property.Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
     }
 }

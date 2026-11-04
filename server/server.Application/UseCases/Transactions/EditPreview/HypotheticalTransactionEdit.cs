@@ -22,7 +22,10 @@ namespace server.Application.UseCases.Transactions.EditPreview;
 /// become editable.
 /// </para>
 /// </summary>
-public sealed class HypotheticalTransactionEdit(Transaction snapshot, RequestUpdateTransactionJson payload)
+public sealed class HypotheticalTransactionEdit(
+    Transaction snapshot,
+    RequestUpdateTransactionJson payload,
+    bool isOutstanding)
 {
     public Guid TransactionId { get; } = snapshot.Id;
     public Guid BranchId { get; } = snapshot.BranchId;
@@ -43,8 +46,11 @@ public sealed class HypotheticalTransactionEdit(Transaction snapshot, RequestUpd
     public DateTime CurrentDueDate { get; } = snapshot.DueDate;
     public DateTime HypotheticalDueDate { get; } = payload.DueDate;
 
-    public DateTime? CurrentPaidAt { get; } = snapshot.PaidAt;
-    public DateTime? HypotheticalPaidAt { get; } = payload.PaidAt;
+    /// <summary>
+    /// Whether the row is still outstanding today by its settlement events (M9.7 Phase 1). An edit can never settle or
+    /// reopen a receivable — that is an event command — so there is one value for both sides.
+    /// </summary>
+    public bool IsOutstanding { get; } = isOutstanding;
 
     public TimeOnly? CurrentTransactionTime { get; } = snapshot.TransactionTime;
     public TimeOnly? HypotheticalTransactionTime { get; } = payload.TransactionTime;

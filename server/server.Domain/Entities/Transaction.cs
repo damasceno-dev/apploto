@@ -25,7 +25,6 @@ public class Transaction : EntityBase
     public Client? Client { get; set; }
 
     public DateTime DueDate { get; set; }
-    public DateTime? PaidAt { get; set; }
 
     public Guid? OriginTransactionId { get; init; }
     public Transaction? OriginTransaction { get; set; }
@@ -56,6 +55,16 @@ public class Transaction : EntityBase
     public Guid? CancelledByUserId { get; set; }
     public User? CancelledByUser { get; set; }
     public string? CancellationReason { get; set; }
+
+    // Frozen classification (M9.7 Phase 1.3): captured by the database from the type when the row is posted (inserted
+    // Active or finalized), never rewritten afterwards except by an audited open-period reclassification. All null
+    // (revision 0) while the row has never been posted. The application never writes these columns on insert or save.
+    public SettlementInstrument? PostedSettlementInstrument { get; init; }
+    public MonthlyFinancialRole? PostedMonthlyFinancialRole { get; init; }
+    public FinancialClass? PostedFinancialClass { get; init; }
+    public ClassificationProvenance? ClassificationProvenance { get; init; }
+    public int ClassificationRevision { get; init; }
+    public DateTime? ClassifiedAt { get; init; }
 
     public Guid BranchId { get; init; }
     public Branch Branch { get; init; } = null!;

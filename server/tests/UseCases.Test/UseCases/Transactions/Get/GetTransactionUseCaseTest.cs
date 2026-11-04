@@ -44,7 +44,7 @@ public class GetTransactionUseCaseTest
         response.AccountId.ShouldBe(transaction.AccountId);
         response.ClientId.ShouldBe(transaction.ClientId);
         response.DueDate.ShouldBe(transaction.DueDate);
-        response.PaidAt.ShouldBe(transaction.PaidAt);
+        response.Classification.ShouldBeNull();
         response.OriginTransactionId.ShouldBe(transaction.OriginTransactionId);
         response.RecordedByOperatorId.ShouldBe(transaction.RecordedByOperatorId);
         response.CreatedByUserId.ShouldBe(transaction.CreatedByUserId);

@@ -41,7 +41,10 @@ public class FinancialRoleRulesTest
     public void GenerationKinds_ShouldSplitIntoSourceLegsAndFieldEffects()
     {
         var withSource = Enum.GetValues<TransactionGenerationKind>().Where(server.Domain.Models.FinancialRoleRules.HasSourceTransaction);
-        withSource.ShouldBe([TransactionGenerationKind.FiadoSale, TransactionGenerationKind.FiadoCashRepayment, TransactionGenerationKind.SafeCashDeposit]);
+        withSource.ShouldBe([
+            TransactionGenerationKind.FiadoSale, TransactionGenerationKind.FiadoCashRepayment,
+            TransactionGenerationKind.SafeCashDeposit, TransactionGenerationKind.ChequeFiadoConversion
+        ]);
         Enum.GetValues<SessionCloseField>().Select(server.Domain.Models.FinancialRoleRules.GenerationKindOf).ShouldBe([
             TransactionGenerationKind.SessionTerminalReport, TransactionGenerationKind.SessionBolaoFee, TransactionGenerationKind.SessionSpecialFee
         ]);
@@ -58,5 +61,21 @@ public class FinancialRoleRulesTest
         Enum.GetValues<TransactionTypeSystemRole>()
             .Where(role => server.Domain.Models.FinancialRoleRules.MonthlyFinancialRoleOf(role) != MonthlyFinancialRole.None)
             .ShouldBe([TransactionTypeSystemRole.BolaoFee, TransactionTypeSystemRole.SpecialFee]);
+    }
+
+    [Theory]
+    [InlineData(TransactionTypeSystemRole.FiadoSaleCounterpart, FinancialClass.CaixaAndClientMoney)]
+    [InlineData(TransactionTypeSystemRole.FiadoCashRepaymentCounterpart, FinancialClass.CaixaAndClientMoney)]
+    [InlineData(TransactionTypeSystemRole.TerminalReportIn, FinancialClass.CaixaAndClientMoney)]
+    [InlineData(TransactionTypeSystemRole.TerminalReportOut, FinancialClass.CaixaAndClientMoney)]
+    [InlineData(TransactionTypeSystemRole.BolaoFee, FinancialClass.ShopFeesAndIncome)]
+    [InlineData(TransactionTypeSystemRole.SpecialFee, FinancialClass.ShopFeesAndIncome)]
+    [InlineData(TransactionTypeSystemRole.SafeDepositOut, FinancialClass.InternalTransfer)]
+    [InlineData(TransactionTypeSystemRole.SafeDepositIn, FinancialClass.InternalTransfer)]
+    [InlineData(TransactionTypeSystemRole.ChequeFiadoConversion, FinancialClass.CaixaAndClientMoney)]
+    public void SystemRoles_ShouldCarryTheClassFixedByTheCanonicalPlan(TransactionTypeSystemRole role, FinancialClass expected)
+    {
+        // Mirrors CK_TransactionTypes_SystemRole_FinancialClass and TR_TransactionTypes_SystemClass (M9.7 Phase 1.3).
+        server.Domain.Models.FinancialRoleRules.FinancialClassOf(role).ShouldBe(expected);
     }
 }

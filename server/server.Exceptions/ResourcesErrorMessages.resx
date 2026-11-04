@@ -243,9 +243,6 @@
     <data name="TRANSACTION_DUE_DATE_BEFORE_DATE" xml:space="preserve">
         <value>A data de vencimento deve ser igual ou posterior à data da transação</value>
     </data>
-    <data name="TRANSACTION_PAID_AT_BEFORE_DATE" xml:space="preserve">
-        <value>A data de pagamento deve ser igual ou posterior à data da transação</value>
-    </data>
     <data name="TRANSACTION_CANNOT_UPDATE_CANCELLED" xml:space="preserve">
         <value>Transações canceladas não podem ser atualizadas</value>
     </data>
@@ -961,5 +958,143 @@
     </data>
     <data name="ACCOUNT_SAFE_NOT_FOUND" xml:space="preserve">
         <value>Cofre não encontrado.</value>
+    </data>
+    <data name="BANK_RECEIPT_NOT_FOUND" xml:space="preserve">
+        <value>Recebimento bancário não encontrado.</value>
+    </data>
+    <data name="ACCOUNT_BANK_NOT_FOUND" xml:space="preserve">
+        <value>Conta bancária não encontrada.</value>
+    </data>
+    <data name="CHEQUE_NOT_A_CHEQUE" xml:space="preserve">
+        <value>Esta transação não é um cheque.</value>
+    </data>
+    <data name="CHEQUE_NOT_ACTIVE" xml:space="preserve">
+        <value>O cheque precisa estar lançado (nem rascunho nem cancelado).</value>
+    </data>
+    <data name="CHEQUE_STALE_VERSION" xml:space="preserve">
+        <value>O cheque foi alterado por outra operação. Recarregue e tente novamente.</value>
+    </data>
+    <data name="CHEQUE_ITEMS_REQUIRED" xml:space="preserve">
+        <value>Informe ao menos um cheque.</value>
+    </data>
+    <data name="CHEQUE_ITEMS_MAX_COUNT" xml:space="preserve">
+        <value>Informe no máximo {0} cheques por operação.</value>
+    </data>
+    <data name="CHEQUE_ITEMS_DUPLICATE" xml:space="preserve">
+        <value>O mesmo cheque foi informado mais de uma vez.</value>
+    </data>
+    <data name="CHEQUE_ITEM_ID_REQUIRED" xml:space="preserve">
+        <value>Informe o cheque.</value>
+    </data>
+    <data name="CHEQUE_EXPECTED_VERSION_INVALID" xml:space="preserve">
+        <value>A versão informada do cheque é inválida.</value>
+    </data>
+    <data name="CHEQUE_CUSTODY_STATE_INVALID" xml:space="preserve">
+        <value>Este cheque não pode ser levado ao cofre na situação atual.</value>
+    </data>
+    <data name="CHEQUE_CUSTODY_SAME_LOCATION" xml:space="preserve">
+        <value>O cheque já está neste cofre.</value>
+    </data>
+    <data name="CHEQUE_DEPOSIT_STATE_INVALID" xml:space="preserve">
+        <value>Este cheque não pode ser depositado na situação atual.</value>
+    </data>
+    <data name="CHEQUE_RETURN_STATE_INVALID" xml:space="preserve">
+        <value>Somente um cheque depositado pode ser devolvido.</value>
+    </data>
+    <data name="CHEQUE_RETURN_DEPOSIT_MISMATCH" xml:space="preserve">
+        <value>A devolução deve indicar o depósito atual deste cheque.</value>
+    </data>
+    <data name="CHEQUE_REPRESENT_STATE_INVALID" xml:space="preserve">
+        <value>Somente um cheque devolvido pode ser reapresentado.</value>
+    </data>
+    <data name="CHEQUE_CONVERSION_STATE_INVALID" xml:space="preserve">
+        <value>Este cheque não pode ser convertido em fiado na situação atual.</value>
+    </data>
+    <data name="CHEQUE_PARTIAL_AMOUNT_UNSUPPORTED" xml:space="preserve">
+        <value>Um cheque só pode ser movimentado pelo valor integral.</value>
+    </data>
+    <data name="CHEQUE_DEPOSIT_EVENT_REQUIRED" xml:space="preserve">
+        <value>Informe o depósito devolvido.</value>
+    </data>
+    <data name="CHEQUE_CLIENT_REQUIRED" xml:space="preserve">
+        <value>Informe o cliente do cheque.</value>
+    </data>
+    <data name="CHEQUE_CLIENT_MISMATCH" xml:space="preserve">
+        <value>O cliente informado não é o cliente deste cheque.</value>
+    </data>
+    <data name="CHEQUE_RETURN_REASON_MAX_LENGTH" xml:space="preserve">
+        <value>O motivo da devolução (alínea) deve ter no máximo {0} caracteres.</value>
+    </data>
+    <data name="CHEQUE_NEXT_DEPOSIT_DATE_INVALID" xml:space="preserve">
+        <value>A próxima data de depósito deve ser igual ou posterior à data da devolução e estar em até {0} dias.</value>
+    </data>
+    <data name="CHEQUE_FIADO_TAB_ACCOUNT_REQUIRED" xml:space="preserve">
+        <value>Informe a conta fiado que receberá a dívida.</value>
+    </data>
+    <data name="CHEQUE_DESCRIPTION_MAX_LENGTH" xml:space="preserve">
+        <value>A descrição deve ter no máximo {0} caracteres.</value>
+    </data>
+    <data name="SETTLEMENT_OCCURRED_ON_REQUIRED" xml:space="preserve">
+        <value>Informe a data em que o evento ocorreu.</value>
+    </data>
+    <data name="SETTLEMENT_DATE_OUT_OF_RANGE" xml:space="preserve">
+        <value>Data fora do intervalo permitido.</value>
+    </data>
+    <data name="SETTLEMENT_OCCURRED_ON_IN_FUTURE" xml:space="preserve">
+        <value>A data do evento não pode estar no futuro.</value>
+    </data>
+    <data name="SETTLEMENT_POSTED_ON_IN_FUTURE" xml:space="preserve">
+        <value>A data de lançamento não pode estar no futuro.</value>
+    </data>
+    <data name="SETTLEMENT_POSTED_ON_BEFORE_OCCURRED_ON" xml:space="preserve">
+        <value>A data de lançamento deve ser igual ou posterior à data do evento.</value>
+    </data>
+    <data name="SETTLEMENT_POSTED_ON_LOCKED" xml:space="preserve">
+        <value>A data de lançamento está em período bloqueado; lance o evento em um período aberto.</value>
+    </data>
+    <data name="SETTLEMENT_OCCURRED_BEFORE_RECEIVABLE_DATE" xml:space="preserve">
+        <value>O evento não pode ocorrer antes da data da transação.</value>
+    </data>
+    <data name="SETTLEMENT_CHRONOLOGY_INVALID" xml:space="preserve">
+        <value>As datas do evento não podem ser anteriores às do evento anterior deste recebível.</value>
+    </data>
+    <data name="RECEIVABLE_HAS_SETTLEMENT_EVENTS" xml:space="preserve">
+        <value>Este recebível já tem eventos de liquidação (cofre, depósito, devolução ou conversão); ele não pode ser cancelado nem mudar de data.</value>
+    </data>
+    <data name="REPORT_CUTOFF_BASIS_INVALID" xml:space="preserve">
+        <value>Base de corte inválida.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_FINANCIAL_CLASS_INVALID" xml:space="preserve">
+        <value>Classe financeira inválida.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_WINDOW_INVALID" xml:space="preserve">
+        <value>Informe um período de reclassificação válido (início até fim).</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_WINDOW_TOO_WIDE" xml:space="preserve">
+        <value>O período de reclassificação deve ter no máximo {0} dias.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_WINDOW_IN_FUTURE" xml:space="preserve">
+        <value>O período de reclassificação não pode terminar no futuro.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_LOCKED_PERIOD" xml:space="preserve">
+        <value>O período inclui datas bloqueadas; lançamentos de meses bloqueados nunca são reclassificados.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_REASON_REQUIRED" xml:space="preserve">
+        <value>Informe o motivo da reclassificação.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_REASON_MAX_LENGTH" xml:space="preserve">
+        <value>O motivo da reclassificação deve ter no máximo {0} caracteres.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_ROWS_REQUIRED" xml:space="preserve">
+        <value>Informe os lançamentos a reclassificar.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_ROWS_INVALID" xml:space="preserve">
+        <value>Os lançamentos informados são inválidos ou repetidos.</value>
+    </data>
+    <data name="TRANSACTION_TYPE_RECLASSIFY_STALE" xml:space="preserve">
+        <value>Os lançamentos a reclassificar mudaram desde a consulta. Recarregue e tente novamente.</value>
+    </data>
+    <data name="RECEIVABLE_CLIENT_LOCKED_BY_EVENTS" xml:space="preserve">
+        <value>O cliente deste recebível já foi identificado por um evento de liquidação e não pode ser alterado.</value>
     </data>
 </root>

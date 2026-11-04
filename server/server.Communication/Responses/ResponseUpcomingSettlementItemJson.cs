@@ -2,7 +2,7 @@ using server.Domain.Entities.Enums;
 
 namespace server.Communication.Responses;
 
-/// <summary>One unpaid classified row; an installment keeps its plan in <see cref="OriginTransactionId"/>.</summary>
+/// <summary>One outstanding receivable row; an installment keeps its plan in <see cref="OriginTransactionId"/>.</summary>
 public class ResponseUpcomingSettlementItemJson
 {
     public Guid TransactionId { get; init; }
@@ -11,7 +11,10 @@ public class ResponseUpcomingSettlementItemJson
     public DateTime DueDate { get; init; }
     public decimal Value { get; init; }
 
-    /// <summary>The row's type's current classification.</summary>
+    /// <summary>The part of <see cref="Value"/> still outstanding at <c>AsOfDate</c> on the posted basis (M9.7 Phase 1).</summary>
+    public decimal OutstandingValue { get; init; }
+
+    /// <summary>The instrument frozen when the row was posted (M9.7 Phase 1.3).</summary>
     public SettlementInstrument Instrument { get; init; }
     public Guid TransactionTypeId { get; init; }
     public string TransactionTypeName { get; init; } = string.Empty;

@@ -96,7 +96,7 @@ public class ReportControllerOpenChequeStandaloneTest(ServerWebApplicationFactor
     }
 
     [Fact]
-    public async Task OpenChequeAging_ShouldDropAStandaloneCheque_WhenItsTypeIsDeclassified_AndNeverShowAnotherBranchs()
+    public async Task OpenChequeAging_ShouldKeepAPostedStandaloneCheque_WhenItsTypeIsDeclassified_AndNeverShowAnotherBranchs()
     {
         var (user, branch, _, token) = await factory.SeedFullBranchContextAsync("OCAStandaloneDeclassify");
         var (otherUser, otherBranch, _, _) = await factory.SeedFullBranchContextAsync("OCAStandaloneOther");
@@ -128,10 +128,17 @@ public class ReportControllerOpenChequeStandaloneTest(ServerWebApplicationFactor
                 .Build(), token);
         declassify.StatusCode.ShouldBe(HttpStatusCode.OK);
 
+        // M9.7 Phase 1.3: the row was posted as a cheque, so declassifying the type later never drops it.
         var after = await (await _client.GetAuthAsync("/report/cheques/open-aging?Page=1&PageSize=10", token))
             .ReadContentAsync<ResponseOpenChequeAgingJson>();
-        after.TotalCount.ShouldBe(0);
-        after.OutstandingTotal.ShouldBe(0m);
-        after.Items.ShouldBeEmpty();
+        after.TotalCount.ShouldBe(1);
+        after.OutstandingTotal.ShouldBe(50m);
+
+        // A cheque recorded after the change is no longer one.
+        await factory.SeedTransactionAsync(branch.Id, terminal.Id, chequeType.Id, saidas.Id, Direction.Out, op.Id, user.Id,
+            value: 70m, dueDate: DateTime.Today.AddDays(5));
+        var later = await (await _client.GetAuthAsync("/report/cheques/open-aging?Page=1&PageSize=10", token))
+            .ReadContentAsync<ResponseOpenChequeAgingJson>();
+        later.OutstandingTotal.ShouldBe(50m);
     }
 }

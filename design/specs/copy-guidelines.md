@@ -50,8 +50,8 @@ Canonical UI terms, mapped from the domain spec and the backend's own pt-BR erro
 | caixa                                                      | the drawer/register context ("fechar o caixa" acceptable in informal helper text; the flow name stays "fechamento do dia") | §1                                        |
 | terminal                                                   | a `Terminal` account (operator's drawer)                                                                                   | §3.7                                      |
 | cliente                                                    | `Client`                                                                                                                   | §3.11                                     |
-| data da transação / data de vencimento / data de pagamento | the three-date model: `Date` / `DueDate` / `PaidAt`                                                                        | §1; backend errors use these exact labels |
-| em aberto                                                  | unpaid (`PaidAt = null`) — "parcelas em aberto", "fiado em aberto"; for a client's fiado balance, a positive balance        | §6.14                                     |
+| data da transação / data de vencimento / data do evento / lançado em | `Date` / `DueDate`; a settlement event's `OccurredOn` / `PostedOn` (v62; *data de pagamento* no longer names a field)                                                                        | §1; backend errors use these exact labels |
+| em aberto                                                  | outstanding at the cutoff (`ReceivableSettlementStatus.Open`) — "parcelas em aberto", "fiado em aberto"; for a client's fiado balance, a positive balance        | §6.14                                     |
 | quitado                                                    | a client's fiado balance at exactly zero                                                                                   | `screens.md` Client statement             |
 | crédito do cliente                                         | a negative internal fiado balance (`Out − In < 0`), always shown as a positive amount — "+R$ 10,00 · crédito do cliente"; the credit tab of Fiado balance is "Saldo crédito", its total "Crédito dos clientes" | `screens.md` Client statement, Fiado balance |
 | automática                                                 | a Terminal movement the system generated from a fiado operation; the label "Automática" sits beside the type and is never a status | `screens.md` Transactions list            |
@@ -104,11 +104,11 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **DailyCloseReviewEventType** *(§3.21, Fix & resubmit)*: `Rejected` → "Rejeitado na conferência" · `OpeningChanged` → "Abertura alterada".
 
-**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoSale` → "venda fiado no balcão" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro" · `SessionTerminalReport` → "relatório do terminal informado no fechamento" · `SessionBolaoFee` → "tarifa de bolão informada no fechamento" · `SessionSpecialFee` → "tarifa especial informada no fechamento" · `SafeCashDeposit` → "depósito de dinheiro do caixa no cofre".
+**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoSale` → "venda fiado no balcão" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro" · `SessionTerminalReport` → "relatório do terminal informado no fechamento" · `SessionBolaoFee` → "tarifa de bolão informada no fechamento" · `SessionSpecialFee` → "tarifa especial informada no fechamento" · `SafeCashDeposit` → "depósito de dinheiro do caixa no cofre" · `ChequeFiadoConversion` → "conversão de cheque em fiado".
 
 **FiadoPaymentKind** *(§6.4, admin types and Receber pagamento)*: `CountedCash` → "Dinheiro (entra no caixa)" · `NonCash` → "Outro meio (não entra no caixa)".
 
-**TransactionTypeSystemRole** *(admin types, read-only)*: `FiadoSaleCounterpart` → "Saída automática do caixa (venda fiado)" · `FiadoCashRepaymentCounterpart` → "Entrada automática de dinheiro (recebimento de fiado)" · `TerminalReportIn` → "Relatório do terminal (campo do fechamento)" · `TerminalReportOut` → "Relatório do terminal negativo (campo do fechamento)" · `BolaoFee` → "Tarifa de bolão (campo do fechamento)" · `SpecialFee` → "Tarifa especial (campo do fechamento)" · `SafeDepositOut` → "Depósito de dinheiro no cofre (saída do caixa)" · `SafeDepositIn` → "Entrada automática no cofre (depósito do caixa)".
+**TransactionTypeSystemRole** *(admin types, read-only)*: `FiadoSaleCounterpart` → "Saída automática do caixa (venda fiado)" · `FiadoCashRepaymentCounterpart` → "Entrada automática de dinheiro (recebimento de fiado)" · `TerminalReportIn` → "Relatório do terminal (campo do fechamento)" · `TerminalReportOut` → "Relatório do terminal negativo (campo do fechamento)" · `BolaoFee` → "Tarifa de bolão (campo do fechamento)" · `SpecialFee` → "Tarifa especial (campo do fechamento)" · `SafeDepositOut` → "Depósito de dinheiro no cofre (saída do caixa)" · `SafeDepositIn` → "Entrada automática no cofre (depósito do caixa)" · `ChequeFiadoConversion` → "Cheque convertido em fiado (dívida automática)".
 
 **InvitationStatus** *(§6.16)*: `Pending` → "Pendente" · `Accepted` → "Aceito" · `Declined` → "Recusado" · `Expired` → "Expirado". *(Masculine — agrees with "convite".)*
 
@@ -145,6 +145,26 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 **SessionApprovalMode** *(§6.20, approval)*: `Independent` → "Aprovação independente" · `SingleActiveManager` → "Aprovar como único gestor".
 
 **SessionCloseField** *(§6.20, close form)*: `TerminalReport` → "Relatório do terminal" · `BolaoFee` → "Tarifa Bolão" · `SpecialFee` → "Tarifa Especial".
+
+**FinancialClass** *(§3.10/M9.7, frozen on posting)*: `Unclassified` → "Sem classe financeira" · `CaixaAndClientMoney` → "Dinheiro da CAIXA e de clientes" · `ShopFeesAndIncome` → "Tarifas e receitas da lotérica" · `OperatingExpenseAndLoss` → "Despesas operacionais e perdas" · `InternalTransfer` → "Transferência interna" · `CashDifference` → "Diferença de caixa". *(Feminine — agrees with *classe*.)*
+
+**ClassificationProvenance** *(M9.7, how a posted row got its classification)*: `Posting` → "Registrada no lançamento" · `MigratedFromTypeAtUpgrade` → "Copiada do tipo na atualização (histórico desconhecido)" · `OpenPeriodReclassification` → "Reclassificada em período aberto". *(Feminine — agrees with *classificação*.)*
+
+**ReceivableCutoffBasis** *(M9.7, receivable report cutoff)*: `Posted` → "Por data de lançamento" · `Occurred` → "Por data do evento".
+
+**ReceivableSettlementStatus** *(M9.7, a receivable at its cutoff)*: `Open` → "Em aberto" · `PartiallySettled` → "Parcialmente liquidado" · `Settled` → "Liquidado". *(Masculine — agrees with *recebível*.)*
+
+**ChequeLifecycleState** *(M9.7, where a cheque stands)*: `Received` → "No caixa" · `InSafe` → "No cofre" · `Deposited` → "Depositado" · `Returned` → "Devolvido" · `AwaitingRedeposit` → "Reapresentado (aguardando depósito)" · `ConvertedToFiado` → "Convertido em fiado" · `SettledBeforeEvents` → "Pago (registro anterior)". *(Masculine — agrees with *cheque*. Depositado is not a clearing guarantee.)*
+
+**SettlementEventKind** *(M9.7, receivable history)*: `MigratedSettlement` → "Pagamento registrado antes da atualização" · `CustodyMoved` → "Levado ao cofre" · `ChequeDeposited` → "Depositado" · `ChequeReturned` → "Devolvido pelo banco" · `ChequeRepresented` → "Reapresentado" · `ChequeConvertedToFiado` → "Convertido em fiado".
+
+**SettlementEventProvenance** *(M9.7, receivable history)*: `Command` → "Registrado no sistema" · `MigratedFromPaidAt` → "Reconstruído do pagamento anterior".
+
+**SettlementMigrationIssue** *(M9.7, reconstructed events)*: `None` → "Sem pendência" · `NotSettleableTabRow` → "Fiado: não liquida a dívida" · `OccurredBeforeTransactionDate` → "Pagamento anterior à data da transação" · `DraftAtMigration` → "Era rascunho na atualização" · `CancelledAtMigration` → "Já estava cancelado".
+
+**BankReceiptStatus** *(M9.7, pending bank receipt)*: `Pending` → "Pendente de confirmação". *(Never shown as arrived: confirmation is statement reconciliation (M9.7 Phase 5).)*
+
+**BankReceiptSourceKind** *(M9.7, what expects money in the bank)*: `ChequeDeposit` → "Depósito de cheques".
 
 ## 6. Error display
 
@@ -254,6 +274,6 @@ These terms document the proposed model; they do not rename shipped wire enums o
 - Fields: **Relatório do terminal**, **Tarifa Bolão**, **Tarifa Especial**. Report is signed app input; do not claim this is the exact printed CAIXA label or that the legacy report can be negative. Fee/report overlap remains pending; do not invent help that counts it twice. Before P7, actual ordinary configured type labels render verbatim.
 - Approval: **Aprovar dia do caixa**, **Aprovar como único gestor**, **Motivo da aprovação excepcional**. Failed batch: **Nenhum turno foi aprovado. Resolva os impedimentos indicados e tente novamente.** Each failure names its own turno, never silently skips.
 - Payment: keep **Escolha a forma de pagamento.**, no preselected Dinheiro/PIX. Generated fiado sale copy becomes **Gerada automaticamente ao registrar uma venda fiado** only when P6 ships; current counted-stock copy remains accurate meanwhile. **Saldo inicial de fiado** and **Conversão de cheque em fiado** never describe a new counter sale.
-- Corrected operational help: **Depósito no cofre**, customer **Pagamento por PIX**, cheque **Depositado** (not a clearing guarantee). The current PaidAt control is a recording mechanism, not “conciliado com o banco”. Matching, returns and bank settlement copy await C contracts. R$ amounts remain the pt-BR formatting contract; API ErrorMessages remain verbatim.
+- Corrected operational help: **Depósito no cofre**, customer **Pagamento por PIX**, cheque **Depositado** (not a clearing guarantee). A deposit (**Depositado**, with its receipt **Pendente de confirmação**) is a recording, not “conciliado com o banco”; a late posting reads *Ocorrido em {OccurredOn}, lançado em {PostedOn}*. Matching, returns and bank settlement copy await C contracts. R$ amounts remain the pt-BR formatting contract; API ErrorMessages remain verbatim.
 
 Canonical operation help uses §6.19 O01–O22/E01–E15 with unconfirmed report premises visible. Future report notes name the remaining Q9 uncertainty rather than saying confirmed Q1–Q4 answers are still unanswered. Independent review of this candidate precedes both marker advancement and future blueprint acceptance.

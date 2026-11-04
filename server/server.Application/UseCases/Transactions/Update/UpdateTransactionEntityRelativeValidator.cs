@@ -17,10 +17,5 @@ internal static class UpdateTransactionEntityRelativeValidator
         {
             throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE]);
         }
-
-        if (request.PaidAt is { } paidAt && paidAt < transaction.Date)
-        {
-            throw new OnValidationException([ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE]);
-        }
     }
 }

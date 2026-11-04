@@ -41,7 +41,6 @@ public class UpdateTransactionUseCaseTest
         response.Id.ShouldBe(ctx.Transaction.Id);
         response.Description.ShouldBe(ctx.Request.Description);
         response.DueDate.ShouldBe(ctx.Request.DueDate);
-        response.PaidAt.ShouldBe(ctx.Request.PaidAt);
         response.ClientId.ShouldBe(ctx.Request.ClientId);
         response.TransactionTime.ShouldBe(ctx.Request.TransactionTime);
         response.UpdatedAt.ShouldNotBeNull();
@@ -51,7 +50,6 @@ public class UpdateTransactionUseCaseTest
 
         ctx.Transaction.Description.ShouldBe(ctx.Request.Description);
         ctx.Transaction.DueDate.ShouldBe(ctx.Request.DueDate);
-        ctx.Transaction.PaidAt.ShouldBe(ctx.Request.PaidAt);
         ctx.Transaction.ClientId.ShouldBe(ctx.Request.ClientId);
         ctx.Transaction.TransactionTime.ShouldBe(ctx.Request.TransactionTime);
         ctx.Transaction.UpdatedAt.ShouldBe(response.UpdatedAt);
@@ -70,7 +68,6 @@ public class UpdateTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("Draft after edit")
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 20))
             .Build();
@@ -93,7 +90,6 @@ public class UpdateTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(null)
             .WithDueDate(ctx.Transaction.Date.AddDays(2))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(null)
             .Build();
@@ -104,11 +100,9 @@ public class UpdateTransactionUseCaseTest
         var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version);
 
         response.Description.ShouldBeNull();
-        response.PaidAt.ShouldBeNull();
         response.ClientId.ShouldBeNull();
         response.TransactionTime.ShouldBeNull();
         ctx.Transaction.Description.ShouldBeNull();
-        ctx.Transaction.PaidAt.ShouldBeNull();
         ctx.Transaction.ClientId.ShouldBeNull();
         ctx.Transaction.TransactionTime.ShouldBeNull();
         await ctx.UnitOfWork.Received(1).Commit();
@@ -210,7 +204,6 @@ public class UpdateTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(ctx.Request.Description)
             .WithDueDate(ctx.Transaction.Date.AddDays(-1))
-            .WithPaidAt(ctx.Request.PaidAt)
             .WithClientId(ctx.Request.ClientId)
             .WithTransactionTime(ctx.Request.TransactionTime)
             .Build();
@@ -220,26 +213,6 @@ public class UpdateTransactionUseCaseTest
             () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
-        await ctx.UnitOfWork.DidNotReceive().Commit();
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowValidation_WhenPaidAtIsBeforeTransactionDate()
-    {
-        var ctx = BuildContext(Role.Manager);
-        ctx.Request = new RequestUpdateTransactionJsonBuilder()
-            .WithDescription(ctx.Request.Description)
-            .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Transaction.Date.AddDays(-1))
-            .WithClientId(ctx.Request.ClientId)
-            .WithTransactionTime(ctx.Request.TransactionTime)
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var exception = await Should.ThrowAsync<OnValidationException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
-
-        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE);
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
@@ -313,7 +286,6 @@ public class UpdateTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(ctx.Request.Description)
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Request.PaidAt)
             .WithClientId(null)
             .WithTransactionTime(ctx.Request.TransactionTime)
             .Build();
@@ -335,7 +307,6 @@ public class UpdateTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription(ctx.Request.Description)
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Request.PaidAt)
             .WithClientId(missingClientId)
             .WithTransactionTime(ctx.Request.TransactionTime)
             .Build();
@@ -353,6 +324,52 @@ public class UpdateTransactionUseCaseTest
         await ctx.UnitOfWork.DidNotReceive().Commit();
     }
 
+    [Fact]
+    public async Task Execute_ShouldRefuseAClientChange_WhenTheReceivableHasCommandSettlementEvents()
+    {
+        // M9.7 review P1: a deposit/return already identified who owes the cheque; editing the row must not move it.
+        var ctx = BuildContext(Role.Manager);
+        ctx.SettlementEventsRepository = new SettlementEventsRepositoryBuilder()
+            .ExistsCommandEventReturns(ctx.Transaction.Id, true)
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var exception = await Should.ThrowAsync<ConflictException>(
+            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version));
+
+        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.RECEIVABLE_CLIENT_LOCKED_BY_EVENTS);
+        await ctx.SettlementEventsRepository.Received(1)
+            .ExistsCommandEventByReceivableIdAsNoTracking(ctx.Transaction.Id, Arg.Any<CancellationToken>());
+        await ctx.UnitOfWork.DidNotReceive().Commit();
+    }
+
+    [Fact]
+    public async Task Execute_ShouldAllowOtherEdits_WhenTheClientIsUnchangedOnAReceivableWithEvents()
+    {
+        var ctx = BuildContext(Role.Manager);
+        ctx.SettlementEventsRepository = new SettlementEventsRepositoryBuilder()
+            .ExistsCommandEventReturns(ctx.Transaction.Id, true)
+            .Build();
+        ctx.Request = new RequestUpdateTransactionJsonBuilder()
+            .WithDescription("nova descrição")
+            .WithDueDate(ctx.Transaction.Date.AddDays(1))
+            .WithClientId(ctx.Transaction.ClientId)
+            .WithTransactionTime(ctx.Request.TransactionTime)
+            .Build();
+        ctx.ClientsRepository = new ClientsRepositoryBuilder()
+            .GetActiveByIdAndBranchIdAsNoTracking(
+                ctx.Transaction.ClientId!.Value,
+                ctx.BranchUser.BranchId,
+                new ClientBuilder().WithId(ctx.Transaction.ClientId.Value).WithBranchId(ctx.BranchUser.BranchId).Build())
+            .Build();
+        var useCase = CreateUseCase(ctx);
+
+        var response = await useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.Transaction.Version);
+
+        response.Description.ShouldBe("nova descrição");
+        await ctx.UnitOfWork.Received().Commit(Arg.Any<CancellationToken>());
+    }
+
     private static UpdateTransactionUseCase CreateUseCase(TestContext ctx)
     {
         var memberAccountScopeGuard = new MemberAccountScopeGuard();
@@ -367,7 +384,8 @@ public class UpdateTransactionUseCaseTest
             memberAccountScopeGuard,
             ctx.MutationPermissionGuard,
             lockDateGuard,
-            new MonthLockCoordinationBuilder().Build());
+            new MonthLockCoordinationBuilder().Build(),
+            ctx.SettlementEventsRepository);
     }
 
     private static TestContext BuildContext(Role role)
@@ -398,7 +416,6 @@ public class UpdateTransactionUseCaseTest
             .WithTransactionType(transactionType)
             .WithDate(transactionDate)
             .WithDueDate(transactionDate)
-            .WithPaidAt(transactionDate.AddDays(1))
             .WithDescription("Original description")
             .WithClientId(currentClientId)
             .WithTransactionTime(new TimeOnly(9, 15))
@@ -407,7 +424,6 @@ public class UpdateTransactionUseCaseTest
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("Updated description")
             .WithDueDate(transactionDate.AddDays(2))
-            .WithPaidAt(transactionDate.AddDays(3))
             .WithClientId(requestClientId)
             .WithTransactionTime(new TimeOnly(15, 45))
             .Build();
@@ -465,5 +481,6 @@ public class UpdateTransactionUseCaseTest
         public required IMemberAccountScopeResolver MemberAccountScopeResolver { get; init; }
         public required ITransactionMutationPermissionGuard MutationPermissionGuard { get; init; }
         public required IUnitOfWork UnitOfWork { get; init; }
+        public ISettlementEventsRepository SettlementEventsRepository { get; set; } = new SettlementEventsRepositoryBuilder().Build();
     }
 }

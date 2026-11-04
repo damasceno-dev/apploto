@@ -204,6 +204,26 @@ export const domainColors = {
       NotConfigured: ['bg', 'fg'],
     },
   },
+  'receivable-settlement-status': {
+    enumName: 'ReceivableSettlementStatus',
+    values: {
+      Open: ['bg', 'fg'],
+      PartiallySettled: ['bg', 'fg'],
+      Settled: ['bg', 'fg'],
+    },
+  },
+  'cheque-lifecycle-state': {
+    enumName: 'ChequeLifecycleState',
+    values: {
+      Received: ['bg', 'fg'],
+      InSafe: ['bg', 'fg'],
+      Deposited: ['bg', 'fg'],
+      Returned: ['bg', 'fg'],
+      AwaitingRedeposit: ['bg', 'fg'],
+      ConvertedToFiado: ['bg', 'fg'],
+      SettledBeforeEvents: ['bg', 'fg'],
+    },
+  },
   'cash-variance': {
     enumName: null,
     values: {

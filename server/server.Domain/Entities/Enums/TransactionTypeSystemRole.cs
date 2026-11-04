@@ -29,5 +29,11 @@ public enum TransactionTypeSystemRole
     SafeDepositOut = 7,
 
     /// <summary><i>Entrada no cofre — depósito do caixa</i>: the generated cofre <c>In</c> of that transfer.</summary>
-    SafeDepositIn = 8
+    SafeDepositIn = 8,
+
+    /// <summary>
+    /// <i>Cheque convertido em fiado</i> (M9.7 Phase 2.3): the Tab <c>Out</c> written only by <i>Converter em fiado</i>;
+    /// a dedicated debt origin with no cashbox leg.
+    /// </summary>
+    ChequeFiadoConversion = 9
 }

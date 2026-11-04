@@ -4,6 +4,7 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ResponseClassificationProvenanceJson } from './responseClassificationProvenanceJson';
 import type { ResponseMonthlyFinancialHoursDayJson } from './responseMonthlyFinancialHoursDayJson';
 import type { ResponseMonthlyFinancialLeftoverJson } from './responseMonthlyFinancialLeftoverJson';
 import type { ResponseMonthlyFinancialLeftoverTypeTotalJson } from './responseMonthlyFinancialLeftoverTypeTotalJson';
@@ -19,6 +20,7 @@ export interface ResponseMonthlyFinancialReportJson {
   isPartialMonth: boolean;
   officialVarianceTotal: number;
   officialCloseCount: number;
+  classificationProvenance: ResponseClassificationProvenanceJson;
   isBolaoServiceFeeConfigured: boolean;
   /** @nullable */
   bolaoServiceFeeTotal?: number | null;

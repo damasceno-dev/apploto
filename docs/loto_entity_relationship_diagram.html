@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v61
+Spec revision: v62
 -->
 <html lang="en">
 <head>
@@ -196,7 +196,7 @@ Spec revision: v61
 </div>
 <div id="error"></div>
 <details id="proposed-custody-model" style="position:fixed;top:12px;left:12px;z-index:1000;max-width:680px;max-height:82vh;overflow:auto;background:Canvas;color:CanvasText;padding:14px;border:1px solid #888;border-radius:8px;font:14px/1.5 system-ui">
-<summary>v61 session relationships · M9.6 P2–P7 and P9 shipped</summary>
+<summary>v62 session and settlement relationships · M9.6 P2–P7, P9 and M9.7 P1–P2 shipped</summary>
 <p>The interactive graph still draws the <b>30-entity pre-session schema</b>. v59 ships (M9.6 P2–P3) Terminal, the session columns on DailyClose/Account/Transaction, SessionOpening, SessionHandover, SessionOpeningDiscrepancy with revisions and attribution events, SessionEvent, CustodyMappingIssue and OpeningCount; v60 ships (M9.6 P4–P5) SessionCountAttempt with items, the session revision/token columns and approval events; v61 ships (M9.6 P6, P7, P9) SessionFieldEffect with its immutable revisions, the cash CustodyTransfer, AccountType Safe, TransactionType.SeedKey and the new system roles and generation kinds. DailyClose.Id is the SessionId, Account.Id the cashbox, Type.Terminal the existing wire value.</p>
 <table><thead><tr><th>Relationship</th><th>Proposed cardinality / constraint</th></tr></thead><tbody>
 <tr><td>Branch → physical Terminal → cashbox Account</td><td>one-to-many → one-to-many; same branch; parallel boxes, no unique Terminal/day close</td></tr>
@@ -211,12 +211,16 @@ Spec revision: v61
 <tr><td>Session → CountAttempt → items</td><td>one-to-many immutable attempts (database trigger refuses update/delete), unique session/attempt number AND session/server ConfirmationToken, same-branch composite FK; one CountConferred SessionEvent per attempt even across different request keys; token issued at session start (existing sessions once by the upgrade), ledger/count/opening revision change or Recontar rotates it without recording a count; Session → SubmittedAttemptId and Handover → OfferedAttemptId point at the confirmed attempt; shipped P4 (v60)</td></tr>
 <tr><td>Session → SessionFieldEffect → Transaction; SessionFieldEffect → SessionFieldEffectRevision</td><td>at most one slot per session and field (unique SessionId+Field), pointing at zero or one live generated row of the matching kind (unique; DB trigger); at most one non-cancelled effect per session and field on Transactions too; zero has no live effect; each change appends an immutable revision (created/cancelled row ids, actor, origin Save or MigratedLegacyRow); shipped P7 (v61)</td></tr>
 <tr><td>CustodyTransfer → source cashbox Transaction + generated Safe Transaction</td><td>one immutable transfer per source and per destination row (unique each); source a cashbox Out on its session, destination its generated Safe In of equal value with no session (DB trigger); finalize/cancel through the source; legacy Draft plans of system types and deposits without their cofre counterpart cannot finalize, even with retired types; replay of single creates/fiado payments rechecks grants on source and persisted counterpart; shipped P9 cash (v61); cheque custody keeps the same open receivable, C2</td></tr>
-<tr><td>Category → TransactionType (SeedKey)</td><td>seeded types carry a unique-per-category SeedKey; same-name custom types are never adopted; system roles 1–8, fee roles fixed by system role; v61</td></tr>
+<tr><td>Category → TransactionType (SeedKey)</td><td>seeded types carry a unique-per-category SeedKey; same-name custom types are never adopted; system roles 1–9 (9 = cheque conversion debt, v62), fee roles and financial class fixed by system role</td></tr>
+<tr><td>Transaction (receivable) → SettlementEvent</td><td>one-to-many append-only chain (v62, M9.7 P1): unique receivable+Sequence, each event's PreviousEventId unique, at most one reconstructed (MigratedFromPaidAt) event per row; immutable; outstanding = Value + Σ OutstandingDelta at a posted/occurred cutoff stays in [0, Value]; the row itself is never edited</td></tr>
+<tr><td>BankReceipt → SettlementEvent (deposits)</td><td>one pending receipt per cheque deposit batch on one bank account; its deposit events are its allocations (Amount = their sum, deferred check); a return reverses exactly one deposit (unique ReversesEventId) and lowers the derived expected amount; only Status may change; confirmation is M9.7 P5</td></tr>
+<tr><td>SettlementEvent (conversion) → Tab Transaction</td><td>one-to-one: the protected Tab Out (GenerationKind ChequeFiadoConversion, GeneratedFromTransactionId = the cheque, unique) of the same client and amount; no cashbox leg</td></tr>
+<tr><td>Transaction → TransactionClassificationRevision</td><td>one-to-many immutable audits of open-period reclassification (unique row+Revision ≥ 2); the frozen snapshot changes only with its matching revision (trigger)</td></tr>
 <tr><td>Unresolved legacy Session → CustodyMappingIssue</td><td>one-to-many source/digest/versioned resolution evidence; MappingState Unresolved keeps unknown fields null and blocks affected cutover/lock; Ready activates operational constraints</td></tr>
 <tr><td>Session → SessionEvent / existing review events</td><td>one-to-many; preserve incomplete-history flags and original actors; correction links only next same-box dependency</td></tr>
 </tbody></table>
 <p>Custody Active → HandedOver/Finished is separate from review Draft/Submitted/Approved/Rejected. Recall/reject/reopen preserves custody. Outgoing closing and incoming acknowledgment never replace one another. Opening correction changes proposal/comparison, not real accepted count; the acknowledged opening is the session's variance opening, so an acknowledged successor is never demoted by a predecessor correction. A manager-declared or rearranged past session (F2) keeps an inherited opening, ManagerDeclared evidence and SessionDeclared/SessionRearranged events; Sequence follows interval order and its rows' dates follow the session. Opening discrepancies reference SessionOpeningId; a direct HandoverId is optional. A new comparison revision invalidates personal attribution until explicitly reviewed again. Unresolved migration evidence is quarantined/read-only and blocks affected cutover, not converted wholesale to Finished.</p>
-<p><b>Future relationships:</b> settlement events → immutable receivable, open PostedOn/OccurredOn, partials and a single pending bank receipt confirmed by matching (M9.7); pay items/commission, special draws and hour-bank adjustments (M9.8); exportMestre TblItemRel/TblRelMensal/TblLoteriaEspecial/TblMovimentacaoBancoHoras map there, version tables map to M10 provenance. No new shipped entity count.</p>
+<p><b>Shipped v62 (M9.7 P1–P2):</b> SettlementEvent, BankReceipt and TransactionClassificationRevision (above); Transaction.PaidAt removed. <b>Future relationships:</b> card settlement batches, cofre → bank movements and statement matching that confirms an existing BankReceipt (M9.7 P3–P5); pay items/commission, special draws and hour-bank adjustments (M9.8); exportMestre TblItemRel/TblRelMensal/TblLoteriaEspecial/TblMovimentacaoBancoHoras map there, version tables map to M10 provenance. No new shipped entity count.</p>
 <p>Q2 deposited, Q6 cofre/customer PIX, Q7 one-sided bank, Q10 both custody arrangements supersede older assumptions. Tarifa Especial and single-cheque counts remain bounded inferences; reported 220/232 and 227/232 replays were not rerun. Q9 report definition/label/sign and R inclusion remain pending. Read <a href="loto-specs.md#330-custody-model--m96-phases-25-shipped-later-phases-proposed">canonical §3.30</a> and §6.19–§6.23 for fields, DB constraints, commands and migration; §9 for provenance. Design markers aligned to v58 at the owner’s explicit request on 2026-10-27; final independent acceptance is not inferred.</p>
 </details>
 
@@ -488,7 +492,10 @@ Spec revision: v61
     '    uuid accountId FK\n' +
     '    uuid clientId FK\n' +
     '    date dueDate\n' +
-    '    timestamp paidAt\n' +
+    '    enum postedSettlementInstrument "frozen at posting (v62)"\n' +
+    '    enum postedMonthlyFinancialRole\n' +
+    '    enum postedFinancialClass\n' +
+    '    int classificationRevision\n' +
     '    uuid originTransactionId FK\n' +
     '    enum generationKind "system-generated Terminal leg"\n' +
     '    uuid generatedFromTransactionId FK "Tab source, unique"\n' +

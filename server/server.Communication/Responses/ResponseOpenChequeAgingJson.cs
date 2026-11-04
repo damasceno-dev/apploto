@@ -1,3 +1,5 @@
+using server.Domain.Entities.Enums;
+
 namespace server.Communication.Responses;
 
 public class ResponseOpenChequeAgingJson
@@ -8,6 +10,12 @@ public class ResponseOpenChequeAgingJson
     public bool HasNext { get; init; }
     public bool HasPrevious { get; init; }
     public DateTime AsOfDate { get; init; }
+
+    /// <summary>
+    /// The cutoff's basis (M9.7 Phase 1.2): rows dated after <see cref="AsOfDate"/> never count, and an event counts
+    /// when its PostedOn (financial basis, the default) or OccurredOn (operational basis) is on or before it.
+    /// </summary>
+    public ReceivableCutoffBasis CutoffBasis { get; init; }
 
     /// <summary>
     /// Whole-filter totals over every unpaid row of every open group matching the filters, independent of paging

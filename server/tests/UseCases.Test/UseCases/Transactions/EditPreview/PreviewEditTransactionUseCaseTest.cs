@@ -196,7 +196,6 @@ public class PreviewEditTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("no client")
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -216,7 +215,6 @@ public class PreviewEditTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("reassign to ghost")
             .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(missingClientId)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -240,7 +238,6 @@ public class PreviewEditTransactionUseCaseTest
         ctx.Request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("due before date")
             .WithDueDate(ctx.Transaction.Date.AddDays(-1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -250,25 +247,6 @@ public class PreviewEditTransactionUseCaseTest
             () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.AsOfDate));
 
         exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
-    }
-
-    [Fact]
-    public async Task Execute_ShouldThrowValidation_WhenPaidAtBeforeTransactionDate()
-    {
-        var ctx = BuildContext(Role.Manager);
-        ctx.Request = new RequestUpdateTransactionJsonBuilder()
-            .WithDescription("paid before date")
-            .WithDueDate(ctx.Transaction.Date.AddDays(1))
-            .WithPaidAt(ctx.Transaction.Date.AddDays(-1))
-            .WithClientId(null)
-            .WithTransactionTime(new TimeOnly(10, 0))
-            .Build();
-        var useCase = CreateUseCase(ctx);
-
-        var exception = await Should.ThrowAsync<OnValidationException>(
-            () => useCase.Execute(ctx.Transaction.Id, ctx.Request, ctx.AsOfDate));
-
-        exception.GetErrorMessages.ShouldContain(ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE);
     }
 
     [Fact]
@@ -312,6 +290,7 @@ public class PreviewEditTransactionUseCaseTest
             ctx.MutationPermissionGuard,
             lockDateGuard,
             projector,
+            new SettlementEventsRepositoryBuilder().Build(),
             ctx.BranchClock);
     }
 
@@ -358,7 +337,6 @@ public class PreviewEditTransactionUseCaseTest
             .WithValue(150m)
             .WithDate(transactionDate)
             .WithDueDate(new DateTime(2025, 5, 2))
-            .WithPaidAt(null)
             .WithDescription("snapshot description")
             .WithClientId(snapshotClientId)
             .WithTransactionTime(new TimeOnly(9, 15))
@@ -368,7 +346,6 @@ public class PreviewEditTransactionUseCaseTest
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("hypothetical description")
             .WithDueDate(new DateTime(2025, 6, 25))
-            .WithPaidAt(null)
             .WithClientId(requestClientId)
             .WithTransactionTime(new TimeOnly(16, 30))
             .Build();

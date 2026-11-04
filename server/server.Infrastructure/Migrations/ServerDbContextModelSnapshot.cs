@@ -77,6 +77,62 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("Accounts", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.BankReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("OccurredOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<short>("SourceKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("Status")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("BranchId", "BankAccountId", "Status");
+
+                    b.ToTable("BankReceipts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BankReceipts_AmountPositive", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("CK_BankReceipts_PostedOnOrAfterOccurred", "\"PostedOn\" >= \"OccurredOn\"");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Branch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2090,6 +2146,136 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("Settings", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SettlementEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid?>("BankReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ConvertedTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustodyFromAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CustodyToAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("MigrationIssue")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("NextExpectedDepositDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("OccurredOn")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("OutstandingDelta")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("Provenance")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("ReceivableTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReturnReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ReversesEventId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("SettlementInstrument")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime?>("SourcePaidAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankReceiptId")
+                        .HasFilter("\"BankReceiptId\" IS NOT NULL");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("ConvertedTransactionId")
+                        .IsUnique()
+                        .HasFilter("\"ConvertedTransactionId\" IS NOT NULL");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("CustodyFromAccountId");
+
+                    b.HasIndex("CustodyToAccountId");
+
+                    b.HasIndex("PreviousEventId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousEventId\" IS NOT NULL");
+
+                    b.HasIndex("ReceivableTransactionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SettlementEvents_ReceivableTransactionId_Migrated")
+                        .HasFilter("\"Provenance\" = 2");
+
+                    b.HasIndex("ReversesEventId")
+                        .IsUnique()
+                        .HasFilter("\"ReversesEventId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.HasIndex("ReceivableTransactionId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("SettlementEvents", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SettlementEvents_AmountPositive", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("CK_SettlementEvents_Chain", "\"Sequence\" >= 1 AND ((\"Sequence\" = 1) = (\"PreviousEventId\" IS NULL))");
+
+                            t.HasCheckConstraint("CK_SettlementEvents_KindDetails", "(\"Kind\" = 3) = (\"BankReceiptId\" IS NOT NULL) AND (\"Kind\" = 4) = (\"ReversesEventId\" IS NOT NULL) AND (\"Kind\" = 6) = (\"ConvertedTransactionId\" IS NOT NULL) AND (\"Kind\" = 2) = (\"CustodyToAccountId\" IS NOT NULL) AND (\"Kind\" <> 4 OR (\"ClientId\" IS NOT NULL AND \"NextExpectedDepositDate\" IS NOT NULL)) AND (\"Kind\" <> 6 OR \"ClientId\" IS NOT NULL) AND (\"Kind\" = 2 OR \"CustodyFromAccountId\" IS NULL) AND (\"ReturnReason\" IS NULL OR \"Kind\" = 4)");
+
+                            t.HasCheckConstraint("CK_SettlementEvents_OutstandingDelta", "CASE \"Kind\" WHEN 1 THEN \"OutstandingDelta\" = -\"Amount\" OR (\"OutstandingDelta\" = 0 AND (\"MigrationIssue\" & 1) = 1) WHEN 3 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 6 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 4 THEN \"OutstandingDelta\" = \"Amount\" WHEN 2 THEN \"OutstandingDelta\" = 0 WHEN 5 THEN \"OutstandingDelta\" = 0 ELSE false END");
+
+                            t.HasCheckConstraint("CK_SettlementEvents_PostedOnOrAfterOccurred", "\"PostedOn\" >= \"OccurredOn\"");
+
+                            t.HasCheckConstraint("CK_SettlementEvents_Provenance", "(\"Provenance\" = 1 AND \"Kind\" <> 1 AND \"CreatedByUserId\" IS NOT NULL AND \"SourcePaidAt\" IS NULL AND \"MigrationIssue\" = 0) OR (\"Provenance\" = 2 AND \"Kind\" = 1 AND \"Sequence\" = 1 AND \"CreatedByUserId\" IS NULL AND \"SourcePaidAt\" IS NOT NULL)");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Terminal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2288,6 +2474,19 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uuid");
 
+                    b.Property<short?>("ClassificationProvenance")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("smallint");
+
+                    b.Property<int>("ClassificationRevision")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("ClassifiedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid?>("ClientId")
                         .HasColumnType("uuid");
 
@@ -2319,8 +2518,17 @@ namespace server.Infrastructure.Migrations
                     b.Property<Guid?>("OriginTransactionId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("timestamp with time zone");
+                    b.Property<short?>("PostedFinancialClass")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("PostedMonthlyFinancialRole")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("PostedSettlementInstrument")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("smallint");
 
                     b.Property<Guid>("RecordedByOperatorId")
                         .HasColumnType("uuid");
@@ -2375,8 +2583,7 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("TransactionTypeId");
 
-                    b.HasIndex("BranchId", "DueDate")
-                        .HasFilter("\"PaidAt\" IS NULL");
+                    b.HasIndex("BranchId", "DueDate");
 
                     b.HasIndex("BranchId", "Status");
 
@@ -2390,13 +2597,90 @@ namespace server.Infrastructure.Migrations
 
                     b.HasIndex("BranchId", "Date", "AccountId");
 
+                    b.HasIndex("BranchId", "PostedSettlementInstrument", "DueDate")
+                        .HasFilter("\"Status\" = 1 AND \"PostedSettlementInstrument\" <> 0");
+
                     b.HasIndex("BranchId", "RecordedByOperatorId", "Date");
 
                     b.HasIndex("BranchId", "AccountId", "Direction", "Date");
 
                     b.ToTable("Transactions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR (\"GenerationKind\" IN (1, 2, 6) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR (\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)");
+                            t.HasCheckConstraint("CK_Transactions_ActiveIsClassified", "\"Status\" <> 1 OR \"ClassificationRevision\" >= 1");
+
+                            t.HasCheckConstraint("CK_Transactions_ClassificationSnapshot", "(\"ClassificationRevision\" = 0 AND \"ClassificationProvenance\" IS NULL AND \"PostedSettlementInstrument\" IS NULL AND \"PostedMonthlyFinancialRole\" IS NULL AND \"PostedFinancialClass\" IS NULL AND \"ClassifiedAt\" IS NULL) OR (\"ClassificationRevision\" >= 1 AND \"ClassificationProvenance\" IS NOT NULL AND \"PostedSettlementInstrument\" IS NOT NULL AND \"PostedMonthlyFinancialRole\" IS NOT NULL AND \"PostedFinancialClass\" IS NOT NULL AND \"ClassifiedAt\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR (\"GenerationKind\" IN (1, 2, 6, 7) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR (\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.TransactionClassificationRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short>("FinancialClass")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("MonthlyFinancialRole")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("PreviousFinancialClass")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("PreviousMonthlyFinancialRole")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("PreviousProvenance")
+                        .HasColumnType("smallint");
+
+                    b.Property<short?>("PreviousSettlementInstrument")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("SettlementInstrument")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchId");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("TransactionId", "Revision")
+                        .IsUnique();
+
+                    b.ToTable("TransactionClassificationRevisions", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_TransactionClassificationRevisions_RevisionAfterPosting", "\"Revision\" >= 2");
                         });
                 });
 
@@ -2416,6 +2700,9 @@ namespace server.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<short?>("FiadoPaymentKind")
+                        .HasColumnType("smallint");
+
+                    b.Property<short>("FinancialClass")
                         .HasColumnType("smallint");
 
                     b.Property<short>("MonthlyFinancialRole")
@@ -2456,6 +2743,8 @@ namespace server.Infrastructure.Migrations
 
                     b.ToTable("TransactionTypes", null, t =>
                         {
+                            t.HasCheckConstraint("CK_TransactionTypes_SystemRole_FinancialClass", "\"SystemRole\" IS NULL OR \"FinancialClass\" = CASE \"SystemRole\" WHEN 1 THEN 1 WHEN 2 THEN 1 WHEN 3 THEN 1 WHEN 4 THEN 1 WHEN 5 THEN 2 WHEN 6 THEN 2 WHEN 7 THEN 4 WHEN 8 THEN 4 WHEN 9 THEN 1 END");
+
                             t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoMonthlyFinancialRole", "\"SystemRole\" IS NULL OR \"MonthlyFinancialRole\" = CASE \"SystemRole\" WHEN 5 THEN 1 WHEN 6 THEN 3 ELSE 0 END");
 
                             t.HasCheckConstraint("CK_TransactionTypes_SystemRole_NoSettlementInstrument", "\"SystemRole\" IS NULL OR \"SettlementInstrument\" = 0");
@@ -2530,6 +2819,29 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("TabAccount");
 
                     b.Navigation("Terminal");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankReceipt", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", "BankAccount")
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BankAccount");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.BranchUser", b =>
@@ -3365,6 +3677,65 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Branch");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SettlementEvent", b =>
+                {
+                    b.HasOne("server.Domain.Entities.BankReceipt", "BankReceipt")
+                        .WithMany("Allocations")
+                        .HasForeignKey("BankReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Client", null)
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("ConvertedTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("CustodyFromAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("CustodyToAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.SettlementEvent", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Transaction", "ReceivableTransaction")
+                        .WithMany()
+                        .HasForeignKey("ReceivableTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SettlementEvent", null)
+                        .WithMany()
+                        .HasForeignKey("ReversesEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BankReceipt");
+
+                    b.Navigation("ReceivableTransaction");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Terminal", b =>
                 {
                     b.HasOne("server.Domain.Entities.Branch", "Branch")
@@ -3517,6 +3888,27 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("TransactionType");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.TransactionClassificationRevision", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("server.Domain.Entities.TransactionType", b =>
                 {
                     b.HasOne("server.Domain.Entities.Category", "Category")
@@ -3531,6 +3923,11 @@ namespace server.Infrastructure.Migrations
             modelBuilder.Entity("server.Domain.Entities.Account", b =>
                 {
                     b.Navigation("OperatorAccounts");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankReceipt", b =>
+                {
+                    b.Navigation("Allocations");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Branch", b =>

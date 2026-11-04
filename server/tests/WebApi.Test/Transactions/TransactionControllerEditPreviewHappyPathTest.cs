@@ -50,7 +50,6 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("hypothetical description")
             .WithDueDate(asOfDate.AddDays(-60))
-            .WithPaidAt(null)
             .WithClientId(newClient.Id)
             .WithTransactionTime(new TimeOnly(14, 0))
             .Build();
@@ -120,7 +119,6 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("touch")
             .WithDueDate(transactionDate.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -178,7 +176,6 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var payloadX = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("determinism edit")
             .WithDueDate(asOfDate.AddDays(-45))
-            .WithPaidAt(null)
             .WithClientId(newClient.Id)
             .WithTransactionTime(new TimeOnly(11, 0))
             .Build();
@@ -258,7 +255,6 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("touch")
             .WithDueDate(transactionDate.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -302,7 +298,6 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("touch")
             .WithDueDate(transactionDate.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -347,7 +342,6 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("touch")
             .WithDueDate(transactionDate.AddDays(1))
-            .WithPaidAt(null)
             .WithClientId(null)
             .WithTransactionTime(new TimeOnly(10, 0))
             .Build();
@@ -382,7 +376,7 @@ public class TransactionControllerEditPreviewHappyPathTest(ServerWebApplicationF
         transaction.AccountId,
         transaction.ClientId,
         transaction.DueDate,
-        transaction.PaidAt,
+        transaction.ClassificationRevision,
         transaction.OriginTransactionId,
         transaction.RecordedByOperatorId,
         transaction.CreatedByUserId,

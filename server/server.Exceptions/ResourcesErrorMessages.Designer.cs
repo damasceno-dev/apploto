@@ -495,12 +495,6 @@ namespace server.Exceptions {
             }
         }
         
-        public static string TRANSACTION_PAID_AT_BEFORE_DATE {
-            get {
-                return ResourceManager.GetString("TRANSACTION_PAID_AT_BEFORE_DATE", resourceCulture);
-            }
-        }
-        
         public static string TRANSACTION_CANNOT_UPDATE_CANCELLED {
             get {
                 return ResourceManager.GetString("TRANSACTION_CANNOT_UPDATE_CANCELLED", resourceCulture);
@@ -1733,5 +1727,280 @@ namespace server.Exceptions {
         public static string SAFE_DEPOSIT_SAME_ACCOUNT => ResourceManager.GetString("SAFE_DEPOSIT_SAME_ACCOUNT", resourceCulture);
         public static string SAFE_DEPOSIT_SOURCE_NOT_CASHBOX => ResourceManager.GetString("SAFE_DEPOSIT_SOURCE_NOT_CASHBOX", resourceCulture);
         public static string ACCOUNT_SAFE_NOT_FOUND => ResourceManager.GetString("ACCOUNT_SAFE_NOT_FOUND", resourceCulture);
+            public static string BANK_RECEIPT_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("BANK_RECEIPT_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string ACCOUNT_BANK_NOT_FOUND {
+            get {
+                return ResourceManager.GetString("ACCOUNT_BANK_NOT_FOUND", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_NOT_A_CHEQUE {
+            get {
+                return ResourceManager.GetString("CHEQUE_NOT_A_CHEQUE", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_NOT_ACTIVE {
+            get {
+                return ResourceManager.GetString("CHEQUE_NOT_ACTIVE", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_STALE_VERSION {
+            get {
+                return ResourceManager.GetString("CHEQUE_STALE_VERSION", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_ITEMS_REQUIRED {
+            get {
+                return ResourceManager.GetString("CHEQUE_ITEMS_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_ITEMS_MAX_COUNT {
+            get {
+                return ResourceManager.GetString("CHEQUE_ITEMS_MAX_COUNT", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_ITEMS_DUPLICATE {
+            get {
+                return ResourceManager.GetString("CHEQUE_ITEMS_DUPLICATE", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_ITEM_ID_REQUIRED {
+            get {
+                return ResourceManager.GetString("CHEQUE_ITEM_ID_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_EXPECTED_VERSION_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_EXPECTED_VERSION_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_CUSTODY_STATE_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_CUSTODY_STATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_CUSTODY_SAME_LOCATION {
+            get {
+                return ResourceManager.GetString("CHEQUE_CUSTODY_SAME_LOCATION", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_DEPOSIT_STATE_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_DEPOSIT_STATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_RETURN_STATE_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_RETURN_STATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_RETURN_DEPOSIT_MISMATCH {
+            get {
+                return ResourceManager.GetString("CHEQUE_RETURN_DEPOSIT_MISMATCH", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_REPRESENT_STATE_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_REPRESENT_STATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_CONVERSION_STATE_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_CONVERSION_STATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_PARTIAL_AMOUNT_UNSUPPORTED {
+            get {
+                return ResourceManager.GetString("CHEQUE_PARTIAL_AMOUNT_UNSUPPORTED", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_DEPOSIT_EVENT_REQUIRED {
+            get {
+                return ResourceManager.GetString("CHEQUE_DEPOSIT_EVENT_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_CLIENT_REQUIRED {
+            get {
+                return ResourceManager.GetString("CHEQUE_CLIENT_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_CLIENT_MISMATCH {
+            get {
+                return ResourceManager.GetString("CHEQUE_CLIENT_MISMATCH", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_RETURN_REASON_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("CHEQUE_RETURN_REASON_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_NEXT_DEPOSIT_DATE_INVALID {
+            get {
+                return ResourceManager.GetString("CHEQUE_NEXT_DEPOSIT_DATE_INVALID", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_FIADO_TAB_ACCOUNT_REQUIRED {
+            get {
+                return ResourceManager.GetString("CHEQUE_FIADO_TAB_ACCOUNT_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string CHEQUE_DESCRIPTION_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("CHEQUE_DESCRIPTION_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_OCCURRED_ON_REQUIRED {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_OCCURRED_ON_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_DATE_OUT_OF_RANGE {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_DATE_OUT_OF_RANGE", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_OCCURRED_ON_IN_FUTURE {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_OCCURRED_ON_IN_FUTURE", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_POSTED_ON_IN_FUTURE {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_POSTED_ON_IN_FUTURE", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_POSTED_ON_BEFORE_OCCURRED_ON {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_POSTED_ON_BEFORE_OCCURRED_ON", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_POSTED_ON_LOCKED {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_POSTED_ON_LOCKED", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_OCCURRED_BEFORE_RECEIVABLE_DATE {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_OCCURRED_BEFORE_RECEIVABLE_DATE", resourceCulture);
+            }
+        }
+
+        public static string SETTLEMENT_CHRONOLOGY_INVALID {
+            get {
+                return ResourceManager.GetString("SETTLEMENT_CHRONOLOGY_INVALID", resourceCulture);
+            }
+        }
+
+        public static string RECEIVABLE_HAS_SETTLEMENT_EVENTS {
+            get {
+                return ResourceManager.GetString("RECEIVABLE_HAS_SETTLEMENT_EVENTS", resourceCulture);
+            }
+        }
+
+        public static string REPORT_CUTOFF_BASIS_INVALID {
+            get {
+                return ResourceManager.GetString("REPORT_CUTOFF_BASIS_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_FINANCIAL_CLASS_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_FINANCIAL_CLASS_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_WINDOW_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_WINDOW_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_WINDOW_TOO_WIDE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_WINDOW_TOO_WIDE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_WINDOW_IN_FUTURE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_WINDOW_IN_FUTURE", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_LOCKED_PERIOD {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_LOCKED_PERIOD", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_REASON_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_REASON_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_REASON_MAX_LENGTH {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_REASON_MAX_LENGTH", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_ROWS_REQUIRED {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_ROWS_REQUIRED", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_ROWS_INVALID {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_ROWS_INVALID", resourceCulture);
+            }
+        }
+
+        public static string TRANSACTION_TYPE_RECLASSIFY_STALE {
+            get {
+                return ResourceManager.GetString("TRANSACTION_TYPE_RECLASSIFY_STALE", resourceCulture);
+            }
+        }
+
+        public static string RECEIVABLE_CLIENT_LOCKED_BY_EVENTS {
+            get {
+                return ResourceManager.GetString("RECEIVABLE_CLIENT_LOCKED_BY_EVENTS", resourceCulture);
+            }
+        }
     }
 }

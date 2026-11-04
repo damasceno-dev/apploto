@@ -2,6 +2,7 @@ using server.Application.Services.DailyCloses;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models;
 using server.Domain.Models.Projections;
 
 namespace server.Application.Services.Reports;
@@ -263,10 +264,12 @@ public class ManagementOverviewBuilder(
 
     private async Task<ResponseManagementOverviewOpenChequesJson> BuildOpenCheques(Guid branchId, DateTime asOfDate, CancellationToken ct)
     {
-        var totalCount = await transactionsRepository.CountOpenChequeGroupsByBranchIdAsNoTracking(branchId, null, null, ct);
-        var dueDateTotals = await transactionsRepository.ListOpenChequeTotalsByDueDateAsNoTracking(branchId, null, null, ct);
+        // Same predicates as the full report at its default cutoff: branch-local today on the posted basis (M9.7).
+        var cutoff = new ReceivableCutoff(ReceivableCutoffBasis.Posted, asOfDate);
+        var totalCount = await transactionsRepository.CountOpenChequeGroupsByBranchIdAsNoTracking(branchId, null, null, cutoff, ct);
+        var dueDateTotals = await transactionsRepository.ListOpenChequeTotalsByDueDateAsNoTracking(branchId, null, null, cutoff, ct);
         var groups = await transactionsRepository.ListOpenChequeGroupsByBranchIdAsNoTracking(
-            branchId, null, null, 1, OpenChequesPreview, ct);
+            branchId, null, null, cutoff, 1, OpenChequesPreview, ct);
 
         return new ResponseManagementOverviewOpenChequesJson
         {

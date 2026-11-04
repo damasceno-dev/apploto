@@ -1,5 +1,6 @@
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
+using server.Domain.Models;
 
 namespace server.Application.UseCases.Branches.Create;
 
@@ -42,6 +43,12 @@ public static class CreateBranchSeedFactory
     public const string FiadoSaleCounterpartTypeName = "Saída de caixa — venda fiado";
     public const string FiadoCashRepaymentCounterpartTypeName = "Entrada de dinheiro — recebimento fiado";
     public const string SafeDepositInTypeName = "Entrada no cofre — depósito do caixa";
+
+    /// <summary>
+    /// M9.7 Phase 2.3: the Tab <c>Out</c> written only by <i>Converter em fiado</i>, in the automatic fiado (saída)
+    /// category beside the counter-sale leg.
+    /// </summary>
+    public const string ChequeFiadoConversionTypeName = "Cheque convertido em fiado";
 
     /// <summary>M9.6 Phases 7 and 9: system types that live in ordinary categories (refused by the generic create).</summary>
     public const string BolaoFeeTypeName = "Tarifa Bolão";
@@ -155,7 +162,9 @@ public static class CreateBranchSeedFactory
         new("sistema.fiado-recebimento-dinheiro", FiadoCashRepaymentCounterpartTypeName, FiadoAutomaticInCategoryName,
             SystemRole: TransactionTypeSystemRole.FiadoCashRepaymentCounterpart),
         new("sistema.cofre-deposito", SafeDepositInTypeName, SafeAutomaticInCategoryName,
-            SystemRole: TransactionTypeSystemRole.SafeDepositIn)
+            SystemRole: TransactionTypeSystemRole.SafeDepositIn),
+        new("sistema.fiado-conversao-cheque", ChequeFiadoConversionTypeName, FiadoAutomaticOutCategoryName,
+            RequiresTabAccountAndClient: true, SystemRole: TransactionTypeSystemRole.ChequeFiadoConversion)
     ];
 
     private static readonly (string Name, int DisplayOrder)[] ProductSeeds =
@@ -196,7 +205,10 @@ public static class CreateBranchSeedFactory
                 SystemRole = seed.SystemRole,
                 FiadoPaymentKind = seed.FiadoPaymentKind,
                 SettlementInstrument = seed.SettlementInstrument,
-                MonthlyFinancialRole = seed.MonthlyFinancialRole
+                MonthlyFinancialRole = seed.MonthlyFinancialRole,
+                FinancialClass = seed.SystemRole is { } role
+                    ? FinancialRoleRules.FinancialClassOf(role)
+                    : FinancialClass.Unclassified
             })
             .ToList();
     }

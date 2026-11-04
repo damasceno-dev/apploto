@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using CommonTestUtilities.Requests;
 using Microsoft.EntityFrameworkCore;
+using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
@@ -260,23 +261,22 @@ public class ReportControllerMonthlyFinancialTest(ServerWebApplicationFactory fa
     }
 
     [Fact]
-    public async Task ReclassifyingTypes_ShouldChangeLockedMonthReports_WithoutChangingFinancialHistory()
+    public async Task ClearingTypeMarkers_ShouldNotRelabelALockedMonth_AndReclassifyingItShouldBeRefused()
     {
+        // M9.7 Phase 1.3 (named contract change): rows keep the classification frozen at posting, so editing today's
+        // type configuration never changes a locked month's figures; only an explicit open-period reclassification can.
         using var clock = factory.FreezeBranchLocalTime(Now);
         var fixture = await SeedAsync("MonthlyFinancialReclassification");
         await factory.UpdateDb(async db =>
             (await db.Settings.SingleAsync(setting => setting.BranchId == fixture.Branch.Id)).LockDate = new DateTime(2026, 9, 30));
 
-        // Capture persisted financial state, including xmin, before changing only report metadata.
         async Task<string> FinancialHistory() => await factory.ReadDb(async db => JsonSerializer.Serialize(new
         {
             Transactions = await db.Transactions.Where(row => row.BranchId == fixture.Branch.Id).OrderBy(row => row.Id)
-                .Select(row => new { row.Id, row.Value, row.Direction, row.Date, row.DueDate, row.PaidAt, row.Status, row.Active, row.Version })
+                .Select(row => new { row.Id, row.Value, row.Direction, row.Date, row.DueDate, row.Status, row.PostedMonthlyFinancialRole, row.ClassificationRevision, row.Active, row.Version })
                 .ToListAsync(),
             Closes = await db.DailyCloses.Where(row => row.BranchId == fixture.Branch.Id).OrderBy(row => row.Id)
                 .Select(row => new { row.Id, row.Status, row.Version }).ToListAsync(),
-            Items = await db.DailyCloseItems.Where(row => row.DailyClose.BranchId == fixture.Branch.Id).OrderBy(row => row.Id)
-                .Select(row => new { row.Id, row.ProductId, row.Value, row.Active }).ToListAsync(),
             Settings = await db.Settings.Where(row => row.BranchId == fixture.Branch.Id)
                 .Select(row => new { row.LockDate, row.Version }).ToListAsync()
         }));
@@ -285,6 +285,9 @@ public class ReportControllerMonthlyFinancialTest(ServerWebApplicationFactory fa
         var before = await Read(fixture.ManagerToken, 2026, 9);
         before.BolaoServiceFeeTotal.ShouldBe(290.01m);
         before.CommercialLeftoverTotal.ShouldBe(35m);
+        before.ClassificationProvenance.MigratedCount.ShouldBe(0);
+        before.ClassificationProvenance.ReclassifiedCount.ShouldBe(0);
+        before.ClassificationProvenance.PostingCount.ShouldBeGreaterThan(0);
 
         foreach (var type in new[] { fixture.Tarifa, fixture.SobraBolao, fixture.SobraFederal })
         {
@@ -294,36 +297,32 @@ public class ReportControllerMonthlyFinancialTest(ServerWebApplicationFactory fa
         }
 
         var cleared = await Read(fixture.ManagerToken, 2026, 9);
-        cleared.BolaoServiceFeeTotal.ShouldBeNull();
-        cleared.CommercialLeftoverTotal.ShouldBeNull();
-        cleared.OfficialVarianceTotal.ShouldBe(before.OfficialVarianceTotal);
-        cleared.HoursTotal.ShouldBe(before.HoursTotal);
+        (cleared.BolaoServiceFeeTotal, cleared.CommercialLeftoverTotal, cleared.OfficialVarianceTotal, cleared.HoursTotal)
+            .ShouldBe((before.BolaoServiceFeeTotal, before.CommercialLeftoverTotal, before.OfficialVarianceTotal, before.HoursTotal));
+        (cleared.IsBolaoServiceFeeConfigured, cleared.IsCommercialLeftoverConfigured).ShouldBe((true, true));
         using var overviewResponse = await _client.GetAuthAsync("/report/management-overview?Year=2026&Month=9", fixture.ManagerToken);
         overviewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var overview = await overviewResponse.ReadContentAsync<ResponseManagementOverviewJson>();
         overview.Reconciliation.IsMonthLocked.ShouldBeTrue();
-        overview.MonthlyFinancial.Status.ShouldBe(OverviewSectionStatus.NotConfigured);
-        overview.MonthlyFinancial.OfficialVarianceTotal.ShouldBe(before.OfficialVarianceTotal);
-        overview.MonthlyFinancial.HoursTotal.ShouldBe(before.HoursTotal);
+        overview.MonthlyFinancial.Status.ShouldBe(OverviewSectionStatus.Ready);
+        overview.MonthlyFinancial.BolaoServiceFeeTotal.ShouldBe(290.01m);
 
-        // Configuration is reversible even for a locked month; Operador remains a separate unmarked In type.
-        using var restore = await _client.PutAuthAsync($"/transaction-type/{fixture.Tarifa.Id}", new RequestUpdateTransactionTypeJsonBuilder()
-            .WithName(fixture.Tarifa.Name).WithMonthlyFinancialRole(MonthlyFinancialRole.BolaoServiceFee).Build(), fixture.ManagerToken);
-        restore.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var restored = await Read(fixture.ManagerToken, 2026, 9);
-        restored.BolaoServiceFeeTotal.ShouldBe(before.BolaoServiceFeeTotal);
-        restored.CommercialLeftoverTotal.ShouldBeNull();
+        // The audited reclassification refuses any window that touches the locked month.
+        using var reclassify = await _client.PostAuthAsync($"/transaction-type/{fixture.Tarifa.Id}/reclassify",
+            new RequestReclassifyTransactionTypeJson
+            {
+                DateFrom = new DateTime(2026, 9, 1), DateTo = new DateTime(2026, 9, 30), Reason = "Rever setembro",
+                Rows = [new RequestReclassifyRowJson { TransactionId = Guid.NewGuid(), Version = 1 }]
+            },
+            fixture.ManagerToken);
+        reclassify.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await reclassify.ReadContentAsync<TestResponseErrorJson>()).ErrorMessages
+            .ShouldContain(ResourcesErrorMessages.TRANSACTION_TYPE_RECLASSIFY_LOCKED_PERIOD);
+        using var candidates = await _client.GetAuthAsync(
+            $"/transaction-type/{fixture.Tarifa.Id}/reclassification-candidates?DateFrom=2026-09-01&DateTo=2026-09-30", fixture.ManagerToken);
+        candidates.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await candidates.ReadContentAsync<ResponseReclassificationJson>()).Rows.ShouldBeEmpty();
 
-        // Only the fee marker is configured: one missing marker must not hide the configured section.
-        using var restoredOverviewResponse = await _client.GetAuthAsync("/report/management-overview?Year=2026&Month=9", fixture.ManagerToken);
-        restoredOverviewResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var restoredOverview = await restoredOverviewResponse.ReadContentAsync<ResponseManagementOverviewJson>();
-        restoredOverview.MonthlyFinancial.Status.ShouldBe(OverviewSectionStatus.Ready);
-        restoredOverview.MonthlyFinancial.IsBolaoServiceFeeConfigured.ShouldBeTrue();
-        restoredOverview.MonthlyFinancial.IsCommercialLeftoverConfigured.ShouldBeFalse();
-        restoredOverview.MonthlyFinancial.BolaoServiceFeeTotal.ShouldBe(290.01m);
-        restoredOverview.MonthlyFinancial.CommercialLeftoverTotal.ShouldBeNull();
-        restoredOverview.MonthlyFinancial.OfficialVarianceTotal.ShouldBe(-4.5m);
         (await FinancialHistory()).ShouldBe(history);
     }
 

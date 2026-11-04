@@ -16,7 +16,6 @@ public class ResponseCreateTransactionJson
     public Guid AccountId { get; set; }
     public Guid? ClientId { get; set; }
     public DateTime DueDate { get; set; }
-    public DateTime? PaidAt { get; set; }
 
     /// <summary>System-owned generation origin; see <c>ResponseTransactionJson</c> (M7.7 Phase 5.7).</summary>
     public TransactionGenerationKind? GenerationKind { get; set; }

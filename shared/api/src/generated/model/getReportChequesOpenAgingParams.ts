@@ -4,11 +4,13 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ReceivableCutoffBasis } from './receivableCutoffBasis';
 
 export type GetReportChequesOpenAgingParams = {
   AccountId?: string;
   ClientId?: string;
   AsOfDate?: string;
+  CutoffBasis?: ReceivableCutoffBasis;
   /**
    * @pattern ^-?(?:0|[1-9]\d*)$
    */

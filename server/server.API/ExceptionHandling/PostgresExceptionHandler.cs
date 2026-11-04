@@ -31,7 +31,13 @@ internal static class PostgresExceptionHandler
             ["CK_Transactions_CashboxRowRequiresSession"] = ResourcesErrorMessages.SESSION_OPENING_ACKNOWLEDGMENT_REQUIRED,
             ["CK_Transactions_SessionOnlyOnCashbox"] = ResourcesErrorMessages.SESSION_ONLY_ON_CASHBOX,
             ["FK_Transactions_DailyCloses_BranchId_AccountId_SessionId"] = ResourcesErrorMessages.SESSION_NOT_FOR_ACCOUNT,
-            ["CK_SessionCountAttempts_Immutable"] = ResourcesErrorMessages.SESSION_CONFIRMATION_TOKEN_CONFLICT
+            ["CK_SessionCountAttempts_Immutable"] = ResourcesErrorMessages.SESSION_CONFIRMATION_TOKEN_CONFLICT,
+            // M9.7 settlement-event chain and frozen-classification guards: backstops behind the commands' own checks.
+            ["CK_SettlementEvents_ChainCoherent"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
+            ["CK_SettlementEvents_OutstandingWithinValue"] = ResourcesErrorMessages.CHEQUE_PARTIAL_AMOUNT_UNSUPPORTED,
+            ["CK_SettlementEvents_Chronology"] = ResourcesErrorMessages.SETTLEMENT_CHRONOLOGY_INVALID,
+            ["CK_SettlementEvents_Immutable"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
+            ["CK_Transactions_ClassificationFrozen"] = ResourcesErrorMessages.TRANSACTION_TYPE_RECLASSIFY_STALE
         };
 
     private static readonly Dictionary<string, string> UniqueConstraintMessages =
@@ -61,6 +67,10 @@ internal static class PostgresExceptionHandler
             ["IX_Categories_BranchId_Name"] = ResourcesErrorMessages.CATEGORY_NAME_CONFLICT,
             ["IX_TransactionTypes_CategoryId_Name"] = ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT,
             ["IX_Products_BranchId_Name"] = ResourcesErrorMessages.PRODUCT_NAME_CONFLICT,
+            ["IX_SettlementEvents_ReceivableTransactionId_Sequence"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
+            ["IX_SettlementEvents_PreviousEventId"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
+            ["IX_SettlementEvents_ReversesEventId"] = ResourcesErrorMessages.CHEQUE_RETURN_STATE_INVALID,
+            ["IX_TransactionClassificationRevisions_TransactionId_Revision"] = ResourcesErrorMessages.TRANSACTION_TYPE_RECLASSIFY_STALE,
             ["IX_IdempotencyRequests_Endpoint_BranchId_UserId_Key"] =
                 ResourcesErrorMessages.IDEMPOTENCY_COORDINATION_BUSY,
             // Two same-day settings changes racing with the same If-Match version: the loser

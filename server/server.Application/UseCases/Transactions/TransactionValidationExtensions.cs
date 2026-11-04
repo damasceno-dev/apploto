@@ -76,12 +76,5 @@ internal static class TransactionValidationExtensions
                 .Must((instance, dueDate) => dueDate is null || dueDate.Value >= dateSelector(instance))
                 .WithMessage(ResourcesErrorMessages.TRANSACTION_DUE_DATE_BEFORE_DATE);
         }
-
-        public IRuleBuilderOptions<T, DateTime?> PaidAtOnOrAfterDate(Func<T, DateTime> dateSelector)
-        {
-            return rule
-                .Must((instance, paidAt) => paidAt is null || paidAt.Value >= dateSelector(instance))
-                .WithMessage(ResourcesErrorMessages.TRANSACTION_PAID_AT_BEFORE_DATE);
-        }
     }
 }

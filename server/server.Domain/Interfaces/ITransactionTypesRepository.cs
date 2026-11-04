@@ -9,6 +9,9 @@ public interface ITransactionTypesRepository
     Task Add(TransactionType transactionType);
     Task<TransactionType?> GetActiveByIdWithCategoryAndBranchId(Guid id, Guid branchId);
     Task<TransactionType?> GetActiveByIdWithCategoryAndBranchIdAsNoTracking(Guid id, Guid branchId);
+
+    /// <summary>A branch type whether active or retired (retired types keep their rows and markers).</summary>
+    Task<TransactionType?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
     Task<TransactionType?> GetActiveByIdAndBranchIdWithCategoryAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
     Task<IReadOnlyList<TransactionType>> ListActiveByBranchIdAsNoTracking(Guid branchId);
 

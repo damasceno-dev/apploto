@@ -374,13 +374,9 @@ public class ReportControllerOpenChequeAgingHappyPathTest(ServerWebApplicationFa
         return await dbContext.Transactions.AsNoTracking().FirstOrDefaultAsync(t => t.Id == id);
     }
 
+    // Settles the row the way a reconstructed legacy PaidAt does (M9.7): one migrated settlement event.
     private async Task MarkTransactionAsPaidAsync(Guid id, DateTime paidAt)
     {
-        using var scope = factory.Services.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
-        var tx = await dbContext.Transactions.FindAsync(id);
-        if (tx is null) return;
-        tx.PaidAt = paidAt;
-        await dbContext.SaveChangesAsync();
+        await factory.SeedReconstructedSettlementAsync(id, DateTime.SpecifyKind(paidAt, DateTimeKind.Utc));
     }
 }

@@ -25,5 +25,9 @@ public class UpdateTransactionTypeFluentValidation : AbstractValidator<RequestUp
             .IsInEnum()
             .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_MONTHLY_FINANCIAL_ROLE_INVALID)
             .When(r => r.MonthlyFinancialRole.HasValue);
+        RuleFor(r => r.FinancialClass)
+            .IsInEnum()
+            .WithMessage(ResourcesErrorMessages.TRANSACTION_TYPE_FINANCIAL_CLASS_INVALID)
+            .When(r => r.FinancialClass.HasValue);
     }
 }

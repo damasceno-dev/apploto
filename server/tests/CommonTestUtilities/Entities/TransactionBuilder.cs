@@ -25,7 +25,8 @@ public class TransactionBuilder
     private Guid? _clientId;
     private Client? _client;
     private DateTime _dueDate;
-    private DateTime? _paidAt;
+    private SettlementInstrument? _postedSettlementInstrument;
+    private MonthlyFinancialRole? _postedMonthlyFinancialRole;
     private Guid? _originTransactionId;
     private Transaction? _originTransaction;
     private Guid _recordedByOperatorId = Guid.NewGuid();
@@ -73,7 +74,8 @@ public class TransactionBuilder
             _clientId = existing.ClientId,
             _client = existing.Client,
             _dueDate = existing.DueDate,
-            _paidAt = existing.PaidAt,
+            _postedSettlementInstrument = existing.PostedSettlementInstrument,
+            _postedMonthlyFinancialRole = existing.PostedMonthlyFinancialRole,
             _originTransactionId = existing.OriginTransactionId,
             _originTransaction = existing.OriginTransaction,
             _recordedByOperatorId = existing.RecordedByOperatorId,
@@ -233,9 +235,13 @@ public class TransactionBuilder
         return this;
     }
 
-    public TransactionBuilder WithPaidAt(DateTime? paidAt)
+    /// <summary>The frozen snapshot a posted row carries (M9.7 Phase 1.3); the database sets it in WebApi tests.</summary>
+    public TransactionBuilder WithPostedClassification(
+        SettlementInstrument instrument,
+        MonthlyFinancialRole role = MonthlyFinancialRole.None)
     {
-        _paidAt = paidAt;
+        _postedSettlementInstrument = instrument;
+        _postedMonthlyFinancialRole = role;
         return this;
     }
 
@@ -347,7 +353,12 @@ public class TransactionBuilder
             ClientId = _clientId,
             Client = _client,
             DueDate = _dueDate,
-            PaidAt = _paidAt,
+            PostedSettlementInstrument = _postedSettlementInstrument,
+            PostedMonthlyFinancialRole = _postedMonthlyFinancialRole,
+            PostedFinancialClass = _postedSettlementInstrument is null ? null : FinancialClass.Unclassified,
+            ClassificationProvenance = _postedSettlementInstrument is null ? null : ClassificationProvenance.Posting,
+            ClassificationRevision = _postedSettlementInstrument is null ? 0 : 1,
+            ClassifiedAt = _postedSettlementInstrument is null ? null : new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             OriginTransactionId = _originTransactionId,
             OriginTransaction = _originTransaction,
             RecordedByOperatorId = _recordedByOperatorId,

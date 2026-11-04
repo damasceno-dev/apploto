@@ -19,6 +19,7 @@ internal static class TransactionTypeSharedMapper
                 FiadoPaymentKind = tt.FiadoPaymentKind,
                 SettlementInstrument = tt.SettlementInstrument,
                 MonthlyFinancialRole = tt.MonthlyFinancialRole,
+                FinancialClass = tt.FinancialClass,
                 CategoryId = tt.CategoryId,
                 CategoryName = tt.Category?.Name ?? string.Empty,
                 CreatedAt = tt.CreatedAt,

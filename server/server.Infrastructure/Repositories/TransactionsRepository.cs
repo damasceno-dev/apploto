@@ -661,25 +661,27 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     }
 
     public async Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize, CancellationToken ct = default)
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff, int page, int pageSize,
+        CancellationToken ct = default)
     {
         if (PageOffset.TryGet(page, pageSize, out var offset) is false)
             return [];
 
-        var baseQuery = BuildOpenChequeBaseQuery(branchId, accountId, clientId);
+        var rows = BuildOpenChequeRows(branchId, accountId, clientId, cutoff);
 
         // Group key: the plan's origin id, or a standalone cheque row's own id (M11 Phase 4.2). Both are transaction
-        // ids and never collide, so ordering by the key keeps the shipped plan order and stays deterministic.
-        var rawGroups = await baseQuery
-            .GroupBy(t => t.OriginTransactionId ?? t.Id)
-            .Where(g => g.Any(t => t.PaidAt == null))
+        // ids and never collide, so ordering by the key keeps the shipped plan order and stays deterministic. A group is
+        // open while any of its rows is still outstanding at the cutoff (M9.7 Phase 1).
+        var rawGroups = await rows
+            .GroupBy(r => r.GroupKey)
+            .Where(g => g.Any(r => r.Outstanding > 0))
             .Select(g => new
             {
                 GroupKey = g.Key,
-                PlanRowCount = g.Count(t => t.OriginTransactionId != null),
-                OutstandingTotal = g.Where(t => t.PaidAt == null).Select(t => (decimal?)t.Value).Sum() ?? 0m,
-                OldestOpenDueDate = g.Where(t => t.PaidAt == null).Min(t => t.DueDate),
-                OpenRowCount = g.Count(t => t.PaidAt == null),
+                PlanRowCount = g.Count(r => r.IsPlanRow),
+                OutstandingTotal = g.Sum(r => r.Outstanding),
+                OldestOpenDueDate = g.Where(r => r.Outstanding > 0).Min(r => r.DueDate),
+                OpenRowCount = g.Count(r => r.Outstanding > 0),
                 TotalRowCount = g.Count()
             })
             .OrderBy(g => g.OldestOpenDueDate)
@@ -691,8 +693,6 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         if (rawGroups.Count == 0)
             return [];
 
-        var planKeys = rawGroups.Where(g => g.PlanRowCount > 0).Select(g => g.GroupKey).ToList();
-        var standaloneKeys = rawGroups.Where(g => g.PlanRowCount == 0).Select(g => g.GroupKey).ToList();
         var groupKeys = rawGroups.Select(g => g.GroupKey).ToList();
 
         // A plan group's identity comes from its origin row; a standalone group's from the row itself.
@@ -709,24 +709,21 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
 
         var headById = headRows.ToDictionary(t => t.Id);
 
-        // One batched read of the page's unpaid rows (replaces the former per-group sibling reads).
-        var openRows = await dbContext.Transactions
-            .AsNoTracking()
-            .Where(t =>
-                t.BranchId == branchId &&
-                t.Active &&
-                t.Status == TransactionStatus.Active &&
-                t.PaidAt == null &&
-                ((t.OriginTransactionId != null && planKeys.Contains(t.OriginTransactionId.Value)) ||
-                 (t.OriginTransactionId == null && standaloneKeys.Contains(t.Id))))
-            .OrderBy(t => t.DueDate)
-            .ThenBy(t => t.Id)
-            .Select(t => new { Key = t.OriginTransactionId ?? t.Id, Row = new OpenChequeOpenRow(t.Id, t.DueDate, t.Value) })
+        // One batched read of the page's outstanding rows (replaces the former per-group sibling reads).
+        var openRows = await rows
+            .Where(r => r.Outstanding > 0 && groupKeys.Contains(r.GroupKey))
+            .OrderBy(r => r.DueDate)
+            .ThenBy(r => r.Id)
+            .Select(r => new { Key = r.GroupKey, r.Id, r.DueDate, r.Value, r.Outstanding })
             .ToListAsync(ct);
 
         var openRowsByKey = openRows
             .GroupBy(r => r.Key)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<OpenChequeOpenRow>)g.Select(r => r.Row).ToList());
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<OpenChequeOpenRow>)g
+                    .Select(r => new OpenChequeOpenRow(r.Id, r.DueDate, r.Value, r.Outstanding))
+                    .ToList());
 
         return rawGroups.Select(g =>
         {
@@ -748,24 +745,24 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
     }
 
     public async Task<IReadOnlyList<AgingDueDateTotalRow>> ListOpenChequeTotalsByDueDateAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default)
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff, CancellationToken ct = default)
     {
-        // An unpaid row always belongs to an open group, so the open rows are exactly the base query's unpaid rows.
-        var rows = await BuildOpenChequeBaseQuery(branchId, accountId, clientId)
-            .Where(t => t.PaidAt == null)
-            .GroupBy(t => t.DueDate)
-            .Select(g => new { DueDate = g.Key, Value = g.Sum(t => t.Value), RowCount = g.Count() })
+        // An outstanding row always belongs to an open group, so the open rows are exactly the outstanding rows.
+        var rows = await BuildOpenChequeRows(branchId, accountId, clientId, cutoff)
+            .Where(r => r.Outstanding > 0)
+            .GroupBy(r => r.DueDate)
+            .Select(g => new { DueDate = g.Key, Value = g.Sum(r => r.Outstanding), RowCount = g.Count() })
             .ToListAsync(ct);
 
         return rows.Select(r => new AgingDueDateTotalRow(r.DueDate, r.Value, r.RowCount)).ToList();
     }
 
     public async Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default)
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff, CancellationToken ct = default)
     {
-        return await BuildOpenChequeBaseQuery(branchId, accountId, clientId)
-            .GroupBy(t => t.OriginTransactionId ?? t.Id)
-            .Where(g => g.Any(t => t.PaidAt == null))
+        return await BuildOpenChequeRows(branchId, accountId, clientId, cutoff)
+            .GroupBy(r => r.GroupKey)
+            .Where(g => g.Any(r => r.Outstanding > 0))
             .CountAsync(ct);
     }
 
@@ -775,34 +772,43 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         if (PageOffset.TryGet(page, pageSize, out var offset) is false)
             return [];
 
-        return await BuildUpcomingSettlementQuery(branchId, filter)
-            .OrderBy(t => t.DueDate)
-            .ThenBy(t => t.Date)
-            .ThenBy(t => t.Id)
+        var rows = await BuildUpcomingSettlementQuery(branchId, filter)
+            .OrderBy(r => r.Row.DueDate)
+            .ThenBy(r => r.Row.Date)
+            .ThenBy(r => r.Row.Id)
             .Skip(offset)
             .Take(pageSize)
-            .Select(t => new UpcomingSettlementRow(
-                t.Id,
-                t.OriginTransactionId,
-                t.Date,
-                t.DueDate,
-                t.Value,
-                t.TransactionType.SettlementInstrument,
-                t.TransactionTypeId,
-                t.TransactionType.Name,
-                t.AccountId,
-                t.Account.Name,
-                t.ClientId,
-                t.Client != null ? t.Client.Name : null))
+            .Select(r => new
+            {
+                r.Row.Id,
+                r.Row.OriginTransactionId,
+                r.Row.Date,
+                r.Row.DueDate,
+                r.Row.Value,
+                r.Outstanding,
+                Instrument = r.Row.PostedSettlementInstrument!.Value,
+                r.Row.TransactionTypeId,
+                TransactionTypeName = r.Row.TransactionType.Name,
+                r.Row.AccountId,
+                AccountName = r.Row.Account.Name,
+                r.Row.ClientId,
+                ClientName = r.Row.Client != null ? r.Row.Client.Name : null
+            })
             .ToListAsync(ct);
+
+        return rows
+            .Select(r => new UpcomingSettlementRow(
+                r.Id, r.OriginTransactionId, r.Date, r.DueDate, r.Value, r.Outstanding, r.Instrument,
+                r.TransactionTypeId, r.TransactionTypeName, r.AccountId, r.AccountName, r.ClientId, r.ClientName))
+            .ToList();
     }
 
     public async Task<IReadOnlyList<UpcomingSettlementInstrumentTotalRow>> ListUpcomingSettlementTotalsByBranchIdAsNoTracking(
         Guid branchId, UpcomingSettlementFilter filter, CancellationToken ct = default)
     {
         var rows = await BuildUpcomingSettlementQuery(branchId, filter)
-            .GroupBy(t => t.TransactionType.SettlementInstrument)
-            .Select(g => new { Instrument = g.Key, Count = g.Count(), Value = g.Sum(t => t.Value) })
+            .GroupBy(r => r.Row.PostedSettlementInstrument!.Value)
+            .Select(g => new { Instrument = g.Key, Count = g.Count(), Value = g.Sum(r => r.Outstanding) })
             .ToListAsync(ct);
 
         return rows.Select(r => new UpcomingSettlementInstrumentTotalRow(r.Instrument, r.Count, r.Value)).ToList();
@@ -1005,8 +1011,65 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         return total is null ? new MonthlyFinancialRoleTotal(0m, 0m, 0) : new MonthlyFinancialRoleTotal(total.InTotal, total.OutTotal, total.RowCount);
     }
 
-    // Monthly financial role rows (M11 Phase 6.1): Active rows of types carrying the role, active or retired, on Terminal
-    // accounts in the window. The detailed rows and the totals compose this one predicate.
+    public async Task<IReadOnlyList<MonthlyFinancialRole>> ListPostedMonthlyFinancialRolesByBranchIdAsNoTracking(
+        Guid branchId, CancellationToken ct = default)
+    {
+        return await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.PostedMonthlyFinancialRole != null &&
+                t.PostedMonthlyFinancialRole != MonthlyFinancialRole.None)
+            .Select(t => t.PostedMonthlyFinancialRole!.Value)
+            .Distinct()
+            .ToListAsync(ct);
+    }
+
+    public async Task<ClassificationProvenanceCounts> CountMonthlyFinancialClassificationProvenanceAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default)
+    {
+        var counts = await dbContext.Transactions
+            .AsNoTracking()
+            .Where(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.Account.Type == AccountType.Terminal &&
+                t.PostedMonthlyFinancialRole != null &&
+                t.PostedMonthlyFinancialRole != MonthlyFinancialRole.None &&
+                t.Date >= dateFrom &&
+                t.Date <= dateTo)
+            .GroupBy(t => t.ClassificationProvenance)
+            .Select(g => new { Provenance = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        int CountOf(ClassificationProvenance provenance) =>
+            counts.Where(c => c.Provenance == provenance).Sum(c => c.Count);
+
+        return new ClassificationProvenanceCounts(
+            CountOf(ClassificationProvenance.Posting),
+            CountOf(ClassificationProvenance.MigratedFromTypeAtUpgrade),
+            CountOf(ClassificationProvenance.OpenPeriodReclassification));
+    }
+
+    public Task<bool> ExistsPostedWithSettlementInstrumentByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default)
+    {
+        return dbContext.Transactions
+            .AsNoTracking()
+            .AnyAsync(t =>
+                t.BranchId == branchId &&
+                t.Active &&
+                t.Status == TransactionStatus.Active &&
+                t.PostedSettlementInstrument != null &&
+                t.PostedSettlementInstrument != SettlementInstrument.None,
+                ct);
+    }
+
+    // Monthly financial role rows (M11 Phase 6.1, frozen by M9.7 Phase 1.3): Active rows posted with the role on Terminal
+    // accounts in the window, whatever the type's configuration today. The detailed rows and the totals compose this one
+    // predicate.
     private IQueryable<Transaction> BuildMonthlyFinancialRoleQuery(
         Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo)
     {
@@ -1017,7 +1080,7 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 t.Active &&
                 t.Status == TransactionStatus.Active &&
                 t.Account.Type == AccountType.Terminal &&
-                t.TransactionType.MonthlyFinancialRole == role &&
+                t.PostedMonthlyFinancialRole == role &&
                 t.Date >= dateFrom &&
                 t.Date <= dateTo);
     }
@@ -1096,18 +1159,19 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             .ToListAsync(ct);
     }
 
-    // Upcoming settlements (M11 Phase 5): the row's type is read whether or not it has since been retired, so a type's
-    // current instrument classifies every row it ever recorded.
-    private IQueryable<Transaction> BuildUpcomingSettlementQuery(Guid branchId, UpcomingSettlementFilter filter)
+    // Upcoming settlements (M11 Phase 5, M9.7 Phase 1): rows posted with an instrument (the frozen snapshot, whatever the
+    // type says today), still outstanding at the posted cutoff AsOfDate.
+    private IQueryable<UpcomingSettlementCandidate> BuildUpcomingSettlementQuery(Guid branchId, UpcomingSettlementFilter filter)
     {
+        var counted = CountedSettlementEvents(new ReceivableCutoff(ReceivableCutoffBasis.Posted, filter.AsOfDate.Date));
         var query = dbContext.Transactions
             .AsNoTracking()
             .Where(t =>
                 t.BranchId == branchId &&
                 t.Active &&
                 t.Status == TransactionStatus.Active &&
-                t.PaidAt == null &&
-                t.TransactionType.SettlementInstrument != SettlementInstrument.None &&
+                t.PostedSettlementInstrument != null &&
+                t.PostedSettlementInstrument != SettlementInstrument.None &&
                 t.DueDate <= filter.DueDateTo);
 
         if (filter.DueDateFrom is { } dueDateFrom)
@@ -1117,24 +1181,33 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
             query = query.Where(t => t.AccountId == accountId);
 
         if (filter.Instrument is { } instrument)
-            query = query.Where(t => t.TransactionType.SettlementInstrument == instrument);
+            query = query.Where(t => t.PostedSettlementInstrument == instrument);
 
-        return query;
+        return query
+            .Select(t => new UpcomingSettlementCandidate
+            {
+                Row = t,
+                Outstanding = t.Value +
+                    (counted.Where(e => e.ReceivableTransactionId == t.Id).Sum(e => (decimal?)e.OutstandingDelta) ?? 0m)
+            })
+            .Where(r => r.Outstanding > 0);
     }
 
-    private IQueryable<Transaction> BuildOpenChequeBaseQuery(
-        Guid branchId, Guid? accountId, Guid? clientId)
+    // Open-cheque aging rows (M11 Phase 4.2, M9.7 Phase 1): every installment plan row (shipped definition), plus a
+    // standalone row posted as Cheque, dated on or before the cutoff, each with its outstanding amount at the cutoff.
+    private IQueryable<OpenChequeCandidate> BuildOpenChequeRows(
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff)
     {
+        var counted = CountedSettlementEvents(cutoff);
         var query = dbContext.Transactions
             .AsNoTracking()
             .Where(t =>
                 t.BranchId == branchId &&
                 t.Active &&
                 t.Status == TransactionStatus.Active &&
-                // Every installment plan row (shipped definition), plus a standalone row whose type — active or
-                // retired — is classified Cheque (M11 Phase 4.2, working answer SQ2).
+                t.Date <= cutoff.Date &&
                 (t.OriginTransactionId != null ||
-                 t.TransactionType.SettlementInstrument == SettlementInstrument.Cheque));
+                 t.PostedSettlementInstrument == SettlementInstrument.Cheque));
 
         if (accountId is { } selectedAccountId)
             query = query.Where(t => t.AccountId == selectedAccountId);
@@ -1142,7 +1215,42 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
         if (clientId is { } selectedClientId)
             query = query.Where(t => t.ClientId == selectedClientId);
 
-        return query;
+        return query.Select(t => new OpenChequeCandidate
+        {
+            Id = t.Id,
+            GroupKey = t.OriginTransactionId ?? t.Id,
+            IsPlanRow = t.OriginTransactionId != null,
+            DueDate = t.DueDate,
+            Value = t.Value,
+            Outstanding = t.Value +
+                (counted.Where(e => e.ReceivableTransactionId == t.Id).Sum(e => (decimal?)e.OutstandingDelta) ?? 0m)
+        });
+    }
+
+    // The events a cutoff counts (M9.7 Phase 1.2): PostedOn on the financial basis, OccurredOn on the operational one.
+    private IQueryable<SettlementEvent> CountedSettlementEvents(ReceivableCutoff cutoff)
+    {
+        var events = dbContext.SettlementEvents.AsNoTracking();
+        var cutoffDate = cutoff.Date.Date;
+        return cutoff.Basis == ReceivableCutoffBasis.Occurred
+            ? events.Where(e => e.OccurredOn <= cutoffDate)
+            : events.Where(e => e.PostedOn <= cutoffDate);
+    }
+
+    private sealed class OpenChequeCandidate
+    {
+        public Guid Id { get; init; }
+        public Guid GroupKey { get; init; }
+        public bool IsPlanRow { get; init; }
+        public DateTime DueDate { get; init; }
+        public decimal Value { get; init; }
+        public decimal Outstanding { get; init; }
+    }
+
+    private sealed class UpcomingSettlementCandidate
+    {
+        public Transaction Row { get; init; } = null!;
+        public decimal Outstanding { get; init; }
     }
 
     private static IQueryable<Transaction> ApplyFilter(

@@ -20,6 +20,9 @@ public class ResponseTransactionTypeJson
 
     /// <summary>Monthly financial report classification (M11 Phase 6); <c>None</c> until configured.</summary>
     public MonthlyFinancialRole MonthlyFinancialRole { get; set; }
+
+    /// <summary>Financial class (M9.7 Phase 1.3); <c>Unclassified</c> until configured, fixed by role on a system type.</summary>
+    public FinancialClass FinancialClass { get; set; }
     public Guid CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }

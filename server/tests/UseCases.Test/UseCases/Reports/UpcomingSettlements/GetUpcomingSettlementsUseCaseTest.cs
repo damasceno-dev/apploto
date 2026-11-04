@@ -35,9 +35,9 @@ public class GetUpcomingSettlementsUseCaseTest
             .WithPage(2)
             .WithPageSize(1)
             .Build();
-        var window = new UpcomingSettlementFilter(AsOfDate, AsOfDate.AddDays(13), accountId, SettlementInstrument.CreditCard);
-        var overdue = new UpcomingSettlementFilter(null, AsOfDate.AddDays(-1), accountId, SettlementInstrument.CreditCard);
-        var row = new UpcomingSettlementRow(Guid.NewGuid(), Guid.NewGuid(), AsOfDate.AddDays(-2), AsOfDate.AddDays(1), 30m,
+        var window = new UpcomingSettlementFilter(AsOfDate, AsOfDate.AddDays(13), accountId, SettlementInstrument.CreditCard, AsOfDate);
+        var overdue = new UpcomingSettlementFilter(null, AsOfDate.AddDays(-1), accountId, SettlementInstrument.CreditCard, AsOfDate);
+        var row = new UpcomingSettlementRow(Guid.NewGuid(), Guid.NewGuid(), AsOfDate.AddDays(-2), AsOfDate.AddDays(1), 30m, 30m,
             SettlementInstrument.CreditCard, Guid.NewGuid(), "Cartão de Crédito", accountId, "T1", null, null);
         var transactions = new TransactionsRepositoryBuilder()
             .ListUpcomingSettlementTotalsByBranchIdAsNoTrackingReturns(branchUser.BranchId, window,
@@ -87,12 +87,12 @@ public class GetUpcomingSettlementsUseCaseTest
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();
         var request = new RequestUpcomingSettlementsJsonBuilder().WithPage(page).WithPageSize(count == 4 ? 4 : 1).Build();
-        var window = new UpcomingSettlementFilter(request.DueDateFrom, request.DueDateTo, null, null);
+        var window = new UpcomingSettlementFilter(request.DueDateFrom, request.DueDateTo, null, null, AsOfDate);
         var transactions = new TransactionsRepositoryBuilder()
             .ListUpcomingSettlementTotalsByBranchIdAsNoTrackingReturns(branchUser.BranchId, window,
                 [new UpcomingSettlementInstrumentTotalRow(SettlementInstrument.Cheque, count, 10m)])
             .ListUpcomingSettlementTotalsByBranchIdAsNoTrackingReturns(branchUser.BranchId,
-                new UpcomingSettlementFilter(null, AsOfDate.AddDays(-1), null, null), [])
+                new UpcomingSettlementFilter(null, AsOfDate.AddDays(-1), null, null, AsOfDate), [])
             .Build();
 
         var response = await CreateUseCase(branchUser, transactions,

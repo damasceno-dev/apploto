@@ -4,6 +4,7 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ReceivableCutoffBasis } from './receivableCutoffBasis';
 import type { ResponseAgingBucketTotalJson } from './responseAgingBucketTotalJson';
 import type { ResponseOpenChequeAgingGroupJson } from './responseOpenChequeAgingGroupJson';
 
@@ -14,6 +15,7 @@ export interface ResponseOpenChequeAgingJson {
   hasNext: boolean;
   hasPrevious: boolean;
   asOfDate: string;
+  cutoffBasis: ReceivableCutoffBasis;
   outstandingTotal: number;
   openRowCount: number;
   byBucket: ResponseAgingBucketTotalJson[];

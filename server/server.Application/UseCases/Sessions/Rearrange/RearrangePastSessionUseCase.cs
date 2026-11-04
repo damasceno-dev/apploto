@@ -23,6 +23,7 @@ public class RearrangePastSessionUseCase(
     IAuthenticationService authenticationService,
     IDailyClosesRepository dailyClosesRepository,
     ITransactionsRepository transactionsRepository,
+    ISettlementEventsRepository settlementEventsRepository,
     SessionChainService chainService,
     SessionEventRecorder eventRecorder,
     SessionCommandRunner commandRunner,
@@ -82,7 +83,8 @@ public class RearrangePastSessionUseCase(
                     var rows = await transactionsRepository.ListActiveBySessionId(branchUser.BranchId, session.Id, ct);
                     foreach (var row in rows)
                     {
-                        if (row.PaidAt is not null)
+                        // A row with settlement events keeps its date: event chronology is checked against it (M9.7).
+                        if (await settlementEventsRepository.ExistsByReceivableIdAsNoTracking(row.Id, ct))
                             throw new ConflictException(ResourcesErrorMessages.SESSION_REARRANGE_RECONCILED_ROW);
                         row.Date = businessDate;
                         movedIds.Add(row.Id);
@@ -91,7 +93,7 @@ public class RearrangePastSessionUseCase(
                         {
                             var source = await transactionsRepository.GetByIdAndBranchId(sourceId, branchUser.BranchId, ct)
                                 ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
-                            if (source.PaidAt is not null)
+                            if (await settlementEventsRepository.ExistsByReceivableIdAsNoTracking(source.Id, ct))
                                 throw new ConflictException(ResourcesErrorMessages.SESSION_REARRANGE_RECONCILED_ROW);
                             source.Date = businessDate;
                             movedIds.Add(source.Id);

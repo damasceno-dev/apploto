@@ -27,19 +27,26 @@ public class ResponseMonthlyFinancialReportJson
     public decimal OfficialVarianceTotal { get; init; }
     public int OfficialCloseCount { get; init; }
 
-    /// <summary>True when any branch type, active or retired, is marked <c>BolaoServiceFee</c>.</summary>
+    /// <summary>
+    /// How the fee and leftover rows of the window got their frozen classification (M9.7 Phase 1.3). Rows counted as
+    /// <c>MigratedCount</c> carry the type's markers as of the M9.7 upgrade: the figures equal what the report showed
+    /// then, but the classification in force when those rows were first posted is unknown.
+    /// </summary>
+    public ResponseClassificationProvenanceJson ClassificationProvenance { get; init; } = new();
+
+    /// <summary>True when any branch type, active or retired, or any posted row carries <c>BolaoServiceFee</c>.</summary>
     public bool IsBolaoServiceFeeConfigured { get; init; }
 
     /// <summary>Sum of the daily Terminal fee figures; <c>null</c> when not configured (never shown as zero).</summary>
     public decimal? BolaoServiceFeeTotal { get; init; }
 
-    /// <summary>True when any branch type, active or retired, is marked <c>SpecialDrawServiceFee</c> (M9.6 Phase 7).</summary>
+    /// <summary>True when any branch type or posted row carries <c>SpecialDrawServiceFee</c> (M9.6 Phase 7).</summary>
     public bool IsSpecialDrawServiceFeeConfigured { get; init; }
 
     /// <summary>Sum of the <i>Tarifa Especial</i> figures; <c>null</c> when not configured (never shown as zero).</summary>
     public decimal? SpecialDrawServiceFeeTotal { get; init; }
 
-    /// <summary>True when any branch type, active or retired, is marked <c>CommercialLeftover</c>.</summary>
+    /// <summary>True when any branch type or posted row carries <c>CommercialLeftover</c>.</summary>
     public bool IsCommercialLeftoverConfigured { get; init; }
 
     /// <summary>Sum of the leftover losses (positive = value lost); <c>null</c> when not configured.</summary>

@@ -17,13 +17,20 @@ public class RequestUpdateTransactionTypeJson
 
     /// <summary>
     /// Receivable classification (M11 Phase 4). Omitted keeps the current value, so a rename never clears it; an
-    /// explicit <c>None</c> clears it. Applies to every row of the type at read time, past rows included.
+    /// explicit <c>None</c> clears it. Since M9.7 Phase 1.3 it applies only to rows posted afterwards; posted rows keep
+    /// their frozen snapshot unless an open-period reclassification is run.
     /// </summary>
     public SettlementInstrument? SettlementInstrument { get; init; }
 
     /// <summary>
     /// Monthly financial report classification (M11 Phase 6). Omitted keeps the current value; an explicit <c>None</c>
-    /// clears it. Applies to every row of the type at read time, past and locked months included.
+    /// clears it. Applies only to rows posted afterwards (M9.7 Phase 1.3); locked months never change.
     /// </summary>
     public MonthlyFinancialRole? MonthlyFinancialRole { get; init; }
+
+    /// <summary>
+    /// Financial class (M9.7 Phases 1.3 and 6). Omitted keeps the current value; an explicit <c>Unclassified</c>
+    /// clears it. Applies only to rows posted afterwards.
+    /// </summary>
+    public FinancialClass? FinancialClass { get; init; }
 }

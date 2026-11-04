@@ -65,7 +65,7 @@ The backend carries time in three different shapes, and each shape gets its own 
 |-----------------------------------------------------------------------|---------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
 | **Date-only, branch-local** (`date`)                                  | `Transaction.Date`, `DueDate`, `DailyClose.Date`, `LockDate`, report dates     | Render exactly as returned — never shift by timezone                            |
 | **Wall-clock, branch-local** (`timestamp` without time zone / `time`) | `TimeEntrySegment.ClockIn` / `ClockOut`, `TransactionTime`                     | Render exactly as returned — it already reads as the clock on the branch's wall |
-| **UTC instant** (`timestamptz`)                                       | `CreatedAt`, `UpdatedAt`, `SubmittedAt`, `ApprovedAt`, `CancelledAt`, `PaidAt` | **Convert to the device timezone**, then format                                 |
+| **UTC instant** (`timestamptz`)                                       | `CreatedAt`, `UpdatedAt`, `SubmittedAt`, `ApprovedAt`, `CancelledAt`, `ClassifiedAt`, `SourcePaidAt` | **Convert to the device timezone**, then format                                 |
 
 The device-timezone choice for UTC instants is deliberate: the API contract exposes no branch timezone, and in practice operators and managers are physically at the branch, so the device zone and the branch zone agree. A manager reviewing remotely from another timezone sees audit times in their own zone — acceptable for now. If that ever becomes a problem, the fix is exposing the branch timezone on the contract; raise it as a backend gap rather than guessing client-side.
 
@@ -116,7 +116,7 @@ Backends store CPF as **normalized digits** (spec v6); other fields are stored a
 ## 8. Empty and absent values
 
 - Absent/null value in a table or detail view → **em dash `—`**, never an empty cell, `null`, `0`, or `R$ 0,00` (zero is a meaningful value, distinct from missing).
-- `PaidAt = null` means **unpaid** — render the domain state (see `copy-guidelines.md`), not a dash, where the screen calls for it.
+- A receivable with no settlement event counted at the cutoff is **em aberto** — render the domain state (`ReceivableSettlementStatus`, copy §5), not a dash. Settlement-event `OccurredOn`/`PostedOn` are calendar dates, never instants.
 - Empty *collections* are an empty-state concern (`copy-guidelines.md` / M3 EmptyState), not a formatting one.
 
 ## 9. Implementation notes (for Shared M3)

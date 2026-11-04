@@ -17,8 +17,8 @@ namespace server.Application.UseCases.Transactions.CreatePreview;
 /// persists), falling back to <see cref="Date"/> only if the context left it unset.
 /// </para>
 /// <para>
-/// <c>RequestCreateTransactionJson</c> carries no <c>PaidAt</c>, so a freshly created row is always
-/// unpaid — there is no paid-state field to model here. The context is read, never persisted.
+/// A freshly created row has no settlement event, so it is always fully outstanding — settlement is a separate
+/// event command (M9.7). The context is read, never persisted.
 /// </para>
 /// </summary>
 public sealed class HypotheticalTransactionCreate(RequestCreateTransactionJson request, TransactionCreateContext context)

@@ -10,6 +10,7 @@ export interface ResponseOpenChequeAgingRowJson {
   transactionId: string;
   dueDate: string;
   value: number;
+  outstandingValue: number;
   daysOutstanding: number;
   bucket: AgingBucket;
 }

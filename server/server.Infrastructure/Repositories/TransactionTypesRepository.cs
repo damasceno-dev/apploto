@@ -27,6 +27,14 @@ internal class TransactionTypesRepository(ServerDbContext dbContext) : ITransact
                 tt.Category.BranchId == branchId);
     }
 
+    public Task<TransactionType?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default)
+    {
+        return dbContext.TransactionTypes
+            .Include(tt => tt.Category)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(tt => tt.Id == id && tt.Category.BranchId == branchId, ct);
+    }
+
     public async Task<TransactionType?> GetActiveByIdWithCategoryAndBranchIdAsNoTracking(Guid id, Guid branchId)
     {
         return await dbContext.TransactionTypes

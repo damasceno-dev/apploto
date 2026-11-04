@@ -54,6 +54,9 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<SessionFieldEffect> SessionFieldEffects => Set<SessionFieldEffect>();
     public DbSet<SessionFieldEffectRevision> SessionFieldEffectRevisions => Set<SessionFieldEffectRevision>();
     public DbSet<CustodyTransfer> CustodyTransfers => Set<CustodyTransfer>();
+    public DbSet<SettlementEvent> SettlementEvents => Set<SettlementEvent>();
+    public DbSet<BankReceipt> BankReceipts => Set<BankReceipt>();
+    public DbSet<TransactionClassificationRevision> TransactionClassificationRevisions => Set<TransactionClassificationRevision>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

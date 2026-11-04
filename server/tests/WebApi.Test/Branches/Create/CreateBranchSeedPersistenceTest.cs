@@ -41,10 +41,11 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
             })
             .ToListAsync();
 
-        // 25 catalog rows (the close-field and deposit types among them), the 32 Access expense types and the three
-        // automatic-leg types: 60, of which 8 are system-owned (M7.7 Phase 5.6; M9.6 Phases 6, 7 and 9).
-        persistedRows.Count.ShouldBe(60);
-        persistedRows.Count(row => row.SystemRole != null).ShouldBe(8);
+        // 25 catalog rows (the close-field and deposit types among them), the 32 Access expense types, the three
+        // automatic-leg types and the cheque-conversion debt type: 61, of which 9 are system-owned (M7.7 Phase 5.6;
+        // M9.6 Phases 6, 7 and 9; M9.7 Phase 2.3).
+        persistedRows.Count.ShouldBe(61);
+        persistedRows.Count(row => row.SystemRole != null).ShouldBe(9);
 
         persistedRows.Where(row => row.Name is "Tarifa Bolão" or "Tarifa Especial" or "Relatório do terminal")
             .ShouldAllBe(row => row.DefaultDirection == Direction.In && row.SystemRole != null);

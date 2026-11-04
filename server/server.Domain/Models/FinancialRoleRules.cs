@@ -32,6 +32,25 @@ public static class FinancialRoleRules
         _ => MonthlyFinancialRole.None
     };
 
+    /// <summary>
+    /// The financial class a system type carries (M9.7 Phase 1.3), fixed by its role from the canonical five-class
+    /// plan: the CAIXA report and the fiado legs are CAIXA and client money, the two fees are the shop's own income and
+    /// the cofre legs are an internal transfer.
+    /// </summary>
+    public static FinancialClass FinancialClassOf(TransactionTypeSystemRole role) => role switch
+    {
+        TransactionTypeSystemRole.FiadoSaleCounterpart or
+        TransactionTypeSystemRole.FiadoCashRepaymentCounterpart or
+        TransactionTypeSystemRole.TerminalReportIn or
+        TransactionTypeSystemRole.TerminalReportOut or
+        TransactionTypeSystemRole.ChequeFiadoConversion => FinancialClass.CaixaAndClientMoney,
+        TransactionTypeSystemRole.BolaoFee or
+        TransactionTypeSystemRole.SpecialFee => FinancialClass.ShopFeesAndIncome,
+        TransactionTypeSystemRole.SafeDepositOut or
+        TransactionTypeSystemRole.SafeDepositIn => FinancialClass.InternalTransfer,
+        _ => throw new ArgumentOutOfRangeException(nameof(role), role, null)
+    };
+
     public static TransactionGenerationKind GenerationKindOf(SessionCloseField field) => field switch
     {
         SessionCloseField.TerminalReport => TransactionGenerationKind.SessionTerminalReport,
@@ -58,9 +77,13 @@ public static class FinancialRoleRules
         TransactionTypeSystemRole.BolaoFee or
         TransactionTypeSystemRole.SpecialFee;
 
-    /// <summary>True for the generation kinds that hang off a source transaction (fiado pairs, cofre deposit).</summary>
+    /// <summary>
+    /// True for the generation kinds that hang off a source transaction (fiado pairs, cofre deposit, and the fiado debt
+    /// of a cheque conversion, whose source is the cheque row).
+    /// </summary>
     public static bool HasSourceTransaction(TransactionGenerationKind kind) => kind is
         TransactionGenerationKind.FiadoSale or
         TransactionGenerationKind.FiadoCashRepayment or
-        TransactionGenerationKind.SafeCashDeposit;
+        TransactionGenerationKind.SafeCashDeposit or
+        TransactionGenerationKind.ChequeFiadoConversion;
 }

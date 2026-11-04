@@ -117,21 +117,23 @@ public interface ITransactionsRepository
         Guid branchId, Guid operatorId, DateTime dateFrom, DateTime dateTo, IReadOnlyList<Guid>? allowedAccountIds = null);
 
     /// <summary>
-    /// Open-cheque aging groups (M11 Phase 4.2): every installment plan with an unpaid Active row, plus each unpaid
-    /// Active standalone row of a type classified <c>Cheque</c>, ordered by oldest open due date then group key, with
-    /// each page's unpaid rows read in one batch.
+    /// Open-cheque aging groups (M11 Phase 4.2, M9.7 Phase 1): every installment plan, plus each standalone row posted
+    /// as <c>Cheque</c>, that holds an Active row dated on or before the cutoff and still outstanding at it, ordered by
+    /// oldest open due date then group key, with each page's outstanding rows read in one batch.
     /// </summary>
     Task<IReadOnlyList<OpenChequeGroupRow>> ListOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, int page, int pageSize, CancellationToken ct = default);
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff, int page, int pageSize,
+        CancellationToken ct = default);
     Task<int> CountOpenChequeGroupsByBranchIdAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default);
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff, CancellationToken ct = default);
 
     /// <summary>
-    /// Whole-filter open-cheque totals (M11 Phase 2.1, widened in 4.2): every unpaid row of every open group matching
-    /// the filters, grouped by due date in one query, independent of paging.
+    /// Whole-filter open-cheque totals (M11 Phase 2.1, widened in 4.2): every outstanding row of every open group
+    /// matching the filters at the cutoff, grouped by due date in one query, independent of paging. Values are the
+    /// outstanding amounts.
     /// </summary>
     Task<IReadOnlyList<AgingDueDateTotalRow>> ListOpenChequeTotalsByDueDateAsNoTracking(
-        Guid branchId, Guid? accountId, Guid? clientId, CancellationToken ct = default);
+        Guid branchId, Guid? accountId, Guid? clientId, ReceivableCutoff cutoff, CancellationToken ct = default);
     /// <summary>
     /// One page of upcoming settlements (M11 Phase 5) ordered <c>DueDate, Date, Id</c>; every filter applies before
     /// paging and each installment row appears once.
@@ -144,8 +146,8 @@ public interface ITransactionsRepository
         Guid branchId, UpcomingSettlementFilter filter, CancellationToken ct = default);
 
     /// <summary>
-    /// Active (non-Draft, non-cancelled) rows of types carrying <paramref name="role"/> — active or retired — on
-    /// Terminal accounts dated in <c>[dateFrom, dateTo]</c>, grouped by date, account, recording operator and type
+    /// Active (non-Draft, non-cancelled) rows posted with <paramref name="role"/> (the frozen snapshot, M9.7 Phase 1.3)
+    /// on Terminal accounts dated in <c>[dateFrom, dateTo]</c>, grouped by date, account, recording operator and type
     /// (M11 Phase 6).
     /// </summary>
     Task<IReadOnlyList<MonthlyFinancialRoleRow>> ListMonthlyFinancialRoleRowsByBranchIdAsNoTracking(
@@ -154,6 +156,21 @@ public interface ITransactionsRepository
     /// <summary>The same rows' inflow/outflow sums and count, folded in the database.</summary>
     Task<MonthlyFinancialRoleTotal> GetMonthlyFinancialRoleTotalAsNoTracking(
         Guid branchId, MonthlyFinancialRole role, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default);
+
+    /// <summary>Monthly roles carried by any posted Active row of the branch (a role removed from its type still reports).</summary>
+    Task<IReadOnlyList<MonthlyFinancialRole>> ListPostedMonthlyFinancialRolesByBranchIdAsNoTracking(
+        Guid branchId, CancellationToken ct = default);
+
+    /// <summary>
+    /// How the frozen classification of the monthly-role rows in the window was obtained (M9.7 Phase 1.3): rows posted
+    /// under M9.7, rows whose snapshot was copied from the type at the upgrade (historical classification unknown) and
+    /// rows reclassified in an open period.
+    /// </summary>
+    Task<ClassificationProvenanceCounts> CountMonthlyFinancialClassificationProvenanceAsNoTracking(
+        Guid branchId, DateTime dateFrom, DateTime dateTo, CancellationToken ct = default);
+
+    /// <summary>True when any Active row of the branch was posted with an instrument other than <c>None</c>.</summary>
+    Task<bool> ExistsPostedWithSettlementInstrumentByBranchIdAsNoTracking(Guid branchId, CancellationToken ct = default);
 
     /// <summary>
     /// Account activity on one date (M11 Phase 7.2): the listed set — every active Terminal plus any account, active

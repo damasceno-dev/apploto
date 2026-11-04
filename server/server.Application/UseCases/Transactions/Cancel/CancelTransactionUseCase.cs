@@ -24,6 +24,7 @@ public class CancelTransactionUseCase(
     IDailyCloseAccountCoordination dailyCloseAccountCoordination,
     FiadoPhysicalPairService fiadoPhysicalPairService,
     SessionRevisionService sessionRevisions,
+    ISettlementEventsRepository settlementEventsRepository,
     IUnitOfWork unitOfWork)
 {
     public async Task<ResponseTransactionJson> Execute(
@@ -94,6 +95,11 @@ public class CancelTransactionUseCase(
             ct);
 
         await dailyCloseLedgerGuard.EnsureLedgerIsMutable(transaction, ct);
+
+        // A receivable whose lifecycle already has command events (custody, deposit, return, conversion) is never
+        // cancelled: its pending receipt, custody trail or fiado conversion would lose their source (M9.7 Phase 1).
+        if (await settlementEventsRepository.ExistsCommandEventByReceivableIdAsNoTracking(transaction.Id, ct))
+            throw new ConflictException(ResourcesErrorMessages.RECEIVABLE_HAS_SETTLEMENT_EVENTS);
 
         // Cancellation never touches installment siblings: the loaded row is the only
         // entity mutated. The installment-sibling-isolation Web API test in 7.9 is the

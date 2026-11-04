@@ -17,9 +17,9 @@ public class RequestCreateTransactionTypeJson
     public FiadoPaymentKind? FiadoPaymentKind { get; init; }
 
     /// <summary>
-    /// Receivable classification (M11 Phase 4) read by upcoming settlements and the standalone-cheque part of
-    /// open-cheque aging. Explicit configuration, independent of <see cref="SettlementRule"/>; omitted means
-    /// <c>None</c>.
+    /// Receivable classification (M11 Phase 4) for upcoming settlements and the standalone-cheque part of open-cheque
+    /// aging. Explicit configuration, independent of <see cref="SettlementRule"/>; omitted means <c>None</c>. Rows copy
+    /// it when posted (M9.7 Phase 1.3).
     /// </summary>
     public SettlementInstrument? SettlementInstrument { get; init; }
 
@@ -28,4 +28,10 @@ public class RequestCreateTransactionTypeJson
     /// <c>CommercialLeftover</c> an <c>Out</c> one. Omitted means <c>None</c>.
     /// </summary>
     public MonthlyFinancialRole? MonthlyFinancialRole { get; init; }
+
+    /// <summary>
+    /// Financial class (M9.7 Phases 1.3 and 6), one of the canonical five. Omitted means <c>Unclassified</c>. A row
+    /// copies it when posted, so a later change never relabels rows already posted.
+    /// </summary>
+    public FinancialClass? FinancialClass { get; init; }
 }

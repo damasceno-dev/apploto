@@ -19,6 +19,4 @@ export interface ResponseDailyLedgerItemJson {
   clientName?: string | null;
   recordedByOperatorName: string;
   dueDate: string;
-  /** @nullable */
-  paidAt?: string | null;
 }

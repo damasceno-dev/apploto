@@ -24,8 +24,6 @@ export interface ResponseCreateTransactionJson {
   /** @nullable */
   clientId?: string | null;
   dueDate: string;
-  /** @nullable */
-  paidAt?: string | null;
   generationKind?: null | TransactionGenerationKind;
   /** @nullable */
   generatedFromTransactionId?: string | null;

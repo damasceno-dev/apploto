@@ -9,6 +9,23 @@ public static class TransactionSharedMapper
 {
     extension(Transaction transaction)
     {
+        /// <summary>The frozen classification snapshot (M9.7 Phase 1.3); null while the row was never posted.</summary>
+        public ResponseTransactionClassificationJson? ToClassificationResponse()
+        {
+            if (transaction.ClassificationProvenance is not { } provenance)
+                return null;
+
+            return new ResponseTransactionClassificationJson
+            {
+                SettlementInstrument = transaction.PostedSettlementInstrument!.Value,
+                MonthlyFinancialRole = transaction.PostedMonthlyFinancialRole!.Value,
+                FinancialClass = transaction.PostedFinancialClass!.Value,
+                Provenance = provenance,
+                Revision = transaction.ClassificationRevision,
+                ClassifiedAt = transaction.ClassifiedAt!.Value
+            };
+        }
+
         public ResponseTransactionJson ToTransactionResponse(Guid? generatedTransactionId = null)
         {
             return new ResponseTransactionJson
@@ -25,8 +42,8 @@ public static class TransactionSharedMapper
                 AccountId = transaction.AccountId,
                 ClientId = transaction.ClientId,
                 DueDate = transaction.DueDate,
-                PaidAt = transaction.PaidAt,
                 OriginTransactionId = transaction.OriginTransactionId,
+                Classification = transaction.ToClassificationResponse(),
                 GenerationKind = transaction.GenerationKind,
                 GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
                 SessionId = transaction.SessionId,
@@ -62,8 +79,8 @@ public static class TransactionSharedMapper
                 TransactionTypeId = transaction.TransactionTypeId,
                 TransactionTypeName = transaction.TransactionType.Name,
                 DueDate = transaction.DueDate,
-                PaidAt = transaction.PaidAt,
                 OriginTransactionId = transaction.OriginTransactionId,
+                Classification = transaction.ToClassificationResponse(),
                 GenerationKind = transaction.GenerationKind,
                 GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
                 SessionId = transaction.SessionId,

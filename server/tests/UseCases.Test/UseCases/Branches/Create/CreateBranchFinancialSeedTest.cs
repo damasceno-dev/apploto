@@ -86,14 +86,22 @@ public class CreateBranchFinancialSeedTest
         CategoryOf(system[TransactionTypeSystemRole.SafeDepositOut]).ShouldBe("Saídas");
         system[TransactionTypeSystemRole.SafeDepositOut].Name.ShouldBe("Depósito Dinheiro");
         system[TransactionTypeSystemRole.SafeDepositOut].SettlementRule.ShouldBe(SettlementRule.NextCalendarDay);
+        // M9.7 Phase 2.3: the conversion debt is a Tab Out beside the counter-sale leg, never a payment method.
+        CategoryOf(system[TransactionTypeSystemRole.ChequeFiadoConversion]).ShouldBe("Movimentos automáticos de fiado (saída)");
+        system[TransactionTypeSystemRole.ChequeFiadoConversion].Name.ShouldBe("Cheque convertido em fiado");
+        system[TransactionTypeSystemRole.ChequeFiadoConversion].RequiresTabAccountAndClient.ShouldBeTrue();
+        // Ordinary seeds stay unclassified until an admin (or M9.7 Phase 6) classifies them.
+        types.Where(type => type.SystemRole == null).ShouldAllBe(type => type.FinancialClass == FinancialClass.Unclassified);
         foreach (var (role, type) in system)
         {
             type.MonthlyFinancialRole.ShouldBe(FinancialRoleRules.MonthlyFinancialRoleOf(role));
             type.FiadoPaymentKind.ShouldBeNull();
             type.SettlementInstrument.ShouldBe(SettlementInstrument.None);
             var direction = categories.Single(c => c.Id == type.CategoryId).DefaultDirection;
+            type.FinancialClass.ShouldBe(FinancialRoleRules.FinancialClassOf(role));
             direction.ShouldBe(role is TransactionTypeSystemRole.FiadoSaleCounterpart
                 or TransactionTypeSystemRole.TerminalReportOut or TransactionTypeSystemRole.SafeDepositOut
+                or TransactionTypeSystemRole.ChequeFiadoConversion
                 ? Direction.Out
                 : Direction.In);
         }

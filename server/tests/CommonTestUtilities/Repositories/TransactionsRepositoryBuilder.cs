@@ -21,8 +21,34 @@ public class TransactionsRepositoryBuilder
             .GetFiadoAgingTotalsByBranchIdAsNoTracking(default, default, default, default, default)
             .ReturnsForAnyArgs(new FiadoAgingTotals([], null));
         _repository
-            .ListOpenChequeTotalsByDueDateAsNoTracking(default, default, default, default)
+            .ListOpenChequeTotalsByDueDateAsNoTracking(default, default, default, default!, default)
             .ReturnsForAnyArgs([]);
+        // M9.7: no row posted with a monthly role or instrument, and no classified row in any window, unless configured.
+        _repository
+            .ListPostedMonthlyFinancialRolesByBranchIdAsNoTracking(default, default)
+            .ReturnsForAnyArgs([]);
+        _repository
+            .CountMonthlyFinancialClassificationProvenanceAsNoTracking(default, default, default, default)
+            .ReturnsForAnyArgs(new ClassificationProvenanceCounts(0, 0, 0));
+    }
+
+    public TransactionsRepositoryBuilder ListPostedMonthlyFinancialRolesReturns(
+        Guid branchId,
+        IReadOnlyList<MonthlyFinancialRole> roles)
+    {
+        _repository.ListPostedMonthlyFinancialRolesByBranchIdAsNoTracking(branchId, Arg.Any<CancellationToken>()).Returns(roles);
+        return this;
+    }
+
+    public TransactionsRepositoryBuilder CountMonthlyFinancialClassificationProvenanceReturns(
+        Guid branchId,
+        ClassificationProvenanceCounts counts)
+    {
+        _repository
+            .CountMonthlyFinancialClassificationProvenanceAsNoTracking(
+                branchId, Arg.Any<DateTime>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>())
+            .Returns(counts);
+        return this;
     }
 
     public TransactionsRepositoryBuilder GetFiadoAgingTotalsByBranchIdAsNoTrackingReturns(
@@ -41,9 +67,11 @@ public class TransactionsRepositoryBuilder
         Guid branchId,
         Guid? accountId,
         Guid? clientId,
-        IReadOnlyList<AgingDueDateTotalRow> result)
+        IReadOnlyList<AgingDueDateTotalRow> result,
+        ReceivableCutoff? cutoff = null)
     {
-        _repository.ListOpenChequeTotalsByDueDateAsNoTracking(branchId, accountId, clientId, Arg.Any<CancellationToken>())
+        _repository.ListOpenChequeTotalsByDueDateAsNoTracking(
+                branchId, accountId, clientId, CutoffArg(cutoff), Arg.Any<CancellationToken>())
             .Returns(result);
         return this;
     }
@@ -296,12 +324,14 @@ public class TransactionsRepositoryBuilder
         Guid? clientId,
         int page,
         int pageSize,
-        IReadOnlyList<OpenChequeGroupRow> result)
+        IReadOnlyList<OpenChequeGroupRow> result,
+        ReceivableCutoff? cutoff = null)
     {
         _repository.ListOpenChequeGroupsByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid?>(value => value == accountId),
                 Arg.Is<Guid?>(value => value == clientId),
+                CutoffArg(cutoff),
                 Arg.Is<int>(value => value == page),
                 Arg.Is<int>(value => value == pageSize),
                 Arg.Any<CancellationToken>())
@@ -313,12 +343,14 @@ public class TransactionsRepositoryBuilder
         Guid branchId,
         Guid? accountId,
         Guid? clientId,
-        int count)
+        int count,
+        ReceivableCutoff? cutoff = null)
     {
         _repository.CountOpenChequeGroupsByBranchIdAsNoTracking(
                 Arg.Is<Guid>(value => value == branchId),
                 Arg.Is<Guid?>(value => value == accountId),
                 Arg.Is<Guid?>(value => value == clientId),
+                CutoffArg(cutoff),
                 Arg.Any<CancellationToken>())
             .Returns(count);
         return this;
@@ -475,4 +507,8 @@ public class TransactionsRepositoryBuilder
                expected.Page == actual.Page &&
                expected.PageSize == actual.PageSize;
     }
+
+    // An omitted cutoff matches any; a given one must be passed exactly (basis and date).
+    private static ReceivableCutoff CutoffArg(ReceivableCutoff? cutoff) =>
+        cutoff is null ? Arg.Any<ReceivableCutoff>() : Arg.Is<ReceivableCutoff>(value => value == cutoff);
 }

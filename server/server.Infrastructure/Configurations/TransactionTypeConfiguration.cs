@@ -18,6 +18,7 @@ internal class TransactionTypeConfiguration : IEntityTypeConfiguration<Transacti
         builder.Property(transactionType => transactionType.FiadoPaymentKind).HasConversion<short?>().IsRequired(false);
         builder.Property(transactionType => transactionType.SettlementInstrument).HasConversion<short>().IsRequired();
         builder.Property(transactionType => transactionType.MonthlyFinancialRole).HasConversion<short>().IsRequired();
+        builder.Property(transactionType => transactionType.FinancialClass).HasConversion<short>().IsRequired();
 
         builder.ToTable(table => table.HasCheckConstraint(
             "CK_TransactionTypes_SystemRole_NotPaymentMethod",
@@ -30,6 +31,12 @@ internal class TransactionTypeConfiguration : IEntityTypeConfiguration<Transacti
         builder.ToTable(table => table.HasCheckConstraint(
             "CK_TransactionTypes_SystemRole_NoMonthlyFinancialRole",
             "\"SystemRole\" IS NULL OR \"MonthlyFinancialRole\" = CASE \"SystemRole\" WHEN 5 THEN 1 WHEN 6 THEN 3 ELSE 0 END"));
+        // A system type's financial class is fixed by its system role (M9.7 Phase 1.3, FinancialRoleRules.FinancialClassOf).
+        builder.ToTable(table => table.HasCheckConstraint(
+            "CK_TransactionTypes_SystemRole_FinancialClass",
+            "\"SystemRole\" IS NULL OR \"FinancialClass\" = CASE \"SystemRole\" " +
+            "WHEN 1 THEN 1 WHEN 2 THEN 1 WHEN 3 THEN 1 WHEN 4 THEN 1 WHEN 5 THEN 2 WHEN 6 THEN 2 WHEN 7 THEN 4 " +
+            "WHEN 8 THEN 4 WHEN 9 THEN 1 END"));
         builder.Property(transactionType => transactionType.SeedKey).HasMaxLength(64).IsRequired(false);
 
         // Seeding finds its own rows by key inside the category it seeds; a custom type never carries one.

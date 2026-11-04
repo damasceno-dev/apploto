@@ -20,8 +20,7 @@ internal static class DailyLedgerMapper
                 CategoryName = transaction.Category.Name,
                 ClientName = transaction.Client?.Name,
                 RecordedByOperatorName = transaction.RecordedByOperator.Name,
-                DueDate = transaction.DueDate,
-                PaidAt = transaction.PaidAt
+                DueDate = transaction.DueDate
             };
         }
     }

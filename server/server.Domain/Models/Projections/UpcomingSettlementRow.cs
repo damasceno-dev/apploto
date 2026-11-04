@@ -9,6 +9,7 @@ public record UpcomingSettlementRow(
     DateTime Date,
     DateTime DueDate,
     decimal Value,
+    decimal OutstandingValue,
     SettlementInstrument Instrument,
     Guid TransactionTypeId,
     string TransactionTypeName,
@@ -17,5 +18,5 @@ public record UpcomingSettlementRow(
     Guid? ClientId,
     string? ClientName);
 
-/// <summary>Whole-filter count and value of one instrument.</summary>
+/// <summary>Whole-filter count and outstanding value of one instrument.</summary>
 public record UpcomingSettlementInstrumentTotalRow(SettlementInstrument Instrument, int Count, decimal Value);

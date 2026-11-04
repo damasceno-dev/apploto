@@ -317,6 +317,7 @@ public class CancelTransactionUseCaseTest
                 ctx.DailyCloseLedgerGuard,
                 memberAccountScopeGuard),
             SessionTestServices.Revisions(),
+            ctx.SettlementEventsRepository,
             ctx.UnitOfWork);
     }
 
@@ -448,5 +449,6 @@ public class CancelTransactionUseCaseTest
         public required IDailyCloseAccountCoordination DailyCloseLedgerCoordination { get; set; }
         public required IDailyCloseAccountCoordinationScope DailyCloseLedgerCoordinationScope { get; set; }
         public required IUnitOfWork UnitOfWork { get; init; }
+        public ISettlementEventsRepository SettlementEventsRepository { get; set; } = new SettlementEventsRepositoryBuilder().Build();
     }
 }

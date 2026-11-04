@@ -4,6 +4,7 @@ using server.Communication.Requests;
 using server.Communication.Responses;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models;
 using server.Exceptions;
 using server.Exceptions.Exceptions;
 
@@ -25,17 +26,21 @@ public class GetOpenChequeAgingUseCase(
 
         var asOfDate = request.AsOfDate ?? branchClock.LocalBusinessDate(branchClock.UtcNow());
 
+        // The cutoff (M9.7 Phase 1.2): rows dated after AsOfDate never count, and events count by PostedOn unless the
+        // operational OccurredOn basis is asked for, so a posted-basis report as of a locked date is reproducible.
+        var cutoff = new ReceivableCutoff(request.CutoffBasis ?? ReceivableCutoffBasis.Posted, asOfDate.Date);
+
         var groups = await transactionsRepository.ListOpenChequeGroupsByBranchIdAsNoTracking(
-            branchUser.BranchId, request.AccountId, request.ClientId, request.Page, request.PageSize);
+            branchUser.BranchId, request.AccountId, request.ClientId, cutoff, request.Page, request.PageSize);
 
         var totalCount = await transactionsRepository.CountOpenChequeGroupsByBranchIdAsNoTracking(
-            branchUser.BranchId, request.AccountId, request.ClientId);
+            branchUser.BranchId, request.AccountId, request.ClientId, cutoff);
 
         var totalPages = totalCount == 0 ? 0 : (int)Math.Ceiling((double)totalCount / request.PageSize);
 
         // M11 Phase 2.1: whole-filter totals from one grouped query, independent of the page.
         var dueDateTotals = await transactionsRepository.ListOpenChequeTotalsByDueDateAsNoTracking(
-            branchUser.BranchId, request.AccountId, request.ClientId);
+            branchUser.BranchId, request.AccountId, request.ClientId, cutoff);
 
         var groupResponses = groups
             .Where(group => group.OpenRows.Count > 0)
@@ -58,6 +63,7 @@ public class GetOpenChequeAgingUseCase(
                         TransactionId = row.TransactionId,
                         DueDate = row.DueDate,
                         Value = row.Value,
+                        OutstandingValue = row.OutstandingValue,
                         DaysOutstanding = Math.Max(0, (asOfDate.Date - row.DueDate.Date).Days),
                         Bucket = ReportAgingBucketizer.BucketFor(row.DueDate, asOfDate)
                     })
@@ -73,6 +79,7 @@ public class GetOpenChequeAgingUseCase(
             HasNext = request.Page < totalPages,
             HasPrevious = request.Page > 1,
             AsOfDate = asOfDate,
+            CutoffBasis = cutoff.Basis,
             OutstandingTotal = dueDateTotals.Sum(row => row.Value),
             OpenRowCount = dueDateTotals.Sum(row => row.RowCount),
             ByBucket = AgingBucketTotals.Build(dueDateTotals, asOfDate)

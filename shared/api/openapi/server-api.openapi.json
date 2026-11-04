@@ -3236,6 +3236,873 @@
         ]
       }
     },
+    "/cheque/custody": {
+      "post": {
+        "tags": [
+          "Cheque"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeCustodyJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeCustodyJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeCustodyJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/cheque/deposit": {
+      "post": {
+        "tags": [
+          "Cheque"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeDepositJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeDepositJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeDepositJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/cheque/{transactionId}/return": {
+      "post": {
+        "tags": [
+          "Cheque"
+        ],
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeReturnJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeReturnJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeReturnJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/cheque/{transactionId}/represent": {
+      "post": {
+        "tags": [
+          "Cheque"
+        ],
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeRepresentJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeRepresentJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeRepresentJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/cheque/{transactionId}/convert-to-fiado": {
+      "post": {
+        "tags": [
+          "Cheque"
+        ],
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeConvertToFiadoJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeConvertToFiadoJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestChequeConvertToFiadoJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseChequeOperationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
     "/client": {
       "post": {
         "tags": [
@@ -8434,6 +9301,257 @@
         ]
       }
     },
+    "/receivable/{transactionId}": {
+      "get": {
+        "tags": [
+          "Receivable"
+        ],
+        "parameters": [
+          {
+            "name": "transactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "CutoffDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "CutoffBasis",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReceivableCutoffBasis"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReceivableJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReceivableJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReceivableJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/bank-receipt/{receiptId}": {
+      "get": {
+        "tags": [
+          "Receivable"
+        ],
+        "parameters": [
+          {
+            "name": "receiptId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBankReceiptJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBankReceiptJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseBankReceiptJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
     "/report/daily-ledger": {
       "get": {
         "tags": [
@@ -8896,6 +10014,13 @@
             "schema": {
               "type": "string",
               "format": "date-time"
+            }
+          },
+          {
+            "name": "CutoffBasis",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/ReceivableCutoffBasis"
             }
           },
           {
@@ -19144,6 +20269,320 @@
         ]
       }
     },
+    "/transaction-type/{id}/reclassification-candidates": {
+      "get": {
+        "tags": [
+          "TransactionType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "DateFrom",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "DateTo",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReclassificationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReclassificationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReclassificationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/transaction-type/{id}/reclassify": {
+      "post": {
+        "tags": [
+          "TransactionType"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestReclassifyTransactionTypeJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestReclassifyTransactionTypeJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestReclassifyTransactionTypeJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReclassificationJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReclassificationJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseReclassificationJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
     "/user/login": {
       "post": {
         "tags": [
@@ -19679,6 +21118,18 @@
         ],
         "type": "string"
       },
+      "BankReceiptSourceKind": {
+        "enum": [
+          "ChequeDeposit"
+        ],
+        "type": "string"
+      },
+      "BankReceiptStatus": {
+        "enum": [
+          "Pending"
+        ],
+        "type": "string"
+      },
       "BrazilianHolidayCalendarSource": {
         "enum": [
           "Composite",
@@ -19699,6 +21150,26 @@
         "enum": [
           "National",
           "OptionalFederal"
+        ],
+        "type": "string"
+      },
+      "ChequeLifecycleState": {
+        "enum": [
+          "Received",
+          "InSafe",
+          "Deposited",
+          "Returned",
+          "AwaitingRedeposit",
+          "ConvertedToFiado",
+          "SettledBeforeEvents"
+        ],
+        "type": "string"
+      },
+      "ClassificationProvenance": {
+        "enum": [
+          "Posting",
+          "MigratedFromTypeAtUpgrade",
+          "OpenPeriodReclassification"
         ],
         "type": "string"
       },
@@ -19736,6 +21207,17 @@
         "enum": [
           "CountedCash",
           "NonCash"
+        ],
+        "type": "string"
+      },
+      "FinancialClass": {
+        "enum": [
+          "Unclassified",
+          "CaixaAndClientMoney",
+          "ShopFeesAndIncome",
+          "OperatingExpenseAndLoss",
+          "InternalTransfer",
+          "CashDifference"
         ],
         "type": "string"
       },
@@ -19812,6 +21294,21 @@
           "Ready",
           "Empty",
           "NotConfigured"
+        ],
+        "type": "string"
+      },
+      "ReceivableCutoffBasis": {
+        "enum": [
+          "Posted",
+          "Occurred"
+        ],
+        "type": "string"
+      },
+      "ReceivableSettlementStatus": {
+        "enum": [
+          "Open",
+          "PartiallySettled",
+          "Settled"
         ],
         "type": "string"
       },
@@ -19999,6 +21496,216 @@
           },
           "newPassword": {
             "type": "string"
+          }
+        }
+      },
+      "RequestChequeConvertToFiadoJson": {
+        "required": [
+          "expectedVersion",
+          "clientId",
+          "tabAccountId",
+          "occurredOn"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tabAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RequestChequeCustodyJson": {
+        "required": [
+          "safeAccountId",
+          "occurredOn",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "safeAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestChequeOperationItemJson"
+            }
+          }
+        }
+      },
+      "RequestChequeDepositJson": {
+        "required": [
+          "bankAccountId",
+          "occurredOn",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "bankAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestChequeOperationItemJson"
+            }
+          }
+        }
+      },
+      "RequestChequeOperationItemJson": {
+        "required": [
+          "transactionId",
+          "expectedVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "RequestChequeRepresentJson": {
+        "required": [
+          "expectedVersion",
+          "occurredOn"
+        ],
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "RequestChequeReturnJson": {
+        "required": [
+          "depositEventId",
+          "expectedVersion",
+          "occurredOn",
+          "clientId",
+          "nextExpectedDepositDate"
+        ],
+        "type": "object",
+        "properties": {
+          "depositEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nextExpectedDepositDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "returnReason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -20580,6 +22287,16 @@
                 "$ref": "#/components/schemas/MonthlyFinancialRole"
               }
             ]
+          },
+          "financialClass": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinancialClass"
+              }
+            ]
           }
         }
       },
@@ -21056,6 +22773,55 @@
                 "$ref": "#/components/schemas/RequestSessionOpeningAcknowledgmentJson"
               }
             ]
+          }
+        }
+      },
+      "RequestReclassifyRowJson": {
+        "required": [
+          "transactionId",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "uint32"
+          }
+        }
+      },
+      "RequestReclassifyTransactionTypeJson": {
+        "required": [
+          "dateFrom",
+          "dateTo",
+          "reason",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequestReclassifyRowJson"
+            }
           }
         }
       },
@@ -21709,13 +23475,6 @@
             "type": "string",
             "format": "date-time"
           },
-          "paidAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
           "clientId": {
             "type": [
               "null",
@@ -21774,6 +23533,16 @@
               },
               {
                 "$ref": "#/components/schemas/MonthlyFinancialRole"
+              }
+            ]
+          },
+          "financialClass": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinancialClass"
               }
             ]
           }
@@ -22068,6 +23837,112 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ResponseDailyCloseJson"
+            }
+          }
+        }
+      },
+      "ResponseBankReceiptAllocationJson": {
+        "required": [
+          "settlementEventId",
+          "transactionId",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "settlementEventId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "returnedByEventId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ResponseBankReceiptJson": {
+        "required": [
+          "id",
+          "bankAccountId",
+          "bankAccountName",
+          "sourceKind",
+          "status",
+          "occurredOn",
+          "postedOn",
+          "amount",
+          "returnedAmount",
+          "expectedAmount",
+          "createdByUserId",
+          "createdAt",
+          "allocations"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bankAccountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bankAccountName": {
+            "type": "string"
+          },
+          "sourceKind": {
+            "$ref": "#/components/schemas/BankReceiptSourceKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/BankReceiptStatus"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "returnedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "expectedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdByUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "allocations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseBankReceiptAllocationJson"
             }
           }
         }
@@ -22446,6 +24321,59 @@
           },
           "active": {
             "type": "boolean"
+          }
+        }
+      },
+      "ResponseChequeOperationJson": {
+        "required": [
+          "receivables"
+        ],
+        "type": "object",
+        "properties": {
+          "receivables": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseReceivableJson"
+            }
+          },
+          "bankReceipt": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseBankReceiptJson"
+              }
+            ]
+          },
+          "convertedTransactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "ResponseClassificationProvenanceJson": {
+        "required": [
+          "postingCount",
+          "migratedCount",
+          "reclassifiedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "postingCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "migratedCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reclassifiedCount": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -22957,13 +24885,6 @@
           },
           "dueDate": {
             "type": "string",
-            "format": "date-time"
-          },
-          "paidAt": {
-            "type": [
-              "null",
-              "string"
-            ],
             "format": "date-time"
           },
           "generationKind": {
@@ -23844,13 +25765,6 @@
           },
           "dueDate": {
             "type": "string",
-            "format": "date-time"
-          },
-          "paidAt": {
-            "type": [
-              "null",
-              "string"
-            ],
             "format": "date-time"
           }
         }
@@ -25011,19 +26925,22 @@
             "type": "string",
             "format": "date-time"
           },
-          "paidAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
           "originTransactionId": {
             "type": [
               "null",
               "string"
             ],
             "format": "uuid"
+          },
+          "classification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseTransactionClassificationJson"
+              }
+            ]
           },
           "sessionId": {
             "type": [
@@ -26722,6 +28639,7 @@
           "isPartialMonth",
           "officialVarianceTotal",
           "officialCloseCount",
+          "classificationProvenance",
           "isBolaoServiceFeeConfigured",
           "isSpecialDrawServiceFeeConfigured",
           "isCommercialLeftoverConfigured",
@@ -26768,6 +28686,9 @@
           "officialCloseCount": {
             "type": "integer",
             "format": "int32"
+          },
+          "classificationProvenance": {
+            "$ref": "#/components/schemas/ResponseClassificationProvenanceJson"
           },
           "isBolaoServiceFeeConfigured": {
             "type": "boolean"
@@ -27292,6 +29213,7 @@
           "hasNext",
           "hasPrevious",
           "asOfDate",
+          "cutoffBasis",
           "outstandingTotal",
           "openRowCount",
           "byBucket"
@@ -27321,6 +29243,9 @@
           "asOfDate": {
             "type": "string",
             "format": "date-time"
+          },
+          "cutoffBasis": {
+            "$ref": "#/components/schemas/ReceivableCutoffBasis"
           },
           "outstandingTotal": {
             "type": "number",
@@ -27380,6 +29305,7 @@
           "transactionId",
           "dueDate",
           "value",
+          "outstandingValue",
           "daysOutstanding",
           "bucket"
         ],
@@ -27394,6 +29320,10 @@
             "format": "date-time"
           },
           "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "outstandingValue": {
             "type": "number",
             "format": "double"
           },
@@ -27959,6 +29889,214 @@
           },
           "rowDisappearsFromOpenReceivables": {
             "type": "boolean"
+          }
+        }
+      },
+      "ResponseReceivableJson": {
+        "required": [
+          "transactionId",
+          "accountId",
+          "date",
+          "dueDate",
+          "value",
+          "settlementInstrument",
+          "isCheque",
+          "cutoffBasis",
+          "cutoffDate",
+          "outstandingValue",
+          "settledValue",
+          "status",
+          "chequeState",
+          "depositAttempts",
+          "version",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "originTransactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "settlementInstrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "isCheque": {
+            "type": "boolean"
+          },
+          "cutoffBasis": {
+            "$ref": "#/components/schemas/ReceivableCutoffBasis"
+          },
+          "cutoffDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "outstandingValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "settledValue": {
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReceivableSettlementStatus"
+          },
+          "chequeState": {
+            "$ref": "#/components/schemas/ChequeLifecycleState"
+          },
+          "custodyAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "currentDepositEventId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "depositAttempts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseSettlementEventJson"
+            }
+          }
+        }
+      },
+      "ResponseReclassificationJson": {
+        "required": [
+          "transactionTypeId",
+          "dateFrom",
+          "dateTo",
+          "targetSettlementInstrument",
+          "targetMonthlyFinancialRole",
+          "targetFinancialClass",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionTypeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lockDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "targetSettlementInstrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "targetMonthlyFinancialRole": {
+            "$ref": "#/components/schemas/MonthlyFinancialRole"
+          },
+          "targetFinancialClass": {
+            "$ref": "#/components/schemas/FinancialClass"
+          },
+          "batchId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseReclassificationRowJson"
+            }
+          }
+        }
+      },
+      "ResponseReclassificationRowJson": {
+        "required": [
+          "transactionId",
+          "date",
+          "value",
+          "direction",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "direction": {
+            "$ref": "#/components/schemas/Direction"
+          },
+          "version": {
+            "type": "integer",
+            "format": "uint32"
+          },
+          "classification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseTransactionClassificationJson"
+              }
+            ]
           }
         }
       },
@@ -28820,6 +30958,149 @@
           }
         }
       },
+      "ResponseSettlementEventJson": {
+        "required": [
+          "id",
+          "sequence",
+          "kind",
+          "amount",
+          "outstandingDelta",
+          "occurredOn",
+          "postedOn",
+          "isLatePosting",
+          "postingLagDays",
+          "countsAtCutoff",
+          "provenance",
+          "migrationIssues",
+          "settlementInstrument",
+          "createdAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SettlementEventKind"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "outstandingDelta": {
+            "type": "number",
+            "format": "double"
+          },
+          "occurredOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isLatePosting": {
+            "type": "boolean"
+          },
+          "postingLagDays": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "countsAtCutoff": {
+            "type": "boolean"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/SettlementEventProvenance"
+          },
+          "migrationIssues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SettlementMigrationIssue"
+            }
+          },
+          "sourcePaidAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "settlementInstrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "bankReceiptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reversesEventId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "custodyFromAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "custodyToAccountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "clientId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "nextExpectedDepositDate": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "returnReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "convertedTransactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdByUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ResponseSettlementInstrumentTotalJson": {
         "required": [
           "instrument",
@@ -29149,6 +31430,39 @@
           }
         }
       },
+      "ResponseTransactionClassificationJson": {
+        "required": [
+          "settlementInstrument",
+          "monthlyFinancialRole",
+          "financialClass",
+          "provenance",
+          "revision",
+          "classifiedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "settlementInstrument": {
+            "$ref": "#/components/schemas/SettlementInstrument"
+          },
+          "monthlyFinancialRole": {
+            "$ref": "#/components/schemas/MonthlyFinancialRole"
+          },
+          "financialClass": {
+            "$ref": "#/components/schemas/FinancialClass"
+          },
+          "provenance": {
+            "$ref": "#/components/schemas/ClassificationProvenance"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "classifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "ResponseTransactionImpactJson": {
         "required": [
           "receivableImpact",
@@ -29242,19 +31556,22 @@
             "type": "string",
             "format": "date-time"
           },
-          "paidAt": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "date-time"
-          },
           "originTransactionId": {
             "type": [
               "null",
               "string"
             ],
             "format": "uuid"
+          },
+          "classification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseTransactionClassificationJson"
+              }
+            ]
           },
           "generationKind": {
             "oneOf": [
@@ -29350,6 +31667,7 @@
           "requiresTabAccountAndClient",
           "settlementInstrument",
           "monthlyFinancialRole",
+          "financialClass",
           "categoryId",
           "categoryName",
           "createdAt",
@@ -29396,6 +31714,9 @@
           "monthlyFinancialRole": {
             "$ref": "#/components/schemas/MonthlyFinancialRole"
           },
+          "financialClass": {
+            "$ref": "#/components/schemas/FinancialClass"
+          },
           "categoryId": {
             "type": "string",
             "format": "uuid"
@@ -29418,6 +31739,7 @@
           "date",
           "dueDate",
           "value",
+          "outstandingValue",
           "instrument",
           "transactionTypeId",
           "transactionTypeName",
@@ -29446,6 +31768,10 @@
             "format": "date-time"
           },
           "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "outstandingValue": {
             "type": "number",
             "format": "double"
           },
@@ -29723,12 +32049,40 @@
         ],
         "type": "string"
       },
+      "SettlementEventKind": {
+        "enum": [
+          "MigratedSettlement",
+          "CustodyMoved",
+          "ChequeDeposited",
+          "ChequeReturned",
+          "ChequeRepresented",
+          "ChequeConvertedToFiado"
+        ],
+        "type": "string"
+      },
+      "SettlementEventProvenance": {
+        "enum": [
+          "Command",
+          "MigratedFromPaidAt"
+        ],
+        "type": "string"
+      },
       "SettlementInstrument": {
         "enum": [
           "None",
           "Cheque",
           "CreditCard",
           "DebitCard"
+        ],
+        "type": "string"
+      },
+      "SettlementMigrationIssue": {
+        "enum": [
+          "None",
+          "NotSettleableTabRow",
+          "OccurredBeforeTransactionDate",
+          "DraftAtMigration",
+          "CancelledAtMigration"
         ],
         "type": "string"
       },
@@ -29768,7 +32122,8 @@
           "SessionTerminalReport",
           "SessionBolaoFee",
           "SessionSpecialFee",
-          "SafeCashDeposit"
+          "SafeCashDeposit",
+          "ChequeFiadoConversion"
         ],
         "type": "string"
       },
@@ -29789,7 +32144,8 @@
           "BolaoFee",
           "SpecialFee",
           "SafeDepositOut",
-          "SafeDepositIn"
+          "SafeDepositIn",
+          "ChequeFiadoConversion"
         ],
         "type": "string"
       }
@@ -29823,6 +32179,9 @@
       "name": "Category"
     },
     {
+      "name": "Cheque"
+    },
+    {
       "name": "Client"
     },
     {
@@ -29845,6 +32204,9 @@
     },
     {
       "name": "Product"
+    },
+    {
+      "name": "Receivable"
     },
     {
       "name": "Report"

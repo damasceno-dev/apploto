@@ -24,6 +24,7 @@ public class PreviewEditTransactionUseCase(
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
     LockDateGuard lockDateGuard,
     TransactionEditImpactProjector editImpactProjector,
+    ISettlementEventsRepository settlementEventsRepository,
     IBranchClock branchClock)
 {
     public async Task<ResponseEditTransactionPreviewJson> Execute(
@@ -69,6 +70,11 @@ public class PreviewEditTransactionUseCase(
         if (snapshot.TransactionType.RequiresTabAccountAndClient && request.ClientId is null)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_REQUIRES_CLIENT);
 
+        // Mirrors PUT: the client of a receivable with command settlement events is locked.
+        if (request.ClientId != snapshot.ClientId &&
+            await settlementEventsRepository.ExistsCommandEventByReceivableIdAsNoTracking(snapshot.Id, ct))
+            throw new ConflictException(ResourcesErrorMessages.RECEIVABLE_CLIENT_LOCKED_BY_EVENTS);
+
         if (request.ClientId is { } newClientId)
         {
             var client = await clientsRepository.GetActiveByIdAndBranchIdAsNoTracking(newClientId, branchUser.BranchId);
@@ -78,8 +84,11 @@ public class PreviewEditTransactionUseCase(
 
         UpdateTransactionEntityRelativeValidator.EnsureValid(snapshot, request);
 
-        var edit = new HypotheticalTransactionEdit(snapshot, request);
         var resolvedAsOfDate = asOfDate ?? branchClock.LocalBusinessDate(branchClock.UtcNow());
+        var events = await settlementEventsRepository.ListByReceivableIdsAndBranchIdAsNoTracking(
+            [snapshot.Id], branchUser.BranchId, ct);
+        var isOutstanding = snapshot.Value + events.Sum(settlementEvent => settlementEvent.OutstandingDelta) > 0m;
+        var edit = new HypotheticalTransactionEdit(snapshot, request, isOutstanding);
         var impact = await editImpactProjector.Project(edit, resolvedAsOfDate, branchUser.BranchId, ct);
 
         return new ResponseEditTransactionPreviewJson

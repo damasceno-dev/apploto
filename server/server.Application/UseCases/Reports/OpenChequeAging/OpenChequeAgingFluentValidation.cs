@@ -15,6 +15,11 @@ internal class OpenChequeAgingFluentValidation : AbstractValidator<RequestOpenCh
                 .WithMessage(ResourcesErrorMessages.REPORT_AS_OF_DATE_INVALID);
         });
 
+        RuleFor(r => r.CutoffBasis)
+            .IsInEnum()
+            .WithMessage(ResourcesErrorMessages.REPORT_CUTOFF_BASIS_INVALID)
+            .When(r => r.CutoffBasis.HasValue);
+
         RuleFor(r => r.Page).PageBounds();
         RuleFor(r => r.PageSize).PageSizeBounds();
     }

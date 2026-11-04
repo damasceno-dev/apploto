@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { FiadoPaymentKind } from './fiadoPaymentKind';
+import type { FinancialClass } from './financialClass';
 import type { MonthlyFinancialRole } from './monthlyFinancialRole';
 import type { SettlementInstrument } from './settlementInstrument';
 import type { SettlementRule } from './settlementRule';
@@ -19,6 +20,7 @@ export interface ResponseTransactionTypeJson {
   fiadoPaymentKind?: null | FiadoPaymentKind;
   settlementInstrument: SettlementInstrument;
   monthlyFinancialRole: MonthlyFinancialRole;
+  financialClass: FinancialClass;
   categoryId: string;
   categoryName: string;
   createdAt: string;

@@ -88,7 +88,7 @@ public sealed class M9_6FinancialFoundationMigrationTest : IAsyncLifetime
             SELECT t."SystemRole"::text FROM "TransactionTypes" t JOIN "Categories" c ON c."Id" = t."CategoryId"
             WHERE c."BranchId" = '{legacy.BranchId}' AND t."SystemRole" IS NOT NULL ORDER BY t."SystemRole"
             """);
-        roles.ShouldBe(["1", "3", "4", "5", "6", "7", "8"]);
+        roles.ShouldBe(["1", "3", "4", "5", "6", "7", "8", "9"]);
         (await Strings($"""
             SELECT t."Name" FROM "TransactionTypes" t JOIN "Categories" c ON c."Id" = t."CategoryId"
             WHERE c."BranchId" = '{legacy.BranchId}' AND t."FiadoPaymentKind" IS NOT NULL ORDER BY t."Name"

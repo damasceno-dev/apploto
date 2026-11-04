@@ -93,7 +93,8 @@
     "SessionTerminalReport": "relatório do terminal informado no fechamento",
     "SessionBolaoFee": "tarifa de bolão informada no fechamento",
     "SessionSpecialFee": "tarifa especial informada no fechamento",
-    "SafeCashDeposit": "depósito de dinheiro do caixa no cofre"
+    "SafeCashDeposit": "depósito de dinheiro do caixa no cofre",
+    "ChequeFiadoConversion": "conversão de cheque em fiado"
   },
   "FiadoPaymentKind": {
     "CountedCash": "Dinheiro (entra no caixa)",
@@ -107,7 +108,8 @@
     "BolaoFee": "Tarifa de bolão (campo do fechamento)",
     "SpecialFee": "Tarifa especial (campo do fechamento)",
     "SafeDepositOut": "Depósito de dinheiro no cofre (saída do caixa)",
-    "SafeDepositIn": "Entrada automática no cofre (depósito do caixa)"
+    "SafeDepositIn": "Entrada automática no cofre (depósito do caixa)",
+    "ChequeFiadoConversion": "Cheque convertido em fiado (dívida automática)"
   },
   "InvitationStatus": {
     "Pending": "Pendente",
@@ -218,5 +220,61 @@
     "TerminalReport": "Relatório do terminal",
     "BolaoFee": "Tarifa Bolão",
     "SpecialFee": "Tarifa Especial"
+  },
+  "FinancialClass": {
+    "Unclassified": "Sem classe financeira",
+    "CaixaAndClientMoney": "Dinheiro da CAIXA e de clientes",
+    "ShopFeesAndIncome": "Tarifas e receitas da lotérica",
+    "OperatingExpenseAndLoss": "Despesas operacionais e perdas",
+    "InternalTransfer": "Transferência interna",
+    "CashDifference": "Diferença de caixa"
+  },
+  "ClassificationProvenance": {
+    "Posting": "Registrada no lançamento",
+    "MigratedFromTypeAtUpgrade": "Copiada do tipo na atualização (histórico desconhecido)",
+    "OpenPeriodReclassification": "Reclassificada em período aberto"
+  },
+  "ReceivableCutoffBasis": {
+    "Posted": "Por data de lançamento",
+    "Occurred": "Por data do evento"
+  },
+  "ReceivableSettlementStatus": {
+    "Open": "Em aberto",
+    "PartiallySettled": "Parcialmente liquidado",
+    "Settled": "Liquidado"
+  },
+  "ChequeLifecycleState": {
+    "Received": "No caixa",
+    "InSafe": "No cofre",
+    "Deposited": "Depositado",
+    "Returned": "Devolvido",
+    "AwaitingRedeposit": "Reapresentado (aguardando depósito)",
+    "ConvertedToFiado": "Convertido em fiado",
+    "SettledBeforeEvents": "Pago (registro anterior)"
+  },
+  "SettlementEventKind": {
+    "MigratedSettlement": "Pagamento registrado antes da atualização",
+    "CustodyMoved": "Levado ao cofre",
+    "ChequeDeposited": "Depositado",
+    "ChequeReturned": "Devolvido pelo banco",
+    "ChequeRepresented": "Reapresentado",
+    "ChequeConvertedToFiado": "Convertido em fiado"
+  },
+  "SettlementEventProvenance": {
+    "Command": "Registrado no sistema",
+    "MigratedFromPaidAt": "Reconstruído do pagamento anterior"
+  },
+  "SettlementMigrationIssue": {
+    "None": "Sem pendência",
+    "NotSettleableTabRow": "Fiado: não liquida a dívida",
+    "OccurredBeforeTransactionDate": "Pagamento anterior à data da transação",
+    "DraftAtMigration": "Era rascunho na atualização",
+    "CancelledAtMigration": "Já estava cancelado"
+  },
+  "BankReceiptStatus": {
+    "Pending": "Pendente de confirmação"
+  },
+  "BankReceiptSourceKind": {
+    "ChequeDeposit": "Depósito de cheques"
   }
 }

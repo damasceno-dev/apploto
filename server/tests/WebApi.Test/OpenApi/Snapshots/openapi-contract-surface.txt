@@ -25,14 +25,19 @@ scheme IdentityBearer http bearer
 ## enums
 enum AccountType string: Terminal, BankAccount, Tab, Safe
 enum AgingBucket string: Current, Days0To30, Days31To60, Days61To90, Days91Plus
+enum BankReceiptSourceKind string: ChequeDeposit
+enum BankReceiptStatus string: Pending
 enum BrazilianHolidayCalendarSource string: Composite, Canonical, BrasilApi, Nager
 enum BrazilianHolidayImportStatus string: Imported, Skipped
 enum BrazilianHolidayType string: National, OptionalFederal
+enum ChequeLifecycleState string: Received, InSafe, Deposited, Returned, AwaitingRedeposit, ConvertedToFiado, SettledBeforeEvents
+enum ClassificationProvenance string: Posting, MigratedFromTypeAtUpgrade, OpenPeriodReclassification
 enum CustodyExceptionAction string: Finish, AcceptAndStart
 enum DailyCloseReviewEventType string: Rejected, OpeningChanged
 enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
 enum Direction string: In, Out
 enum FiadoPaymentKind string: CountedCash, NonCash
+enum FinancialClass string: Unclassified, CaixaAndClientMoney, ShopFeesAndIncome, OperatingExpenseAndLoss, InternalTransfer, CashDifference
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum InvitationStatus string: Pending, Accepted, Declined, Expired
@@ -42,6 +47,8 @@ enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions
 enum OpeningDiscrepancyAttribution string: Unattributed, Outgoing, Incoming, Neither
 enum OperatorLinkRequestStatus string: Pending, Resolved
 enum OverviewSectionStatus string: Ready, Empty, NotConfigured
+enum ReceivableCutoffBasis string: Posted, Occurred
+enum ReceivableSettlementStatus string: Open, PartiallySettled, Settled
 enum Role string: Admin, Manager, Member
 enum SessionApprovalMode string: Independent, SingleActiveManager
 enum SessionCandidateState string: NotConferred, Current, Outdated, Unconfirmed, Recounting
@@ -53,13 +60,16 @@ enum SessionHandoverState string: Offered, Accepted, Disputed, Withdrawn
 enum SessionMappingState string: Ready, Unresolved
 enum SessionOpeningSourceKind string: ExplicitZero, OpeningCount, PreviousSession, ImportedSession
 enum SessionOrigin string: Started, HandoverAccepted, ManagerException, ManagerDeclared, Migrated
+enum SettlementEventKind string: MigratedSettlement, CustodyMoved, ChequeDeposited, ChequeReturned, ChequeRepresented, ChequeConvertedToFiado
+enum SettlementEventProvenance string: Command, MigratedFromPaidAt
 enum SettlementInstrument string: None, Cheque, CreditCard, DebitCard
+enum SettlementMigrationIssue string: None, NotSettleableTabRow, OccurredBeforeTransactionDate, DraftAtMigration, CancelledAtMigration
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
 enum TimeEntryTapAction string: Open, Close
-enum TransactionGenerationKind string: FiadoSale, FiadoCashRepayment, SessionTerminalReport, SessionBolaoFee, SessionSpecialFee, SafeCashDeposit
+enum TransactionGenerationKind string: FiadoSale, FiadoCashRepayment, SessionTerminalReport, SessionBolaoFee, SessionSpecialFee, SafeCashDeposit, ChequeFiadoConversion
 enum TransactionStatus string: Draft, Active, Cancelled
-enum TransactionTypeSystemRole string: FiadoSaleCounterpart, FiadoCashRepaymentCounterpart, TerminalReportIn, TerminalReportOut, BolaoFee, SpecialFee, SafeDepositOut, SafeDepositIn
+enum TransactionTypeSystemRole string: FiadoSaleCounterpart, FiadoCashRepaymentCounterpart, TerminalReportIn, TerminalReportOut, BolaoFee, SpecialFee, SafeDepositOut, SafeDepositIn, ChequeFiadoConversion
 
 ## schemas
 
@@ -105,6 +115,45 @@ schema RequestCancelTransactionJson
 schema RequestChangePasswordJson
   currentPassword required string
   newPassword required string
+
+schema RequestChequeConvertToFiadoJson
+  clientId required string
+  description optional string?
+  expectedVersion required integer|string
+  occurredOn required string
+  postedOn optional string?
+  tabAccountId required string
+
+schema RequestChequeCustodyJson
+  items required RequestChequeOperationItemJson[]
+  occurredOn required string
+  postedOn optional string?
+  safeAccountId required string
+
+schema RequestChequeDepositJson
+  bankAccountId required string
+  description optional string?
+  items required RequestChequeOperationItemJson[]
+  occurredOn required string
+  postedOn optional string?
+
+schema RequestChequeOperationItemJson
+  expectedVersion required integer|string
+  transactionId required string
+
+schema RequestChequeRepresentJson
+  expectedVersion required integer|string
+  occurredOn required string
+  postedOn optional string?
+
+schema RequestChequeReturnJson
+  clientId required string
+  depositEventId required string
+  expectedVersion required integer|string
+  nextExpectedDepositDate required string
+  occurredOn required string
+  postedOn optional string?
+  returnReason optional string?
 
 schema RequestConferSessionCountJson
   confirmCountStillObserved optional boolean
@@ -210,6 +259,7 @@ schema RequestCreateTransactionJson
 schema RequestCreateTransactionTypeJson
   categoryId required string
   fiadoPaymentKind optional enum:FiadoPaymentKind?
+  financialClass optional enum:FinancialClass?
   monthlyFinancialRole optional enum:MonthlyFinancialRole?
   name required string
   requiresTabAccountAndClient optional boolean
@@ -311,6 +361,16 @@ schema RequestReceiveFiadoPaymentJson
   transactionTime optional string?
   transactionTypeId required string
   value required number|string
+
+schema RequestReclassifyRowJson
+  transactionId required string
+  version required integer|string
+
+schema RequestReclassifyTransactionTypeJson
+  dateFrom required string
+  dateTo required string
+  reason required string
+  rows required RequestReclassifyRowJson[]
 
 schema RequestRecordOpeningCountJson
   accountId required string
@@ -439,11 +499,11 @@ schema RequestUpdateTransactionJson
   clientId optional string?
   description optional string?
   dueDate required string
-  paidAt optional string?
   transactionTime optional string?
 
 schema RequestUpdateTransactionTypeJson
   fiadoPaymentKind optional enum:FiadoPaymentKind?
+  financialClass optional enum:FinancialClass?
   monthlyFinancialRole optional enum:MonthlyFinancialRole?
   name required string
   requiresTabAccountAndClient optional boolean
@@ -512,6 +572,28 @@ schema ResponseAgingBucketTotalJson
 
 schema ResponseApproveSessionBatchJson
   sessions required ResponseDailyCloseJson[]
+
+schema ResponseBankReceiptAllocationJson
+  amount required number
+  returnedByEventId optional string?
+  settlementEventId required string
+  transactionId required string
+
+schema ResponseBankReceiptJson
+  allocations required ResponseBankReceiptAllocationJson[]
+  amount required number
+  bankAccountId required string
+  bankAccountName required string
+  createdAt required string
+  createdByUserId required string
+  description optional string?
+  expectedAmount required number
+  id required string
+  occurredOn required string
+  postedOn required string
+  returnedAmount required number
+  sourceKind required enum:BankReceiptSourceKind
+  status required enum:BankReceiptStatus
 
 schema ResponseBranchSummaryJson
   address optional string?
@@ -594,6 +676,16 @@ schema ResponseCategoryJson
   defaultDirection required enum:Direction
   id required string
   name required string
+
+schema ResponseChequeOperationJson
+  bankReceipt optional ResponseBankReceiptJson?
+  convertedTransactionId optional string?
+  receivables required ResponseReceivableJson[]
+
+schema ResponseClassificationProvenanceJson
+  migratedCount required integer
+  postingCount required integer
+  reclassifiedCount required integer
 
 schema ResponseClientBalanceDeltaJson
   clientId required string
@@ -703,7 +795,6 @@ schema ResponseCreateTransactionJson
   generationKind optional enum:TransactionGenerationKind?
   id required string
   openingDiscrepancyId optional string?
-  paidAt optional string?
   recordedByOperatorId required string
   sessionId optional string?
   startedSessionId optional string?
@@ -853,7 +944,6 @@ schema ResponseDailyLedgerItemJson
   direction required enum:Direction
   dueDate required string
   id required string
-  paidAt optional string?
   recordedByOperatorName required string
   transactionTypeName required string
   value required number
@@ -1088,6 +1178,7 @@ schema ResponseListTimeEntryItemJson
 schema ResponseListTransactionItemJson
   accountId required string
   accountName required string
+  classification optional ResponseTransactionClassificationJson?
   clientId optional string?
   clientName optional string?
   createdAt required string
@@ -1099,7 +1190,6 @@ schema ResponseListTransactionItemJson
   generationKind optional enum:TransactionGenerationKind?
   id required string
   originTransactionId optional string?
-  paidAt optional string?
   sessionId optional string?
   status required enum:TransactionStatus
   transactionTypeId required string
@@ -1451,6 +1541,7 @@ schema ResponseMonthlyFinancialReportJson
   asOfDate required string
   bolaoServiceFeeTotal optional number?
   branchLocalNow required string
+  classificationProvenance required ResponseClassificationProvenanceJson
   commercialLeftoverTotal optional number?
   containsInProgress required boolean
   dateFrom required string
@@ -1556,6 +1647,7 @@ schema ResponseOpenChequeAgingImpactJson
 schema ResponseOpenChequeAgingJson
   asOfDate required string
   byBucket required ResponseAgingBucketTotalJson[]
+  cutoffBasis required enum:ReceivableCutoffBasis
   hasNext required boolean
   hasPrevious required boolean
   items required ResponseOpenChequeAgingGroupJson[]
@@ -1576,6 +1668,7 @@ schema ResponseOpenChequeAgingRowJson
   bucket required enum:AgingBucket
   daysOutstanding required integer
   dueDate required string
+  outstandingValue required number
   transactionId required string
   value required number
 
@@ -1693,6 +1786,47 @@ schema ResponseReceivableImpactJson
   bucketBefore optional enum:AgingBucket?
   rowAppearsInOpenReceivables required boolean
   rowDisappearsFromOpenReceivables required boolean
+
+schema ResponseReceivableJson
+  accountId required string
+  chequeState required enum:ChequeLifecycleState
+  clientId optional string?
+  currentDepositEventId optional string?
+  custodyAccountId optional string?
+  cutoffBasis required enum:ReceivableCutoffBasis
+  cutoffDate required string
+  date required string
+  depositAttempts required integer
+  dueDate required string
+  events required ResponseSettlementEventJson[]
+  isCheque required boolean
+  originTransactionId optional string?
+  outstandingValue required number
+  settledValue required number
+  settlementInstrument required enum:SettlementInstrument
+  status required enum:ReceivableSettlementStatus
+  transactionId required string
+  value required number
+  version required integer
+
+schema ResponseReclassificationJson
+  batchId optional string?
+  dateFrom required string
+  dateTo required string
+  lockDate optional string?
+  rows required ResponseReclassificationRowJson[]
+  targetFinancialClass required enum:FinancialClass
+  targetMonthlyFinancialRole required enum:MonthlyFinancialRole
+  targetSettlementInstrument required enum:SettlementInstrument
+  transactionTypeId required string
+
+schema ResponseReclassificationRowJson
+  classification optional ResponseTransactionClassificationJson?
+  date required string
+  direction required enum:Direction
+  transactionId required string
+  value required number
+  version required integer
 
 schema ResponseRemoveBranchUserJson
   branchUser required ResponseBranchUserJson
@@ -1862,6 +1996,32 @@ schema ResponseSettingJson
   lunchDeductionOver6H required number
   version required integer
 
+schema ResponseSettlementEventJson
+  amount required number
+  bankReceiptId optional string?
+  clientId optional string?
+  convertedTransactionId optional string?
+  countsAtCutoff required boolean
+  createdAt required string
+  createdByUserId optional string?
+  custodyFromAccountId optional string?
+  custodyToAccountId optional string?
+  id required string
+  isLatePosting required boolean
+  kind required enum:SettlementEventKind
+  migrationIssues required enum:SettlementMigrationIssue[]
+  nextExpectedDepositDate optional string?
+  occurredOn required string
+  outstandingDelta required number
+  postedOn required string
+  postingLagDays required integer
+  provenance required enum:SettlementEventProvenance
+  returnReason optional string?
+  reversesEventId optional string?
+  sequence required integer
+  settlementInstrument required enum:SettlementInstrument
+  sourcePaidAt optional string?
+
 schema ResponseSettlementInstrumentTotalJson
   count required integer
   instrument required enum:SettlementInstrument
@@ -1932,6 +2092,14 @@ schema ResponseTokenJson
   refreshToken required string
   token required string
 
+schema ResponseTransactionClassificationJson
+  classifiedAt required string
+  financialClass required enum:FinancialClass
+  monthlyFinancialRole required enum:MonthlyFinancialRole
+  provenance required enum:ClassificationProvenance
+  revision required integer
+  settlementInstrument required enum:SettlementInstrument
+
 schema ResponseTransactionImpactJson
   cashVarianceImpact required ResponseCashVarianceImpactJson
   fiadoBalanceImpact required ResponseFiadoBalanceImpactJson
@@ -1944,6 +2112,7 @@ schema ResponseTransactionJson
   cancelledAt optional string?
   cancelledByUserId optional string?
   categoryId required string
+  classification optional ResponseTransactionClassificationJson?
   clientId optional string?
   createdAt required string
   createdByUserId required string
@@ -1956,7 +2125,6 @@ schema ResponseTransactionJson
   generationKind optional enum:TransactionGenerationKind?
   id required string
   originTransactionId optional string?
-  paidAt optional string?
   recordedByOperatorId required string
   sessionId optional string?
   status required enum:TransactionStatus
@@ -1973,6 +2141,7 @@ schema ResponseTransactionTypeJson
   categoryName required string
   createdAt required string
   fiadoPaymentKind optional enum:FiadoPaymentKind?
+  financialClass required enum:FinancialClass
   id required string
   monthlyFinancialRole required enum:MonthlyFinancialRole
   name required string
@@ -1990,6 +2159,7 @@ schema ResponseUpcomingSettlementItemJson
   dueDate required string
   instrument required enum:SettlementInstrument
   originTransactionId optional string?
+  outstandingValue required number
   transactionId required string
   transactionTypeId required string
   transactionTypeName required string
@@ -2118,6 +2288,14 @@ operation DELETE /account/{accountId}
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation GET /bank-receipt/{receiptId}
+  security BranchBearer[Admin,Manager]
+  path receiptId required string
+  response 200 ResponseBankReceiptJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
 operation GET /branch/current
   security BranchBearer[]
   response 200 ResponseGetCurrentBranchSummaryJson
@@ -2209,6 +2387,64 @@ operation DELETE /category/{categoryId}
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
+
+operation POST /cheque/custody
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestChequeCustodyJson
+  response 200 ResponseChequeOperationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /cheque/deposit
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestChequeDepositJson
+  response 201 ResponseChequeOperationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /cheque/{transactionId}/convert-to-fiado
+  security BranchBearer[Admin,Manager]
+  path transactionId required string
+  header Idempotency-Key required string
+  body required RequestChequeConvertToFiadoJson
+  response 201 ResponseChequeOperationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /cheque/{transactionId}/represent
+  security BranchBearer[Admin,Manager]
+  path transactionId required string
+  header Idempotency-Key required string
+  body required RequestChequeRepresentJson
+  response 200 ResponseChequeOperationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /cheque/{transactionId}/return
+  security BranchBearer[Admin,Manager]
+  path transactionId required string
+  header Idempotency-Key required string
+  body required RequestChequeReturnJson
+  response 200 ResponseChequeOperationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation GET /client
   security BranchBearer[]
@@ -2583,6 +2819,17 @@ operation DELETE /product/{productId}
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation GET /receivable/{transactionId}
+  security BranchBearer[Admin,Manager]
+  path transactionId required string
+  query CutoffBasis optional enum:ReceivableCutoffBasis
+  query CutoffDate optional string
+  response 200 ResponseReceivableJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
 operation GET /report/cash-variance
   security BranchBearer[Admin,Manager]
   query AccountId optional string
@@ -2601,6 +2848,7 @@ operation GET /report/cheques/open-aging
   query AccountId optional string
   query AsOfDate optional string
   query ClientId optional string
+  query CutoffBasis optional enum:ReceivableCutoffBasis
   query Page required integer|string
   query PageSize required integer|string
   response 200 ResponseOpenChequeAgingJson
@@ -3174,6 +3422,28 @@ operation POST /transaction-type
   security BranchBearer[Admin,Manager]
   body required RequestCreateTransactionTypeJson
   response 201 ResponseTransactionTypeJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /transaction-type/{id}/reclassification-candidates
+  security BranchBearer[Admin,Manager]
+  path id required string
+  query DateFrom required string
+  query DateTo required string
+  response 200 ResponseReclassificationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /transaction-type/{id}/reclassify
+  security BranchBearer[Admin,Manager]
+  path id required string
+  body required RequestReclassifyTransactionTypeJson
+  response 200 ResponseReclassificationJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

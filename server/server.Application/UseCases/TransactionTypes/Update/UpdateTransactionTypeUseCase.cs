@@ -61,6 +61,10 @@ public class UpdateTransactionTypeUseCase(
         if (request.MonthlyFinancialRole is { } monthlyFinancialRole)
             transactionType.MonthlyFinancialRole = monthlyFinancialRole;
 
+        // M9.7 Phase 1.3: a marker change applies to rows posted from now on; posted rows keep their frozen snapshot.
+        if (request.FinancialClass is { } financialClass)
+            transactionType.FinancialClass = financialClass;
+
         await unitOfWork.Commit();
 
         return transactionType.ToResponse();

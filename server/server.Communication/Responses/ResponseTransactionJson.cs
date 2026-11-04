@@ -16,8 +16,13 @@ public class ResponseTransactionJson
     public Guid AccountId { get; init; }
     public Guid? ClientId { get; init; }
     public DateTime DueDate { get; init; }
-    public DateTime? PaidAt { get; init; }
     public Guid? OriginTransactionId { get; init; }
+
+    /// <summary>
+    /// The frozen classification captured when the row was posted (M9.7 Phase 1.3); null while it was never posted
+    /// (Draft, or cancelled as a Draft). Reports read this, never the type's current markers.
+    /// </summary>
+    public ResponseTransactionClassificationJson? Classification { get; init; }
 
     /// <summary>
     /// System-owned generation origin (M7.7 Phase 5.7): non-null only on a generated Terminal leg, with

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using CommonTestUtilities.Requests;
 using server.Communication.Responses;
@@ -26,7 +27,6 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         var updatedClient = await factory.SeedClientAsync(branch.Id, "Updated Client");
         var transactionDate = DateTime.UtcNow.Date;
         var originalPaidAt = transactionDate.AddDays(1).AddHours(9);
-        var updatedPaidAt = transactionDate.AddDays(4).AddHours(16);
         var transaction = await factory.SeedTransactionAsync(
             branchId: branch.Id,
             accountId: account.Id,
@@ -44,7 +44,6 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("after update")
             .WithDueDate(transactionDate.AddDays(3))
-            .WithPaidAt(updatedPaidAt)
             .WithClientId(updatedClient.Id)
             .WithTransactionTime(new TimeOnly(14, 45))
             .Build();
@@ -58,7 +57,6 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         payload.Id.ShouldBe(transaction.Id);
         payload.Description.ShouldBe(request.Description);
         payload.DueDate.ShouldBe(request.DueDate);
-        payload.PaidAt.ShouldBe(request.PaidAt);
         payload.ClientId.ShouldBe(request.ClientId);
         payload.TransactionTime.ShouldBe(request.TransactionTime);
         payload.UpdatedAt.ShouldNotBeNull();
@@ -72,10 +70,15 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         persisted.ShouldNotBeNull();
         persisted.Description.ShouldBe(request.Description);
         persisted.DueDate.ShouldBe(request.DueDate);
-        persisted.PaidAt.ShouldBe(request.PaidAt);
         persisted.ClientId.ShouldBe(request.ClientId);
         persisted.TransactionTime.ShouldBe(request.TransactionTime);
         persisted.UpdatedAt.ShouldNotBeNull();
+
+        // M9.7: an update no longer carries a paid flag; the row's settlement history (here the reconstructed legacy
+        // payment) is untouched and the row stays settled.
+        var events = await factory.ReadDb(db => db.SettlementEvents.Where(e => e.ReceivableTransactionId == transaction.Id).ToListAsync());
+        events.Count.ShouldBe(1);
+        events[0].Provenance.ShouldBe(SettlementEventProvenance.MigratedFromPaidAt);
         persisted.UpdatedAt.Value.ShouldBeGreaterThanOrEqualTo(beforeUpdate.AddSeconds(-1));
         persisted.UpdatedAt.Value.ShouldBeLessThanOrEqualTo(afterUpdate.AddSeconds(1));
         persisted.UpdatedByUserId.ShouldBe(user.Id);
@@ -112,7 +115,6 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
         var request = new RequestUpdateTransactionJsonBuilder()
             .WithDescription("immutable proof after")
             .WithDueDate(transactionDate.AddDays(10))
-            .WithPaidAt(transactionDate.AddDays(5).AddHours(17))
             .WithClientId(updatedClient.Id)
             .WithTransactionTime(new TimeOnly(16, 20))
             .Build();
@@ -126,7 +128,6 @@ public class TransactionControllerUpdateHappyPathTest(ServerWebApplicationFactor
 
         persisted.Description.ShouldBe(request.Description);
         persisted.DueDate.ShouldBe(request.DueDate);
-        persisted.PaidAt.ShouldBe(request.PaidAt);
         persisted.ClientId.ShouldBe(request.ClientId);
         persisted.TransactionTime.ShouldBe(request.TransactionTime);
 

@@ -13,6 +13,7 @@ export interface ResponseUpcomingSettlementItemJson {
   date: string;
   dueDate: string;
   value: number;
+  outstandingValue: number;
   instrument: SettlementInstrument;
   transactionTypeId: string;
   transactionTypeName: string;

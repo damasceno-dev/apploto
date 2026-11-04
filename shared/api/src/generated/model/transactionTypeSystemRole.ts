@@ -17,4 +17,5 @@ export const TransactionTypeSystemRole = {
   SpecialFee: 'SpecialFee',
   SafeDepositOut: 'SafeDepositOut',
   SafeDepositIn: 'SafeDepositIn',
+  ChequeFiadoConversion: 'ChequeFiadoConversion',
 } as const;

@@ -21,10 +21,13 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  GetTransactionTypeIdReclassificationCandidatesParams,
   RequestCreateTransactionTypeJson,
+  RequestReclassifyTransactionTypeJson,
   RequestUpdateTransactionTypeJson,
   ResponseErrorJson,
   ResponseListTransactionTypesJson,
+  ResponseReclassificationJson,
   ResponseTransactionTypeJson,
 } from '../../model';
 
@@ -1085,4 +1088,520 @@ export const useDeleteTransactionTypeTransactionTypeId = <
     getDeleteTransactionTypeTransactionTypeIdMutationOptions(options),
     queryClient,
   );
+};
+export type getTransactionTypeIdReclassificationCandidatesResponse200TextPlain = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse200ApplicationJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse200TextJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponseSuccess = (
+  | getTransactionTypeIdReclassificationCandidatesResponse200TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse200ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getTransactionTypeIdReclassificationCandidatesResponseError = (
+  | getTransactionTypeIdReclassificationCandidatesResponse400TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse400ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse400TextJson
+  | getTransactionTypeIdReclassificationCandidatesResponse401TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse401ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse401TextJson
+  | getTransactionTypeIdReclassificationCandidatesResponse403TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse403ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse403TextJson
+  | getTransactionTypeIdReclassificationCandidatesResponse404TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse404ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse404TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetTransactionTypeIdReclassificationCandidatesUrl = (
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/transaction-type/${id}/reclassification-candidates?${stringifiedParams}`
+    : `/transaction-type/${id}/reclassification-candidates`;
+};
+
+export const getTransactionTypeIdReclassificationCandidates = async (
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getTransactionTypeIdReclassificationCandidatesResponseSuccess> => {
+  return apiFetch<getTransactionTypeIdReclassificationCandidatesResponseSuccess>(
+    getGetTransactionTypeIdReclassificationCandidatesUrl(id, params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export const getGetTransactionTypeIdReclassificationCandidatesQueryKey = (
+  id: string,
+  params?: GetTransactionTypeIdReclassificationCandidatesParams,
+) => {
+  return [
+    `/transaction-type/${id}/reclassification-candidates`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetTransactionTypeIdReclassificationCandidatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTransactionTypeIdReclassificationCandidatesQueryKey(id, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>
+  > = ({ signal }) =>
+    getTransactionTypeIdReclassificationCandidates(id, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: id !== null && id !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetTransactionTypeIdReclassificationCandidatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>
+>;
+export type GetTransactionTypeIdReclassificationCandidatesQueryError = ErrorType<ResponseErrorJson>;
+
+export function useGetTransactionTypeIdReclassificationCandidates<
+  TData = Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTransactionTypeIdReclassificationCandidates<
+  TData = Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+          TError,
+          Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetTransactionTypeIdReclassificationCandidates<
+  TData = Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetTransactionTypeIdReclassificationCandidates<
+  TData = Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getTransactionTypeIdReclassificationCandidates>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetTransactionTypeIdReclassificationCandidatesQueryOptions(
+    id,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type postTransactionTypeIdReclassifyResponse200TextPlain = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type postTransactionTypeIdReclassifyResponse200ApplicationJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type postTransactionTypeIdReclassifyResponse200TextJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type postTransactionTypeIdReclassifyResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionTypeIdReclassifyResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionTypeIdReclassifyResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionTypeIdReclassifyResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionTypeIdReclassifyResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionTypeIdReclassifyResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionTypeIdReclassifyResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionTypeIdReclassifyResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionTypeIdReclassifyResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionTypeIdReclassifyResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionTypeIdReclassifyResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionTypeIdReclassifyResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionTypeIdReclassifyResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionTypeIdReclassifyResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionTypeIdReclassifyResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionTypeIdReclassifyResponseSuccess = (
+  | postTransactionTypeIdReclassifyResponse200TextPlain
+  | postTransactionTypeIdReclassifyResponse200ApplicationJson
+  | postTransactionTypeIdReclassifyResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postTransactionTypeIdReclassifyResponseError = (
+  | postTransactionTypeIdReclassifyResponse400TextPlain
+  | postTransactionTypeIdReclassifyResponse400ApplicationJson
+  | postTransactionTypeIdReclassifyResponse400TextJson
+  | postTransactionTypeIdReclassifyResponse401TextPlain
+  | postTransactionTypeIdReclassifyResponse401ApplicationJson
+  | postTransactionTypeIdReclassifyResponse401TextJson
+  | postTransactionTypeIdReclassifyResponse403TextPlain
+  | postTransactionTypeIdReclassifyResponse403ApplicationJson
+  | postTransactionTypeIdReclassifyResponse403TextJson
+  | postTransactionTypeIdReclassifyResponse404TextPlain
+  | postTransactionTypeIdReclassifyResponse404ApplicationJson
+  | postTransactionTypeIdReclassifyResponse404TextJson
+  | postTransactionTypeIdReclassifyResponse409TextPlain
+  | postTransactionTypeIdReclassifyResponse409ApplicationJson
+  | postTransactionTypeIdReclassifyResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostTransactionTypeIdReclassifyUrl = (id: string) => {
+  return `/transaction-type/${id}/reclassify`;
+};
+
+export const postTransactionTypeIdReclassify = async (
+  id: string,
+  requestReclassifyTransactionTypeJson: RequestReclassifyTransactionTypeJson,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postTransactionTypeIdReclassifyResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postTransactionTypeIdReclassifyResponseSuccess>(
+    getPostTransactionTypeIdReclassifyUrl(id),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestReclassifyTransactionTypeJson),
+    },
+  );
+};
+
+export const getPostTransactionTypeIdReclassifyMutationKey = () =>
+  ['postTransactionTypeIdReclassify'] as const;
+
+export const getPostTransactionTypeIdReclassifyMutationOptions = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postTransactionTypeIdReclassify>>,
+    TError,
+    PostTransactionTypeIdReclassifyMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postTransactionTypeIdReclassify>>,
+  TError,
+  PostTransactionTypeIdReclassifyMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPostTransactionTypeIdReclassifyMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postTransactionTypeIdReclassify>>,
+    PostTransactionTypeIdReclassifyMutationVariables
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return postTransactionTypeIdReclassify(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostTransactionTypeIdReclassifyMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postTransactionTypeIdReclassify>>
+>;
+export type PostTransactionTypeIdReclassifyMutationBody = RequestReclassifyTransactionTypeJson;
+export type PostTransactionTypeIdReclassifyMutationError = ErrorType<ResponseErrorJson>;
+export type PostTransactionTypeIdReclassifyMutationVariables = {
+  id: string;
+  data: RequestReclassifyTransactionTypeJson;
+};
+
+export const usePostTransactionTypeIdReclassify = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof postTransactionTypeIdReclassify>>,
+      TError,
+      PostTransactionTypeIdReclassifyMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof postTransactionTypeIdReclassify>>,
+  TError,
+  PostTransactionTypeIdReclassifyMutationVariables,
+  TContext
+> => {
+  return useMutation(getPostTransactionTypeIdReclassifyMutationOptions(options), queryClient);
 };

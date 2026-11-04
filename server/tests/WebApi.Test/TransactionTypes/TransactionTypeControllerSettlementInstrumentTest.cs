@@ -99,7 +99,6 @@ public class TransactionTypeControllerSettlementInstrumentTest(ServerWebApplicat
         reloaded!.Value.ShouldBe(120m);
         reloaded.Direction.ShouldBe(Direction.Out);
         reloaded.DueDate.ShouldBe(new DateTime(2026, 9, 10));
-        reloaded.PaidAt.ShouldBeNull();
         reloaded.Status.ShouldBe(TransactionStatus.Active);
         reloaded.Version.ShouldBe(row.Version);
     }

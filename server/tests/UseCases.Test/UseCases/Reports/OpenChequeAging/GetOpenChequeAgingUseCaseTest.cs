@@ -1,3 +1,4 @@
+using server.Domain.Models;
 using CommonTestUtilities.Entities;
 using CommonTestUtilities.Repositories;
 using CommonTestUtilities.Requests;
@@ -39,7 +40,6 @@ public class GetOpenChequeAgingUseCaseTest
             .WithBranchId(branchUser.BranchId)
             .WithDueDate(asOfDate.AddDays(-10))
             .WithValue(100m)
-            .WithPaidAt(null)
             .Build();
 
         var ctx = BuildContext(branchUser);
@@ -87,9 +87,9 @@ public class GetOpenChequeAgingUseCaseTest
 
         var siblings = new List<Transaction>
         {
-            new TransactionBuilder().WithBranchId(branchUser.BranchId).WithDueDate(due1).WithValue(100m).WithPaidAt(null).Build(),
-            new TransactionBuilder().WithBranchId(branchUser.BranchId).WithDueDate(due2).WithValue(100m).WithPaidAt(null).Build(),
-            new TransactionBuilder().WithBranchId(branchUser.BranchId).WithDueDate(due3).WithValue(100m).WithPaidAt(null).Build()
+            new TransactionBuilder().WithBranchId(branchUser.BranchId).WithDueDate(due1).WithValue(100m).Build(),
+            new TransactionBuilder().WithBranchId(branchUser.BranchId).WithDueDate(due2).WithValue(100m).Build(),
+            new TransactionBuilder().WithBranchId(branchUser.BranchId).WithDueDate(due3).WithValue(100m).Build()
         };
 
         var ctx = BuildContext(branchUser);
@@ -131,19 +131,17 @@ public class GetOpenChequeAgingUseCaseTest
             .WithBranchId(branchUser.BranchId)
             .WithDueDate(asOfDate.AddDays(-20))
             .WithValue(100m)
-            .WithPaidAt(asOfDate.AddDays(-15))
             .Build();
 
         var unpaidSibling = new TransactionBuilder()
             .WithBranchId(branchUser.BranchId)
             .WithDueDate(asOfDate.AddDays(-10))
             .WithValue(100m)
-            .WithPaidAt(null)
             .Build();
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
-            .ListOpenChequeGroupsByBranchIdAsNoTrackingReturns(branchUser.BranchId, null, null, 1, 50, [WithOpenRows(group, [paidSibling, unpaidSibling])])
+            .ListOpenChequeGroupsByBranchIdAsNoTrackingReturns(branchUser.BranchId, null, null, 1, 50, [WithOpenRows(group, [paidSibling, unpaidSibling], settled: [paidSibling.Id])])
             .CountOpenChequeGroupsByBranchIdAsNoTrackingReturns(branchUser.BranchId, null, null, 1)
             .Build();
 
@@ -223,11 +221,13 @@ public class GetOpenChequeAgingUseCaseTest
 
         await ctx.TransactionsRepository.Received(1).ListOpenChequeGroupsByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == branchUser.BranchId),
-            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<ReceivableCutoff>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
 
         await ctx.TransactionsRepository.DidNotReceive().ListOpenChequeGroupsByBranchIdAsNoTracking(
             Arg.Is<Guid>(v => v == otherBranchId),
-            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<int>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+            Arg.Any<Guid?>(), Arg.Any<Guid?>(), Arg.Any<ReceivableCutoff>(), Arg.Any<int>(), Arg.Any<int>(),
+            Arg.Any<CancellationToken>());
     }
 
     // -------------------------------------------------------------------------
@@ -247,7 +247,6 @@ public class GetOpenChequeAgingUseCaseTest
             .WithBranchId(branchUser.BranchId)
             .WithDueDate(asOfDate.AddDays(-5))
             .WithValue(50m)
-            .WithPaidAt(null)
             .Build();
 
         var ctx = BuildContext(branchUser);
@@ -290,7 +289,6 @@ public class GetOpenChequeAgingUseCaseTest
             .WithBranchId(branchUser.BranchId)
             .WithDueDate(futureDue)
             .WithValue(150m)
-            .WithPaidAt(null)
             .Build();
 
         var ctx = BuildContext(branchUser);
@@ -332,7 +330,6 @@ public class GetOpenChequeAgingUseCaseTest
             .WithBranchId(branchUser.BranchId)
             .WithDueDate(due91)
             .WithValue(200m)
-            .WithPaidAt(null)
             .Build();
 
         var ctx = BuildContext(branchUser);
@@ -409,7 +406,7 @@ public class GetOpenChequeAgingUseCaseTest
         var chequeId = Guid.NewGuid();
         var group = new OpenChequeGroupRow(
             chequeId, null, 80m, asOfDate.AddDays(-3), 1, 1, Guid.NewGuid(), "Terminal", null, null, "Cheque avulso",
-            [new OpenChequeOpenRow(chequeId, asOfDate.AddDays(-3), 80m)]);
+            [new OpenChequeOpenRow(chequeId, asOfDate.AddDays(-3), 80m, 80m)]);
 
         var ctx = BuildContext(branchUser);
         ctx.TransactionsRepository = new TransactionsRepositoryBuilder()
@@ -459,16 +456,20 @@ public class GetOpenChequeAgingUseCaseTest
             []);
     }
 
-    // Mirrors the repository contract: a group carries only its unpaid rows, ordered DueDate then Id.
-    private static OpenChequeGroupRow WithOpenRows(OpenChequeGroupRow group, IReadOnlyList<Transaction> rows)
+    // Mirrors the repository contract: a group carries only the rows still outstanding at the cutoff (settled ones are
+    // the rows whose events closed them), ordered DueDate then Id.
+    private static OpenChequeGroupRow WithOpenRows(
+        OpenChequeGroupRow group,
+        IReadOnlyList<Transaction> rows,
+        IReadOnlyCollection<Guid>? settled = null)
     {
         return group with
         {
             OpenRows = rows
-                .Where(row => row.PaidAt is null)
+                .Where(row => settled is null || settled.Contains(row.Id) is false)
                 .OrderBy(row => row.DueDate)
                 .ThenBy(row => row.Id)
-                .Select(row => new OpenChequeOpenRow(row.Id, row.DueDate, row.Value))
+                .Select(row => new OpenChequeOpenRow(row.Id, row.DueDate, row.Value, row.Value))
                 .ToList()
         };
     }

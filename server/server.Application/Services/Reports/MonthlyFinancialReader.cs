@@ -202,8 +202,17 @@ public class MonthlyFinancialReader(
             .ThenBy(day => day.OperatorId)
             .ToList();
 
+        var provenance = await transactionsRepository.CountMonthlyFinancialClassificationProvenanceAsNoTracking(
+            branchId, dateFrom, dateTo, ct);
+
         return new ResponseMonthlyFinancialReportJson
         {
+            ClassificationProvenance = new ResponseClassificationProvenanceJson
+            {
+                PostingCount = provenance.PostingCount,
+                MigratedCount = provenance.MigratedCount,
+                ReclassifiedCount = provenance.ReclassifiedCount
+            },
             Year = year,
             Month = month,
             AsOfDate = asOfDate.Date,
@@ -242,7 +251,11 @@ public class MonthlyFinancialReader(
     {
         var (dateFrom, dateTo, isPartialMonth) = MonthWindow(year, month, asOfDate);
 
-        var roles = await transactionTypesRepository.ListConfiguredMonthlyFinancialRolesByBranchIdAsNoTracking(branchId, ct);
+        // A role is configured when a type carries it today or a row was posted with it: rows keep their frozen role after
+        // a type is cleared (M9.7 Phase 1.3).
+        var roles = (await transactionTypesRepository.ListConfiguredMonthlyFinancialRolesByBranchIdAsNoTracking(branchId, ct))
+            .Concat(await transactionsRepository.ListPostedMonthlyFinancialRolesByBranchIdAsNoTracking(branchId, ct))
+            .ToHashSet();
         var feeConfigured = roles.Contains(MonthlyFinancialRole.BolaoServiceFee);
         var specialFeeConfigured = roles.Contains(MonthlyFinancialRole.SpecialDrawServiceFee);
         var leftoverConfigured = roles.Contains(MonthlyFinancialRole.CommercialLeftover);

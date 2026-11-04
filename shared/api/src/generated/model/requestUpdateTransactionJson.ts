@@ -10,8 +10,6 @@ export interface RequestUpdateTransactionJson {
   description?: string | null;
   dueDate: string;
   /** @nullable */
-  paidAt?: string | null;
-  /** @nullable */
   clientId?: string | null;
   /** @nullable */
   transactionTime?: string | null;

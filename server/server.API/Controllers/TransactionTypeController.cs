@@ -3,6 +3,8 @@ using server.Application.UseCases.TransactionTypes.Create;
 using server.Application.UseCases.TransactionTypes.Deactivate;
 using server.Application.UseCases.TransactionTypes.Get;
 using server.Application.UseCases.TransactionTypes.List;
+using server.Application.UseCases.TransactionTypes.ReclassificationCandidates;
+using server.Application.UseCases.TransactionTypes.Reclassify;
 using server.Application.UseCases.TransactionTypes.Update;
 using server.Communication.Requests;
 using server.Communication.Responses;
@@ -92,5 +94,40 @@ public class TransactionTypeController : ControllerBase
     {
         await useCase.Execute(transactionTypeId);
         return NoContent();
+    }
+
+    [HttpGet]
+    [Route("{id:guid}/reclassification-candidates")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseReclassificationJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ReclassificationCandidates(
+        [FromServices] GetReclassificationCandidatesUseCase useCase,
+        [FromRoute] Guid id,
+        [FromQuery] RequestReclassificationCandidatesJson request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await useCase.Execute(id, request, cancellationToken));
+    }
+
+    [HttpPost]
+    [Route("{id:guid}/reclassify")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseReclassificationJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reclassify(
+        [FromServices] ReclassifyTransactionTypeUseCase useCase,
+        [FromRoute] Guid id,
+        [FromBody] RequestReclassifyTransactionTypeJson request,
+        CancellationToken cancellationToken)
+    {
+        return Ok(await useCase.Execute(id, request, cancellationToken));
     }
 }

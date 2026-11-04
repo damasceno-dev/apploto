@@ -3,7 +3,8 @@ namespace server.Domain.Entities.Enums;
 /// <summary>
 /// Why the system generated a transaction (§3.12). A generated row is never written by a request: it is the protected
 /// cashbox leg of a fiado operation (M7.7 Phase 5.6, M9.6 Phase 6), the session effect of a close-form field (M9.6
-/// Phase 7) or the cofre leg of a cashbox → cofre transfer (M9.6 Phase 9).
+/// Phase 7), the cofre leg of a cashbox → cofre transfer (M9.6 Phase 9) or the fiado debt of a cheque conversion
+/// (M9.7 Phase 2).
 /// </summary>
 public enum TransactionGenerationKind
 {
@@ -23,5 +24,8 @@ public enum TransactionGenerationKind
     SessionSpecialFee = 5,
 
     /// <summary>Cofre <c>In</c> of a cash transfer from a cashbox (<i>Depósito Dinheiro</i>).</summary>
-    SafeCashDeposit = 6
+    SafeCashDeposit = 6,
+
+    /// <summary>Tab <c>Out</c>: the fiado debt opened by converting a cheque (M9.7 Phase 2.3); its source is the cheque row.</summary>
+    ChequeFiadoConversion = 7
 }

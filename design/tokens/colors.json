@@ -665,6 +665,52 @@
             "bg": "{color.semantic.light.feedback.warning.bg}"
           }
         },
+        "receivable-settlement-status": {
+          "$enum": "ReceivableSettlementStatus",
+          "Open": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "PartiallySettled": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Settled": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          }
+        },
+        "cheque-lifecycle-state": {
+          "$enum": "ChequeLifecycleState",
+          "Received": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "InSafe": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Deposited": {
+            "fg": "{color.semantic.light.feedback.success.fg}",
+            "bg": "{color.semantic.light.feedback.success.bg}"
+          },
+          "Returned": {
+            "fg": "{color.semantic.light.feedback.danger.fg}",
+            "bg": "{color.semantic.light.feedback.danger.bg}"
+          },
+          "AwaitingRedeposit": {
+            "fg": "{color.semantic.light.feedback.warning.fg}",
+            "bg": "{color.semantic.light.feedback.warning.bg}"
+          },
+          "ConvertedToFiado": {
+            "fg": "{color.semantic.light.feedback.neutral.fg}",
+            "bg": "{color.semantic.light.feedback.neutral.bg}"
+          },
+          "SettledBeforeEvents": {
+            "fg": "{color.semantic.light.text.muted}",
+            "bg": "{color.semantic.light.surface.muted}"
+          }
+        },
         "cash-variance": {
           "shortage": {
             "fg": "{color.semantic.light.feedback.danger.fg}"
@@ -929,6 +975,52 @@
           "NotConfigured": {
             "fg": "{color.semantic.dark.feedback.warning.fg}",
             "bg": "{color.semantic.dark.feedback.warning.bg}"
+          }
+        },
+        "receivable-settlement-status": {
+          "$enum": "ReceivableSettlementStatus",
+          "Open": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "PartiallySettled": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Settled": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          }
+        },
+        "cheque-lifecycle-state": {
+          "$enum": "ChequeLifecycleState",
+          "Received": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "InSafe": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Deposited": {
+            "fg": "{color.semantic.dark.feedback.success.fg}",
+            "bg": "{color.semantic.dark.feedback.success.bg}"
+          },
+          "Returned": {
+            "fg": "{color.semantic.dark.feedback.danger.fg}",
+            "bg": "{color.semantic.dark.feedback.danger.bg}"
+          },
+          "AwaitingRedeposit": {
+            "fg": "{color.semantic.dark.feedback.warning.fg}",
+            "bg": "{color.semantic.dark.feedback.warning.bg}"
+          },
+          "ConvertedToFiado": {
+            "fg": "{color.semantic.dark.feedback.neutral.fg}",
+            "bg": "{color.semantic.dark.feedback.neutral.bg}"
+          },
+          "SettledBeforeEvents": {
+            "fg": "{color.semantic.dark.text.muted}",
+            "bg": "{color.semantic.dark.surface.muted}"
           }
         },
         "cash-variance": {

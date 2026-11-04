@@ -179,26 +179,21 @@ public class TransactionEditImpactProjector(
         if (edit.AccountType == AccountType.Tab)
             return BuildFiadoReceivableImpact(edit, asOfDate);
 
-        var currentlyOpen = edit.CurrentPaidAt is null;
-        var hypotheticallyOpen = edit.HypotheticalPaidAt is null;
-
-        return currentlyOpen switch
-        {
-            // Unpaid → unpaid: a pure DueDate shift moves the row between buckets.
-            true when hypotheticallyOpen => new ResponseReceivableImpactJson { BucketBefore = ReportAgingBucketizer.BucketFor(edit.CurrentDueDate, asOfDate), BucketAfter = ReportAgingBucketizer.BucketFor(edit.HypotheticalDueDate, asOfDate) },
-            // Unpaid → paid: the row leaves the open-receivables set.
-            true when hypotheticallyOpen is false => new ResponseReceivableImpactJson { BucketBefore = ReportAgingBucketizer.BucketFor(edit.CurrentDueDate, asOfDate), BucketAfter = null, RowDisappearsFromOpenReceivables = true },
-            // Paid → unpaid: the row re-enters the open-receivables set.
-            false when hypotheticallyOpen => new ResponseReceivableImpactJson { BucketBefore = null, BucketAfter = ReportAgingBucketizer.BucketFor(edit.HypotheticalDueDate, asOfDate), RowAppearsInOpenReceivables = true },
-            _ => new ResponseReceivableImpactJson()
-        };
-
-        // Paid → paid: no open-receivables impact.
+        // An edit never settles or reopens a receivable (M9.7 Phase 1: settlement is an event command), so the row stays
+        // in or out of the open set; an outstanding row only moves between buckets on a DueDate shift. The appear and
+        // disappear flags stay false.
+        return edit.IsOutstanding
+            ? new ResponseReceivableImpactJson
+            {
+                BucketBefore = ReportAgingBucketizer.BucketFor(edit.CurrentDueDate, asOfDate),
+                BucketAfter = ReportAgingBucketizer.BucketFor(edit.HypotheticalDueDate, asOfDate)
+            }
+            : new ResponseReceivableImpactJson();
     }
 
     private static ResponseReceivableImpactJson BuildFiadoReceivableImpact(HypotheticalTransactionEdit edit, DateTime asOfDate)
     {
-        // Fiado aging is FIFO-netted per client (M7.7 Phase 5.1): PaidAt never settles a Tab row and a repayment
+        // Fiado aging is FIFO-netted per client (M7.7 Phase 5.1): no settlement event settles a Tab row and a repayment
         // In never ages, so only a sale's DueDate shift is a row-level aging move. Whether the sale still holds a
         // remainder depends on the client's repayments; the fiado aging report remains the authority.
         if (edit.CurrentDirection != Direction.Out)

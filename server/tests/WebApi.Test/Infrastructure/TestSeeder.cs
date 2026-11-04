@@ -418,7 +418,6 @@ internal static class TestSeeder
                 AccountId = accountId,
                 ClientId = clientId,
                 DueDate = dueDate ?? transactionDate,
-                PaidAt = paidAt is null ? null : AsUtc(paidAt.Value),
                 OriginTransactionId = originTransactionId,
                 RecordedByOperatorId = recordedByOperatorId,
                 CreatedByUserId = createdByUserId,
@@ -430,11 +429,42 @@ internal static class TestSeeder
             };
 
             if (legacyUnsessioned)
-                return await factory.SeedLegacyUnsessionedTransactionAsync(transaction);
+                transaction = await factory.SeedLegacyUnsessionedTransactionAsync(transaction);
+            else
+            {
+                dbContext.Transactions.Add(transaction);
+                await dbContext.SaveChangesAsync();
+            }
 
-            dbContext.Transactions.Add(transaction);
-            await dbContext.SaveChangesAsync();
+            // A "paid" fixture is what the M9.7 upgrade makes of a legacy PaidAt: one reconstructed settlement event.
+            if (paidAt is { } paid)
+                await factory.SeedReconstructedSettlementAsync(transaction.Id, AsUtc(paid));
             return transaction;
+        }
+
+        /// <summary>
+        /// Seeds what the M9.7 upgrade reconstructs from a legacy <c>PaidAt</c> (SettlementEventsSql.ReconstructPaidAt):
+        /// one migrated event, OccurredOn = PostedOn = the instant's São Paulo date; a Tab row's event settles nothing.
+        /// </summary>
+        public async Task SeedReconstructedSettlementAsync(Guid transactionId, DateTime paidAtUtc)
+        {
+            using var scope = factory.Services.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "SettlementEvents" (
+                    "Id", "BranchId", "ReceivableTransactionId", "Sequence", "Kind", "Amount", "OutstandingDelta",
+                    "OccurredOn", "PostedOn", "Provenance", "MigrationIssue", "SourcePaidAt", "SettlementInstrument",
+                    "CreatedAt", "Active")
+                SELECT gen_random_uuid(), t."BranchId", t."Id", 1, 1, t."Value",
+                       CASE WHEN a."Type" = 2 THEN 0 ELSE -t."Value" END,
+                       d.local_date, d.local_date, 2,
+                       (CASE WHEN a."Type" = 2 THEN 1 ELSE 0 END)::smallint, {paidAtUtc},
+                       COALESCE(t."PostedSettlementInstrument", 0), now(), true
+                FROM "Transactions" t
+                INNER JOIN "Accounts" a ON a."Id" = t."AccountId"
+                CROSS JOIN LATERAL (SELECT ({paidAtUtc}::timestamptz AT TIME ZONE 'America/Sao_Paulo')::date AS local_date) d
+                WHERE t."Id" = {transactionId}
+                """);
         }
 
         public async Task<Setting> SeedSettingAsync(

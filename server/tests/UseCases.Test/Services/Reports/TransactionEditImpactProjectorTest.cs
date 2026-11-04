@@ -30,8 +30,6 @@ public class TransactionEditImpactProjectorTest
     public async Task Project_ShouldComputeBeforeAndAfterBuckets_WhenUnpaidDueDateShiftsAcrossBucket()
     {
         var edit = BuildEdit(
-            currentPaidAt: null,
-            hypotheticalPaidAt: null,
             currentDueDate: AsOfDate.AddDays(-31),
             hypotheticalDueDate: AsOfDate);
         var projector = CreateProjector();
@@ -45,50 +43,30 @@ public class TransactionEditImpactProjectorTest
     }
 
     [Fact]
-    public async Task Project_ShouldMarkRowDisappearing_WhenPaidAtFlipsFromNullToSet()
+    public async Task Project_ShouldOnlyMoveBuckets_ForAnOutstandingRow_BecauseAnEditNeverSettles()
     {
+        // M9.7: settlement is an event command, so an edit keeps the row in the open set; only DueDate moves it.
         var edit = BuildEdit(
             accountType: AccountType.BankAccount,
-            currentPaidAt: null,
-            hypotheticalPaidAt: AsOfDate,
+            isOutstanding: true,
             currentDueDate: AsOfDate.AddDays(-10),
-            hypotheticalDueDate: AsOfDate.AddDays(-10));
-        var projector = CreateProjector();
-
-        var impact = await projector.Project(edit, AsOfDate, BranchId);
-
-        impact.ReceivableImpact.BucketBefore.ShouldBe(AgingBucket.Days0To30);
-        impact.ReceivableImpact.BucketAfter.ShouldBeNull();
-        impact.ReceivableImpact.RowDisappearsFromOpenReceivables.ShouldBeTrue();
-        impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeFalse();
-    }
-
-    [Fact]
-    public async Task Project_ShouldMarkRowAppearing_WhenPaidAtFlipsFromSetToNull()
-    {
-        var edit = BuildEdit(
-            accountType: AccountType.BankAccount,
-            currentPaidAt: AsOfDate.AddDays(-1),
-            hypotheticalPaidAt: null,
-            currentDueDate: AsOfDate.AddDays(-95),
             hypotheticalDueDate: AsOfDate.AddDays(-95));
         var projector = CreateProjector();
 
         var impact = await projector.Project(edit, AsOfDate, BranchId);
 
-        impact.ReceivableImpact.BucketBefore.ShouldBeNull();
+        impact.ReceivableImpact.BucketBefore.ShouldBe(AgingBucket.Days0To30);
         impact.ReceivableImpact.BucketAfter.ShouldBe(AgingBucket.Days91Plus);
-        impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeTrue();
         impact.ReceivableImpact.RowDisappearsFromOpenReceivables.ShouldBeFalse();
+        impact.ReceivableImpact.RowAppearsInOpenReceivables.ShouldBeFalse();
     }
 
     [Fact]
-    public async Task Project_ShouldLeaveReceivableImpactEmpty_WhenBothPaidAtAreSet()
+    public async Task Project_ShouldLeaveReceivableImpactEmpty_WhenEventsAlreadySettledTheRow()
     {
         var edit = BuildEdit(
             accountType: AccountType.BankAccount,
-            currentPaidAt: AsOfDate.AddDays(-2),
-            hypotheticalPaidAt: AsOfDate.AddDays(-1),
+            isOutstanding: false,
             currentDueDate: AsOfDate.AddDays(-10),
             hypotheticalDueDate: AsOfDate.AddDays(-20));
         var projector = CreateProjector();
@@ -102,13 +80,11 @@ public class TransactionEditImpactProjectorTest
     }
 
     [Fact]
-    public async Task Project_ShouldIgnorePaidAt_ForATabSale_BecauseFiadoAgingIsFifoNetted()
+    public async Task Project_ShouldOnlyMoveTheDueDateBucket_ForATabSale_BecauseFiadoAgingIsFifoNetted()
     {
         var edit = BuildEdit(
             accountType: AccountType.Tab,
             direction: Direction.Out,
-            currentPaidAt: null,
-            hypotheticalPaidAt: AsOfDate,
             currentDueDate: AsOfDate.AddDays(-10),
             hypotheticalDueDate: AsOfDate.AddDays(-40));
         var projector = CreateProjector();
@@ -127,8 +103,6 @@ public class TransactionEditImpactProjectorTest
         var edit = BuildEdit(
             accountType: AccountType.Tab,
             direction: Direction.In,
-            currentPaidAt: AsOfDate,
-            hypotheticalPaidAt: null,
             currentDueDate: AsOfDate.AddDays(-10),
             hypotheticalDueDate: AsOfDate.AddDays(-40));
         var projector = CreateProjector();
@@ -372,8 +346,7 @@ public class TransactionEditImpactProjectorTest
         Guid? hypotheticalClientId = null,
         DateTime? currentDueDate = null,
         DateTime? hypotheticalDueDate = null,
-        DateTime? currentPaidAt = null,
-        DateTime? hypotheticalPaidAt = null)
+        bool isOutstanding = true)
     {
         var transactionDate = date ?? new DateTime(2025, 1, 1);
         var branch = new BranchBuilder().WithId(BranchId).Build();
@@ -397,18 +370,16 @@ public class TransactionEditImpactProjectorTest
             .WithStatus(status)
             .WithClientId(currentClientId)
             .WithDueDate(currentDueDate ?? transactionDate)
-            .WithPaidAt(currentPaidAt)
             .Build();
 
         var payload = new RequestUpdateTransactionJson
         {
             Description = "hypothetical",
             DueDate = hypotheticalDueDate ?? snapshot.DueDate,
-            PaidAt = hypotheticalPaidAt,
             ClientId = hypotheticalClientId,
             TransactionTime = new TimeOnly(12, 0)
         };
 
-        return new HypotheticalTransactionEdit(snapshot, payload);
+        return new HypotheticalTransactionEdit(snapshot, payload, isOutstanding);
     }
 }

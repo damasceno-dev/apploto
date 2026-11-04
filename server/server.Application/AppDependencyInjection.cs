@@ -1,3 +1,13 @@
+using server.Application.Services.Receivables;
+using server.Application.UseCases.Cheques.ConvertToFiado;
+using server.Application.UseCases.Cheques.Custody;
+using server.Application.UseCases.Cheques.Deposit;
+using server.Application.UseCases.Cheques.Represent;
+using server.Application.UseCases.Cheques.Return;
+using server.Application.UseCases.Receivables.Get;
+using server.Application.UseCases.Receivables.GetBankReceipt;
+using server.Application.UseCases.TransactionTypes.ReclassificationCandidates;
+using server.Application.UseCases.TransactionTypes.Reclassify;
 using server.Application.Services.Sessions;
 using server.Application.UseCases.Sessions;
 using server.Application.UseCases.Sessions.Attribution;
@@ -189,6 +199,21 @@ public static class AppDependencyInjection
         services.AddScoped<FiadoPhysicalPairService>();
         services.AddScoped<ReceiveFiadoPaymentUseCase>();
         services.AddScoped<SafeDepositUseCase>();
+
+        // M9.7 Phases 1–2: receivable lifecycle events, cheque commands and frozen classification.
+        services.AddScoped<ReceivableResponseBuilder>();
+        services.AddScoped<SettlementEventDating>();
+        services.AddScoped<ChequeReceivableGuard>();
+        services.AddScoped<ChequeCommandRunner>();
+        services.AddScoped<ChequeCustodyUseCase>();
+        services.AddScoped<ChequeDepositUseCase>();
+        services.AddScoped<ChequeReturnUseCase>();
+        services.AddScoped<ChequeRepresentUseCase>();
+        services.AddScoped<ChequeConvertToFiadoUseCase>();
+        services.AddScoped<GetReceivableUseCase>();
+        services.AddScoped<GetBankReceiptUseCase>();
+        services.AddScoped<GetReclassificationCandidatesUseCase>();
+        services.AddScoped<ReclassifyTransactionTypeUseCase>();
         services.AddScoped<InstallmentPlanBuilder>();
         services.AddScoped<DueDateCalculator>();
         services.AddScoped<CanonicalJsonRequestHasher>();

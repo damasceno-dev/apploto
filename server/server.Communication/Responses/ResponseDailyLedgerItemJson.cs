@@ -14,5 +14,4 @@ public class ResponseDailyLedgerItemJson
     public string? ClientName { get; init; }
     public string RecordedByOperatorName { get; init; } = string.Empty;
     public DateTime DueDate { get; init; }
-    public DateTime? PaidAt { get; init; }
 }

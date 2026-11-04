@@ -29,8 +29,13 @@ public class ResponseListTransactionItemJson
     public Guid TransactionTypeId { get; init; }
     public string TransactionTypeName { get; init; } = string.Empty;
     public DateTime DueDate { get; init; }
-    public DateTime? PaidAt { get; init; }
     public Guid? OriginTransactionId { get; init; }
+
+    /// <summary>
+    /// The frozen classification captured when the row was posted (M9.7 Phase 1.3); null while it was never posted
+    /// (Draft, or cancelled as a Draft). Reports read this, never the type's current markers.
+    /// </summary>
+    public ResponseTransactionClassificationJson? Classification { get; init; }
 
     /// <summary>The cashbox session of this row; null on Tab/Bank rows and unresolved legacy rows.</summary>
     public Guid? SessionId { get; init; }

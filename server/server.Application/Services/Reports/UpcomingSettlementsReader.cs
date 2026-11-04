@@ -7,7 +7,9 @@ namespace server.Application.Services.Reports;
 
 /// <summary>
 /// The one upcoming-settlements computation (M11 Phase 5), shared by the full report and the management overview so a
-/// predicate change cannot leave either behind. No authorization or validation: callers own both.
+/// predicate change cannot leave either behind. Since M9.7 Phase 1 the instrument is the row's frozen snapshot and the
+/// amounts are what is still outstanding at <c>asOfDate</c> on the posted basis. No authorization or validation: callers
+/// own both.
 /// </summary>
 public class UpcomingSettlementsReader(
     ITransactionsRepository transactionsRepository,
@@ -27,10 +29,13 @@ public class UpcomingSettlementsReader(
         int pageSize,
         CancellationToken ct = default)
     {
-        var isConfigured = await transactionTypesRepository.ExistsWithSettlementInstrumentByBranchIdAsNoTracking(branchId, ct);
+        // Configured means a type carries an instrument today or a row was posted with one (a cleared type keeps its
+        // posted rows reported, M9.7 Phase 1.3).
+        var isConfigured = await transactionTypesRepository.ExistsWithSettlementInstrumentByBranchIdAsNoTracking(branchId, ct)
+            || await transactionsRepository.ExistsPostedWithSettlementInstrumentByBranchIdAsNoTracking(branchId, ct);
 
-        var window = new UpcomingSettlementFilter(dueDateFrom.Date, dueDateTo.Date, accountId, instrument);
-        var overdue = new UpcomingSettlementFilter(null, asOfDate.Date.AddDays(-1), accountId, instrument);
+        var window = new UpcomingSettlementFilter(dueDateFrom.Date, dueDateTo.Date, accountId, instrument, asOfDate.Date);
+        var overdue = new UpcomingSettlementFilter(null, asOfDate.Date.AddDays(-1), accountId, instrument, asOfDate.Date);
 
         var windowTotals = await transactionsRepository.ListUpcomingSettlementTotalsByBranchIdAsNoTracking(branchId, window, ct);
         var overdueTotals = await transactionsRepository.ListUpcomingSettlementTotalsByBranchIdAsNoTracking(branchId, overdue, ct);
@@ -69,6 +74,7 @@ public class UpcomingSettlementsReader(
                     Date = row.Date,
                     DueDate = row.DueDate,
                     Value = row.Value,
+                    OutstandingValue = row.OutstandingValue,
                     Instrument = row.Instrument,
                     TransactionTypeId = row.TransactionTypeId,
                     TransactionTypeName = row.TransactionTypeName,

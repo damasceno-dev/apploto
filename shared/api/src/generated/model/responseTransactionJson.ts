@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { Direction } from './direction';
+import type { ResponseTransactionClassificationJson } from './responseTransactionClassificationJson';
 import type { TransactionGenerationKind } from './transactionGenerationKind';
 import type { TransactionStatus } from './transactionStatus';
 
@@ -25,9 +26,8 @@ export interface ResponseTransactionJson {
   clientId?: string | null;
   dueDate: string;
   /** @nullable */
-  paidAt?: string | null;
-  /** @nullable */
   originTransactionId?: string | null;
+  classification?: null | ResponseTransactionClassificationJson;
   generationKind?: null | TransactionGenerationKind;
   /** @nullable */
   generatedFromTransactionId?: string | null;

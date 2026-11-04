@@ -75,7 +75,7 @@ Commands (from `shared/api`, or `pnpm --filter @loto/api <script>` from the root
 - **Financial headers and no retry.**
   - `Idempotency-Key` and `If-Match` are required generated arguments (and required in mutation variables), sent byte for byte.
   - **Header boundary.** Callers may add ordinary headers (for example tracing headers) through `options.headers`, in any `HeadersInit` form. The generated header arguments still always win:
-    - Orval 8.39.0 would merge `options.headers` after them, so `scripts/header-boundary.ts` wraps Orval's own `fetch` and `react-query` builders (the documented function-valued `client` option) and emits `headers: { …generated }, callerHeaders: options?.headers` in all 110 merge sites. Generation fails if Orval ever emits an unrecognized merge.
+    - Orval 8.39.0 would merge `options.headers` after them, so `scripts/header-boundary.ts` wraps Orval's own `fetch` and `react-query` builders (the documented function-valued `client` option) and emits `headers: { …generated }, callerHeaders: options?.headers` in all 156 merge sites. Generation fails if Orval ever emits an unrecognized merge.
     - Before dispatch, the mutator refuses (`invalid-request`) a caller header that names a generated or declared header (`Idempotency-Key`, `If-Match`, `Content-Type`) with a different value in any casing, a caller `Authorization`, and a name repeated in another casing.
     - An equal value is not a conflict. Ordinary headers are sent unchanged.
   - `toIfMatch(version)` and `parseETag(header)` implement §6.11: one strong, quoted, positive decimal `xmin` up to `4294967295`.

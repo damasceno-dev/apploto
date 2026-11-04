@@ -29,7 +29,6 @@ public class HypotheticalTransactionEditTest
             status: TransactionStatus.Active,
             clientId: snapshotClientId,
             dueDate: new DateTime(2025, 3, 20),
-            paidAt: new DateTime(2025, 3, 15),
             transactionTime: new TimeOnly(8, 0),
             description: "current desc");
 
@@ -37,12 +36,11 @@ public class HypotheticalTransactionEditTest
         {
             Description = "new desc",
             DueDate = new DateTime(2025, 4, 1),
-            PaidAt = new DateTime(2025, 3, 25),
             ClientId = payloadClientId,
             TransactionTime = new TimeOnly(17, 45)
         };
 
-        var edit = new HypotheticalTransactionEdit(snapshot, payload);
+        var edit = new HypotheticalTransactionEdit(snapshot, payload, isOutstanding: true);
 
         // Immutable attributes — straight off the snapshot.
         edit.TransactionId.ShouldBe(snapshot.Id);
@@ -63,8 +61,7 @@ public class HypotheticalTransactionEditTest
         edit.HypotheticalClientId.ShouldBe(payloadClientId);
         edit.CurrentDueDate.ShouldBe(new DateTime(2025, 3, 20));
         edit.HypotheticalDueDate.ShouldBe(new DateTime(2025, 4, 1));
-        edit.CurrentPaidAt.ShouldBe(new DateTime(2025, 3, 15));
-        edit.HypotheticalPaidAt.ShouldBe(new DateTime(2025, 3, 25));
+        edit.IsOutstanding.ShouldBeTrue();
         edit.CurrentTransactionTime.ShouldBe(new TimeOnly(8, 0));
         edit.HypotheticalTransactionTime.ShouldBe(new TimeOnly(17, 45));
         edit.CurrentDescription.ShouldBe("current desc");
@@ -73,7 +70,6 @@ public class HypotheticalTransactionEditTest
         // The snapshot is read, never written.
         snapshot.ClientId.ShouldBe(snapshotClientId);
         snapshot.DueDate.ShouldBe(new DateTime(2025, 3, 20));
-        snapshot.PaidAt.ShouldBe(new DateTime(2025, 3, 15));
         snapshot.TransactionTime.ShouldBe(new TimeOnly(8, 0));
         snapshot.Description.ShouldBe("current desc");
     }
@@ -88,7 +84,6 @@ public class HypotheticalTransactionEditTest
             status: TransactionStatus.Draft,
             clientId: null,
             dueDate: new DateTime(2025, 1, 5),
-            paidAt: null,
             transactionTime: null,
             description: null);
 
@@ -96,20 +91,18 @@ public class HypotheticalTransactionEditTest
         {
             Description = null,
             DueDate = new DateTime(2025, 1, 10),
-            PaidAt = null,
             ClientId = null,
             TransactionTime = null
         };
 
-        var edit = new HypotheticalTransactionEdit(snapshot, payload);
+        var edit = new HypotheticalTransactionEdit(snapshot, payload, isOutstanding: false);
 
         edit.CurrentDirection.ShouldBe(Direction.In);
         edit.HypotheticalDirection.ShouldBe(Direction.In);
 
         edit.CurrentClientId.ShouldBeNull();
         edit.HypotheticalClientId.ShouldBeNull();
-        edit.CurrentPaidAt.ShouldBeNull();
-        edit.HypotheticalPaidAt.ShouldBeNull();
+        edit.IsOutstanding.ShouldBeFalse();
         edit.CurrentTransactionTime.ShouldBeNull();
         edit.HypotheticalTransactionTime.ShouldBeNull();
         edit.CurrentDescription.ShouldBeNull();
@@ -127,7 +120,6 @@ public class HypotheticalTransactionEditTest
         TransactionStatus status,
         Guid? clientId,
         DateTime dueDate,
-        DateTime? paidAt,
         TimeOnly? transactionTime,
         string? description)
     {
@@ -152,7 +144,6 @@ public class HypotheticalTransactionEditTest
             .WithStatus(status)
             .WithClientId(clientId)
             .WithDueDate(dueDate)
-            .WithPaidAt(paidAt)
             .WithTransactionTime(transactionTime)
             .WithDescription(description)
             .Build();

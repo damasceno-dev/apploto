@@ -8,7 +8,6 @@ public class RequestUpdateTransactionJsonBuilder
     private readonly Faker _faker = new("pt_BR");
     private string? _description;
     private DateTime _dueDate;
-    private DateTime? _paidAt;
     private Guid? _clientId;
     private TimeOnly? _transactionTime;
 
@@ -16,7 +15,6 @@ public class RequestUpdateTransactionJsonBuilder
     {
         _description = _faker.Commerce.ProductDescription();
         _dueDate = _faker.Date.SoonDateOnly(30).ToDateTime(TimeOnly.MinValue);
-        _paidAt = null;
         _clientId = null;
         _transactionTime = TimeOnly.FromDateTime(_faker.Date.Recent());
     }
@@ -30,12 +28,6 @@ public class RequestUpdateTransactionJsonBuilder
     public RequestUpdateTransactionJsonBuilder WithDueDate(DateTime dueDate)
     {
         _dueDate = dueDate;
-        return this;
-    }
-
-    public RequestUpdateTransactionJsonBuilder WithPaidAt(DateTime? paidAt)
-    {
-        _paidAt = paidAt;
         return this;
     }
 
@@ -57,7 +49,6 @@ public class RequestUpdateTransactionJsonBuilder
         {
             Description = _description,
             DueDate = _dueDate,
-            PaidAt = _paidAt,
             ClientId = _clientId,
             TransactionTime = _transactionTime
         };

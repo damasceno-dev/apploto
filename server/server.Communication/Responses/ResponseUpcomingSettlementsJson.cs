@@ -1,8 +1,9 @@
 namespace server.Communication.Responses;
 
 /// <summary>
-/// Money due to arrive (M11 Phase 5): Active, unpaid rows of a type — active or retired — classified with a
-/// settlement instrument. Reads never mark anything paid, infer bank reconciliation or move money.
+/// Money due to arrive (M11 Phase 5, M9.7 Phase 1): Active rows posted with a settlement instrument (the frozen
+/// snapshot) and still outstanding at <c>AsOfDate</c> on the posted basis; values are outstanding amounts. Reads never
+/// mark anything paid, infer bank reconciliation or move money.
 /// </summary>
 public class ResponseUpcomingSettlementsJson
 {
@@ -10,8 +11,8 @@ public class ResponseUpcomingSettlementsJson
     public DateTime AsOfDate { get; init; }
 
     /// <summary>
-    /// False only when no branch type, active or retired, carries an instrument: nothing is classified, so the empty
-    /// result means "not configured", never "nothing due".
+    /// False only when no branch type, active or retired, carries an instrument and no row was posted with one: nothing
+    /// is classified, so the empty result means "not configured", never "nothing due".
     /// </summary>
     public bool IsConfigured { get; init; }
 

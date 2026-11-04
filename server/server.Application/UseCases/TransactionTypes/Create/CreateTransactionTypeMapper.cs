@@ -16,6 +16,7 @@ internal static class CreateTransactionTypeMapper
             FiadoPaymentKind = request.FiadoPaymentKind,
             SettlementInstrument = request.SettlementInstrument ?? SettlementInstrument.None,
             MonthlyFinancialRole = request.MonthlyFinancialRole ?? MonthlyFinancialRole.None,
+            FinancialClass = request.FinancialClass ?? FinancialClass.Unclassified,
             CategoryId = request.CategoryId
         };
     }

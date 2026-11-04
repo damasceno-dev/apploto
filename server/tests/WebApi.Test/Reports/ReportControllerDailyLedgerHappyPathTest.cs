@@ -74,8 +74,6 @@ public class ReportControllerDailyLedgerHappyPathTest(ServerWebApplicationFactor
         firstItem.RecordedByOperatorName.ShouldBe("Op1");
         firstItem.ClientName.ShouldBe("João Silva");
         firstItem.DueDate.Date.ShouldBe(dueDate.Date);
-        firstItem.PaidAt.ShouldNotBeNull();
-        firstItem.PaidAt!.Value.Date.ShouldBe(paidAt.Date);
     }
 
     [Fact]

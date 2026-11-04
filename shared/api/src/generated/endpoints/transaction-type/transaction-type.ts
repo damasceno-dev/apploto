@@ -5,10 +5,13 @@
  * OpenAPI spec version: 1.0.0
  */
 import type {
+  GetTransactionTypeIdReclassificationCandidatesParams,
   RequestCreateTransactionTypeJson,
+  RequestReclassifyTransactionTypeJson,
   RequestUpdateTransactionTypeJson,
   ResponseErrorJson,
   ResponseListTransactionTypesJson,
+  ResponseReclassificationJson,
   ResponseTransactionTypeJson,
 } from '../../model';
 
@@ -597,6 +600,295 @@ export const deleteTransactionTypeTransactionTypeId = async (
     {
       ...options,
       method: 'DELETE',
+    },
+  );
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse200TextPlain = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse200ApplicationJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse200TextJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getTransactionTypeIdReclassificationCandidatesResponseSuccess = (
+  | getTransactionTypeIdReclassificationCandidatesResponse200TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse200ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getTransactionTypeIdReclassificationCandidatesResponseError = (
+  | getTransactionTypeIdReclassificationCandidatesResponse400TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse400ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse400TextJson
+  | getTransactionTypeIdReclassificationCandidatesResponse401TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse401ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse401TextJson
+  | getTransactionTypeIdReclassificationCandidatesResponse403TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse403ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse403TextJson
+  | getTransactionTypeIdReclassificationCandidatesResponse404TextPlain
+  | getTransactionTypeIdReclassificationCandidatesResponse404ApplicationJson
+  | getTransactionTypeIdReclassificationCandidatesResponse404TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetTransactionTypeIdReclassificationCandidatesUrl = (
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/transaction-type/${id}/reclassification-candidates?${stringifiedParams}`
+    : `/transaction-type/${id}/reclassification-candidates`;
+};
+
+export const getTransactionTypeIdReclassificationCandidates = async (
+  id: string,
+  params: GetTransactionTypeIdReclassificationCandidatesParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getTransactionTypeIdReclassificationCandidatesResponseSuccess> => {
+  return apiFetch<getTransactionTypeIdReclassificationCandidatesResponseSuccess>(
+    getGetTransactionTypeIdReclassificationCandidatesUrl(id, params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export type postTransactionTypeIdReclassifyResponse200TextPlain = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type postTransactionTypeIdReclassifyResponse200ApplicationJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type postTransactionTypeIdReclassifyResponse200TextJson = {
+  data: ResponseReclassificationJson;
+  status: 200;
+};
+
+export type postTransactionTypeIdReclassifyResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionTypeIdReclassifyResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionTypeIdReclassifyResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postTransactionTypeIdReclassifyResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionTypeIdReclassifyResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionTypeIdReclassifyResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postTransactionTypeIdReclassifyResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionTypeIdReclassifyResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionTypeIdReclassifyResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postTransactionTypeIdReclassifyResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionTypeIdReclassifyResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionTypeIdReclassifyResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postTransactionTypeIdReclassifyResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionTypeIdReclassifyResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionTypeIdReclassifyResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postTransactionTypeIdReclassifyResponseSuccess = (
+  | postTransactionTypeIdReclassifyResponse200TextPlain
+  | postTransactionTypeIdReclassifyResponse200ApplicationJson
+  | postTransactionTypeIdReclassifyResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postTransactionTypeIdReclassifyResponseError = (
+  | postTransactionTypeIdReclassifyResponse400TextPlain
+  | postTransactionTypeIdReclassifyResponse400ApplicationJson
+  | postTransactionTypeIdReclassifyResponse400TextJson
+  | postTransactionTypeIdReclassifyResponse401TextPlain
+  | postTransactionTypeIdReclassifyResponse401ApplicationJson
+  | postTransactionTypeIdReclassifyResponse401TextJson
+  | postTransactionTypeIdReclassifyResponse403TextPlain
+  | postTransactionTypeIdReclassifyResponse403ApplicationJson
+  | postTransactionTypeIdReclassifyResponse403TextJson
+  | postTransactionTypeIdReclassifyResponse404TextPlain
+  | postTransactionTypeIdReclassifyResponse404ApplicationJson
+  | postTransactionTypeIdReclassifyResponse404TextJson
+  | postTransactionTypeIdReclassifyResponse409TextPlain
+  | postTransactionTypeIdReclassifyResponse409ApplicationJson
+  | postTransactionTypeIdReclassifyResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostTransactionTypeIdReclassifyUrl = (id: string) => {
+  return `/transaction-type/${id}/reclassify`;
+};
+
+export const postTransactionTypeIdReclassify = async (
+  id: string,
+  requestReclassifyTransactionTypeJson: RequestReclassifyTransactionTypeJson,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postTransactionTypeIdReclassifyResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postTransactionTypeIdReclassifyResponseSuccess>(
+    getPostTransactionTypeIdReclassifyUrl(id),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestReclassifyTransactionTypeJson),
     },
   );
 };

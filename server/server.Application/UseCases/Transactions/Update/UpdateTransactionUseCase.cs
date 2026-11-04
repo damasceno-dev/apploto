@@ -19,7 +19,8 @@ public class UpdateTransactionUseCase(
     MemberAccountScopeGuard memberAccountScopeGuard,
     ITransactionMutationPermissionGuard transactionMutationPermissionGuard,
     LockDateGuard lockDateGuard,
-    IMonthLockCoordination monthLockCoordination)
+    IMonthLockCoordination monthLockCoordination,
+    ISettlementEventsRepository settlementEventsRepository)
 {
     public async Task<ResponseTransactionJson> Execute(
         Guid transactionId,
@@ -88,6 +89,12 @@ public class UpdateTransactionUseCase(
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_FIADO_REQUIRES_CLIENT);
         }
 
+        // A receivable whose lifecycle has command events keeps the client it had: deposit, return and conversion
+        // already identified who owes it (M9.7 §6.24), and only a later event may record that again.
+        if (request.ClientId != transaction.ClientId &&
+            await settlementEventsRepository.ExistsCommandEventByReceivableIdAsNoTracking(transaction.Id, ct))
+            throw new ConflictException(ResourcesErrorMessages.RECEIVABLE_CLIENT_LOCKED_BY_EVENTS);
+
         if (request.ClientId is { } newClientId)
         {
             var client = await clientsRepository.GetActiveByIdAndBranchIdAsNoTracking(newClientId, branchUser.BranchId);
@@ -101,7 +108,6 @@ public class UpdateTransactionUseCase(
 
         transaction.Description = request.Description;
         transaction.DueDate = request.DueDate;
-        transaction.PaidAt = request.PaidAt;
         transaction.ClientId = request.ClientId;
         transaction.TransactionTime = request.TransactionTime;
         transaction.UpdatedAt = utcNow;

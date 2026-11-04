@@ -13,3 +13,6 @@ public record MonthlyFinancialRoleTotal(decimal InTotal, decimal OutTotal, int R
 
 /// <summary>A bounded page of listed accounts or operators with the size of the whole listed set.</summary>
 public record ActivityPage<TRow>(int TotalCount, IReadOnlyList<TRow> Items);
+
+/// <summary>Row counts by classification provenance (M9.7 Phase 1.3).</summary>
+public record ClassificationProvenanceCounts(int PostingCount, int MigratedCount, int ReclassifiedCount);

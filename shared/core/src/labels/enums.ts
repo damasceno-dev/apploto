@@ -6,14 +6,19 @@
 import type {
   AccountType,
   AgingBucket,
+  BankReceiptSourceKind,
+  BankReceiptStatus,
   BrazilianHolidayCalendarSource,
   BrazilianHolidayImportStatus,
   BrazilianHolidayType,
+  ChequeLifecycleState,
+  ClassificationProvenance,
   CustodyExceptionAction,
   DailyCloseReviewEventType,
   DailyCloseStatus,
   Direction,
   FiadoPaymentKind,
+  FinancialClass,
   HolidaySource,
   InstallmentPlanStatus,
   InvitationStatus,
@@ -23,10 +28,12 @@ import type {
   OpeningDiscrepancyAttribution,
   OperatorLinkRequestStatus,
   OverviewSectionStatus,
+  ReceivableCutoffBasis,
+  ReceivableSettlementStatus,
   Role,
   SessionApprovalMode,
-  SessionCloseField,
   SessionCandidateState,
+  SessionCloseField,
   SessionCountAttemptKind,
   SessionCustodyState,
   SessionEventKind,
@@ -34,7 +41,10 @@ import type {
   SessionMappingState,
   SessionOpeningSourceKind,
   SessionOrigin,
+  SettlementEventKind,
+  SettlementEventProvenance,
   SettlementInstrument,
+  SettlementMigrationIssue,
   SettlementRule,
   TimeEntryStatus,
   TimeEntryTapAction,
@@ -160,6 +170,7 @@ export const transactionGenerationKindLabels: Labels<TransactionGenerationKind> 
   SessionBolaoFee: 'tarifa de bolão informada no fechamento',
   SessionSpecialFee: 'tarifa especial informada no fechamento',
   SafeCashDeposit: 'depósito de dinheiro do caixa no cofre',
+  ChequeFiadoConversion: 'conversão de cheque em fiado',
 };
 
 export const fiadoPaymentKindLabels: Labels<FiadoPaymentKind> = {
@@ -176,6 +187,7 @@ export const transactionTypeSystemRoleLabels: Labels<TransactionTypeSystemRole> 
   SpecialFee: 'Tarifa especial (campo do fechamento)',
   SafeDepositOut: 'Depósito de dinheiro no cofre (saída do caixa)',
   SafeDepositIn: 'Entrada automática no cofre (depósito do caixa)',
+  ChequeFiadoConversion: 'Cheque convertido em fiado (dívida automática)',
 };
 
 /** Masculine — agrees with *convite*. */
@@ -318,6 +330,77 @@ export const sessionCloseFieldLabels: Labels<SessionCloseField> = {
   SpecialFee: 'Tarifa Especial',
 };
 
+/** Feminine — agrees with classe. */
+export const financialClassLabels: Labels<FinancialClass> = {
+  Unclassified: 'Sem classe financeira',
+  CaixaAndClientMoney: 'Dinheiro da CAIXA e de clientes',
+  ShopFeesAndIncome: 'Tarifas e receitas da lotérica',
+  OperatingExpenseAndLoss: 'Despesas operacionais e perdas',
+  InternalTransfer: 'Transferência interna',
+  CashDifference: 'Diferença de caixa',
+};
+
+/** Feminine — agrees with classificação. */
+export const classificationProvenanceLabels: Labels<ClassificationProvenance> = {
+  Posting: 'Registrada no lançamento',
+  MigratedFromTypeAtUpgrade: 'Copiada do tipo na atualização (histórico desconhecido)',
+  OpenPeriodReclassification: 'Reclassificada em período aberto',
+};
+
+export const receivableCutoffBasisLabels: Labels<ReceivableCutoffBasis> = {
+  Posted: 'Por data de lançamento',
+  Occurred: 'Por data do evento',
+};
+
+/** Masculine — agrees with recebível. */
+export const receivableSettlementStatusLabels: Labels<ReceivableSettlementStatus> = {
+  Open: 'Em aberto',
+  PartiallySettled: 'Parcialmente liquidado',
+  Settled: 'Liquidado',
+};
+
+/** Masculine — agrees with cheque. Depositado is not a clearing guarantee. */
+export const chequeLifecycleStateLabels: Labels<ChequeLifecycleState> = {
+  Received: 'No caixa',
+  InSafe: 'No cofre',
+  Deposited: 'Depositado',
+  Returned: 'Devolvido',
+  AwaitingRedeposit: 'Reapresentado (aguardando depósito)',
+  ConvertedToFiado: 'Convertido em fiado',
+  SettledBeforeEvents: 'Pago (registro anterior)',
+};
+
+export const settlementEventKindLabels: Labels<SettlementEventKind> = {
+  MigratedSettlement: 'Pagamento registrado antes da atualização',
+  CustodyMoved: 'Levado ao cofre',
+  ChequeDeposited: 'Depositado',
+  ChequeReturned: 'Devolvido pelo banco',
+  ChequeRepresented: 'Reapresentado',
+  ChequeConvertedToFiado: 'Convertido em fiado',
+};
+
+export const settlementEventProvenanceLabels: Labels<SettlementEventProvenance> = {
+  Command: 'Registrado no sistema',
+  MigratedFromPaidAt: 'Reconstruído do pagamento anterior',
+};
+
+export const settlementMigrationIssueLabels: Labels<SettlementMigrationIssue> = {
+  None: 'Sem pendência',
+  NotSettleableTabRow: 'Fiado: não liquida a dívida',
+  OccurredBeforeTransactionDate: 'Pagamento anterior à data da transação',
+  DraftAtMigration: 'Era rascunho na atualização',
+  CancelledAtMigration: 'Já estava cancelado',
+};
+
+/** Never shown as arrived: confirmation is statement reconciliation (M9.7 Phase 5). */
+export const bankReceiptStatusLabels: Labels<BankReceiptStatus> = {
+  Pending: 'Pendente de confirmação',
+};
+
+export const bankReceiptSourceKindLabels: Labels<BankReceiptSourceKind> = {
+  ChequeDeposit: 'Depósito de cheques',
+};
+
 /** The provenance marker of a generated movement (copy §4, §5): never a status. */
 export const generatedMovementMarker = 'Automática';
 
@@ -360,6 +443,16 @@ export const enumLabels = {
   SessionCountAttemptKind: sessionCountAttemptKindLabels,
   SessionApprovalMode: sessionApprovalModeLabels,
   SessionCloseField: sessionCloseFieldLabels,
+  FinancialClass: financialClassLabels,
+  ClassificationProvenance: classificationProvenanceLabels,
+  ReceivableCutoffBasis: receivableCutoffBasisLabels,
+  ReceivableSettlementStatus: receivableSettlementStatusLabels,
+  ChequeLifecycleState: chequeLifecycleStateLabels,
+  SettlementEventKind: settlementEventKindLabels,
+  SettlementEventProvenance: settlementEventProvenanceLabels,
+  SettlementMigrationIssue: settlementMigrationIssueLabels,
+  BankReceiptStatus: bankReceiptStatusLabels,
+  BankReceiptSourceKind: bankReceiptSourceKindLabels,
 } as const;
 
 export type EnumLabel =
