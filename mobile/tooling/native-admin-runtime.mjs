@@ -44,13 +44,21 @@ for (const pid of s.owned.pids) {
     throw new Error('Recorded PID ownership no longer matches this checkout; stop refused.');
   process.kill(-pid, 'SIGTERM');
 }
-const port = await new Promise((resolve, reject) => {
-  const server = createServer();
-  server.listen(0, '127.0.0.1', () => {
-    const address = server.address();
-    server.close(() => (typeof address === 'object' && address ? resolve(address.port) : reject()));
+const freeLoopbackPort = () =>
+  new Promise((resolve, reject) => {
+    const server = createServer();
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      server.close(() =>
+        typeof address === 'object' && address ? resolve(address.port) : reject(),
+      );
+    });
   });
-});
+const port = await freeLoopbackPort();
+// LOTO_NATIVE_MAIL=unreachable points security mail at a closed loopback port so delivery fails
+// locally (invitation DeliveryStatus Failed); the owned Mailpit container is left untouched.
+const unreachableMail = process.env.LOTO_NATIVE_MAIL === 'unreachable';
+const mailPort = unreachableMail ? String(await freeLoopbackPort()) : smtpPort;
 const log = openSync(path.join(s.owned.directory, 'm10-api.log'), 'a');
 const provider = spawn(
   process.execPath,
@@ -76,7 +84,7 @@ const api = spawn(
       AccountSecurity__LoginRequestsPerMinute: '1000',
       SecurityMail__Enabled: 'true',
       SecurityMail__Host: '127.0.0.1',
-      SecurityMail__Port: smtpPort,
+      SecurityMail__Port: mailPort,
       SecurityMail__LocalCapture: 'true',
       ExternalHolidaySources__NagerDate__BaseUrl: holidays + '/nager/',
       ExternalHolidaySources__BrasilApi__BaseUrl: holidays + '/brasilapi/',
@@ -91,6 +99,7 @@ api.unref();
 s.owned.pids = [provider.pid, api.pid];
 s.tokenMinutes = minutes;
 s.holidayProvider = holidays;
+s.mailMode = unreachableMail ? 'unreachable' : 'mailpit';
 await writeFile(statePath, JSON.stringify(s), { mode: 0o600 });
 const deadline = Date.now() + 30000;
 while (true) {
@@ -103,5 +112,5 @@ while (true) {
   await new Promise((resolve) => setTimeout(resolve, 250));
 }
 console.log(
-  `Same owned API/database restarted with ${minutes}-minute tokens and the loopback holiday provider.`,
+  `Same owned API/database restarted with ${minutes}-minute tokens, the loopback holiday provider and ${s.mailMode} mail.`,
 );
