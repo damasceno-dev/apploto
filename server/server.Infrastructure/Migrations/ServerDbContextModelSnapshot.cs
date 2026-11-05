@@ -77,6 +77,116 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("Accounts", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.BankMatchProposal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExpectationFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("LineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("LineVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("ReceiptVersion")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("LineId");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.ToTable("BankMatchProposals", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BankReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BankTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid?>("SourceTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankReceiptId")
+                        .IsUnique();
+
+                    b.HasIndex("BankTransactionId")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("SourceTransactionId")
+                        .IsUnique()
+                        .HasFilter("\"SourceTransactionId\" IS NOT NULL");
+
+                    b.ToTable("BankMovements", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.BankReceipt", b =>
                 {
                     b.Property<Guid>("Id")
@@ -114,14 +224,27 @@ namespace server.Infrastructure.Migrations
                     b.Property<short>("SourceKind")
                         .HasColumnType("smallint");
 
+                    b.Property<Guid?>("SourceSettlementEventId")
+                        .HasColumnType("uuid");
+
                     b.Property<short>("Status")
                         .HasColumnType("smallint");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
                     b.HasIndex("BankAccountId");
 
                     b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("SourceSettlementEventId")
+                        .IsUnique()
+                        .HasFilter("\"SourceSettlementEventId\" IS NOT NULL");
 
                     b.HasIndex("BranchId", "BankAccountId", "Status");
 
@@ -130,7 +253,251 @@ namespace server.Infrastructure.Migrations
                             t.HasCheckConstraint("CK_BankReceipts_AmountPositive", "\"Amount\" > 0");
 
                             t.HasCheckConstraint("CK_BankReceipts_PostedOnOrAfterOccurred", "\"PostedOn\" >= \"OccurredOn\"");
+
+                            t.HasCheckConstraint("CK_BankReceipts_SourceEvent", "(\"SourceKind\" = 6) = (\"SourceSettlementEventId\" IS NOT NULL)");
                         });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementAccountBinding", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AccountIdentity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BankIdentity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("BranchId", "BankIdentity", "AccountIdentity")
+                        .IsUnique();
+
+                    b.ToTable("BankStatementAccountBindings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BankStatementAccountBindings_Identity", "length(btrim(\"BankIdentity\")) > 0 AND length(btrim(\"AccountIdentity\")) > 0");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AccountBindingId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("From")
+                        .HasColumnType("date");
+
+                    b.Property<byte[]>("Original")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTime>("To")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountBindingId");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("BranchId", "BankAccountId", "Fingerprint")
+                        .IsUnique();
+
+                    b.ToTable("BankStatementImports", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementImportLine", b =>
+                {
+                    b.Property<Guid>("ImportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LineId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ImportId", "LineId");
+
+                    b.HasIndex("LineId");
+
+                    b.ToTable("BankStatementImportLines", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("AmbiguousIdentity")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BankIdentity")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Memo")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(4096)
+                        .HasColumnType("character varying(4096)");
+
+                    b.Property<string>("Original")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("BranchId", "BankAccountId", "BankIdentity")
+                        .IsUnique()
+                        .HasFilter("\"BankIdentity\" IS NOT NULL");
+
+                    b.ToTable("BankStatementLines", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementMatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LineId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ProposalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("LineId")
+                        .IsUnique();
+
+                    b.HasIndex("ProposalId")
+                        .IsUnique();
+
+                    b.HasIndex("ReceiptId")
+                        .IsUnique();
+
+                    b.ToTable("BankStatementMatches", (string)null);
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Branch", b =>
@@ -195,6 +562,228 @@ namespace server.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("BranchUsers", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CardProvider", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BankAccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("BusinessDays")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DelayDays")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ExternalIdentity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<short>("Instrument")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankAccountId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("BranchId", "ExternalIdentity")
+                        .IsUnique();
+
+                    b.ToTable("CardProviders", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CardProviders_Delay", "\"DelayDays\" BETWEEN 0 AND 366");
+
+                            t.HasCheckConstraint("CK_CardProviders_Instrument", "\"Instrument\" IN (2, 3, 4, 5)");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CardSettlementBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BankReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Brand")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal?>("ConfirmedFee")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExternalIdentity")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FeeBasis")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("FeeEvidence")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<short>("FeeFinancialClass")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<bool>("ManagerConfirmedFee")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("ObservedNetAmount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("PlannedArrivalOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ProviderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BankReceiptId")
+                        .IsUnique();
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("ProviderId", "ExternalIdentity")
+                        .IsUnique();
+
+                    b.ToTable("CardSettlementBatches", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CardSettlementBatches_Amounts", "\"GrossAmount\" > 0 AND (\"ConfirmedFee\" IS NULL OR (\"ConfirmedFee\" >= 0 AND \"ConfirmedFee\" < \"GrossAmount\")) AND (\"ObservedNetAmount\" IS NULL OR \"ObservedNetAmount\" > 0)");
+
+                            t.HasCheckConstraint("CK_CardSettlementBatches_FeeEvidence", "\"FeeFinancialClass\" = 3 AND ((\"ConfirmedFee\" IS NULL AND NOT \"ManagerConfirmedFee\" AND \"FeeBasis\" IS NULL AND \"FeeEvidence\" IS NULL) OR (\"ConfirmedFee\" IS NOT NULL AND \"ManagerConfirmedFee\" AND length(btrim(\"FeeBasis\")) > 0 AND length(btrim(\"FeeEvidence\")) > 0 AND \"FeeBasis\" IS NOT NULL AND \"FeeEvidence\" IS NOT NULL))");
+                        });
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CardSettlementFeeEvidence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Basis")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("ConfirmedFee")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<short>("FeeFinancialClass")
+                        .HasColumnType("smallint");
+
+                    b.Property<decimal?>("ObservedNetAmount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("OccurredOn")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("BatchId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("CardSettlementFeeEvidence", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CardSettlementFeeEvidence_Values", "\"Sequence\" > 0 AND \"ConfirmedFee\" >= 0 AND (\"ObservedNetAmount\" IS NULL OR \"ObservedNetAmount\" > 0) AND \"FeeFinancialClass\" = 3 AND \"PostedOn\" >= \"OccurredOn\" AND length(btrim(\"Basis\")) > 0 AND length(btrim(\"Evidence\")) > 0 AND length(btrim(\"Reason\")) > 0");
+                        });
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Category", b =>
@@ -2266,9 +2855,9 @@ namespace server.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_SettlementEvents_Chain", "\"Sequence\" >= 1 AND ((\"Sequence\" = 1) = (\"PreviousEventId\" IS NULL))");
 
-                            t.HasCheckConstraint("CK_SettlementEvents_KindDetails", "(\"Kind\" = 3) = (\"BankReceiptId\" IS NOT NULL) AND (\"Kind\" = 4) = (\"ReversesEventId\" IS NOT NULL) AND (\"Kind\" = 6) = (\"ConvertedTransactionId\" IS NOT NULL) AND (\"Kind\" = 2) = (\"CustodyToAccountId\" IS NOT NULL) AND (\"Kind\" <> 4 OR (\"ClientId\" IS NOT NULL AND \"NextExpectedDepositDate\" IS NOT NULL)) AND (\"Kind\" <> 6 OR \"ClientId\" IS NOT NULL) AND (\"Kind\" = 2 OR \"CustodyFromAccountId\" IS NULL) AND (\"ReturnReason\" IS NULL OR \"Kind\" = 4)");
+                            t.HasCheckConstraint("CK_SettlementEvents_KindDetails", "(\"Kind\" IN (3, 7)) = (\"BankReceiptId\" IS NOT NULL) AND (\"Kind\" = 4) = (\"ReversesEventId\" IS NOT NULL) AND (\"Kind\" = 6) = (\"ConvertedTransactionId\" IS NOT NULL) AND (\"Kind\" = 2) = (\"CustodyToAccountId\" IS NOT NULL) AND (\"Kind\" <> 4 OR (\"ClientId\" IS NOT NULL AND \"NextExpectedDepositDate\" IS NOT NULL)) AND (\"Kind\" <> 6 OR \"ClientId\" IS NOT NULL) AND (\"Kind\" = 2 OR \"CustodyFromAccountId\" IS NULL) AND (\"ReturnReason\" IS NULL OR \"Kind\" = 4)");
 
-                            t.HasCheckConstraint("CK_SettlementEvents_OutstandingDelta", "CASE \"Kind\" WHEN 1 THEN \"OutstandingDelta\" = -\"Amount\" OR (\"OutstandingDelta\" = 0 AND (\"MigrationIssue\" & 1) = 1) WHEN 3 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 6 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 4 THEN \"OutstandingDelta\" = \"Amount\" WHEN 2 THEN \"OutstandingDelta\" = 0 WHEN 5 THEN \"OutstandingDelta\" = 0 ELSE false END");
+                            t.HasCheckConstraint("CK_SettlementEvents_OutstandingDelta", "CASE \"Kind\" WHEN 1 THEN \"OutstandingDelta\" = -\"Amount\" OR (\"OutstandingDelta\" = 0 AND (\"MigrationIssue\" & 1) = 1) WHEN 3 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 7 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 6 THEN \"OutstandingDelta\" = -\"Amount\" WHEN 4 THEN \"OutstandingDelta\" = \"Amount\" WHEN 2 THEN \"OutstandingDelta\" = 0 WHEN 5 THEN \"OutstandingDelta\" = 0 ELSE false END");
 
                             t.HasCheckConstraint("CK_SettlementEvents_PostedOnOrAfterOccurred", "\"PostedOn\" >= \"OccurredOn\"");
 
@@ -2610,7 +3199,7 @@ namespace server.Infrastructure.Migrations
 
                             t.HasCheckConstraint("CK_Transactions_ClassificationSnapshot", "(\"ClassificationRevision\" = 0 AND \"ClassificationProvenance\" IS NULL AND \"PostedSettlementInstrument\" IS NULL AND \"PostedMonthlyFinancialRole\" IS NULL AND \"PostedFinancialClass\" IS NULL AND \"ClassifiedAt\" IS NULL) OR (\"ClassificationRevision\" >= 1 AND \"ClassificationProvenance\" IS NOT NULL AND \"PostedSettlementInstrument\" IS NOT NULL AND \"PostedMonthlyFinancialRole\" IS NOT NULL AND \"PostedFinancialClass\" IS NOT NULL AND \"ClassifiedAt\" IS NOT NULL)");
 
-                            t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR (\"GenerationKind\" IN (1, 2, 6, 7) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR (\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)");
+                            t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR (\"GenerationKind\" IN (1, 2, 6, 7) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR (\"GenerationKind\" = 8 AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NULL) OR (\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)");
                         });
                 });
 
@@ -2821,6 +3410,81 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Terminal");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.BankMatchProposal", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.BankStatementLine", "Line")
+                        .WithMany()
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.BankReceipt", "Receipt")
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Line");
+
+                    b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankMovement", b =>
+                {
+                    b.HasOne("server.Domain.Entities.BankReceipt", "BankReceipt")
+                        .WithMany()
+                        .HasForeignKey("BankReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", "BankTransaction")
+                        .WithMany()
+                        .HasForeignKey("BankTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", "SourceTransaction")
+                        .WithMany()
+                        .HasForeignKey("SourceTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BankReceipt");
+
+                    b.Navigation("BankTransaction");
+
+                    b.Navigation("SourceTransaction");
+                });
+
             modelBuilder.Entity("server.Domain.Entities.BankReceipt", b =>
                 {
                     b.HasOne("server.Domain.Entities.Account", "BankAccount")
@@ -2841,7 +3505,132 @@ namespace server.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("server.Domain.Entities.SettlementEvent", "SourceSettlementEvent")
+                        .WithMany()
+                        .HasForeignKey("SourceSettlementEventId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("BankAccount");
+
+                    b.Navigation("SourceSettlementEvent");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementAccountBinding", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementImport", b =>
+                {
+                    b.HasOne("server.Domain.Entities.BankStatementAccountBinding", "AccountBinding")
+                        .WithMany()
+                        .HasForeignKey("AccountBindingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AccountBinding");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementImportLine", b =>
+                {
+                    b.HasOne("server.Domain.Entities.BankStatementImport", "Import")
+                        .WithMany("Lines")
+                        .HasForeignKey("ImportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.BankStatementLine", "Line")
+                        .WithMany()
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Import");
+
+                    b.Navigation("Line");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementLine", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementMatch", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.BankStatementLine", null)
+                        .WithMany()
+                        .HasForeignKey("LineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.BankMatchProposal", "Proposal")
+                        .WithMany()
+                        .HasForeignKey("ProposalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.BankReceipt", null)
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Proposal");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.BranchUser", b =>
@@ -2861,6 +3650,81 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Branch");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CardProvider", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("BankAccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CardSettlementBatch", b =>
+                {
+                    b.HasOne("server.Domain.Entities.BankReceipt", "BankReceipt")
+                        .WithMany()
+                        .HasForeignKey("BankReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.CardProvider", "Provider")
+                        .WithMany()
+                        .HasForeignKey("ProviderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("BankReceipt");
+
+                    b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.CardSettlementFeeEvidence", b =>
+                {
+                    b.HasOne("server.Domain.Entities.CardSettlementBatch", "Batch")
+                        .WithMany()
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Category", b =>
@@ -3928,6 +4792,11 @@ namespace server.Infrastructure.Migrations
             modelBuilder.Entity("server.Domain.Entities.BankReceipt", b =>
                 {
                     b.Navigation("Allocations");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.BankStatementImport", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Branch", b =>

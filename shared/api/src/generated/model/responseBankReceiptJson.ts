@@ -7,8 +7,50 @@
 import type { BankReceiptSourceKind } from './bankReceiptSourceKind';
 import type { BankReceiptStatus } from './bankReceiptStatus';
 import type { ResponseBankReceiptAllocationJson } from './responseBankReceiptAllocationJson';
+import type { ResponseCardFeeEvidenceJson } from './responseCardFeeEvidenceJson';
 
 export interface ResponseBankReceiptJson {
+  feeEvidenceVersion: number;
+  feeEvidenceHistory: ResponseCardFeeEvidenceJson[];
+  /** @nullable */
+  bankMovementId?: string | null;
+  /** @nullable */
+  bankTransactionId?: string | null;
+  /** @nullable */
+  sourceTransactionId?: string | null;
+  /** @nullable */
+  sourceAccountId?: string | null;
+  /** @nullable */
+  returnReceivableTransactionId?: string | null;
+  /** @nullable */
+  originalBankReceiptId?: string | null;
+  /** @nullable */
+  sourceSettlementEventId?: string | null;
+  /** @nullable */
+  cardBatchId?: string | null;
+  /** @nullable */
+  providerId?: string | null;
+  /** @nullable */
+  providerName?: string | null;
+  /** @nullable */
+  brand?: string | null;
+  /** @nullable */
+  grossAllocatedAmount?: number | null;
+  /** @nullable */
+  confirmedFee?: number | null;
+  feeUnknown: boolean;
+  /** @nullable */
+  feeBasis?: string | null;
+  /** @nullable */
+  feeEvidence?: string | null;
+  /** @nullable */
+  observedNetAmount?: number | null;
+  /** @nullable */
+  unmatchedDifference?: number | null;
+  /** @nullable */
+  plannedArrivalOn?: string | null;
+  isDebit: boolean;
+  version: number;
   id: string;
   bankAccountId: string;
   bankAccountName: string;

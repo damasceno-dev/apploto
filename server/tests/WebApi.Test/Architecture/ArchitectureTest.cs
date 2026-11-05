@@ -286,7 +286,7 @@ public class ArchitectureTest
             // M9.6 Phase 9: Depósito Dinheiro locks the cashbox and the cofre (ascending) for its two legs.
             "server.Application.UseCases.Transactions.SafeDeposit.SafeDepositUseCase",
             // M9.7 Phase 2: every cheque command runs in one envelope over the cheques' accounts and the destination.
-            "server.Application.Services.Receivables.ChequeCommandRunner",
+            "server.Application.Services.Receivables.BankCommandRunner",
             // M9.7 Phase 1.3: reclassification takes the rows' account keys, serializing with settlement commands.
             "server.Application.UseCases.TransactionTypes.Reclassify.ReclassifyTransactionTypeUseCase",
             // M9.6 Phase 2: pairing, unpairing, deactivation and Terminal reassignment of a cashbox take the full §6.20

@@ -185,6 +185,8 @@ export const domainColors = {
       Cheque: ['bg', 'fg'],
       CreditCard: ['bg', 'fg'],
       DebitCard: ['bg', 'fg'],
+      Pix: ['bg', 'fg'],
+      MarketPlace: ['bg', 'fg'],
     },
   },
   'monthly-financial-role': {

@@ -50,6 +50,8 @@ internal static class OperationTokenRequirementResolver
     private static readonly HashSet<string> NonAuthorizationFrameworkFactories = new(StringComparer.Ordinal)
     {
         typeof(SaveTempDataAttribute).FullName!,
+        // This exact framework factory only configures request body size; it does not inspect credentials.
+        typeof(RequestSizeLimitAttribute).FullName!,
         "Microsoft.AspNetCore.Mvc.Infrastructure.ClientErrorResultFilterFactory",
         "Microsoft.AspNetCore.Mvc.Infrastructure.ModelStateInvalidFilterFactory"
     };

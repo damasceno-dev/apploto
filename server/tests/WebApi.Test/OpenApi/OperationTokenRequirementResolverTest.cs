@@ -158,6 +158,15 @@ public sealed class OperationTokenRequirementResolverTest
     }
 
     [Fact]
+    public void RequestSizeLimit_ShouldPreserveTheDeclaredTokenTierAndRoles()
+    {
+        var requirement = OperationTokenRequirementResolver.Resolve(Action([
+            new RequestSizeLimitAttribute(3 * 1024 * 1024), new TokenAuthorizeAttribute(Role.Manager, Role.Admin)]));
+        requirement.Tier.ShouldBe(TokenTier.Branch);
+        requirement.Roles.ShouldBe([Role.Admin, Role.Manager]);
+    }
+
+    [Fact]
     public void CustomFilterFactory_ShouldFail_EvenOnAnAnonymousAction()
     {
         Should.Throw<InvalidOperationException>(() => OperationTokenRequirementResolver.Resolve(

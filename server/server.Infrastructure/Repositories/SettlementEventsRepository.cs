@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models;
 
 namespace server.Infrastructure.Repositories;
 
@@ -78,6 +79,18 @@ internal class SettlementEventsRepository(ServerDbContext dbContext) : ISettleme
 
 internal class BankReceiptsRepository(ServerDbContext dbContext) : IBankReceiptsRepository
 {
+    public Task<BankMovement?> GetMovementAsNoTracking(Guid receiptId, Guid branchId, CancellationToken ct = default) =>
+        dbContext.BankMovements.AsNoTracking().Include(m => m.SourceTransaction).SingleOrDefaultAsync(m => m.BankReceiptId == receiptId && m.BranchId == branchId, ct);
+    public Task<BankReceiptReturnSource?> GetReturnSourceAsNoTracking(Guid receiptId, Guid branchId, CancellationToken ct = default) =>
+        (from receipt in dbContext.BankReceipts.AsNoTracking()
+         join returned in dbContext.SettlementEvents.AsNoTracking() on receipt.SourceSettlementEventId equals (Guid?)returned.Id
+         join deposit in dbContext.SettlementEvents.AsNoTracking() on returned.ReversesEventId equals (Guid?)deposit.Id
+         where receipt.Id == receiptId && receipt.BranchId == branchId
+         select new BankReceiptReturnSource(returned.ReceivableTransactionId, deposit.BankReceiptId)).SingleOrDefaultAsync(ct);
+    public Task<CardSettlementBatch?> GetCardBatchAsNoTracking(Guid receiptId, Guid branchId, CancellationToken ct = default) =>
+        dbContext.CardSettlementBatches.AsNoTracking().SingleOrDefaultAsync(b => b.BankReceiptId == receiptId && b.BranchId == branchId, ct);
+    public async Task<IReadOnlyList<CardSettlementFeeEvidence>> ListFeeEvidenceAsNoTracking(Guid batchId, Guid branchId, CancellationToken ct = default) =>
+        await dbContext.CardSettlementFeeEvidence.AsNoTracking().Where(e => e.BatchId == batchId && e.BranchId == branchId).OrderBy(e => e.Sequence).ToListAsync(ct);
     public async Task Add(BankReceipt receipt, CancellationToken ct = default)
     {
         await dbContext.BankReceipts.AddAsync(receipt, ct);
@@ -105,6 +118,7 @@ internal class TransactionClassificationRepository(ServerDbContext dbContext) : 
             .AsNoTracking()
             .Where(t =>
                 t.BranchId == branchId &&
+                t.GenerationKind != TransactionGenerationKind.BankMovement &&
                 t.TransactionTypeId == transactionTypeId &&
                 t.Active &&
                 t.Status == TransactionStatus.Active &&

@@ -16,4 +16,5 @@ export const TransactionGenerationKind = {
   SessionSpecialFee: 'SessionSpecialFee',
   SafeCashDeposit: 'SafeCashDeposit',
   ChequeFiadoConversion: 'ChequeFiadoConversion',
+  BankMovement: 'BankMovement',
 } as const;

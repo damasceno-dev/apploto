@@ -184,7 +184,10 @@ public class TransactionTypeControllerSettlementInstrumentTest(ServerWebApplicat
             .ShouldBe([
                 ("Cartão de Crédito", SettlementInstrument.CreditCard),
                 ("Cartão de Débito", SettlementInstrument.DebitCard),
-                ("Depósito Cheque", SettlementInstrument.Cheque)
+                ("Depósito Cheque", SettlementInstrument.Cheque),
+                ("MarketPlace", SettlementInstrument.MarketPlace),
+                ("PIX", SettlementInstrument.Pix),
+                ("PIX", SettlementInstrument.Pix)
             ]);
         list.Items.Where(item => item.SystemRole != null).ShouldAllBe(item => item.SettlementInstrument == SettlementInstrument.None);
     }

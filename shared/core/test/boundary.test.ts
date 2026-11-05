@@ -206,6 +206,7 @@ describe('public API', () => {
       'addMonths',
       'agingBucketLabels',
       'asCents',
+      'bankMovementKindLabels',
       'bankReceiptSourceKindLabels',
       'bankReceiptStatusLabels',
       'brazilianHolidayCalendarSourceLabels',

@@ -353,6 +353,20 @@ public static class AppDependencyInjection
         services.AddScoped<server.Application.UseCases.Platform.Bootstrap.BootstrapPlatformOperatorUseCase>();
         services.AddScoped<server.Application.UseCases.Platform.ReadOnboarding.ReadOperatedOnboardingUseCase>();
         services.AddScoped<server.Application.UseCases.Platform.ReissueOwnerInvitation.ReissueOwnerInvitationUseCase>();
+        services.AddScoped<server.Application.Services.Receivables.BankCommandRunner>();
+        services.AddScoped<server.Application.UseCases.CardProviders.Create.CreateCardProviderUseCase>();
+        services.AddScoped<server.Application.UseCases.CardSettlements.Create.CardSettlementUseCase>();
+        services.AddScoped<server.Application.UseCases.CardSettlements.FeeEvidence.RecordCardFeeEvidenceUseCase>();
+        services.AddScoped<server.Application.UseCases.BankStatements.Import.BankStatementImportUseCase>();
+        services.AddScoped<server.Application.Services.Banking.BankMatchService>();
+        services.AddScoped<server.Application.UseCases.BankStatements.BankStatementResponseBuilder>();
+        services.AddScoped<server.Application.UseCases.BankStatements.Get.GetBankStatementUseCase>();
+        services.AddScoped<server.Application.UseCases.BankStatements.Propose.ProposeBankMatchesUseCase>();
+        services.AddScoped<server.Application.UseCases.BankStatements.Confirm.ConfirmBankMatchesUseCase>();
+        services.AddScoped<server.Application.UseCases.CardProviders.List.ListCardProvidersUseCase>();
+        services.AddScoped<server.Application.UseCases.BankMovements.Create.BankMovementUseCase>();
+        services.AddScoped<server.Application.UseCases.BankStatements.AccountBinding.CreateBankStatementAccountBindingUseCase>();
+        services.AddScoped<server.Application.UseCases.BankStatements.ListAccountBindings.ListBankStatementAccountBindingsUseCase>();
         services.AddScoped<PasswordEncryption>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
     }

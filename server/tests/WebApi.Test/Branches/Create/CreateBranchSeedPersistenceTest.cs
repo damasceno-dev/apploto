@@ -37,14 +37,18 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
                 transactionType.Category.DefaultDirection,
                 transactionType.SettlementRule,
                 transactionType.RequiresTabAccountAndClient,
-                transactionType.SystemRole
+                transactionType.SystemRole,
+                transactionType.FinancialClass,
+                transactionType.SeedKey
             })
             .ToListAsync();
 
         // 25 catalog rows (the close-field and deposit types among them), the 32 Access expense types, the three
         // automatic-leg types and the cheque-conversion debt type: 61, of which 9 are system-owned (M7.7 Phase 5.6;
-        // M9.6 Phases 6, 7 and 9; M9.7 Phase 2.3).
-        persistedRows.Count.ShouldBe(61);
+        // M9.6 Phases 6, 7 and 9; M9.7 Phase 2.3). P4 adds two dedicated recolhimento types without system roles.
+        persistedRows.Count.ShouldBe(63);
+        persistedRows.ShouldContain(row => row.SeedKey == "saidas.recolhimento-cofre" && row.DefaultDirection == Direction.Out && row.FinancialClass == FinancialClass.InternalTransfer && row.SystemRole == null);
+        persistedRows.ShouldContain(row => row.SeedKey == "entradas.recolhimento-banco" && row.DefaultDirection == Direction.In && row.FinancialClass == FinancialClass.InternalTransfer && row.SystemRole == null);
         persistedRows.Count(row => row.SystemRole != null).ShouldBe(9);
 
         persistedRows.Where(row => row.Name is "Tarifa Bolão" or "Tarifa Especial" or "Relatório do terminal")
@@ -105,6 +109,8 @@ public class CreateBranchSeedPersistenceTest(ServerWebApplicationFactory factory
             [("Tarifa Bolão", "Receita")] = (SettlementRule.SameDay, false),
             [("Relatório do terminal", "Entradas")] = (SettlementRule.SameDay, false),
             [("Cliente", "Saídas")] = (SettlementRule.SameDay, true),
+            [("Recolhimento — saída do cofre", "Saídas")] = (SettlementRule.SameDay, false),
+            [("Recolhimento — entrada no banco", "Entradas")] = (SettlementRule.SameDay, false),
             [("Depósito Dinheiro", "Saídas")] = (SettlementRule.NextCalendarDay, false),
             [("Cartão de Crédito", "Saídas")] = (SettlementRule.TwoBusinessDays, false),
             [("MarketPlace", "Saídas")] = (SettlementRule.SameDay, false),

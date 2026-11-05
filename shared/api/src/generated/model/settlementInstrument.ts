@@ -12,4 +12,6 @@ export const SettlementInstrument = {
   Cheque: 'Cheque',
   CreditCard: 'CreditCard',
   DebitCard: 'DebitCard',
+  Pix: 'Pix',
+  MarketPlace: 'MarketPlace',
 } as const;

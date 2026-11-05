@@ -10,4 +10,9 @@ export type BankReceiptSourceKind =
 
 export const BankReceiptSourceKind = {
   ChequeDeposit: 'ChequeDeposit',
+  ProviderSettlement: 'ProviderSettlement',
+  SafeCollection: 'SafeCollection',
+  CaixaPrizeReimbursement: 'CaixaPrizeReimbursement',
+  BankFee: 'BankFee',
+  ChequeReturn: 'ChequeReturn',
 } as const;

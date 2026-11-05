@@ -68,7 +68,7 @@ public class GetUpcomingSettlementsUseCaseTest
         response.Items.Single().OriginTransactionId.ShouldBe(row.OriginTransactionId);
         // Every classified instrument in declared order, zeros included; None never appears.
         response.ByInstrument.Select(total => total.Instrument)
-            .ShouldBe([SettlementInstrument.Cheque, SettlementInstrument.CreditCard, SettlementInstrument.DebitCard]);
+            .ShouldBe([SettlementInstrument.Cheque, SettlementInstrument.CreditCard, SettlementInstrument.DebitCard, SettlementInstrument.Pix, SettlementInstrument.MarketPlace]);
         response.ByInstrument.Single(total => total.Instrument == SettlementInstrument.CreditCard).Value.ShouldBe(90m);
         response.ByInstrument.Single(total => total.Instrument == SettlementInstrument.CreditCard).Count.ShouldBe(3);
         response.ByInstrument.Where(total => total.Instrument != SettlementInstrument.CreditCard).ShouldAllBe(total => total.Count == 0 && total.Value == 0m);

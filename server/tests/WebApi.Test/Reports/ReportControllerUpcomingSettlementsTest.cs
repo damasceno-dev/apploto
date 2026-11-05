@@ -115,7 +115,9 @@ public class ReportControllerUpcomingSettlementsTest(ServerWebApplicationFactory
             page.ByInstrument.Select(total => (total.Instrument, total.Count, total.Value)).ShouldBe([
                 (SettlementInstrument.Cheque, 1, 50m),
                 (SettlementInstrument.CreditCard, 3, 55m),
-                (SettlementInstrument.DebitCard, 3, 51m)
+                (SettlementInstrument.DebitCard, 3, 51m),
+                (SettlementInstrument.Pix, 0, 0m),
+                (SettlementInstrument.MarketPlace, 0, 0m)
             ]);
         }
         items.Sum(item => item.Value).ShouldBe(pages[0].TotalValue);

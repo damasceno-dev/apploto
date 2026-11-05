@@ -2002,5 +2002,11 @@ namespace server.Exceptions {
                 return ResourceManager.GetString("RECEIVABLE_CLIENT_LOCKED_BY_EVENTS", resourceCulture);
             }
         }
+        public static string BANKING_INPUT_INVALID => ResourceManager.GetString("BANKING_INPUT_INVALID", resourceCulture)!;
+        public static string BANKING_STATE_CONFLICT => ResourceManager.GetString("BANKING_STATE_CONFLICT", resourceCulture)!;
+        public static string CARD_PROVIDER_NOT_FOUND => ResourceManager.GetString("CARD_PROVIDER_NOT_FOUND", resourceCulture)!;
+        public static string CARD_CLAIM_INVALID => ResourceManager.GetString("CARD_CLAIM_INVALID", resourceCulture)!;
+        public static string CARD_FEE_EVIDENCE_REQUIRED => ResourceManager.GetString("CARD_FEE_EVIDENCE_REQUIRED", resourceCulture)!;
+        public static string OFX_INVALID => ResourceManager.GetString("OFX_INVALID", resourceCulture)!;
     }
 }

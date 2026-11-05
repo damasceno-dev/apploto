@@ -94,7 +94,8 @@
     "SessionBolaoFee": "tarifa de bolão informada no fechamento",
     "SessionSpecialFee": "tarifa especial informada no fechamento",
     "SafeCashDeposit": "depósito de dinheiro do caixa no cofre",
-    "ChequeFiadoConversion": "conversão de cheque em fiado"
+    "ChequeFiadoConversion": "conversão de cheque em fiado",
+    "BankMovement": "movimento bancário registrado"
   },
   "FiadoPaymentKind": {
     "CountedCash": "Dinheiro (entra no caixa)",
@@ -126,7 +127,9 @@
     "None": "Sem classificação",
     "Cheque": "Cheque",
     "CreditCard": "Cartão de crédito",
-    "DebitCard": "Cartão de débito"
+    "DebitCard": "Cartão de débito",
+    "Pix": "PIX",
+    "MarketPlace": "MarketPlace"
   },
   "MonthlyFinancialRole": {
     "None": "Nenhuma",
@@ -258,7 +261,8 @@
     "ChequeDeposited": "Depositado",
     "ChequeReturned": "Devolvido pelo banco",
     "ChequeRepresented": "Reapresentado",
-    "ChequeConvertedToFiado": "Convertido em fiado"
+    "ChequeConvertedToFiado": "Convertido em fiado",
+    "ProviderSettled": "Liquidado pelo provedor"
   },
   "SettlementEventProvenance": {
     "Command": "Registrado no sistema",
@@ -272,9 +276,20 @@
     "CancelledAtMigration": "Já estava cancelado"
   },
   "BankReceiptStatus": {
-    "Pending": "Pendente de confirmação"
+    "Pending": "Pendente de confirmação",
+    "Confirmed": "Confirmado no extrato"
   },
   "BankReceiptSourceKind": {
-    "ChequeDeposit": "Depósito de cheques"
+    "ChequeReturn": "Devolução de cheque conciliado",
+    "ChequeDeposit": "Depósito de cheques",
+    "ProviderSettlement": "Liquidação de provedor",
+    "SafeCollection": "Recolhimento do cofre",
+    "CaixaPrizeReimbursement": "Ressarcimento de prêmios CAIXA",
+    "BankFee": "Tarifa bancária"
+  },
+  "BankMovementKind": {
+    "SafeCollection": "Recolhimento do cofre",
+    "CaixaPrizeReimbursement": "Ressarcimento de prêmios CAIXA",
+    "BankFee": "Tarifa bancária"
   }
 }

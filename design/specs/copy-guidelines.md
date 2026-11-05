@@ -104,7 +104,7 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **DailyCloseReviewEventType** *(§3.21, Fix & resubmit)*: `Rejected` → "Rejeitado na conferência" · `OpeningChanged` → "Abertura alterada".
 
-**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoSale` → "venda fiado no balcão" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro" · `SessionTerminalReport` → "relatório do terminal informado no fechamento" · `SessionBolaoFee` → "tarifa de bolão informada no fechamento" · `SessionSpecialFee` → "tarifa especial informada no fechamento" · `SafeCashDeposit` → "depósito de dinheiro do caixa no cofre" · `ChequeFiadoConversion` → "conversão de cheque em fiado".
+**TransactionGenerationKind** *(§6.12, generated movements)*: the marker is always "Automática"; the source phrase is `FiadoSale` → "venda fiado no balcão" · `FiadoCashRepayment` → "recebimento de fiado em dinheiro" · `SessionTerminalReport` → "relatório do terminal informado no fechamento" · `SessionBolaoFee` → "tarifa de bolão informada no fechamento" · `SessionSpecialFee` → "tarifa especial informada no fechamento" · `SafeCashDeposit` → "depósito de dinheiro do caixa no cofre" · `ChequeFiadoConversion` → "conversão de cheque em fiado" · `BankMovement` → "movimento bancário registrado".
 
 **FiadoPaymentKind** *(§6.4, admin types and Receber pagamento)*: `CountedCash` → "Dinheiro (entra no caixa)" · `NonCash` → "Outro meio (não entra no caixa)".
 
@@ -114,7 +114,7 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **MailDeliveryStatus** *(§6.16 — SMTP acceptance, never inbox arrival)*: `Pending` → "Envio pendente" · `Sent` → "Enviado ao servidor de e-mail" · `Failed` → "Falha no envio".
 
-**SettlementInstrument** *(§3.10, admin types, Upcoming settlements and the Dashboard)*: `None` → "Sem classificação" · `Cheque` → "Cheque" · `CreditCard` → "Cartão de crédito" · `DebitCard` → "Cartão de débito". *(A receivable class set by the manager on the type; never inferred from the type's name.)*
+**SettlementInstrument** *(§3.10, admin types, Upcoming settlements and the Dashboard)*: `None` → "Sem classificação" · `Cheque` → "Cheque" · `CreditCard` → "Cartão de crédito" · `DebitCard` → "Cartão de débito" · `Pix` → "PIX" · `MarketPlace` → "MarketPlace". *(A receivable class set by the manager on the type; never inferred from the type's name.)*
 
 **MonthlyFinancialRole** *(§3.10, admin types and the Monthly financial report)*: `None` → "Nenhuma" · `BolaoServiceFee` → "Tarifa de bolão" · `CommercialLeftover` → "Sobra (perda comercial)" · `SpecialDrawServiceFee` → "Tarifa especial". *(Feminine — agrees with "classificação".)*
 
@@ -156,15 +156,18 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **ChequeLifecycleState** *(M9.7, where a cheque stands)*: `Received` → "No caixa" · `InSafe` → "No cofre" · `Deposited` → "Depositado" · `Returned` → "Devolvido" · `AwaitingRedeposit` → "Reapresentado (aguardando depósito)" · `ConvertedToFiado` → "Convertido em fiado" · `SettledBeforeEvents` → "Pago (registro anterior)". *(Masculine — agrees with *cheque*. Depositado is not a clearing guarantee.)*
 
-**SettlementEventKind** *(M9.7, receivable history)*: `MigratedSettlement` → "Pagamento registrado antes da atualização" · `CustodyMoved` → "Levado ao cofre" · `ChequeDeposited` → "Depositado" · `ChequeReturned` → "Devolvido pelo banco" · `ChequeRepresented` → "Reapresentado" · `ChequeConvertedToFiado` → "Convertido em fiado".
+**SettlementEventKind** *(M9.7, receivable history)*: `MigratedSettlement` → "Pagamento registrado antes da atualização" · `CustodyMoved` → "Levado ao cofre" · `ChequeDeposited` → "Depositado" · `ChequeReturned` → "Devolvido pelo banco" · `ChequeRepresented` → "Reapresentado" · `ChequeConvertedToFiado` → "Convertido em fiado" · `ProviderSettled` → "Liquidado pelo provedor".
 
 **SettlementEventProvenance** *(M9.7, receivable history)*: `Command` → "Registrado no sistema" · `MigratedFromPaidAt` → "Reconstruído do pagamento anterior".
 
 **SettlementMigrationIssue** *(M9.7, reconstructed events)*: `None` → "Sem pendência" · `NotSettleableTabRow` → "Fiado: não liquida a dívida" · `OccurredBeforeTransactionDate` → "Pagamento anterior à data da transação" · `DraftAtMigration` → "Era rascunho na atualização" · `CancelledAtMigration` → "Já estava cancelado".
 
-**BankReceiptStatus** *(M9.7, pending bank receipt)*: `Pending` → "Pendente de confirmação". *(Never shown as arrived: confirmation is statement reconciliation (M9.7 Phase 5).)*
+**BankReceiptStatus** *(M9.7, pending bank receipt)*: `Pending` → "Pendente de confirmação" · `Confirmed` → "Confirmado no extrato". *(Only the exact statement match confirms external arrival.)*
 
-**BankReceiptSourceKind** *(M9.7, what expects money in the bank)*: `ChequeDeposit` → "Depósito de cheques".
+**BankReceiptSourceKind** *(M9.7, what expects money in the bank)*: `ChequeReturn` → "Devolução de cheque conciliado" · `ChequeDeposit` → "Depósito de cheques" · `ProviderSettlement` → "Liquidação de provedor" · `SafeCollection` → "Recolhimento do cofre" · `CaixaPrizeReimbursement` → "Ressarcimento de prêmios CAIXA" · `BankFee` → "Tarifa bancária".
+
+**BankMovementKind** *(M9.7 P4, typed bank provenance)*: `SafeCollection` → "Recolhimento do cofre" · `CaixaPrizeReimbursement` → "Ressarcimento de prêmios CAIXA" · `BankFee` → "Tarifa bancária".
+
 
 ## 6. Error display
 

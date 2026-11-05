@@ -6,6 +6,7 @@
 import type {
   AccountType,
   AgingBucket,
+  BankMovementKind,
   BankReceiptSourceKind,
   BankReceiptStatus,
   BrazilianHolidayCalendarSource,
@@ -171,6 +172,7 @@ export const transactionGenerationKindLabels: Labels<TransactionGenerationKind> 
   SessionSpecialFee: 'tarifa especial informada no fechamento',
   SafeCashDeposit: 'depósito de dinheiro do caixa no cofre',
   ChequeFiadoConversion: 'conversão de cheque em fiado',
+  BankMovement: 'movimento bancário registrado',
 };
 
 export const fiadoPaymentKindLabels: Labels<FiadoPaymentKind> = {
@@ -210,6 +212,8 @@ export const settlementInstrumentLabels: Labels<SettlementInstrument> = {
   Cheque: 'Cheque',
   CreditCard: 'Cartão de crédito',
   DebitCard: 'Cartão de débito',
+  Pix: 'PIX',
+  MarketPlace: 'MarketPlace',
 };
 
 /** Feminine — agrees with *classificação*. */
@@ -377,6 +381,7 @@ export const settlementEventKindLabels: Labels<SettlementEventKind> = {
   ChequeReturned: 'Devolvido pelo banco',
   ChequeRepresented: 'Reapresentado',
   ChequeConvertedToFiado: 'Convertido em fiado',
+  ProviderSettled: 'Liquidado pelo provedor',
 };
 
 export const settlementEventProvenanceLabels: Labels<SettlementEventProvenance> = {
@@ -395,10 +400,22 @@ export const settlementMigrationIssueLabels: Labels<SettlementMigrationIssue> = 
 /** Never shown as arrived: confirmation is statement reconciliation (M9.7 Phase 5). */
 export const bankReceiptStatusLabels: Labels<BankReceiptStatus> = {
   Pending: 'Pendente de confirmação',
+  Confirmed: 'Confirmado no extrato',
 };
 
 export const bankReceiptSourceKindLabels: Labels<BankReceiptSourceKind> = {
   ChequeDeposit: 'Depósito de cheques',
+  ChequeReturn: 'Devolução de cheque conciliado',
+  ProviderSettlement: 'Liquidação de provedor',
+  SafeCollection: 'Recolhimento do cofre',
+  CaixaPrizeReimbursement: 'Ressarcimento de prêmios CAIXA',
+  BankFee: 'Tarifa bancária',
+};
+
+export const bankMovementKindLabels: Labels<BankMovementKind> = {
+  SafeCollection: 'Recolhimento do cofre',
+  CaixaPrizeReimbursement: 'Ressarcimento de prêmios CAIXA',
+  BankFee: 'Tarifa bancária',
 };
 
 /** The provenance marker of a generated movement (copy §4, §5): never a status. */
@@ -453,6 +470,7 @@ export const enumLabels = {
   SettlementMigrationIssue: settlementMigrationIssueLabels,
   BankReceiptStatus: bankReceiptStatusLabels,
   BankReceiptSourceKind: bankReceiptSourceKindLabels,
+  BankMovementKind: bankMovementKindLabels,
 } as const;
 
 export type EnumLabel =

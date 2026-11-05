@@ -2827,25 +2827,45 @@ The plan aligns the app with how the lotérica actually works (M9.5 Phase 5) and
 - [x] **2.3** **Cheque devolvido** — a linked event with the cheque's client, the next expected deposit date and an optional bank return reason (alínea) → **Reapresentar** or **Converter em fiado**. Conversion requires an identified client, closes the cheque receivable and opens the fiado debt in one commit (never both outstanding), and writes no cashbox leg.
 - [x] **2.4** Tests for each path, including a return after the deposit month is locked.
 
+> **P3–P5 delivery map (2026-11-05; technically accepted for criteria 3.1–3.3, 4.1–4.2 and 5.1–5.4).** Reused P1/P2 envelope and electronic/cheque identity invariants are independently accepted within this scope; whole-phase acceptance is separate. Canonical v63 and its inherited v62 design reconciliation are independently accepted; both design markers are v63. P6/P7, native/app UI, external evidence and whole-M9.7 acceptance remain pending.
+>
+> | Criterion | Requirement / owning source | Implementation / verification |
+> |---|---|---|
+> | 3.1 | §3.31/§6.24, C3; stable provider identity, configurable bank/brand/timing, immutable full/partial batch | Provider configuration, event allocations and one existing-model net BankReceipt; PostgreSQL golden and overlapping-claim tests |
+> | 3.2 | Financial matrix/C3; supported or explicitly manager-confirmed fee, unknown ≠ zero, unexplained residual unmatched | Backend decimal allocation and immutable fee evidence; fee/cutoff/rollback tests |
+> | 3.3 | §6.6/§6.11; authority before replay, month and sorted account coordination, exact versions | Atomic batch, conflict/replay/race and prior-schema migration proof |
+> | 4.1 | C4/O09–O11; Safe cash movement and cheque custody/deposit continuity, typed reimbursement/fees | Protected source movement plus pending receipt; no duplicate payment, income or expense for internal transfers |
+> | 4.2 | Matrix, dates/locks and snapshot contracts | PostgreSQL/HTTP rollback, account/type/tenant/version/lock and classification tests |
+> | 5.1 | C5; bounded OFX evidence ingestion, scoped import/line identities | Supported encodings/formats, malformed/oversize/currency/account tests; exact and overlapping retry evidence |
+> | 5.2 | C5; proposals and exact version-checked atomic confirmation | Persisted proposal/line/receipt identities, unmatched retention, current authority and concurrent confirmation tests |
+> | 5.3 | C5; PIX/MarketPlace instruments | Authoritative enums/snapshot predicates/seeds, generated API, pure core labels and semantic tokens |
+> | 5.4 | C5 plus inherited P2 migration/return regressions | Card→receipt→OFX match and Safe→match demonstrations; duplicate import changes no balances; unexplained difference remains unmatched |
+>
+> **Artifacts:** `UseCases/CardProviders`, `CardSettlements` (including append-only, versioned later fee evidence), `BankMovements` (dedicated recolhimento types, no system roles), `BankStatements` (semantic OFX line identities with retained raw source); shared `BankCommandRunner` and `BankMatchService`; immutable banking entities/constraints and generated migrations; `CardStatementGoldenTest`, `M9_7BankingMigrationTest`, parser/calendar/fee tests; .NET OpenAPI and regenerated API/BFF/mobile policy. Canonical §3.32/§6.25 and design transaction/report/admin blueprints describe the supported one-line/one-receipt operation, explicit OFX source binding, fees and source traceability.
+>
+> **Verification (2026-11-05):** solution build passes; controller route/import convention alignment passes 92 targeted banking/fee/OpenAPI/architecture checks with an identical exported contract; final WebApi.Test 1,479/1,479 on owned real PostgreSQL/HTTP fixtures, UseCases.Test 1,317/1,317 and Validators.Test 406/406, no skips. The 126-case banking/seed/OpenAPI subset and supplemental legacy-fingerprint import check pass. Coverage includes prior-schema/model preservation, locked full/partial claims, later explicit fee resolution without rewriting source money, immutable evidence, same-amount stale proposals, current-authority/concurrent append/replay, rollback, dedicated movement types and semantic OFX overlap. OpenAPI snapshot/export match (129 paths, 162 operations, 320 schemas); 439 generated files match regeneration. Workspace typecheck/lint/format pass; API 103, core 319, Web 9 tooling + 334 component tests, Mobile 32 tooling + 314 Jest tests pass. Design: 45/45 screens, 48 enums, 14 negatives; tokens: 1,346 contrast pairs and 40 negatives. Scoped fee-validator mutation: 100% (18 killed, 1 ignored). Parser mutation: 75.31% (122 killed, 36 survived, 4 uncovered, 236 failed compilation), partial evidence, not full mutation acceptance. Full v63 doc-sync and all 34 disposable regression scenarios pass after independent semantic acceptance and both-marker alignment. Native execution was not performed. `git diff --check` is clean.
+>
+> **Acceptance / next action:** P3–P5 criteria below and v63 catalog/copy/blueprint semantics are independently accepted (2026-11-05). Both design markers are v63; full doc-sync and its 34 regression scenarios pass. Bank behavior for a full cheque credit plus separate return debit before confirmation remains unverified, and that presentation stays unmatched. Bank-position completeness, banking discovery lists, grouped/split matching and explicit existing-branch configuration retain their documented limits/ownership. Next work is the owning app/API backlog and P6/P7, not whole-M9.7 close-out. No external provider evidence or live integration is assumed.
+
 ### Phase 3 — Card settlement batches (C3) **[BETTER]**
 
-- [ ] **3.1** Card receivables → a settlement **batch** with its own id, provider and receiving account (date and brand are attributes) → a pending net bank receipt, confirmed by reconciliation. Calendar versus business-day timing is configured per provider.
-- [ ] **3.2** Fees come from the provider's settlement data or explicit manager confirmation. **An unexplained difference stays unmatched; it is never automatically classified as `Tarifa cartão`.**
-- [ ] **3.3** Tests: full and partial batches, explained and unexplained differences.
+- [x] **3.1** Card receivables → a settlement **batch** with its own id, provider and receiving account (date and brand are attributes) → a pending net bank receipt, confirmed by reconciliation. Calendar versus business-day timing is configured per provider.
+- [x] **3.2** Fees come from the provider's settlement data or explicit manager confirmation. **An unexplained difference stays unmatched; it is never automatically classified as `Tarifa cartão`.**
+- [x] **3.3** Tests: full and partial batches, explained and unexplained differences.
 
 ### Phase 4 — Cofre → bank and bank accounts (C4) **[BETTER]**
 
-- [ ] **4.1** **Recolhimento** (cofre → bank, cash or cheques) with a pending bank receipt; CAIXA prize reimbursement and bank fees as typed bank movements; internal transfers never counted as income or expense.
-- [ ] **4.2** Tests for each movement and its pending/confirmed state.
+- [x] **4.1** **Recolhimento** (cofre → bank, cash or cheques) with a pending bank receipt; CAIXA prize reimbursement and bank fees as typed bank movements; internal transfers never counted as income or expense.
+- [x] **4.2** Tests for each movement and its pending/confirmed state.
 
 ### Phase 5 — Statement reconciliation (C5) **[BETTER]**
 
 *Why:* the shop said this reconciliation is not done yet; it is the only way to prove that money that left the cashbox arrived.
 
-- [ ] **5.1** OFX import; a re-imported statement is detected by statement and line identity.
-- [ ] **5.2** The system proposes matches against **existing** pending receipts and expected movements (recolhimentos, card batches, PIX/MarketPlace credits, cheque deposits and returns, reimbursements). Confirmation applies to the displayed matches and amounts under a version check; unmatched items are kept; a matched line confirms an entry and never creates a second one.
-- [ ] **5.3** PIX and MarketPlace become settlement instruments so their bank credits are expected.
-- [ ] **5.4** Tests: proposal, confirmation with concurrent change, duplicate import, unmatched retention.
+- [x] **5.1** OFX import; a re-imported statement is detected by statement and line identity.
+- [x] **5.2** The system proposes matches against **existing** pending receipts and expected movements (recolhimentos, card batches, PIX/MarketPlace credits, cheque deposits and returns, reimbursements). Confirmation applies to the displayed matches and amounts under a version check; unmatched items are kept; a matched line confirms an entry and never creates a second one.
+- [x] **5.3** PIX and MarketPlace become settlement instruments so their bank credits are expected.
+- [x] **5.4** Tests: proposal, confirmation with concurrent change, duplicate import, unmatched retention.
 
 ### Phase 6 — Financial classification and P&L (C6) **[BETTER]**
 

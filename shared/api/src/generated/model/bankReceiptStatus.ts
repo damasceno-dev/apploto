@@ -9,4 +9,5 @@ export type BankReceiptStatus = (typeof BankReceiptStatus)[keyof typeof BankRece
 
 export const BankReceiptStatus = {
   Pending: 'Pending',
+  Confirmed: 'Confirmed',
 } as const;

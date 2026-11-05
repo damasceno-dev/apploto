@@ -143,7 +143,8 @@ public static class ChequeLifecycleRules
     {
         SettlementEventKind.MigratedSettlement or
         SettlementEventKind.ChequeDeposited or
-        SettlementEventKind.ChequeConvertedToFiado => -amount,
+        SettlementEventKind.ChequeConvertedToFiado or
+        SettlementEventKind.ProviderSettled => -amount,
         SettlementEventKind.ChequeReturned => amount,
         SettlementEventKind.CustodyMoved or
         SettlementEventKind.ChequeRepresented => 0m,

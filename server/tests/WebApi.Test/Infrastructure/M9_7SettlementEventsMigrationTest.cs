@@ -117,12 +117,12 @@ public sealed class M9_7SettlementEventsMigrationTest : IAsyncLifetime
         return (e.OccurredOn, e.OutstandingDelta, e.MigrationIssue);
     }
 
-    private sealed record Legacy(
+    internal sealed record Legacy(
         Guid BranchId, Guid UserId, Guid OperatorId, Guid BankAccountId, Guid TabAccountId, Guid ClientId,
         Guid ChequeTypeId, Guid OutCategoryId,
         Guid BankPaid, Guid BankLateNight, Guid TabPaid, Guid DraftPaid, Guid CancelledPaid, Guid BeforeDate, Guid Unpaid);
 
-    private static async Task<Legacy> SeedPriorSchemaAsync(ServerDbContext db)
+    internal static async Task<Legacy> SeedPriorSchemaAsync(ServerDbContext db)
     {
         var branch = new Branch { Name = "Legacy cheques" };
         var user = new User { Name = "Gerente", Email = $"legacy-{Guid.NewGuid():N}@example.test", Password = "x" };

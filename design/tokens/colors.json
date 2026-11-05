@@ -629,6 +629,14 @@
           "DebitCard": {
             "fg": "{color.semantic.light.feedback.info.fg}",
             "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "Pix": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
+          },
+          "MarketPlace": {
+            "fg": "{color.semantic.light.feedback.info.fg}",
+            "bg": "{color.semantic.light.feedback.info.bg}"
           }
         },
         "monthly-financial-role": {
@@ -939,6 +947,14 @@
             "bg": "{color.semantic.dark.feedback.info.bg}"
           },
           "DebitCard": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "Pix": {
+            "fg": "{color.semantic.dark.feedback.info.fg}",
+            "bg": "{color.semantic.dark.feedback.info.bg}"
+          },
+          "MarketPlace": {
             "fg": "{color.semantic.dark.feedback.info.fg}",
             "bg": "{color.semantic.dark.feedback.info.bg}"
           }

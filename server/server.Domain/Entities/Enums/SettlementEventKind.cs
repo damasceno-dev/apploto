@@ -24,5 +24,8 @@ public enum SettlementEventKind
     ChequeRepresented = 5,
 
     /// <summary><i>Converter em fiado</i>: the cheque claim closes and the same client's fiado debt opens.</summary>
-    ChequeConvertedToFiado = 6
+    ChequeConvertedToFiado = 6,
+
+    /// <summary>Gross card claim allocation, linked to a batch net receipt.</summary>
+    ProviderSettled = 7
 }

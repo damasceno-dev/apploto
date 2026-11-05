@@ -27,5 +27,8 @@ public enum TransactionGenerationKind
     SafeCashDeposit = 6,
 
     /// <summary>Tab <c>Out</c>: the fiado debt opened by converting a cheque (M9.7 Phase 2.3); its source is the cheque row.</summary>
-    ChequeFiadoConversion = 7
+    ChequeFiadoConversion = 7,
+
+    /// <summary>Protected typed bank movement or its cofre source; linked by BankMovement.</summary>
+    BankMovement = 8
 }

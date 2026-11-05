@@ -11,6 +11,11 @@ namespace server.Domain.Entities;
 /// </summary>
 public class BankReceipt : EntityBase
 {
+    public uint Version { get; set; }
+
+    public Guid? SourceSettlementEventId { get; init; }
+    public SettlementEvent? SourceSettlementEvent { get; init; }
+
     public Guid BranchId { get; init; }
 
     public Guid BankAccountId { get; init; }
@@ -22,7 +27,7 @@ public class BankReceipt : EntityBase
     public DateTime OccurredOn { get; init; }
     public DateTime PostedOn { get; init; }
 
-    /// <summary>The deposited total: the sum of the batch's deposit events.</summary>
+    /// <summary>Positive expected bank amount: cheque face total, provider net (or unresolved gross), transfer or typed movement.</summary>
     public decimal Amount { get; init; }
 
     public string? Description { get; init; }

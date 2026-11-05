@@ -6,5 +6,6 @@ namespace server.Domain.Entities.Enums;
 /// </summary>
 public enum BankReceiptStatus
 {
-    Pending = 1
+    Pending = 1,
+    Confirmed = 2
 }

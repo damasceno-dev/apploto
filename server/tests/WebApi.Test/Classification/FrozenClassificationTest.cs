@@ -28,7 +28,7 @@ public class FrozenClassificationTest(ServerWebApplicationFactory factory)
     {
         var s = await ChequeScenario.CreateAsync(factory, _client, "Frozen");
         using var clock = factory.FreezeBranchLocalTime(new DateTime(2025, 3, 20, 10, 0, 0));
-        var type = s.Day.SeededTypes["saidas.marketplace"];
+        var type = s.Day.SeededTypes["saidas.telesena"];
         var before = await SeedRowAsync(s, type, new DateTime(2025, 3, 10), 25m);
         var draft = await SeedRowAsync(s, type, new DateTime(2025, 3, 11), 15m, TransactionStatus.Draft);
         draft.ClassificationRevision.ShouldBe(0);
@@ -61,7 +61,7 @@ public class FrozenClassificationTest(ServerWebApplicationFactory factory)
     {
         var s = await ChequeScenario.CreateAsync(factory, _client, "Reclassify");
         using var clock = factory.FreezeBranchLocalTime(new DateTime(2025, 2, 20, 10, 0, 0));
-        var type = s.Day.SeededTypes["saidas.marketplace"];
+        var type = s.Day.SeededTypes["saidas.telesena"];
         var locked = await SeedRowAsync(s, type, new DateTime(2025, 1, 20), 10m);
         var open = await SeedRowAsync(s, type, new DateTime(2025, 2, 5), 20m);
         await s.LockThroughAsync(new DateTime(2025, 1, 31));

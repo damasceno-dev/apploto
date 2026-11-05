@@ -1,6 +1,7 @@
 using server.Application.Services.Receivables;
 using server.Communication.Requests;
 using server.Communication.Responses;
+using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
 using server.Domain.Models;
@@ -86,13 +87,31 @@ public class ChequeReturnUseCase(
                         ReturnReason = string.IsNullOrWhiteSpace(request.ReturnReason) ? null : request.ReturnReason.Trim()
                     });
                 await settlementEventsRepository.Add(returned, token);
+                BankReceipt? returnReceipt = null;
+                var originalReceipt = await bankReceiptsRepository.GetByIdAndBranchIdAsNoTracking(deposit.BankReceiptId!.Value, branchUser.BranchId, token);
+                if (originalReceipt?.Status == BankReceiptStatus.Confirmed)
+                {
+                    returnReceipt = new BankReceipt
+                    {
+                        BranchId = branchUser.BranchId, BankAccountId = originalReceipt.BankAccountId,
+                        SourceKind = BankReceiptSourceKind.ChequeReturn, SourceSettlementEventId = returned.Id,
+                        OccurredOn = dates.OccurredOn, PostedOn = dates.PostedOn, Amount = returned.Amount,
+                        CreatedByUserId = branchUser.UserId
+                    };
+                    await bankReceiptsRepository.Add(returnReceipt, token);
+                }
                 await unitOfWork.Commit(token);
 
                 var row = await transactionsRepository.GetByIdAndBranchIdAsNoTracking(transactionId, branchUser.BranchId, token);
                 var receivables = await responseBuilder.Build(
                     [row!], branchUser.BranchId, new ReceivableCutoff(ReceivableCutoffBasis.Posted, dates.Today), token);
                 var receipt = await responseBuilder.BuildReceipt(deposit.BankReceiptId!.Value, branchUser.BranchId, token);
-                return (returned.Id, new ResponseChequeOperationJson { Receivables = receivables, BankReceipt = receipt });
+                return (returned.Id, new ResponseChequeOperationJson
+                {
+                    Receivables = receivables,
+                    BankReceipt = receipt,
+                    ReturnBankReceipt = returnReceipt is null ? null : await responseBuilder.BuildReceipt(returnReceipt.Id, branchUser.BranchId, token)
+                });
             },
             ct);
     }

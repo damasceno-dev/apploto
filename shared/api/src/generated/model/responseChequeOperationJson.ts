@@ -10,6 +10,7 @@ import type { ResponseReceivableJson } from './responseReceivableJson';
 export interface ResponseChequeOperationJson {
   receivables: ResponseReceivableJson[];
   bankReceipt?: null | ResponseBankReceiptJson;
+  returnBankReceipt?: null | ResponseBankReceiptJson;
   /** @nullable */
   convertedTransactionId?: string | null;
 }

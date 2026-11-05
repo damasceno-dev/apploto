@@ -55,6 +55,15 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<SessionFieldEffectRevision> SessionFieldEffectRevisions => Set<SessionFieldEffectRevision>();
     public DbSet<CustodyTransfer> CustodyTransfers => Set<CustodyTransfer>();
     public DbSet<SettlementEvent> SettlementEvents => Set<SettlementEvent>();
+    public DbSet<BankStatementAccountBinding> BankStatementAccountBindings => Set<BankStatementAccountBinding>();
+    public DbSet<BankStatementImport> BankStatementImports => Set<BankStatementImport>();
+    public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
+    public DbSet<BankMatchProposal> BankMatchProposals => Set<BankMatchProposal>();
+    public DbSet<BankStatementMatch> BankStatementMatches => Set<BankStatementMatch>();
+    public DbSet<BankMovement> BankMovements => Set<BankMovement>();
+    public DbSet<CardProvider> CardProviders => Set<CardProvider>();
+    public DbSet<CardSettlementFeeEvidence> CardSettlementFeeEvidence => Set<CardSettlementFeeEvidence>();
+    public DbSet<CardSettlementBatch> CardSettlementBatches => Set<CardSettlementBatch>();
     public DbSet<BankReceipt> BankReceipts => Set<BankReceipt>();
     public DbSet<TransactionClassificationRevision> TransactionClassificationRevisions => Set<TransactionClassificationRevision>();
 

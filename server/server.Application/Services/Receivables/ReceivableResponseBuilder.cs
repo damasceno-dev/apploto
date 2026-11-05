@@ -20,11 +20,10 @@ public class ReceivableResponseBuilder(
     /// </summary>
     public static bool IsCheque(Transaction row, IReadOnlyCollection<SettlementEvent> events)
     {
-        if (row.OriginTransactionId is not null)
-            return true;
-
         var first = events.Where(e => e.Provenance == SettlementEventProvenance.Command).MinBy(e => e.Sequence);
-        return (first?.SettlementInstrument ?? row.PostedSettlementInstrument) == SettlementInstrument.Cheque;
+        var instrument = first?.SettlementInstrument ?? row.PostedSettlementInstrument;
+        return instrument == SettlementInstrument.Cheque ||
+            row.OriginTransactionId is not null && instrument is null or SettlementInstrument.None;
     }
 
     public static ReceivableProjection Project(Transaction row, IReadOnlyCollection<SettlementEvent> events, ReceivableCutoff cutoff) =>
@@ -123,6 +122,16 @@ public class ReceivableResponseBuilder(
         if (receipt is null)
             return null;
 
+        var batch = await bankReceiptsRepository.GetCardBatchAsNoTracking(receipt.Id, branchId, ct);
+        var feeHistory = batch is null ? [] : await bankReceiptsRepository.ListFeeEvidenceAsNoTracking(batch.Id, branchId, ct);
+        var latestFee = feeHistory.LastOrDefault();
+        var fee = latestFee?.ConfirmedFee ?? batch?.ConfirmedFee;
+        var observed = latestFee?.ObservedNetAmount ?? batch?.ObservedNetAmount;
+        var expected = batch is null ? receipt.Amount : batch.GrossAmount - (fee ?? 0m);
+        var movement = receipt.SourceKind is BankReceiptSourceKind.SafeCollection or BankReceiptSourceKind.CaixaPrizeReimbursement or BankReceiptSourceKind.BankFee
+            ? await bankReceiptsRepository.GetMovementAsNoTracking(receipt.Id, branchId, ct) : null;
+        var returnSource = receipt.SourceKind == BankReceiptSourceKind.ChequeReturn
+            ? await bankReceiptsRepository.GetReturnSourceAsNoTracking(receipt.Id, branchId, ct) : null;
         var deposits = await settlementEventsRepository.ListByBankReceiptIdAndBranchIdAsNoTracking(receipt.Id, branchId, ct);
         var returns = await settlementEventsRepository.ListReturnsOfDepositEventsAsNoTracking(
             deposits.Select(d => d.Id).ToList(), branchId, ct);
@@ -132,6 +141,24 @@ public class ReceivableResponseBuilder(
         return new ResponseBankReceiptJson
         {
             Id = receipt.Id,
+            Version = receipt.Version,
+            FeeEvidenceVersion = latestFee?.Sequence ?? 0,
+            FeeEvidenceHistory = feeHistory.Select(e => new ResponseCardFeeEvidenceJson
+            {
+                Id = e.Id, Version = e.Sequence, ConfirmedFee = e.ConfirmedFee, ObservedNetAmount = e.ObservedNetAmount,
+                Basis = e.Basis, Evidence = e.Evidence, Reason = e.Reason, OccurredOn = e.OccurredOn, PostedOn = e.PostedOn,
+                CreatedByUserId = e.CreatedByUserId, CreatedAt = e.CreatedAt
+            }).ToList(),
+            BankMovementId = movement?.Id, BankTransactionId = movement?.BankTransactionId,
+            SourceTransactionId = movement?.SourceTransactionId, SourceAccountId = movement?.SourceTransaction?.AccountId,
+            ReturnReceivableTransactionId = returnSource?.ReceivableTransactionId, OriginalBankReceiptId = returnSource?.OriginalBankReceiptId,
+            SourceSettlementEventId = receipt.SourceSettlementEventId,
+            CardBatchId = batch?.Id, ProviderId = batch?.ProviderId, ProviderName = batch?.ProviderName,
+            Brand = batch?.Brand, GrossAllocatedAmount = batch?.GrossAmount, ConfirmedFee = fee,
+            FeeUnknown = batch is not null && fee is null, FeeBasis = latestFee?.Basis ?? batch?.FeeBasis, FeeEvidence = latestFee?.Evidence ?? batch?.FeeEvidence,
+            ObservedNetAmount = observed,
+            UnmatchedDifference = observed is not null && fee is not null ? observed - expected : null,
+            PlannedArrivalOn = batch?.PlannedArrivalOn, IsDebit = receipt.SourceKind is BankReceiptSourceKind.BankFee or BankReceiptSourceKind.ChequeReturn,
             BankAccountId = receipt.BankAccountId,
             BankAccountName = receipt.BankAccount.Name,
             SourceKind = receipt.SourceKind,
@@ -140,7 +167,7 @@ public class ReceivableResponseBuilder(
             PostedOn = receipt.PostedOn.Date,
             Amount = receipt.Amount,
             ReturnedAmount = returnedAmount,
-            ExpectedAmount = receipt.Amount - returnedAmount,
+            ExpectedAmount = expected - returnedAmount,
             Description = receipt.Description,
             CreatedByUserId = receipt.CreatedByUserId,
             CreatedAt = receipt.CreatedAt,

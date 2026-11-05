@@ -133,6 +133,7 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
             "CK_Transactions_GenerationOrigin",
             "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR " +
             "(\"GenerationKind\" IN (1, 2, 6, 7) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR " +
+            "(\"GenerationKind\" = 8 AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NULL) OR " +
             "(\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)"));
 
         // At most one live (non-cancelled) effect per session and close field, whatever the save path.

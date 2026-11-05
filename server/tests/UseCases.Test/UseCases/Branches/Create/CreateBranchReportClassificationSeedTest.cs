@@ -19,13 +19,16 @@ public class CreateBranchReportClassificationSeedTest
 
         var classified = types
             .Where(type => type.SettlementInstrument != SettlementInstrument.None)
-            .ToDictionary(type => type.Name, type => type.SettlementInstrument);
+            .ToDictionary(type => type.SeedKey!, type => type.SettlementInstrument);
 
         classified.ShouldBe(new Dictionary<string, SettlementInstrument>
         {
-            ["Depósito Cheque"] = SettlementInstrument.Cheque,
-            ["Cartão de Crédito"] = SettlementInstrument.CreditCard,
-            ["Cartão de Débito"] = SettlementInstrument.DebitCard
+            ["saidas.deposito-cheque"] = SettlementInstrument.Cheque,
+            ["saidas.cartao-credito"] = SettlementInstrument.CreditCard,
+            ["saidas.cartao-debito"] = SettlementInstrument.DebitCard,
+            ["saidas.pix"] = SettlementInstrument.Pix,
+            ["saidas.marketplace"] = SettlementInstrument.MarketPlace,
+            ["entradas.metodo-pix"] = SettlementInstrument.Pix
         }, ignoreOrder: true);
 
         // Timing stays its own setting: the instrument never replaced the seeded settlement rules.

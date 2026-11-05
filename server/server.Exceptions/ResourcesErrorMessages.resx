@@ -1097,4 +1097,22 @@
     <data name="RECEIVABLE_CLIENT_LOCKED_BY_EVENTS" xml:space="preserve">
         <value>O cliente deste recebível já foi identificado por um evento de liquidação e não pode ser alterado.</value>
     </data>
+  <data name="BANKING_INPUT_INVALID" xml:space="preserve">
+    <value>Os dados da operação bancária são inválidos.</value>
+  </data>
+  <data name="BANKING_STATE_CONFLICT" xml:space="preserve">
+    <value>O estado da operação bancária mudou. Atualize os dados e tente novamente.</value>
+  </data>
+  <data name="CARD_PROVIDER_NOT_FOUND" xml:space="preserve">
+    <value>Provedor de cartão não encontrado.</value>
+  </data>
+  <data name="CARD_CLAIM_INVALID" xml:space="preserve">
+    <value>O lançamento não é um recebível de cartão ativo.</value>
+  </data>
+  <data name="CARD_FEE_EVIDENCE_REQUIRED" xml:space="preserve">
+    <value>Informe a base e a evidência da taxa confirmada.</value>
+  </data>
+  <data name="OFX_INVALID" xml:space="preserve">
+    <value>O extrato OFX é inválido ou não suportado.</value>
+  </data>
 </root>

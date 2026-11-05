@@ -91,7 +91,10 @@ public class CreateBranchFinancialSeedTest
         system[TransactionTypeSystemRole.ChequeFiadoConversion].Name.ShouldBe("Cheque convertido em fiado");
         system[TransactionTypeSystemRole.ChequeFiadoConversion].RequiresTabAccountAndClient.ShouldBeTrue();
         // Ordinary seeds stay unclassified until an admin (or M9.7 Phase 6) classifies them.
-        types.Where(type => type.SystemRole == null).ShouldAllBe(type => type.FinancialClass == FinancialClass.Unclassified);
+        types.Where(type => type.SystemRole == null && type.SeedKey is not ("saidas.recolhimento-cofre" or "entradas.recolhimento-banco"))
+            .ShouldAllBe(type => type.FinancialClass == FinancialClass.Unclassified);
+        types.Where(type => type.SeedKey is "saidas.recolhimento-cofre" or "entradas.recolhimento-banco")
+            .ShouldAllBe(type => type.FinancialClass == FinancialClass.InternalTransfer && type.SystemRole == null);
         foreach (var (role, type) in system)
         {
             type.MonthlyFinancialRole.ShouldBe(FinancialRoleRules.MonthlyFinancialRoleOf(role));

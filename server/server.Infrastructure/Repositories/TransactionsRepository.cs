@@ -1206,8 +1206,8 @@ internal class TransactionsRepository(ServerDbContext dbContext) : ITransactions
                 t.Active &&
                 t.Status == TransactionStatus.Active &&
                 t.Date <= cutoff.Date &&
-                (t.OriginTransactionId != null ||
-                 t.PostedSettlementInstrument == SettlementInstrument.Cheque));
+                (t.PostedSettlementInstrument == SettlementInstrument.Cheque ||
+                 t.OriginTransactionId != null && (t.PostedSettlementInstrument == null || t.PostedSettlementInstrument == SettlementInstrument.None)));
 
         if (accountId is { } selectedAccountId)
             query = query.Where(t => t.AccountId == selectedAccountId);

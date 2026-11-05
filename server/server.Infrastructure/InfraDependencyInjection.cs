@@ -219,6 +219,10 @@ public static class InfraDependencyInjection
         services.AddScoped<ISessionFieldEffectsRepository, SessionFieldEffectsRepository>();
         services.AddScoped<ICustodyTransfersRepository, CustodyTransfersRepository>();
         services.AddScoped<ISettlementEventsRepository, SettlementEventsRepository>();
+        services.AddScoped<IBankingReadLocks, BankingReadLocks>();
+        services.AddScoped<IBankMovementsRepository, BankMovementsRepository>();
+        services.AddScoped<IBankStatementsRepository, BankStatementsRepository>();
+        services.AddScoped<ICardSettlementsRepository, CardSettlementsRepository>();
         services.AddScoped<IBankReceiptsRepository, BankReceiptsRepository>();
         services.AddScoped<ITransactionClassificationRepository, TransactionClassificationRepository>();
         services.AddScoped<ITimeEntriesRepository, TimeEntriesRepository>();

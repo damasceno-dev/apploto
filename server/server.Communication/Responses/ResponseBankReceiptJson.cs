@@ -8,6 +8,29 @@ namespace server.Communication.Responses;
 /// </summary>
 public class ResponseBankReceiptJson
 {
+    public int FeeEvidenceVersion { get; init; }
+    public IReadOnlyList<ResponseCardFeeEvidenceJson> FeeEvidenceHistory { get; init; } = [];
+    public Guid? BankMovementId { get; init; }
+    public Guid? BankTransactionId { get; init; }
+    public Guid? SourceTransactionId { get; init; }
+    public Guid? SourceAccountId { get; init; }
+    public Guid? ReturnReceivableTransactionId { get; init; }
+    public Guid? OriginalBankReceiptId { get; init; }
+    public Guid? SourceSettlementEventId { get; init; }
+    public Guid? CardBatchId { get; init; }
+    public Guid? ProviderId { get; init; }
+    public string? ProviderName { get; init; }
+    public string? Brand { get; init; }
+    public decimal? GrossAllocatedAmount { get; init; }
+    public decimal? ConfirmedFee { get; init; }
+    public bool FeeUnknown { get; init; }
+    public string? FeeBasis { get; init; }
+    public string? FeeEvidence { get; init; }
+    public decimal? ObservedNetAmount { get; init; }
+    public decimal? UnmatchedDifference { get; init; }
+    public DateTime? PlannedArrivalOn { get; init; }
+    public bool IsDebit { get; init; }
+    public uint Version { get; init; }
     public Guid Id { get; init; }
     public Guid BankAccountId { get; init; }
     public string BankAccountName { get; init; } = string.Empty;

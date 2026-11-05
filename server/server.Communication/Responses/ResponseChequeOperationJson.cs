@@ -9,5 +9,6 @@ public class ResponseChequeOperationJson
 {
     public IReadOnlyList<ResponseReceivableJson> Receivables { get; init; } = [];
     public ResponseBankReceiptJson? BankReceipt { get; init; }
+    public ResponseBankReceiptJson? ReturnBankReceipt { get; init; }
     public Guid? ConvertedTransactionId { get; init; }
 }

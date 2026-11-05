@@ -14,4 +14,5 @@ export const SettlementEventKind = {
   ChequeReturned: 'ChequeReturned',
   ChequeRepresented: 'ChequeRepresented',
   ChequeConvertedToFiado: 'ChequeConvertedToFiado',
+  ProviderSettled: 'ProviderSettled',
 } as const;

@@ -70,7 +70,8 @@ public static class CreateBranchSeedFactory
         TransactionTypeSystemRole? SystemRole = null,
         FiadoPaymentKind? FiadoPaymentKind = null,
         SettlementInstrument SettlementInstrument = SettlementInstrument.None,
-        MonthlyFinancialRole MonthlyFinancialRole = MonthlyFinancialRole.None);
+        MonthlyFinancialRole MonthlyFinancialRole = MonthlyFinancialRole.None,
+        FinancialClass FinancialClass = FinancialClass.Unclassified);
 
     /// <summary>
     /// M9.6 Phase 9: the 32 drawer expense types of the Access catalog (TblTipoCategoria 29–60) under Despesas
@@ -130,16 +131,20 @@ public static class CreateBranchSeedFactory
         new("saidas.cliente", "Cliente", SaidasCategoryName, RequiresTabAccountAndClient: true),
         new("saidas.deposito-dinheiro", SafeDepositOutTypeName, SaidasCategoryName,
             SettlementRule.NextCalendarDay, SystemRole: TransactionTypeSystemRole.SafeDepositOut),
+        new("saidas.recolhimento-cofre", "Recolhimento — saída do cofre", SaidasCategoryName,
+            FinancialClass: FinancialClass.InternalTransfer),
+        new("entradas.recolhimento-banco", "Recolhimento — entrada no banco", EntradasCategoryName,
+            FinancialClass: FinancialClass.InternalTransfer),
         new("saidas.cartao-credito", "Cartão de Crédito", SaidasCategoryName,
             SettlementRule.TwoBusinessDays, SettlementInstrument: SettlementInstrument.CreditCard),
-        new("saidas.marketplace", "MarketPlace", SaidasCategoryName),
+        new("saidas.marketplace", "MarketPlace", SaidasCategoryName, SettlementInstrument: SettlementInstrument.MarketPlace),
         new("comerciais.sobra-bolao", "Sobra de Bolão", "Despesas Comerciais",
             MonthlyFinancialRole: MonthlyFinancialRole.CommercialLeftover),
         new("comerciais.sobra-federal", "Sobra de Federal", "Despesas Comerciais",
             MonthlyFinancialRole: MonthlyFinancialRole.CommercialLeftover),
         new("saidas.deposito-cheque", "Depósito Cheque", SaidasCategoryName,
             SettlementRule.OperatorEnteredCheque, SettlementInstrument: SettlementInstrument.Cheque),
-        new("saidas.pix", "PIX", SaidasCategoryName),
+        new("saidas.pix", "PIX", SaidasCategoryName, SettlementInstrument: SettlementInstrument.Pix),
         new("saidas.cartao-debito", "Cartão de Débito", SaidasCategoryName,
             SettlementRule.NextBusinessDay, SettlementInstrument: SettlementInstrument.DebitCard),
         new("saidas.telesena", "Telesena", SaidasCategoryName),
@@ -150,7 +155,7 @@ public static class CreateBranchSeedFactory
         new("entradas.metodo-dinheiro", CashRepaymentMethodName, EntradasCategoryName,
             RequiresTabAccountAndClient: true, FiadoPaymentKind: FiadoPaymentKind.CountedCash),
         new("entradas.metodo-pix", PixRepaymentMethodName, EntradasCategoryName,
-            RequiresTabAccountAndClient: true, FiadoPaymentKind: FiadoPaymentKind.NonCash),
+            RequiresTabAccountAndClient: true, FiadoPaymentKind: FiadoPaymentKind.NonCash, SettlementInstrument: SettlementInstrument.Pix),
         new("saidas.pgto-premio", "Pgto Prêmio", SaidasCategoryName),
         new("comerciais.desconto", "Desconto", "Despesas Comerciais"),
         new("comerciais.volante-rejeitado", "Volante rejeitado", "Despesas Comerciais"),
@@ -208,7 +213,7 @@ public static class CreateBranchSeedFactory
                 MonthlyFinancialRole = seed.MonthlyFinancialRole,
                 FinancialClass = seed.SystemRole is { } role
                     ? FinancialRoleRules.FinancialClassOf(role)
-                    : FinancialClass.Unclassified
+                    : seed.FinancialClass
             })
             .ToList();
     }

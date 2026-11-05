@@ -25,8 +25,9 @@ scheme IdentityBearer http bearer
 ## enums
 enum AccountType string: Terminal, BankAccount, Tab, Safe
 enum AgingBucket string: Current, Days0To30, Days31To60, Days61To90, Days91Plus
-enum BankReceiptSourceKind string: ChequeDeposit
-enum BankReceiptStatus string: Pending
+enum BankMovementKind string: SafeCollection, CaixaPrizeReimbursement, BankFee
+enum BankReceiptSourceKind string: ChequeDeposit, ProviderSettlement, SafeCollection, CaixaPrizeReimbursement, BankFee, ChequeReturn
+enum BankReceiptStatus string: Pending, Confirmed
 enum BrazilianHolidayCalendarSource string: Composite, Canonical, BrasilApi, Nager
 enum BrazilianHolidayImportStatus string: Imported, Skipped
 enum BrazilianHolidayType string: National, OptionalFederal
@@ -60,14 +61,14 @@ enum SessionHandoverState string: Offered, Accepted, Disputed, Withdrawn
 enum SessionMappingState string: Ready, Unresolved
 enum SessionOpeningSourceKind string: ExplicitZero, OpeningCount, PreviousSession, ImportedSession
 enum SessionOrigin string: Started, HandoverAccepted, ManagerException, ManagerDeclared, Migrated
-enum SettlementEventKind string: MigratedSettlement, CustodyMoved, ChequeDeposited, ChequeReturned, ChequeRepresented, ChequeConvertedToFiado
+enum SettlementEventKind string: MigratedSettlement, CustodyMoved, ChequeDeposited, ChequeReturned, ChequeRepresented, ChequeConvertedToFiado, ProviderSettled
 enum SettlementEventProvenance string: Command, MigratedFromPaidAt
-enum SettlementInstrument string: None, Cheque, CreditCard, DebitCard
+enum SettlementInstrument string: None, Cheque, CreditCard, DebitCard, Pix, MarketPlace
 enum SettlementMigrationIssue string: None, NotSettleableTabRow, OccurredBeforeTransactionDate, DraftAtMigration, CancelledAtMigration
 enum SettlementRule string: SameDay, NextCalendarDay, NextBusinessDay, TwoBusinessDays, OperatorEnteredCheque
 enum TimeEntryStatus string: Present, DayOff, Sunday, Holiday, Vacation, JustifiedAbsence, UnjustifiedAbsence
 enum TimeEntryTapAction string: Open, Close
-enum TransactionGenerationKind string: FiadoSale, FiadoCashRepayment, SessionTerminalReport, SessionBolaoFee, SessionSpecialFee, SafeCashDeposit, ChequeFiadoConversion
+enum TransactionGenerationKind string: FiadoSale, FiadoCashRepayment, SessionTerminalReport, SessionBolaoFee, SessionSpecialFee, SafeCashDeposit, ChequeFiadoConversion, BankMovement
 enum TransactionStatus string: Draft, Active, Cancelled
 enum TransactionTypeSystemRole string: FiadoSaleCounterpart, FiadoCashRepaymentCounterpart, TerminalReportIn, TerminalReportOut, BolaoFee, SpecialFee, SafeDepositOut, SafeDepositIn, ChequeFiadoConversion
 
@@ -106,11 +107,93 @@ schema RequestAttributeOpeningDiscrepancyJson
   reason optional string?
   target optional enum:OpeningDiscrepancyAttribution
 
+schema RequestBankMatchConfirmJson
+  items required RequestBankMatchItemJson[]
+  postedOn required string
+
+schema RequestBankMatchItemJson
+  amount required number|string
+  expectationFingerprint required string
+  lineId required string
+  lineVersion required integer|string
+  proposalId required string
+  receiptId required string
+  receiptVersion required integer|string
+
+schema RequestBankMatchProposeJson
+  importId required string
+
+schema RequestBankMovementJson
+  amount required number|string
+  bankAccountId required string
+  bankTransactionTypeId required string
+  evidence required string
+  kind required enum:BankMovementKind
+  observedBankMovement optional boolean
+  occurredOn required string
+  postedOn optional string?
+  recordedByOperatorId required string
+  safeAccountId optional string?
+  sourceTransactionTypeId optional string?
+
+schema RequestBankStatementAccountBindingJson
+  accountIdentity required string
+  bankAccountId required string
+  bankIdentity required string
+
+schema RequestBankStatementImportJson
+  accountBindingId required string
+  accountIdentity required string
+  bankAccountId required string
+  bankIdentity required string
+  contentBase64 required string
+
 schema RequestBeginSessionRecountJson
   previousAttemptId required string
 
 schema RequestCancelTransactionJson
   cancellationReason required string
+
+schema RequestCardFeeEvidenceJson
+  basis required string
+  batchId required string
+  confirmedFee required number|string
+  evidence required string
+  expectedFeeEvidenceVersion required integer|string
+  observedNetAmount optional number|string?
+  occurredOn required string
+  postedOn optional string?
+  reason required string
+  receiptVersion required integer|string
+
+schema RequestCardProviderJson
+  bankAccountId required string
+  brand required string
+  businessDays required boolean
+  delayDays required integer|string
+  externalIdentity required string
+  instrument optional enum:SettlementInstrument
+  name required string
+
+schema RequestCardSettlementItemJson
+  expectedVersion required integer|string
+  grossAmount required number|string
+  transactionId required string
+  transactionVersion required integer|string
+
+schema RequestCardSettlementJson
+  confirmedFee optional number|string?
+  externalIdentity required string
+  feeBasis optional string?
+  feeEvidence optional string?
+  items required RequestCardSettlementItemJson[]
+  managerConfirmedFee optional boolean
+  observedNetAmount optional number|string?
+  occurredOn required string
+  planningBasisOn required string
+  postedOn optional string?
+  providerId required string
+  providerVersion required integer|string
 
 schema RequestChangePasswordJson
   currentPassword required string
@@ -573,6 +656,30 @@ schema ResponseAgingBucketTotalJson
 schema ResponseApproveSessionBatchJson
   sessions required ResponseDailyCloseJson[]
 
+schema ResponseBankMatchConfirmationJson
+  matchIds required string[]
+
+schema ResponseBankMatchProposalJson
+  amount required number
+  expectationFingerprint required string
+  id required string
+  lineId required string
+  lineVersion required integer
+  receiptId required string
+  receiptVersion required integer
+
+schema ResponseBankMatchProposalsJson
+  importId required string
+  proposals required ResponseBankMatchProposalJson[]
+  unmatchedLineIds required string[]
+
+schema ResponseBankMovementJson
+  bankReceipt required ResponseBankReceiptJson
+  bankTransactionId required string
+  id required string
+  kind required enum:BankMovementKind
+  sourceTransactionId optional string?
+
 schema ResponseBankReceiptAllocationJson
   amount required number
   returnedByEventId optional string?
@@ -584,16 +691,67 @@ schema ResponseBankReceiptJson
   amount required number
   bankAccountId required string
   bankAccountName required string
+  bankMovementId optional string?
+  bankTransactionId optional string?
+  brand optional string?
+  cardBatchId optional string?
+  confirmedFee optional number?
   createdAt required string
   createdByUserId required string
   description optional string?
   expectedAmount required number
+  feeBasis optional string?
+  feeEvidence optional string?
+  feeEvidenceHistory required ResponseCardFeeEvidenceJson[]
+  feeEvidenceVersion required integer
+  feeUnknown required boolean
+  grossAllocatedAmount optional number?
   id required string
+  isDebit required boolean
+  observedNetAmount optional number?
   occurredOn required string
+  originalBankReceiptId optional string?
+  plannedArrivalOn optional string?
   postedOn required string
+  providerId optional string?
+  providerName optional string?
+  returnReceivableTransactionId optional string?
   returnedAmount required number
+  sourceAccountId optional string?
   sourceKind required enum:BankReceiptSourceKind
+  sourceSettlementEventId optional string?
+  sourceTransactionId optional string?
   status required enum:BankReceiptStatus
+  unmatchedDifference optional number?
+  version required integer
+
+schema ResponseBankStatementAccountBindingJson
+  accountIdentity required string
+  bankAccountId required string
+  bankIdentity required string
+  createdAt required string
+  createdByUserId required string
+  currency required string
+  id required string
+  version required integer
+
+schema ResponseBankStatementJson
+  accountBindingId optional string?
+  bankAccountId required string
+  duplicateImport required boolean
+  id required string
+  lines required ResponseBankStatementLineJson[]
+
+schema ResponseBankStatementLineJson
+  ambiguousIdentity required boolean
+  amount required number
+  bankIdentity optional string?
+  id required string
+  matched required boolean
+  memo optional string?
+  name optional string?
+  postedOn required string
+  version required integer
 
 schema ResponseBranchSummaryJson
   address optional string?
@@ -639,6 +797,44 @@ schema ResponseBrazilianHolidayPreviewJson
   source required enum:BrazilianHolidayCalendarSource
   year required integer
 
+schema ResponseCardFeeEvidenceJson
+  basis required string
+  confirmedFee required number
+  createdAt required string
+  createdByUserId required string
+  evidence required string
+  id required string
+  observedNetAmount optional number?
+  occurredOn required string
+  postedOn required string
+  reason required string
+  version required integer
+
+schema ResponseCardProviderJson
+  bankAccountId required string
+  brand required string
+  businessDays required boolean
+  delayDays required integer
+  externalIdentity required string
+  id required string
+  instrument required enum:SettlementInstrument
+  name required string
+  version required integer
+
+schema ResponseCardSettlementJson
+  bankReceipt required ResponseBankReceiptJson
+  confirmedFee optional number?
+  expectedNetAmount optional number?
+  externalIdentity required string
+  feeUnknown required boolean
+  grossAmount required number
+  id required string
+  observedNetAmount optional number?
+  plannedArrivalOn required string
+  providerId required string
+  receivables required ResponseReceivableJson[]
+  unmatchedDifference optional number?
+
 schema ResponseCashVarianceImpactJson
   accountId optional string?
   currentVariance optional number?
@@ -681,6 +877,7 @@ schema ResponseChequeOperationJson
   bankReceipt optional ResponseBankReceiptJson?
   convertedTransactionId optional string?
   receivables required ResponseReceivableJson[]
+  returnBankReceipt optional ResponseBankReceiptJson?
 
 schema ResponseClassificationProvenanceJson
   migratedCount required integer
@@ -2288,10 +2485,81 @@ operation DELETE /account/{accountId}
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation POST /bank-movement
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestBankMovementJson
+  response 200 ResponseBankMovementJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation GET /bank-receipt/{receiptId}
   security BranchBearer[Admin,Manager]
   path receiptId required string
   response 200 ResponseBankReceiptJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation GET /bank-statement/account-binding
+  security BranchBearer[Admin,Manager]
+  query BankAccountId required string
+  response 200 ResponseBankStatementAccountBindingJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation POST /bank-statement/account-binding
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestBankStatementAccountBindingJson
+  response 201 ResponseBankStatementAccountBindingJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /bank-statement/confirm
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestBankMatchConfirmJson
+  response 200 ResponseBankMatchConfirmationJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /bank-statement/import
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestBankStatementImportJson
+  response 200 ResponseBankStatementJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /bank-statement/propose
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestBankMatchProposeJson
+  response 200 ResponseBankMatchProposalsJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /bank-statement/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseBankStatementJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
@@ -2339,6 +2607,46 @@ operation PUT /branch/users/{branchUserId}/role
   path branchUserId required string
   body required RequestUpdateBranchUserRoleJson
   response 200 ResponseUpdateBranchUserRoleJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /card-provider
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseCardProviderJson[]
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+
+operation POST /card-provider
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestCardProviderJson
+  response 201 ResponseCardProviderJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /card-settlement
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestCardSettlementJson
+  response 201 ResponseCardSettlementJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /card-settlement/fee-evidence
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestCardFeeEvidenceJson
+  response 200 ResponseBankReceiptJson
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson

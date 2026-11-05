@@ -75,6 +75,7 @@ internal class SettlementEventConfiguration : IEntityTypeConfiguration<Settlemen
                 "CASE \"Kind\" " +
                 "WHEN 1 THEN \"OutstandingDelta\" = -\"Amount\" OR (\"OutstandingDelta\" = 0 AND (\"MigrationIssue\" & 1) = 1) " +
                 "WHEN 3 THEN \"OutstandingDelta\" = -\"Amount\" " +
+                "WHEN 7 THEN \"OutstandingDelta\" = -\"Amount\" " +
                 "WHEN 6 THEN \"OutstandingDelta\" = -\"Amount\" " +
                 "WHEN 4 THEN \"OutstandingDelta\" = \"Amount\" " +
                 "WHEN 2 THEN \"OutstandingDelta\" = 0 " +
@@ -88,7 +89,7 @@ internal class SettlementEventConfiguration : IEntityTypeConfiguration<Settlemen
                 "AND \"SourcePaidAt\" IS NOT NULL)");
             table.HasCheckConstraint(
                 "CK_SettlementEvents_KindDetails",
-                "(\"Kind\" = 3) = (\"BankReceiptId\" IS NOT NULL) AND " +
+                "(\"Kind\" IN (3, 7)) = (\"BankReceiptId\" IS NOT NULL) AND " +
                 "(\"Kind\" = 4) = (\"ReversesEventId\" IS NOT NULL) AND " +
                 "(\"Kind\" = 6) = (\"ConvertedTransactionId\" IS NOT NULL) AND " +
                 "(\"Kind\" = 2) = (\"CustodyToAccountId\" IS NOT NULL) AND " +
@@ -106,6 +107,9 @@ internal class BankReceiptConfiguration : IEntityTypeConfiguration<BankReceipt>
     {
         builder.ToTable("BankReceipts");
         builder.HasKey(receipt => receipt.Id);
+        builder.HasOne(receipt => receipt.SourceSettlementEvent).WithMany().HasForeignKey(receipt => receipt.SourceSettlementEventId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(receipt => receipt.SourceSettlementEventId).IsUnique().HasFilter("\"SourceSettlementEventId\" IS NOT NULL");
+        builder.Property(receipt => receipt.Version).IsRowVersion();
 
         builder.Property(receipt => receipt.SourceKind).HasConversion<short>().IsRequired();
         builder.Property(receipt => receipt.Status).HasConversion<short>().IsRequired();
@@ -126,6 +130,7 @@ internal class BankReceiptConfiguration : IEntityTypeConfiguration<BankReceipt>
 
         builder.ToTable(table =>
         {
+            table.HasCheckConstraint("CK_BankReceipts_SourceEvent", "(\"SourceKind\" = 6) = (\"SourceSettlementEventId\" IS NOT NULL)");
             table.HasCheckConstraint("CK_BankReceipts_AmountPositive", "\"Amount\" > 0");
             table.HasCheckConstraint("CK_BankReceipts_PostedOnOrAfterOccurred", "\"PostedOn\" >= \"OccurredOn\"");
         });
