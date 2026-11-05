@@ -25,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/theme/provider';
 import { layer, radius, shadowStyle, spacing } from '@/theme/style';
 import { Button } from './button';
+import { useKeyboardHeight } from './screen';
 import { AppText, Glyph, moveFocusTo } from './text';
 
 export type OverlayVariant = 'dialog' | 'confirmation' | 'drawer' | 'bottom-sheet';
@@ -223,6 +224,9 @@ function Surface({
   const { colors, scheme } = useTheme();
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  // The keyboard-avoiding padding lifts the surface; its height must shrink by the same amount or
+  // a tall dialog (or an in-dialog picker sheet) is pushed above the screen.
+  const keyboard = useKeyboardHeight();
   const titleRef = useRef<{ focus?: () => void } | null>(null);
   useEffect(() => {
     const timer = setTimeout(() => moveFocusTo(initialFocus?.current ?? titleRef.current), 80);
@@ -256,8 +260,8 @@ function Surface({
           left: 0,
           right: 0,
           bottom: 0,
-          maxHeight: height * 0.9,
-          paddingBottom: insets.bottom,
+          maxHeight: (height - keyboard) * 0.9,
+          paddingBottom: keyboard > 0 ? 0 : insets.bottom,
         }
       : variant === 'drawer'
         ? {
@@ -272,7 +276,8 @@ function Surface({
         : {
             alignSelf: 'center',
             width: Math.min(spacing.size['dialog-max'], width - edge * 2),
-            maxHeight: height - insets.top - insets.bottom - edge * 2,
+            maxHeight:
+              height - keyboard - insets.top - (keyboard > 0 ? 0 : insets.bottom) - edge * 2,
             borderRadius: radius.panel,
           };
   return (

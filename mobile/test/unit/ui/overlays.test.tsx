@@ -11,7 +11,7 @@ import {
   Select,
   TextField,
 } from '../../../src/ui';
-import { renderThemed } from './support';
+import { renderThemed, styleOf } from './support';
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => jest.useRealTimers());
@@ -216,4 +216,27 @@ test('a filter bar inside a dialog renders its fields inline instead of a second
   expect(await screen.findByTestId('inline-field')).toBeTruthy();
   expect(screen.queryByText(/Filtros \(/)).toBeNull();
   expect(modals()).toHaveLength(1);
+});
+
+describe('Overlay with an open keyboard', () => {
+  test('a dialog fits in the space above a keyboard that is open', async () => {
+    const { Keyboard } = jest.requireActual('react-native') as typeof import('react-native');
+    const visible = jest.spyOn(Keyboard, 'isVisible').mockReturnValue(false);
+    const metrics = jest.spyOn(Keyboard, 'metrics').mockReturnValue(undefined);
+    try {
+      const first = renderThemed(<DialogWithPicker onSave={() => undefined} />);
+      fireEvent.press(await screen.findByTestId('open'));
+      const closed = styleOf(screen.getByTestId('dialog')).maxHeight as number;
+      first.unmount();
+      visible.mockReturnValue(true);
+      metrics.mockReturnValue({ height: 320, width: 375, screenX: 0, screenY: 492 });
+      renderThemed(<DialogWithPicker onSave={() => undefined} />);
+      fireEvent.press(await screen.findByTestId('open'));
+      // The keyboard replaces the bottom safe-area inset it covers (34 pt in the test frame).
+      expect(styleOf(screen.getByTestId('dialog')).maxHeight).toBe(closed - 320 + 34);
+    } finally {
+      visible.mockRestore();
+      metrics.mockRestore();
+    }
+  });
 });

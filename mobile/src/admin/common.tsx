@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '@/session/provider';
+import { ApiError } from '@loto/api';
 import { Button, Notice, UncertainNotice } from '@/ui';
 import type { DeviceDraft } from '@/storage/scoped';
 import { errorMessages, useTimeCommand, useTimeReadsAllowed } from '@/time/common';
@@ -170,4 +171,66 @@ export function RetainedNotice({
       actions={<Button label="Restaurar para revisão" onPress={onRestore} />}
     />
   ) : null;
+}
+
+/**
+ * A refusal that means the screen's picture is stale (conflict, coordination busy, missing
+ * resource): the next command of this kind waits for an explicit fresh read.
+ */
+export function needsFreshRead(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 409 || error.status === 404);
+}
+
+/**
+ * One confirmed write per admin dialog. The server's confirmation is recorded before any reread,
+ * so recovering from a failed reread never re-enables the same (non-idempotent) command; the
+ * dialog closes once a reread succeeds, from the follow-up or from recovery.
+ */
+export function useConfirmedWrite(command: AdminCommand, onClose: () => void) {
+  const [confirmed, setConfirmed] = useState(false);
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    if (settled && !command.postWriteError) onClose();
+  }, [settled, command.postWriteError, onClose]);
+  return {
+    confirmed,
+    /** The server confirmed the write: call first in the follow-up, before acknowledging or rereading. */
+    confirm: () => setConfirmed(true),
+    /** A reread succeeded after the confirmation. */
+    settle: () => setSettled(true),
+    /** A recovery reread succeeded: a confirmed write closes instead of becoming sendable again. */
+    recovered: () => {
+      if (confirmed) setSettled(true);
+    },
+  };
+}
+export type ConfirmedWrite = ReturnType<typeof useConfirmedWrite>;
+
+/** Shared state for a paired admin dialog: blocks after a stale refusal until the reread succeeds. */
+export function useFreshGate(
+  refetch: () => Promise<void>,
+  command: AdminCommand,
+  written?: ConfirmedWrite,
+) {
+  const [rereading, setRereading] = useState(false);
+  const [failed, setFailed] = useState<unknown>(null);
+  return {
+    // The refusal stays on the command until the reread clears it, so the gate derives from it.
+    stale: needsFreshRead(command.error) || command.uncertain || !!command.postWriteError,
+    rereading,
+    failed,
+    reread: async () => {
+      setRereading(true);
+      setFailed(null);
+      try {
+        await refetch();
+        command.clear();
+        written?.recovered();
+      } catch (error) {
+        setFailed(error);
+      } finally {
+        setRereading(false);
+      }
+    },
+  };
 }
