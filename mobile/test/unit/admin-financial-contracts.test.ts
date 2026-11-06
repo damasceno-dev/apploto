@@ -21,6 +21,8 @@ import {
   memberRoleState,
   monthlyRoleAllowed,
   reclassifies,
+  isTypeDraft,
+  restoredType,
   reissueBody,
   typeCreatePayload,
   typeInput,
@@ -200,6 +202,7 @@ describe('transaction type classification', () => {
     const loaded = type({
       settlementInstrument: 'Cheque',
       monthlyFinancialRole: 'BolaoServiceFee',
+      financialClass: 'CaixaAndClientMoney',
     });
     const input = typeInput(loaded);
     expect(typePayload(input)).toEqual({
@@ -209,6 +212,7 @@ describe('transaction type classification', () => {
       fiadoPaymentKind: 'NonCash',
       settlementInstrument: 'Cheque',
       monthlyFinancialRole: 'BolaoServiceFee',
+      financialClass: 'CaixaAndClientMoney',
     });
     const cleared = {
       ...input,
@@ -221,6 +225,8 @@ describe('transaction type classification', () => {
     });
     expect(reclassifies(loaded, cleared)).toBe(true);
     expect(reclassifies(loaded, { ...input, name: 'Pix' })).toBe(false);
+    // v62: the financial class is a frozen posting classification too.
+    expect(reclassifies(loaded, { ...input, financialClass: 'ShopFeesAndIncome' })).toBe(true);
     expect(typeCreatePayload({ ...input, categoryId: uid(41) }).categoryId).toBe(uid(41));
   });
   it('a loaded type without a repayment kind maps to the explicit answer, not unchosen', () => {
@@ -241,6 +247,18 @@ describe('transaction type classification', () => {
     expect(isSystemCategory(uid(61), types)).toBe(false);
     expect(hostsSystemType(uid(61), types)).toBe(true);
     expect(hostsSystemType(uid(62), types)).toBe(false);
+  });
+  it('retained input refuses an unknown financial class', () => {
+    expect(isTypeInput({ ...typeInput(type()), financialClass: 'Lucro' })).toBe(false);
+  });
+  it('a pre-v63 draft without a financial class restores with the fresh server class', () => {
+    const { financialClass: _omitted, ...legacy } = typeInput(type());
+    expect(isTypeInput(legacy)).toBe(false);
+    expect(isTypeDraft(legacy)).toBe(true);
+    expect(isTypeDraft({ ...legacy, financialClass: 'Lucro' })).toBe(false);
+    expect(restoredType(legacy, 'InternalTransfer').financialClass).toBe('InternalTransfer');
+    const current = typeInput(type());
+    expect(restoredType(current, 'InternalTransfer')).toBe(current);
   });
 });
 

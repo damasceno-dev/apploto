@@ -6,6 +6,7 @@ import {
   editMoneyDigits,
   identifierSubmitValue,
   editMoneyText,
+  signedMoneyPaste,
 } from '../../../src/ui/input-logic';
 
 const end = (text: string) => ({ start: text.length, end: text.length });
@@ -197,5 +198,16 @@ describe('native money changes (editMoneyText)', () => {
     expect(editMoneyText('1234', '12,34', '1.234,56')).toBe('123456');
     expect(editMoneyText('1234', '12,34', ' 5,00 ')).toBe('500');
     expect(editMoneyText('1234', '12,34', 'R$ 7')).toBe('700');
+  });
+});
+
+describe('signedMoneyPaste (Signed amount)', () => {
+  it('reads a leading minus or U+2212 as the magnitude; anything else is not a signed paste', () => {
+    expect(signedMoneyPaste('0,00', '−15,00')).toBe('1500');
+    expect(signedMoneyPaste('0,00', '-R$ 1.234,56')).toBe('123456');
+    expect(signedMoneyPaste('100,00', '100,00-15,00')).toBe('1500');
+    expect(signedMoneyPaste('0,00', '15,00')).toBeNull();
+    expect(signedMoneyPaste('0,00', '-abc')).toBeNull();
+    expect(signedMoneyPaste('1,00', '1,005')).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { View } from 'react-native';
 import {
   FiadoPaymentKind,
+  FinancialClass,
   MonthlyFinancialRole,
   SettlementInstrument,
   SettlementRule,
@@ -26,6 +27,7 @@ import {
 import {
   directionLabels,
   fiadoPaymentKindLabels,
+  financialClassLabels,
   monthlyFinancialRoleLabels,
   settlementInstrumentLabels,
   settlementRuleLabels,
@@ -58,9 +60,10 @@ import {
   hostsSystemType,
   isCategoryInput,
   isSystemCategory,
-  isTypeInput,
+  isTypeDraft,
   monthlyRoleAllowed,
   reclassifies,
+  restoredType,
   typeCreatePayload,
   typeInput,
   typePayload,
@@ -80,11 +83,15 @@ import {
 } from './common';
 
 /**
- * Current v61 behavior: report classifications are read when a report is produced, so a change
- * re-labels the type's existing rows. Kept in one place for the later classification contract.
+ * v62/v63 contract: a posting freezes its classification (`FinancialClass`, Recebível, Relatório
+ * financeiro mensal). Saving a type is configuration only and never re-labels posted rows; the
+ * separately audited open-period reclassification is the only way to change them.
  */
 export const RECLASSIFICATION_POLICY =
-  'Recebível e Relatório financeiro mensal são lidos quando o relatório é gerado: mudar a classificação muda como os relatórios mostram os movimentos já registrados deste tipo, inclusive em meses bloqueados. Nenhum movimento, diferença oficial ou bloqueio muda.';
+  'A classificação é gravada em cada movimento quando ele é lançado. Mudar Classe financeira, Recebível ou Relatório financeiro mensal vale só para os próximos lançamentos deste tipo: movimentos já lançados e meses bloqueados não mudam. Nenhum movimento, diferença oficial ou bloqueio muda.';
+/** The audited `POST /transaction-type/{id}/reclassify` stays a separate action, not part of a save. */
+export const OPEN_PERIOD_RECLASSIFICATION =
+  'Para reclassificar movimentos já lançados em um período aberto existe a ação separada e auditada Reclassificar período aberto, com período, motivo e conferência das linhas. Ela ainda não está disponível neste aplicativo; salvar o tipo nunca a executa.';
 export const FIADO_KIND_CONDITION =
   'Disponível só para um tipo de entrada que exige conta fiado e cliente: ele passa a ser uma forma de recebimento de fiado.';
 export const MONTHLY_ROLE_CONDITION =
@@ -233,6 +240,9 @@ export function CategoriesScreen() {
             onPress={() => setDialog({ kind: 'type-new' })}
           />
           <AppText variant="helper">{RECLASSIFICATION_POLICY}</AppText>
+          <AppText variant="helper" testID="type-open-period-availability">
+            {OPEN_PERIOD_RECLASSIFICATION}
+          </AppText>
           {typeList.length === 0 ? (
             <EmptyState
               kind="no-records"
@@ -267,6 +277,9 @@ export function CategoriesScreen() {
                     <AppText>{`Exige conta fiado e cliente: ${type.requiresTabAccountAndClient ? 'Sim' : 'Não'}`}</AppText>
                     <AppText testID={`type-fiado-${type.id}`}>
                       {`Forma de recebimento de fiado: ${type.fiadoPaymentKind ? fiadoPaymentKindLabels[type.fiadoPaymentKind] : '—'}`}
+                    </AppText>
+                    <AppText testID={`type-class-${type.id}`}>
+                      {`Classe financeira: ${financialClassLabels[type.financialClass]}`}
                     </AppText>
                     <Badge
                       kind="status"
@@ -553,7 +566,7 @@ function TypeEditor({
   const [checkError, setCheckError] = useState<unknown>(null);
   // A create closes once a reread succeeds; an edit stays open showing its receipt.
   const written = useConfirmedWrite(command, onClose);
-  const draft = useAdminDraft(`admin/type/${type?.id ?? 'new'}`, isTypeInput, async () => {
+  const draft = useAdminDraft(`admin/type/${type?.id ?? 'new'}`, isTypeDraft, async () => {
     if (engine.getSnapshot().branch?.role === 'Member') return false;
     if (!type) return true;
     const fresh = await getTransactionTypeTransactionTypeId(type.id, { client: engine.client() });
@@ -648,7 +661,7 @@ function TypeEditor({
       <RetainedNotice
         visible={!!draft.retained}
         onRestore={() => {
-          const value = draft.retained!.input;
+          const value = restoredType(draft.retained!.input, base.financialClass);
           inputRef.current = value;
           setInput(value);
           draft.dismissRetained();
@@ -670,7 +683,7 @@ function TypeEditor({
           kind="warning"
           testID="type-changed"
           title="Este tipo mudou no servidor desde que o formulário abriu. Nada foi enviado."
-          body={`Agora: ${changed.name} · ${settlementRuleLabels[changed.settlementRule as SettlementRule]} · Recebível: ${settlementInstrumentLabels[changed.settlementInstrument]} · Relatório mensal: ${monthlyFinancialRoleLabels[changed.monthlyFinancialRole]}.`}
+          body={`Agora: ${changed.name} · ${settlementRuleLabels[changed.settlementRule as SettlementRule]} · Recebível: ${settlementInstrumentLabels[changed.settlementInstrument]} · Relatório mensal: ${monthlyFinancialRoleLabels[changed.monthlyFinancialRole]} · Classe financeira: ${financialClassLabels[changed.financialClass]}.`}
           actions={
             <>
               <Button
@@ -827,6 +840,20 @@ function TypeEditor({
           }))}
         />
       </FormField>
+      <FormField
+        label="Classe financeira"
+        helper="Gravada em cada movimento quando ele é lançado. Sem classificação mantém o tipo fora das classes."
+      >
+        <Select
+          testID="type-financial-class"
+          value={input.financialClass}
+          onValueChange={(value) => change({ ...input, financialClass: value as FinancialClass })}
+          options={Object.values(FinancialClass).map((value) => ({
+            value,
+            label: financialClassLabels[value],
+          }))}
+        />
+      </FormField>
       <AppText variant="helper">{RECLASSIFICATION_POLICY}</AppText>
       {problems.filter((p) => p !== 'name').length && (input.name !== '' || type) ? (
         <Notice
@@ -838,8 +865,8 @@ function TypeEditor({
       ) : null}
       <ConfirmDialog
         visible={visible && confirming}
-        title="Mudar a classificação deste tipo?"
-        consequence={RECLASSIFICATION_POLICY}
+        title="Mudar a classificação dos próximos lançamentos?"
+        consequence={`${RECLASSIFICATION_POLICY} ${OPEN_PERIOD_RECLASSIFICATION}`}
         confirmLabel="Confirmar e salvar"
         busy={command.pending}
         onDismiss={() => setConfirming(false)}

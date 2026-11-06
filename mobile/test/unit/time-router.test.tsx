@@ -252,7 +252,13 @@ it('does not retain the verified view for a different branch claim or a revoked 
     await j.r.engine.refresh();
   });
   expect(screen.queryByTestId('time-edit-segment-1', { includeHiddenElements: true })).toBeNull();
-  expect(j.r.calls.filter((call) => call.path.startsWith('/timeentry'))).toHaveLength(reads);
+  // The Member home (Hoje) may read its own Ponto (`Mine=true`); the revoked management view
+  // sends nothing more.
+  expect(
+    j.r.calls.filter(
+      (call) => call.path.startsWith('/timeentry') && !call.url.includes('Mine=true'),
+    ),
+  ).toHaveLength(reads);
   j.mounted.unmount();
 });
 
