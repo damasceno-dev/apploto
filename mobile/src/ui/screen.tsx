@@ -1,4 +1,13 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import {
+  createContext,
+  forwardRef,
+  useCallback,
+  useContext,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from 'react';
 import {
   findNodeHandle,
   Keyboard,
@@ -37,6 +46,16 @@ export function useKeyboardHeight() {
   return height;
 }
 
+const RevealContext = createContext<() => void>(() => undefined);
+/**
+ * Brings the currently focused field above the Android keyboard on demand — for a field that
+ * gained focus while the keyboard was already open (no keyboard event fires then). No-op on iOS,
+ * where the native inset adjustment already follows focus.
+ */
+export function useRevealFocused() {
+  return useContext(RevealContext);
+}
+
 /**
  * A screen's scroll container that keeps the focused field reachable above the keyboard. iOS uses
  * the native inset adjustment; Android 15+ draws edge to edge and no longer resizes the window for
@@ -51,8 +70,8 @@ export const ScreenScroll = forwardRef<ScrollView, ScrollViewProps>(function Scr
   useImperativeHandle(ref, () => scroll.current as ScrollView, []);
   const keyboard = useKeyboardHeight();
   const android = Platform.OS === 'android';
-  useEffect(() => {
-    if (!android || keyboard === 0) return;
+  const reveal = useCallback(() => {
+    if (!android || currentKeyboardHeight() === 0) return;
     const focused = TextInput.State.currentlyFocusedInput();
     const handle = focused ? findNodeHandle(focused as never) : null;
     if (handle !== null)
@@ -61,18 +80,23 @@ export const ScreenScroll = forwardRef<ScrollView, ScrollViewProps>(function Scr
         spacing.size['touch-target-comfortable'],
         true,
       );
-  }, [android, keyboard]);
+  }, [android]);
+  useEffect(() => {
+    if (keyboard !== 0) reveal();
+  }, [keyboard, reveal]);
   return (
-    <ScrollView
-      ref={scroll}
-      keyboardShouldPersistTaps="handled"
-      keyboardDismissMode={android ? 'on-drag' : 'interactive'}
-      automaticallyAdjustKeyboardInsets
-      {...props}
-      contentContainerStyle={[
-        contentContainerStyle,
-        android && keyboard > 0 ? { paddingBottom: keyboard + spacing.stack.lg } : null,
-      ]}
-    />
+    <RevealContext.Provider value={reveal}>
+      <ScrollView
+        ref={scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={android ? 'on-drag' : 'interactive'}
+        automaticallyAdjustKeyboardInsets
+        {...props}
+        contentContainerStyle={[
+          contentContainerStyle,
+          android && keyboard > 0 ? { paddingBottom: keyboard + spacing.stack.lg } : null,
+        ]}
+      />
+    </RevealContext.Provider>
   );
 });

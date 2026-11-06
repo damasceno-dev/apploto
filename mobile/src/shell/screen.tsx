@@ -29,7 +29,8 @@ import { ScreenScroll } from '@/ui/screen';
 import { FocusRing, PressableBox, useFocusState } from '@/ui/focus';
 import { BranchPicker, IdentitySheet, PasswordLogin } from './entry';
 import { SessionMenu } from './menu';
-import { validateTimeResource } from '@/time/resources';
+import { validateResource } from '@/day/resources';
+import { DaySurface, isDaySurface } from '@/day/surface';
 import { TimeSurface, isTimeSurface } from '@/time/surface';
 import { AdminSurface, isAdminSurface } from '@/admin/surface';
 import { STATEMENT_SETUP, statementAllowed } from '@/admin/clients';
@@ -90,7 +91,7 @@ function GuardedScreen() {
   // editors, pickers and confirmations survive; any scope change still discards them.
   const keepTimeView = Boolean(
     entry &&
-    (isTimeSurface(entry.key) || isAdminSurface(entry.key)) &&
+    (isTimeSurface(entry.key) || isAdminSurface(entry.key) || isDaySurface(entry.key)) &&
     canEnter(entry, snapshot.branch?.role ?? 'Member') &&
     verifiedEntry === verificationKey &&
     snapshot.user &&
@@ -168,7 +169,7 @@ function GuardedScreen() {
         return (
           !!target &&
           canEnter(target, snapshot.branch!.role) &&
-          (!target.path.includes(':id') || (await validateTimeResource(engine, candidate)))
+          (!target.path.includes(':id') || (await validateResource(engine, candidate)))
         );
       })
       .then(async (intent) => {
@@ -390,6 +391,7 @@ function GuardedScreen() {
       ) : (
         <>
           {ownShift &&
+          !isDaySurface(entry.key) &&
           !snapshot.selfContext?.availableAccounts.some((a) => a.accountType === 'Terminal') ? (
             <Notice
               kind="info"
@@ -398,7 +400,9 @@ function GuardedScreen() {
             />
           ) : null}
           <>
-            {isTimeSurface(entry.key) ? (
+            {isDaySurface(entry.key) ? (
+              <DaySurface key={path} destination={entry.key} preserveVerifiedView={keepTimeView} />
+            ) : isTimeSurface(entry.key) ? (
               <TimeSurface
                 key={entry.key === 'time-detail' ? path : address}
                 destination={entry.key}

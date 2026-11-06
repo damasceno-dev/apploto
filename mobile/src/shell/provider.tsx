@@ -12,7 +12,7 @@ import {
 import { Linking } from 'react-native';
 import { usePathname, useRouter, useGlobalSearchParams, type Href } from 'expo-router';
 import { useOptionalSession, useSession } from '@/session/provider';
-import { validateTimeResource } from '@/time/resources';
+import { validateResource } from '@/day/resources';
 import { nativeDeviceStore, emailPartitionKey } from '@/storage/native';
 import {
   destinations,
@@ -125,7 +125,7 @@ function useShellState() {
         raw,
         branch.role,
         Boolean(snapshot.selfContext?.operatorId),
-        (path) => validateTimeResource(engine, path),
+        (path) => validateResource(engine, path),
       );
       if (!alive || engine.getSnapshot().scope !== scope) return;
       const accepted =
@@ -273,7 +273,7 @@ function useShellState() {
             { v: 1, path: origin, mode: originMode, origins: [] },
             current.branch.role,
             Boolean(current.selfContext?.operatorId),
-            (path) => validateTimeResource(engine, path),
+            (path) => validateResource(engine, path),
           )
         : null;
       // A resource origin waits for its owning feature's fresh validator; no stored id proves access.

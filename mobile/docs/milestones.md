@@ -330,6 +330,72 @@ Every branch destination below passes the common authority gate before its avail
 
 **Scope and gates:** as Web M5 — the mobile-first flows of the catalog. This includes gap AA on Close day and Fix & resubmit (retained-retired-product edit/preview/save recovery only; server DailyClose/Product, scheduling pending M7.7 close-out triage); other screen behavior and historical reads proceed. The catalog’s gap → screen map remains authoritative. **Mobile-specific:** the "once per device and branch-local day" terminal choice is stored on the device; Close day's count entry is tuned for numeric keypads and survives the app being backgrounded mid-count. **Flow-alignment (Batch B):** the blind count, Conferir/Recontar, inline opening and _Passar o caixa_ follow Web M5; the arithmetic money input works with the numeric keypad (operators need `+`), and a backgrounded app never reveals the difference before Conferir.
 
+**Status (2026-11-06):** implementation in the current `paralell/app` checkout (merged v63 API, OpenAPI unchanged by this lane). Phases 1–8 are implemented and locally verified, including native journeys on both OSs against the owned real stack. The first independent review did not accept M5 (1 P1, 4 P2, 2 P3); all seven are fixed with Jest regressions, without a native rerun or recheck yet. Physical-device and spoken screen-reader acceptance are pending.
+
+**Sources:** catalog [Operator Day Cockpit, Open day, Close day, Fix & resubmit](../../design/docs/screens.md#operator-day-cockpit), close-day autosave and durable-input patterns, the [operator-day blueprint](../../design/specs/screens/operator-day.md) (its pre-v59 terminal/day/Open-day prose is superseded by the catalog v59–v61 session rows), Web M5's flow-alignment clause, and the actual `SessionController`, `SessionStarter`, `SessionOpeningResolver`, `PutDailyCloseItemsUseCase`, `SessionAllowedActionsResolver`, handover/finish/custody-exception use cases and their DTOs.
+
+### Phase 1 — merged-contract reconciliation and state map
+
+- [x] **1.1** Categories & Types follow v62/v63: `FinancialClass` is edited and sent; the copy says a posting freezes its classification and a save never re-labels posted or locked rows; **Reclassificar período aberto** is a separate audited command shown as later availability, never run by a save. Pre-v63 drafts restore with the fresh server class. `ChequeFiadoConversion` system source added (it broke the merged typecheck).
+- [x] **1.2** Resource model: cashbox (Terminal account), physical terminal CAIXA, custody turno and authentication session are distinct; the exact session id selects a close (several per cashbox/day, separate cashboxes on one terminal). `validateDayResource` re-reads the exact session before any origin/intent restores; URL, mode or stored choice never grants authority.
+- [x] **1.3** Business dates arrive as `YYYY-MM-DDT00:00:00`: only their calendar part is compared with `BranchLocalDate` (found against the real API). Failed reads are never "no session"; unlinked Manager/Admin keep Gestão Close/Fix access; Ponto stays Member-only.
+
+### Phase 2 — Hoje and workstation context
+
+- [x] **2.1** Branch day, cashbox choice per verified identity/branch/device/server day (cleared on another day or a lost grant), one/many/none states, Member setup with read-only link-request status and M11 availability.
+- [x] **2.2** Next action P1–P7 from complete, successful reads only (every page of the session lists; a longer list than the page ceiling is a failed read) (failed higher-priority read → **Não foi possível verificar…**), today's close link independent of P1, other open cashboxes, custody held by another operator, offered handover, Member Ponto, bounded movements with **Automática**, exact Draft split, self reports and guarded M6 links.
+
+### Phase 3 — opening and custody
+
+- [x] **3.1** **Conferir abertura e iniciar** echoes the proposal source and sends the full acknowledged vector; **Abertura diferente** changes only observed rows; a missing or all-zero proposal needs explicit zero. In-memory idempotency intent: an unknown outcome is retried only explicitly with the same key/body; a changed source is refused verbatim, re-read and the typed values kept. The confirmed receipt (with an unattributed discrepancy) survives the follow-up reads.
+- [x] **3.2** Gestão: cashbox and custodian choice with required reason for another operator, custody exception (Finish/AcceptAndStart, F1 included), past interval as declared-turno availability; active/unresolved/no-terminal states.
+
+### Phase 4 — count form and arithmetic entry
+
+- [x] **4.1** Review rows by exact ProductId, blank ≠ zero, signed Relatório do terminal and nonnegative fees, only changed close fields sent, variance row never sent, blind until Conferir.
+- [x] **4.2** Design 4.9.7 mobile behavior ([money-input](../../design/specs/components/money-input.md#arithmetic-entry-design-497--mobile-behavior-mobile-m5)): **Calcular** buffer with operator keys above it, result before **Usar**, only the number sent, autosave, Conferir and Enviar wait while a calculation is open, raw buffer retained. Signed amount: a pasted `-`/`−` value sets **Negativo** with its magnitude.
+- [x] **4.3** Repetir abertura / Desfazer repetição row-local, exact pre-copy value, survives autosave. AA: the whole count is locked for edit and save (never trimmed, cleared or resent) while it holds a stored row of a product the active product list no longer has, while that list cannot be read, or after a 404 save refusal (not lifted by later edits or rereads in that view); typed input stays shown and the rest of the app usable.
+
+### Phase 5 — save, autosave, conflicts
+
+- [x] **5.1** Today's plain Draft autosaves after real edits; corrections/backdated/rechecks need **Salvar**. Single flight, coalesced newer edits, strong If-Match from the verified ETag, older acknowledgements never clear newer device input. Stale → **Recarregar e conferir** with deliberate current-versus-local choice; unknown → reread that confirms a landed save without resending.
+- [x] **5.2** Device drafts per identity/branch/session (no token/version), restore for review only; renewal keeps the verified view mounted with writes paused; server day change stops autosave and keeps the original session.
+
+### Phase 6 — Conferir, Recontar, submit, Fix & resubmit
+
+- [x] **6.1** Candidate states only from server `Count`/`AllowedActions`; Conferir/Recontar with token, revisions, If-Match and one key per intent (key, body and If-Match fixed at the first send and reused on an explicit retry); Unconfirmed needs **Confirmo que esta contagem ainda representa o caixa** (bound to the exact token/revisions shown; any new revision clears it) or Recontar; Submit sends the Current attempt; refusals verbatim with a fresh reread; omitted opening products by attempt identity.
+- [x] **6.2** Fix & resubmit: dated Rejected/OpeningChanged events, **Ver o que mudou**, honest fallbacks, Draft blockers routed to guarded M6 availability.
+
+### Phase 7 — finish and handover
+
+- [x] **7.1** After submit the custodian (or Gestão with a reason) can **Encerrar turno** or **Passar o caixa**; pending offers show state and can be withdrawn with a reason; the incoming operator accepts the immutable vector or observed differences, or disputes. Custody actions require a current history read: a failed read shows that a pending passagem cannot be verified and offers no Encerrar/Passar/Retirar. Member outgoing offers need an operator list Members cannot read (`GET /operator` is Manager/Admin): shown as a precise limitation.
+
+### Phase 8 — verification
+
+- [x] **8.1** Jest/RNTL: `day-contracts` (21), `day-ui` (35), `day-router` (3) on an in-memory model of the shipped rules (`test/unit/day-server.ts`, business dates in the API's date-time shape). Mobile totals: 32 tooling + 446 Jest across 27 suites; workspace typecheck/lint/format; Shared API 103, core 319, Web 9 + 334.
+- [x] **8.2** Native journeys (iPhone 17 Pro / iOS 26.5 with Maestro 2.11.0; Lotero_API36 / Android 16 through `native-day-android.mjs`) against the owned .NET/PostgreSQL stack with API-seeded card, PIX, expense, fiado sale, fiado cash and PIX repayments and Depósito Dinheiro: Hoje with the per-day cashbox choice → explicit-zero start (iOS) / previous-session proposal (Android) → blind close → arithmetic count and signed report → autosave → Conferir → another actor's ledger change → Unconfirmed + explicit confirmation → submit → Gestão **Passar o caixa** → incoming different opening (unattributed −R$ 10,50 / −R$ 12,50) → Recontar → submit → Encerrar turno → rejection → Fix & resubmit with an app kill and device-input restore → unlinked Gestão read. Android also ran F1 (a turno left active past the branch midnight finished by the manager exception). Supported API rereads confirm per OS: attempts Initial/StillObserved/Correction and Initial/Recount, accepted handover, finished/handed-over custody, the restored correction value saved, generated close-field row, single outcome per command.
+- [x] **8.3** Fresh `dist/m5-final` iOS/Android exports with both proof flags pass the exclusion/single-runtime/source gate and ship all `src/day` sources.
+- [ ] **8.4** Independent review, physical-device, spoken VoiceOver/TalkBack and enlarged-text/theme native passes for M5.
+
+**Review findings fixed (2026-11-06):** AA lock covers the whole count and is derived before any save from the active product list; open calculations block Conferir/Enviar; the still-observed confirmation is bound to the presented revisions; a failed history read is unknown custody, not "no passagem"; the cockpit reads every page of its session lists; command retries keep their original If-Match; Relatório do terminal accepts a signed paste. Each has a Jest regression that fails with the defect restored. Native reruns of these paths are not done.
+
+**Defects found natively and fixed:** session dates arrive as `YYYY-MM-DDT00:00:00` (autosave/day checks were wrong against the real API); a negative server expected closing crashed the unsigned formatter; the iOS keypad covered the calculator keys/result (now above the buffer); key-driven buffer edits desynced iOS native text (remount + refocus); the refocused buffer stayed under the Android keypad (`useRevealFocused`); sign labels collapsed in a wrapping row.
+
+**Limitations:** the iOS **Passar o caixa** tap was completed by a corrected one-off native replay after the journey's tap landed during a keypad layout shift (the server shows the resulting offer and acceptance); several iOS assertions on transient toasts were replaced by server rereads; Maestro's Android visibility/scroll was unreliable on this emulator, so Android ran the same generated command lists through the adb/UIAutomator driver. The Android 05/11 chain crossed the branch midnight and was continued on 06/11 (F1 then a new turno). Member outgoing **Passar o caixa** needs an operator list Members cannot read (`GET /operator` is Manager/Admin). Captures, rereads and logs stay in `/private/tmp/loto-m5-native`.
+
+### Surface / test map
+
+| Surface               | Artifacts                                                          | Decisive tests                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Hoje                  | `src/day/cockpit.tsx`, `workstation.ts`, `contracts.ts#nextAction` | P1–P7 from successful reads, partial failure, choice per day, setup, held/receive                                                                                                                                         |
+| Abrir dia             | `src/day/open.tsx`                                                 | echoed source/full vector, explicit zero, unknown retry same key, changed source, handover accept, receipts                                                                                                               |
+| Fechar dia / Corrigir | `src/day/close.tsx`, `count.ts`, `arithmetic.tsx`                  | blind states, autosave/If-Match/coalescing, stale reconciliation, Conferir/Recontar/Submit, AA lock, open-calculation gate, revision-bound confirmation, retry If-Match, signed paste, unknown custody, rollover, restore |
+| Routing               | `surface.tsx`, `resources.ts`, shell integration                   | renewal keeps input, branch claim, unlinked Gestão                                                                                                                                                                        |
+
+**Boundaries:** M6 transaction create/edit/list stay availability destinations (drafts and movements are seeded through APIs in native proof); M7 queue/approval and opening-discrepancy attribution; M11 link request/guided flows; gap AA editing semantics; P6/P7 P&L and attributed shortages; declared/rearranged past turnos.
+
+**Next action:** recheck of the seven review fixes (native rerun of AA lock, open calculation and unknown custody included); physical/spoken device checks.
+
 ## Milestone 6 — Transactions Ledger
 
 **Scope and gates:** as Web M6. **Mobile-specific:** fast entry optimized for one-handed numeric input; the Transactions list uses virtualized, paginated scrolling.

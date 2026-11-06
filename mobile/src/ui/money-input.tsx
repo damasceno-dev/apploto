@@ -5,7 +5,7 @@ import { spacing, textStyle } from '@/theme/style';
 import { FocusRing } from './focus';
 import { useFieldControl } from './form-field';
 import { ReadOnlyValue, useControlChrome, type FieldControlProps, type InputHandle } from './input';
-import { displayMoneyDigits, editMoneyText } from './input-logic';
+import { displayMoneyDigits, editMoneyText, signedMoneyPaste } from './input-logic';
 import { AppText } from './text';
 
 export const BLANK_MONEY_LABEL = 'não informado';
@@ -20,6 +20,11 @@ export interface MoneyInputProps extends FieldControlProps {
   readonly onValueChange: (digits: string) => void;
   /** Read-only amounts name where the figure came from (copy §7). */
   readonly provenance?: keyof typeof provenanceLabels;
+  /**
+   * Signed amount only: a paste with a leading `-`/`−` hands over its magnitude here so the
+   * screen sets **Negativo**; without it a signed paste is refused.
+   */
+  readonly onNegativePaste?: (digits: string) => void;
 }
 
 /** The spoken value: money words from core, **não informado** for blank, **zero reais** for zero. */
@@ -34,7 +39,7 @@ export function spokenMoney(digits: string): string {
  * change the value — not by typing, deletion or paste.
  */
 export const MoneyInput = forwardRef<InputHandle, MoneyInputProps>(function MoneyInput(
-  { value, onValueChange, provenance, testID, ...own },
+  { value, onValueChange, provenance, onNegativePaste, testID, ...own },
   ref,
 ) {
   const control = useFieldControl(own);
@@ -109,6 +114,12 @@ export const MoneyInput = forwardRef<InputHandle, MoneyInputProps>(function Mone
           if (control.disabled) return;
           // Compare with what this field last emitted: the prop can lag behind fast keystrokes.
           const previous = emitted.current?.from === value ? emitted.current.digits : value;
+          const negative = onNegativePaste ? signedMoneyPaste(displayed, raw) : null;
+          if (negative !== null) {
+            emitted.current = { from: value, digits: negative };
+            onNegativePaste!(negative);
+            return;
+          }
           const next = editMoneyText(previous, displayed, raw);
           emitted.current = { from: value, digits: next };
           if (next !== value) onValueChange(next);

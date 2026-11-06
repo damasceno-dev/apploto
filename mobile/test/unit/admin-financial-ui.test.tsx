@@ -833,6 +833,7 @@ describe('Categories and transaction types', () => {
     fiadoPaymentKind: null,
     settlementInstrument: 'None',
     monthlyFinancialRole: 'None',
+    financialClass: 'OperatingExpenseAndLoss',
     systemRole: null,
     categoryId: id(41),
     categoryName: 'Despesas',
@@ -1000,6 +1001,7 @@ describe('Categories and transaction types', () => {
       fiadoPaymentKind: 'NonCash',
       settlementInstrument: 'CreditCard',
       monthlyFinancialRole: 'None',
+      financialClass: 'Unclassified',
     });
   });
   it('recovering a confirmed type create never re-enables it', async () => {
@@ -1045,7 +1047,7 @@ describe('Categories and transaction types', () => {
     ).toBeGreaterThan(0);
     expect(screen.getByTestId('type-save').props.accessibilityState?.disabled).toBe(true);
   });
-  it('a reclassifying edit confirms the current re-labelling policy and sends every field', async () => {
+  it('a classification edit confirms the future-postings-only policy and sends every field', async () => {
     mockParams = { tab: 'tipos' };
     const r = rig();
     await r.ready();
@@ -1067,7 +1069,10 @@ describe('Categories and transaction types', () => {
     await choose('type-monthly', 'CommercialLeftover');
     await act(async () => fireEvent.press(screen.getByTestId('type-save')));
     expect(await screen.findByTestId('type-reclassify-confirm')).toBeTruthy();
-    expect(screen.getAllByText(/inclusive em meses bloqueados/).length).toBeGreaterThan(0);
+    // v62/v63: classifications freeze at posting; saving never re-labels posted or locked rows.
+    expect(screen.getAllByText(/vale só para os próximos lançamentos/).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/inclusive em meses bloqueados/)).toBeNull();
+    expect(screen.getAllByText(/Reclassificar período aberto/).length).toBeGreaterThan(0);
     expect(writes(r, `/transaction-type/${id(51)}`, 'PUT')).toHaveLength(0);
     await act(async () => fireEvent.press(screen.getByText('Confirmar e salvar')));
     await waitFor(() => expect(writes(r, `/transaction-type/${id(51)}`, 'PUT')).toHaveLength(1));
@@ -1078,6 +1083,32 @@ describe('Categories and transaction types', () => {
       fiadoPaymentKind: null,
       settlementInstrument: 'None',
       monthlyFinancialRole: 'CommercialLeftover',
+      financialClass: 'OperatingExpenseAndLoss',
+    });
+    // The separate audited reclassification command is never part of a type save.
+    expect(r.calls.some((c) => c.path.includes('/reclassif'))).toBe(false);
+  });
+  it('a financial class change alone asks for the same confirmation and sends the class', async () => {
+    mockParams = { tab: 'tipos' };
+    const r = rig();
+    await r.ready();
+    typeServer(r, (path, init) =>
+      path === `/transaction-type/${id(51)}`
+        ? init.method === 'PUT'
+          ? response(type(51, { name: 'Aluguel', financialClass: 'InternalTransfer' }))
+          : response(types[1])
+        : undefined,
+    );
+    await open(r);
+    await group('Despesas');
+    await press(`type-edit-${id(51)}`);
+    await choose('type-financial-class', 'InternalTransfer');
+    await act(async () => fireEvent.press(screen.getByTestId('type-save')));
+    expect(await screen.findByTestId('type-reclassify-confirm')).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByText('Confirmar e salvar')));
+    await waitFor(() => expect(writes(r, `/transaction-type/${id(51)}`, 'PUT')).toHaveLength(1));
+    expect(writes(r, `/transaction-type/${id(51)}`, 'PUT')[0]!.body).toMatchObject({
+      financialClass: 'InternalTransfer',
     });
   });
   it('a type changed by someone else since the form opened is shown and nothing is sent', async () => {

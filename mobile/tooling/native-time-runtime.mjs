@@ -8,15 +8,15 @@ import { repoRoot } from './native-stack.mjs';
 const [statePath, duration = '1'] = process.argv.slice(2);
 const minutes = Number(duration);
 if (!Number.isInteger(minutes) || minutes < 1 || minutes > 15)
-  throw new Error('Use an owned M9 state and 1–15 token minutes.');
+  throw new Error('Use an owned M9/M5 state and 1–15 token minutes.');
 const s = JSON.parse(await readFile(statePath, 'utf8'));
 if (
   !s.owned ||
-  !s.time ||
+  (!s.time && !s.day) ||
   !s.owned.containers.every((name) => /^loto-mobile-shell-(?:db|mail)-[a-f0-9]+$/.test(name)) ||
   new URL(s.apiUrl).hostname !== '127.0.0.1'
 )
-  throw new Error('Owned M9 state required.');
+  throw new Error('Owned M9 or M5 state required.');
 const inspect = (name) =>
   JSON.parse(execFileSync('docker', ['inspect', name], { encoding: 'utf8' }))[0];
 const db = inspect(s.owned.containers.find((name) => name.includes('-db-')));

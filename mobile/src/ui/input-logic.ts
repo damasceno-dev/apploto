@@ -201,3 +201,19 @@ export function editMoneyText(previous: string, displayed: string, raw: string):
   }
   return normalizeMoneyDigits(significant) ?? previous;
 }
+
+/**
+ * Signed amount paste (money-input.md): a pasted value with a leading `-` or `−` is the magnitude
+ * with **Negativo**. Returns the magnitude digits, or null when the change is not such a paste
+ * (ordinary entry rules apply; a malformed signed paste stays refused).
+ */
+export function signedMoneyPaste(displayed: string, raw: string): string | null {
+  // A whole-field replacement starts with the sign; an insertion at the caret is the changed span.
+  const candidate = /^\s*[-\u2212]/.test(raw)
+    ? raw.trim()
+    : changedSpan(displayed, raw).inserted.trim();
+  const match = /^[-\u2212]\s*(.+)$/s.exec(candidate);
+  if (!match) return null;
+  const parsed = parseBrl(match[1]!);
+  return parsed.ok && parsed.cents >= 0 ? moneyDigitsFromCents(parsed.cents) : null;
+}

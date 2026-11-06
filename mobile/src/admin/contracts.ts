@@ -2,6 +2,7 @@
 // the shipped DTO/use-case behavior; permissions, uniqueness and ranges stay server-owned.
 import {
   FiadoPaymentKind,
+  FinancialClass,
   MonthlyFinancialRole,
   SettlementInstrument,
   SettlementRule,
@@ -496,6 +497,7 @@ export interface TypeInput {
   readonly fiadoPaymentKind: FiadoKindChoice;
   readonly settlementInstrument: SettlementInstrument;
   readonly monthlyFinancialRole: MonthlyFinancialRole;
+  readonly financialClass: FinancialClass;
 }
 const typeKeys = [
   'categoryId',
@@ -505,10 +507,12 @@ const typeKeys = [
   'fiadoPaymentKind',
   'settlementInstrument',
   'monthlyFinancialRole',
+  'financialClass',
 ] as const;
 export function isTypeInput(value: unknown): value is TypeInput {
   return (
     exactKeys(value, typeKeys) &&
+    Object.values(FinancialClass).includes(value.financialClass as never) &&
     text(value.categoryId) &&
     text(value.name) &&
     ['', ...Object.values(SettlementRule)].includes(value.settlementRule as string) &&
@@ -518,6 +522,18 @@ export function isTypeInput(value: unknown): value is TypeInput {
     Object.values(MonthlyFinancialRole).includes(value.monthlyFinancialRole as never)
   );
 }
+/**
+ * Drafts kept before v63 lack `financialClass`. They stay restorable for review; the restored form
+ * takes the class from the fresh server type (or Unclassified for a new type), never a guess.
+ */
+export type TypeDraft = TypeInput | Omit<TypeInput, 'financialClass'>;
+export function isTypeDraft(value: unknown): value is TypeDraft {
+  if (isTypeInput(value)) return true;
+  if (!value || typeof value !== 'object' || 'financialClass' in value) return false;
+  return isTypeInput({ ...value, financialClass: 'Unclassified' });
+}
+export const restoredType = (draft: TypeDraft, fallback: FinancialClass): TypeInput =>
+  'financialClass' in draft ? draft : { ...draft, financialClass: fallback };
 export const emptyType = (categoryId = ''): TypeInput => ({
   categoryId,
   name: '',
@@ -526,6 +542,7 @@ export const emptyType = (categoryId = ''): TypeInput => ({
   fiadoPaymentKind: '',
   settlementInstrument: 'None',
   monthlyFinancialRole: 'None',
+  financialClass: 'Unclassified',
 });
 export const typeInput = (type: ResponseTransactionTypeJson): TypeInput => ({
   categoryId: type.categoryId,
@@ -535,6 +552,7 @@ export const typeInput = (type: ResponseTransactionTypeJson): TypeInput => ({
   fiadoPaymentKind: type.fiadoPaymentKind ?? 'none',
   settlementInstrument: type.settlementInstrument,
   monthlyFinancialRole: type.monthlyFinancialRole,
+  financialClass: type.financialClass,
 });
 /** The server's own predicate (TransactionTypeFiadoRules): an entrada that requires Tab and client. */
 export const fiadoKindAllowed = (direction: Direction | undefined, requiresTab: boolean) =>
@@ -579,6 +597,7 @@ export function typePayload(input: TypeInput): RequestUpdateTransactionTypeJson 
         : null,
     settlementInstrument: input.settlementInstrument,
     monthlyFinancialRole: input.monthlyFinancialRole,
+    financialClass: input.financialClass,
   };
 }
 export const typeCreatePayload = (input: TypeInput): RequestCreateTransactionTypeJson => ({
@@ -586,15 +605,18 @@ export const typeCreatePayload = (input: TypeInput): RequestCreateTransactionTyp
   ...typePayload(input),
 });
 /**
- * A report classification change against the accepted reference (the server's current values the
- * editor last confirmed or adopted); it re-labels that type's past rows.
+ * A classification change against the accepted reference (the server's current values the editor
+ * last confirmed or adopted). Since v62 a posting freezes its classification: the change applies to
+ * future postings only and never re-labels a posted or locked row; re-labelling posted rows in an
+ * open period is the separate, audited `POST /transaction-type/{id}/reclassify` command.
  */
 export const reclassifies = (
-  reference: Pick<TypeInput, 'settlementInstrument' | 'monthlyFinancialRole'>,
+  reference: Pick<TypeInput, 'settlementInstrument' | 'monthlyFinancialRole' | 'financialClass'>,
   input: TypeInput,
 ) =>
   reference.settlementInstrument !== input.settlementInstrument ||
-  reference.monthlyFinancialRole !== input.monthlyFinancialRole;
+  reference.monthlyFinancialRole !== input.monthlyFinancialRole ||
+  reference.financialClass !== input.financialClass;
 /** Mirrors IsSystemCategoryAsNoTracking over the active types read (server stays final). */
 const systemCategoryRoles: readonly TransactionTypeSystemRole[] = [
   'FiadoSaleCounterpart',
