@@ -45,6 +45,8 @@ namespace server.Exceptions {
             }
         }
         
+        public static string PERSONAL_SHORTAGE_THRESHOLD_INVALID => ResourceManager.GetString("PERSONAL_SHORTAGE_THRESHOLD_INVALID", resourceCulture)!;
+
         public static string EMAIL_ALREADY_REGISTERED {
             get {
                 return ResourceManager.GetString("EMAIL_ALREADY_REGISTERED", resourceCulture);
@@ -1675,6 +1677,10 @@ namespace server.Exceptions {
         public static string SESSION_RESTRICTED_START => ResourceManager.GetString("SESSION_RESTRICTED_START", resourceCulture);
         public static string SESSION_STALE_WRITE => ResourceManager.GetString("SESSION_STALE_WRITE", resourceCulture);
         public static string OPENING_DISCREPANCY_NOT_FOUND => ResourceManager.GetString("OPENING_DISCREPANCY_NOT_FOUND", resourceCulture);
+        public static string OPENING_DISCREPANCY_ATTRIBUTION_AMBIGUOUS => ResourceManager.GetString("OPENING_DISCREPANCY_ATTRIBUTION_AMBIGUOUS", resourceCulture);
+        public static string OPENING_DISCREPANCY_ADJUSTMENT_DATE_INVALID => ResourceManager.GetString("OPENING_DISCREPANCY_ADJUSTMENT_DATE_INVALID", resourceCulture);
+        public static string OPENING_DISCREPANCY_ADJUSTMENT_SOURCE_OPEN => ResourceManager.GetString("OPENING_DISCREPANCY_ADJUSTMENT_SOURCE_OPEN", resourceCulture);
+        public static string OPENING_DISCREPANCY_ADJUSTMENT_NO_CHANGE => ResourceManager.GetString("OPENING_DISCREPANCY_ADJUSTMENT_NO_CHANGE", resourceCulture);
         public static string OPENING_DISCREPANCY_STALE => ResourceManager.GetString("OPENING_DISCREPANCY_STALE", resourceCulture);
         public static string OPENING_DISCREPANCY_TARGET_INVALID => ResourceManager.GetString("OPENING_DISCREPANCY_TARGET_INVALID", resourceCulture);
         public static string OPENING_DISCREPANCY_TARGET_UNAVAILABLE => ResourceManager.GetString("OPENING_DISCREPANCY_TARGET_UNAVAILABLE", resourceCulture);

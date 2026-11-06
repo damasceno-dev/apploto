@@ -18,6 +18,26 @@ namespace UseCases.Test.UseCases.Settings.Update;
 public class UpdateSettingUseCaseTest
 {
     [Fact]
+    public async Task ThresholdOnlyChangeAndClear_ShouldNotTouchAttendancePolicy()
+    {
+        var actor = new BranchUserBuilder().WithRole(Role.Manager).Build();
+        var setting = new SettingBuilder().WithBranchId(actor.BranchId).Build();
+        var auth = new AuthenticationServiceBuilder().GetAuthenticatedBranchUser(actor).Build();
+        var settings = new SettingsRepositoryBuilder().GetByBranchIdReturns(actor.BranchId, setting).Build();
+        var policies = new TimeEntryPoliciesRepositoryBuilder().Build();
+        var unit = new UnitOfWorkBuilder().Build();
+        var useCase = CreateUseCase(auth, settings, unit, policies);
+        (await useCase.Execute(new server.Communication.Requests.RequestUpdateSettingJson { PersonalShortageThreshold = 20m }, 0))
+            .PersonalShortageThreshold.ShouldBe(20m);
+        (await useCase.Execute(new server.Communication.Requests.RequestUpdateSettingJson(), 0)).PersonalShortageThreshold.ShouldBe(20m);
+        (await useCase.Execute(new server.Communication.Requests.RequestUpdateSettingJson { ClearPersonalShortageThreshold = true }, 0))
+            .PersonalShortageThreshold.ShouldBeNull();
+        await policies.DidNotReceive().Add(Arg.Any<TimeEntryPolicy>());
+        await policies.DidNotReceive().GetActiveByBranchIdAndEffectiveFrom(Arg.Any<Guid>(), Arg.Any<DateTime>(), Arg.Any<CancellationToken>());
+        await unit.Received(3).Commit();
+    }
+
+    [Fact]
     public async Task Execute_ShouldUpdateAllMutableFields_WhenAdminUpdates()
     {
         var branchUser = new BranchUserBuilder().WithRole(Role.Admin).Build();

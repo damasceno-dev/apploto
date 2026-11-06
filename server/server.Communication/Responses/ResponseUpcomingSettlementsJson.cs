@@ -7,6 +7,8 @@ namespace server.Communication.Responses;
 /// </summary>
 public class ResponseUpcomingSettlementsJson
 {
+    public ResponsePostedReportingContextJson PostedReports { get; init; } = new();
+
     /// <summary>Branch-local today; overdue means due before it.</summary>
     public DateTime AsOfDate { get; init; }
 

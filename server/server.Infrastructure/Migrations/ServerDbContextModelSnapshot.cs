@@ -1707,6 +1707,103 @@ namespace server.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.OpeningDiscrepancyAdjustment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ComparisonRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DiscrepancyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("HandoverId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PredecessorSessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreviousAdjustmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PreviousOperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PreviousSignedAmount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid?>("PriorAttributionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("SignedAmount")
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("SourceDate")
+                        .HasColumnType("date");
+
+                    b.Property<short>("Target")
+                        .HasColumnType("smallint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OperatorId");
+
+                    b.HasIndex("PreviousAdjustmentId");
+
+                    b.HasIndex("PreviousOperatorId");
+
+                    b.HasIndex("PriorAttributionId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.HasIndex("DiscrepancyId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("OpeningDiscrepancyAdjustments", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OpeningDiscrepancyAdjustments_Neutral", "(\"OperatorId\" IS NOT NULL OR \"SignedAmount\" = 0) AND (\"PreviousOperatorId\" IS NOT NULL OR \"PreviousSignedAmount\" = 0) AND (\"Target\" <> 3 OR (\"OperatorId\" IS NULL AND \"SignedAmount\" = 0))");
+
+                            t.HasCheckConstraint("CK_OpeningDiscrepancyAdjustments_Sequence", "\"Sequence\" > 0 AND \"ComparisonRevision\" > 0");
+
+                            t.HasCheckConstraint("CK_OpeningDiscrepancyAdjustments_Target", "\"Target\" IN (1,2,3)");
+                        });
+                });
+
             modelBuilder.Entity("server.Domain.Entities.OpeningDiscrepancyAttributionEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2721,6 +2818,10 @@ namespace server.Infrastructure.Migrations
                         .HasPrecision(4, 2)
                         .HasColumnType("numeric(4,2)");
 
+                    b.Property<decimal?>("PersonalShortageThreshold")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
                     b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
@@ -2732,7 +2833,10 @@ namespace server.Infrastructure.Migrations
                     b.HasIndex("BranchId")
                         .IsUnique();
 
-                    b.ToTable("Settings", (string)null);
+                    b.ToTable("Settings", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Settings_PersonalShortageThreshold", "\"PersonalShortageThreshold\" IS NULL OR \"PersonalShortageThreshold\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("server.Domain.Entities.SettlementEvent", b =>
@@ -4098,6 +4202,47 @@ namespace server.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("OpeningCount");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.OpeningDiscrepancyAdjustment", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SessionOpeningDiscrepancy", null)
+                        .WithMany()
+                        .HasForeignKey("DiscrepancyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.OpeningDiscrepancyAdjustment", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousAdjustmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousOperatorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.OpeningDiscrepancyAttributionEvent", null)
+                        .WithMany()
+                        .HasForeignKey("PriorAttributionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.DailyClose", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("server.Domain.Entities.OpeningDiscrepancyAttributionEvent", b =>

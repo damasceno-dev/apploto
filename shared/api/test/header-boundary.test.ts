@@ -43,6 +43,7 @@ describe('committed generated output', () => {
 
   it('keeps no lossy merge and separates every one in both outputs', () => {
     expect(count('getHeaders(options?.headers)')).toBe(0);
-    expect(count('callerHeaders: options?.headers')).toBe(172);
+    // P7 adds the adjustment's required idempotency header in raw and query outputs.
+    expect(count('callerHeaders: options?.headers')).toBe(174);
   });
 });

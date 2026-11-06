@@ -46,6 +46,7 @@ public class UpcomingSettlementsReader(
 
         return new ResponseUpcomingSettlementsJson
         {
+            PostedReports = PostedReportingContext.ForMonth(asOfDate.Year, asOfDate.Month, asOfDate),
             AsOfDate = asOfDate.Date,
             IsConfigured = isConfigured,
             DueDateFrom = dueDateFrom.Date,

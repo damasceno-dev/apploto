@@ -9,8 +9,10 @@ import type { ResponseMonthlyFinancialHoursDayJson } from './responseMonthlyFina
 import type { ResponseMonthlyFinancialLeftoverJson } from './responseMonthlyFinancialLeftoverJson';
 import type { ResponseMonthlyFinancialLeftoverTypeTotalJson } from './responseMonthlyFinancialLeftoverTypeTotalJson';
 import type { ResponseMonthlyFinancialTerminalDayJson } from './responseMonthlyFinancialTerminalDayJson';
+import type { ResponsePostedReportingContextJson } from './responsePostedReportingContextJson';
 
 export interface ResponseMonthlyFinancialReportJson {
+  postedReports: ResponsePostedReportingContextJson;
   year: number;
   month: number;
   asOfDate: string;

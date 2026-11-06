@@ -27,6 +27,7 @@ public class PostgresExceptionHandlerTest
     public static TheoryData<string, string> KnownUniqueConstraintMessages =>
         new()
         {
+            { "IX_OpeningDiscrepancyAdjustments_DiscrepancyId_Sequence", ResourcesErrorMessages.OPENING_DISCREPANCY_STALE },
             { "IX_Operators_BranchId_UserId", ResourcesErrorMessages.OPERATOR_USER_ALREADY_LINKED },
             { "IX_Clients_BranchId_Cpf", ResourcesErrorMessages.CLIENT_CPF_CONFLICT },
             { "IX_DailyCloses_BranchId_AccountId_ActiveCustody", ResourcesErrorMessages.SESSION_ACTIVE_CUSTODY_CONFLICT },
@@ -44,6 +45,18 @@ public class PostgresExceptionHandlerTest
             },
             { "IX_TimeEntryPolicies_BranchId_EffectiveFrom", ResourcesErrorMessages.SETTING_STALE_WRITE }
         };
+
+    [Theory]
+    [InlineData("CK_OpeningDiscrepancyAttributionEvents_Chain", false)]
+    [InlineData("CK_OpeningDiscrepancyAdjustments_Chain", false)]
+    [InlineData("CK_OpeningDiscrepancyAttributionEvents_Ambiguous", true)]
+    public void PersonalHistoryGuards_AreStableConflicts_WrappedOrBare(string constraint, bool ambiguous)
+    {
+        var wrapped = BuildPostgresDbUpdateException("23514", constraint);
+        foreach (var error in new Exception[] { wrapped, wrapped.InnerException! })
+            PostgresExceptionHandler.Normalize(error).ShouldBeOfType<ConflictException>().Message.ShouldBe(ambiguous
+                ? ResourcesErrorMessages.OPENING_DISCREPANCY_ATTRIBUTION_AMBIGUOUS : ResourcesErrorMessages.OPENING_DISCREPANCY_STALE);
+    }
 
     [Fact]
     public void Normalize_ShouldReturnOriginalException_WhenConstraintIsUnknown()

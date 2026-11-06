@@ -45,6 +45,7 @@ const type = (extra: Partial<ResponseTransactionTypeJson> = {}): ResponseTransac
   fiadoPaymentKind: 'NonCash',
   settlementInstrument: 'None',
   monthlyFinancialRole: 'None',
+  financialClass: 'Unclassified',
   categoryId: uid(40),
   categoryName: 'Recebimentos',
   createdAt: '2026-10-01T00:00:00Z',
@@ -225,7 +226,10 @@ describe('transaction type classification', () => {
   it('a loaded type without a repayment kind maps to the explicit answer, not unchosen', () => {
     expect(typeInput(type({ fiadoPaymentKind: null })).fiadoPaymentKind).toBe('none');
     expect(isTypeInput(typeInput(type()))).toBe(true);
-    expect(isTypeInput({ ...typeInput(type()), settlementInstrument: 'Pix' })).toBe(false);
+    expect(isTypeInput({ ...typeInput(type()), settlementInstrument: 'Pix' })).toBe(true);
+    expect(isTypeInput({ ...typeInput(type()), settlementInstrument: 'UnknownInstrument' })).toBe(
+      false,
+    );
   });
   it('system categories mirror the server predicate; any system type blocks deactivation', () => {
     const types = [

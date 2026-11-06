@@ -1,3 +1,4 @@
+using server.Application.Services.Sessions;
 using FluentValidation;
 using server.Application.Services.Settings;
 using server.Communication.Requests;
@@ -20,6 +21,7 @@ public class AttributeOpeningDiscrepancyUseCase(
     IAuthenticationService authenticationService,
     ISessionOpeningDiscrepanciesRepository discrepanciesRepository,
     IDailyClosesRepository dailyClosesRepository,
+    IOpeningDiscrepancyAdjustmentsRepository adjustmentsRepository,
     Services.Sessions.SessionEventRecorder eventRecorder,
     Services.Sessions.SessionCommandRunner commandRunner,
     LockDateGuard lockDateGuard,
@@ -37,7 +39,7 @@ public class AttributeOpeningDiscrepancyUseCase(
 
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         SessionCustodyRules.EnsureManager(branchUser);
-        var key = await discrepanciesRepository.GetByIdAndBranchId(discrepancyId, branchUser.BranchId, ct)
+        var key = await discrepanciesRepository.GetByIdAndBranchIdAsNoTracking(discrepancyId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.OPENING_DISCREPANCY_NOT_FOUND);
         var sessionKey = await dailyClosesRepository.GetByIdAndBranchIdAsNoTracking(key.SessionId, branchUser.BranchId, ct)
             ?? throw new NotFoundException(ResourcesErrorMessages.SESSION_NOT_FOUND);
@@ -47,10 +49,16 @@ public class AttributeOpeningDiscrepancyUseCase(
             [sessionKey.AccountId],
             async () =>
             {
-                var discrepancy = await discrepanciesRepository.GetByIdAndBranchId(discrepancyId, branchUser.BranchId, ct)
+                var discrepancy = await adjustmentsRepository.LockSource(branchUser.BranchId, discrepancyId, ct)
                     ?? throw new NotFoundException(ResourcesErrorMessages.OPENING_DISCREPANCY_NOT_FOUND);
+                var currentSession = await dailyClosesRepository.GetByIdAndBranchIdAsNoTracking(discrepancy.SessionId, branchUser.BranchId, ct)
+                    ?? throw new NotFoundException(ResourcesErrorMessages.SESSION_NOT_FOUND);
+                if (request.Target == OpeningDiscrepancyAttribution.Incoming && currentSession.CustodianOperatorId is null)
+                    throw new OnValidationException([ResourcesErrorMessages.OPENING_DISCREPANCY_TARGET_UNAVAILABLE]);
                 if (discrepancy.Version != expectedVersion || discrepancy.CurrentRevision != request.DiscrepancyRevision)
                     throw new ConflictException(ResourcesErrorMessages.OPENING_DISCREPANCY_STALE);
+                if (await adjustmentsRepository.Latest(branchUser.BranchId, discrepancy.Id, ct) is not null)
+                    throw new ConflictException(ResourcesErrorMessages.OPENING_DISCREPANCY_LOCKED);
                 if (discrepancy.CurrentTotalDelta == 0m)
                     throw new ConflictException(ResourcesErrorMessages.OPENING_DISCREPANCY_MATCHED);
                 if (request.Target == OpeningDiscrepancyAttribution.Outgoing && discrepancy.PredecessorSessionId is null)
@@ -58,7 +66,7 @@ public class AttributeOpeningDiscrepancyUseCase(
 
                 await lockDateGuard.EnsureNotLocked(
                     branchUser.BranchId,
-                    sessionKey.Date,
+                    currentSession.Date,
                     ResourcesErrorMessages.OPENING_DISCREPANCY_LOCKED,
                     ct);
                 if (request.Target == OpeningDiscrepancyAttribution.Outgoing)
@@ -76,7 +84,7 @@ public class AttributeOpeningDiscrepancyUseCase(
                         ct);
                 }
 
-                var previous = await discrepanciesRepository.GetLatestAttributionAsNoTracking(discrepancy.Id, ct);
+                var previous = await OpeningAttributionReader.Read(discrepanciesRepository, discrepancy.Id, ct);
                 var now = branchClock.UtcNow();
                 var reason = request.Reason!.Trim();
                 await discrepanciesRepository.AddAttribution(new OpeningDiscrepancyAttributionEvent
@@ -92,7 +100,7 @@ public class AttributeOpeningDiscrepancyUseCase(
                 discrepancy.Attribution = request.Target;
                 discrepancy.AttributedRevision = discrepancy.CurrentRevision;
                 await eventRecorder.Record(
-                    sessionKey,
+                    currentSession,
                     SessionEventKind.AttributionRecorded,
                     branchUser.User,
                     now,
@@ -118,6 +126,7 @@ public class AttributeOpeningDiscrepancyFluentValidation
     {
         RuleFor(request => request.Target)
             .IsInEnum()
+            .WithMessage(ResourcesErrorMessages.OPENING_DISCREPANCY_TARGET_INVALID)
             .NotEqual(OpeningDiscrepancyAttribution.Unattributed)
             .WithMessage(ResourcesErrorMessages.OPENING_DISCREPANCY_TARGET_INVALID);
         RuleFor(request => request.DiscrepancyRevision)

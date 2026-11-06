@@ -90,9 +90,13 @@ public class CreateBranchFinancialSeedTest
         CategoryOf(system[TransactionTypeSystemRole.ChequeFiadoConversion]).ShouldBe("Movimentos automáticos de fiado (saída)");
         system[TransactionTypeSystemRole.ChequeFiadoConversion].Name.ShouldBe("Cheque convertido em fiado");
         system[TransactionTypeSystemRole.ChequeFiadoConversion].RequiresTabAccountAndClient.ShouldBeTrue();
-        // Ordinary seeds stay unclassified until an admin (or M9.7 Phase 6) classifies them.
-        types.Where(type => type.SystemRole == null && type.SeedKey is not ("saidas.recolhimento-cofre" or "entradas.recolhimento-banco"))
-            .ShouldAllBe(type => type.FinancialClass == FinancialClass.Unclassified);
+        // P6 classifies approved stable catalog identities; unresolved stock-event meanings stay explicit.
+        types.Where(t => t.FinancialClass == FinancialClass.Unclassified).Select(t => t.SeedKey).Order()
+            .ShouldBe(new[] { "saidas.encalhe-federal", "saidas.raspadinha", "saidas.telesena", "saidas.troca-telesena" });
+        types.Where(t => t.SeedKey!.StartsWith("administrativas.") || t.SeedKey.StartsWith("pessoal.") || t.SeedKey.StartsWith("financeiras."))
+            .ShouldAllBe(t => t.FinancialClass == FinancialClass.OperatingExpenseAndLoss);
+        types.Where(t => t.SeedKey is "saidas.cartao-credito" or "saidas.cartao-debito" or "saidas.pix" or "saidas.marketplace" or "saidas.pgto-premio")
+            .ShouldAllBe(t => t.FinancialClass == FinancialClass.CaixaAndClientMoney);
         types.Where(type => type.SeedKey is "saidas.recolhimento-cofre" or "entradas.recolhimento-banco")
             .ShouldAllBe(type => type.FinancialClass == FinancialClass.InternalTransfer && type.SystemRole == null);
         foreach (var (role, type) in system)

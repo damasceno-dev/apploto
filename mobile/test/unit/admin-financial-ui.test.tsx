@@ -184,6 +184,7 @@ describe('guards for the four remaining surfaces', () => {
     await r.ready();
     serve(r, () => undefined, 'Member');
     mount(r);
+    await act(async () => Promise.resolve());
     expect(await screen.findByText('Seu perfil não tem acesso a este destino.')).toBeTruthy();
     expect(
       r.calls.some((c) =>

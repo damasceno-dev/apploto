@@ -255,7 +255,12 @@ public static class AppDependencyInjection
         services.AddScoped<TransactionEditImpactProjector>();
         services.AddScoped<UpcomingSettlementsReader>();
         services.AddScoped<TimeEntryBalanceProjector>();
+        services.AddScoped<server.Application.UseCases.Sessions.Adjustment.AdjustOpeningDiscrepancyUseCase>();
+        services.AddScoped<server.Application.UseCases.Sessions.Adjustment.GetOpeningResponsibilityUseCase>();
         services.AddScoped<MonthlyFinancialReader>();
+        services.AddScoped<PersonalDifferencesReader>();
+        services.AddScoped<server.Application.UseCases.Reports.PersonalDifferences.GetPersonalDifferencesUseCase>();
+        services.AddScoped<server.Application.UseCases.Reports.FinancialResult.GetFinancialResultUseCase>();
         services.AddScoped<ManagerQueueReader>();
         services.AddScoped<MonthlyReconciliationReader>();
         services.AddScoped<ManagementOverviewBuilder>();

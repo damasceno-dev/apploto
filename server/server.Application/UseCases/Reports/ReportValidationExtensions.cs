@@ -45,6 +45,12 @@ internal static class ReportValidationExtensions
                 .WithMessage(ResourcesErrorMessages.REPORT_PAGE_INVALID);
         }
 
+        public void PageOffsetWithinRange(Func<T, int> pageSizeSelector)
+        {
+            rule.Must((instance, page) => ((long)page - 1) * pageSizeSelector(instance) <= int.MaxValue)
+                .WithMessage(ResourcesErrorMessages.REPORT_PAGE_INVALID);
+        }
+
         public void PageSizeBounds(int min = PageSizeMin, int max = PageSizeMax)
         {
             rule

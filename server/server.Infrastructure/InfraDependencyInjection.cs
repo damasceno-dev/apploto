@@ -232,6 +232,9 @@ public static class InfraDependencyInjection
         services.AddScoped<IIdempotencyRequestsRepository, IdempotencyRequestsRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IReportReadSnapshot, ReportReadSnapshot>();
+        services.AddScoped<IFinancialResultRepository, FinancialResultRepository>();
+        services.AddScoped<IPersonalDifferencesRepository, PersonalDifferencesRepository>();
+        services.AddScoped<IOpeningDiscrepancyAdjustmentsRepository, OpeningDiscrepancyAdjustmentsRepository>();
         services.AddScoped<IIdempotencyRequestCoordination, IdempotencyRequestCoordination>();
         services.AddScoped<IMonthLockCoordination, MonthLockCoordination>();
         services.AddScoped<IDailyCloseAccountCoordination, DailyCloseAccountCoordination>();

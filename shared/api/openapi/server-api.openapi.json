@@ -11223,6 +11223,335 @@
         ]
       }
     },
+    "/report/personal-differences": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "parameters": [
+          {
+            "name": "Year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "AsOfDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "OperatorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsePersonalDifferencesJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsePersonalDifferencesJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsePersonalDifferencesJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/report/financial-result": {
+      "get": {
+        "tags": [
+          "Report"
+        ],
+        "parameters": [
+          {
+            "name": "Year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "Month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "AsOfDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "FinancialClass",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/FinancialClass"
+            }
+          },
+          {
+            "name": "Page",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseFinancialResultJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseFinancialResultJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseFinancialResultJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
     "/report/daily-ledger": {
       "get": {
         "tags": [
@@ -13276,6 +13605,327 @@
         "security": [
           {
             "BranchBearer": [ ]
+          }
+        ]
+      }
+    },
+    "/session/opening-discrepancy/{discrepancyId}/responsibility": {
+      "get": {
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "discrepancyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "AfterSequence",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "PageSize",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseOpeningResponsibilityJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseOpeningResponsibilityJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseOpeningResponsibilityJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
+          }
+        ]
+      }
+    },
+    "/session/opening-discrepancy-adjustment": {
+      "post": {
+        "tags": [
+          "Session"
+        ],
+        "parameters": [
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "description": "Required printable-ASCII idempotency key, scoped by endpoint, authenticated branch, and user.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOpeningDiscrepancyAdjustmentJson"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOpeningDiscrepancyAdjustmentJson"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOpeningDiscrepancyAdjustmentJson"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseOpeningDiscrepancyAdjustmentJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseOpeningDiscrepancyAdjustmentJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseOpeningDiscrepancyAdjustmentJson"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseErrorJson"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "BranchBearer": [
+              "Admin",
+              "Manager"
+            ]
           }
         ]
       }
@@ -22906,6 +23556,20 @@
         ],
         "type": "string"
       },
+      "FinancialResultSourceKind": {
+        "enum": [
+          "Transaction",
+          "CardSettlementBatchFee",
+          "CardSettlementFeeEvidence",
+          "OfficialSessionVariance",
+          "ChequeCustody",
+          "ChequeDeposit",
+          "ChequeReturn",
+          "ChequeConversion",
+          "ProviderPrincipalSettlement"
+        ],
+        "type": "string"
+      },
       "HolidaySource": {
         "enum": [
           "Manual",
@@ -22979,6 +23643,15 @@
           "Ready",
           "Empty",
           "NotConfigured"
+        ],
+        "type": "string"
+      },
+      "PersonalDifferenceSourceKind": {
+        "enum": [
+          "OfficialSessionVariance",
+          "OpeningDiscrepancy",
+          "OpeningDiscrepancyAdjustment",
+          "OpeningDiscrepancyAdjustmentOffset"
         ],
         "type": "string"
       },
@@ -24685,6 +25358,71 @@
           }
         }
       },
+      "RequestOpeningDiscrepancyAdjustmentJson": {
+        "required": [
+          "discrepancyId",
+          "expectedVersion",
+          "comparisonRevision",
+          "expectedAdjustmentSequence",
+          "postedOn",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "discrepancyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "uint32"
+          },
+          "comparisonRevision": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "expectedAdjustmentSequence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "previousAdjustmentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "priorAttributionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "target": {
+            "$ref": "#/components/schemas/OpeningDiscrepancyAttribution"
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "RequestOperateBranchJson": {
         "required": [
           "requestId",
@@ -25523,12 +26261,24 @@
       "RequestUpdateSettingJson": {
         "type": "object",
         "properties": {
+          "clearPersonalShortageThreshold": {
+            "type": "boolean"
+          },
           "lockDate": {
             "type": [
               "null",
               "string"
             ],
             "format": "date-time"
+          },
+          "personalShortageThreshold": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
           },
           "dailyTargetHours": {
             "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
@@ -28793,6 +29543,226 @@
           }
         }
       },
+      "ResponseFinancialClassTotalJson": {
+        "required": [
+          "financialClass",
+          "knownSignedTotal",
+          "knownVolume",
+          "count",
+          "unknownAmountCount",
+          "migratedCount"
+        ],
+        "type": "object",
+        "properties": {
+          "financialClass": {
+            "$ref": "#/components/schemas/FinancialClass"
+          },
+          "knownSignedTotal": {
+            "type": "number",
+            "format": "double"
+          },
+          "knownVolume": {
+            "type": "number",
+            "format": "double"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unknownAmountCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "migratedCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ResponseFinancialResultEntryJson": {
+        "required": [
+          "sourceId",
+          "sourceKind",
+          "sourceHistoryComplete",
+          "sourceDate",
+          "postedOn",
+          "classificationConflict",
+          "financialClass"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceKind": {
+            "$ref": "#/components/schemas/FinancialResultSourceKind"
+          },
+          "transactionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "bankReceiptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "accountName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountActive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "officialAttemptId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sourceHistoryComplete": {
+            "type": "boolean"
+          },
+          "sessionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sourceDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "snapshotFinancialClass": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FinancialClass"
+              }
+            ]
+          },
+          "classificationConflict": {
+            "type": "boolean"
+          },
+          "financialClass": {
+            "$ref": "#/components/schemas/FinancialClass"
+          },
+          "provenance": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ClassificationProvenance"
+              }
+            ]
+          },
+          "signedAmount": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "ResponseFinancialResultJson": {
+        "required": [
+          "dateFrom",
+          "dateTo",
+          "asOfDate",
+          "isPartialMonth",
+          "knownOwnResult",
+          "classificationComplete",
+          "feeAmountsComplete",
+          "bankPositionComplete",
+          "totalCount",
+          "page",
+          "pageSize",
+          "classes",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isPartialMonth": {
+            "type": "boolean"
+          },
+          "knownOwnResult": {
+            "type": "number",
+            "format": "double"
+          },
+          "classificationComplete": {
+            "type": "boolean"
+          },
+          "feeAmountsComplete": {
+            "type": "boolean"
+          },
+          "bankPositionComplete": {
+            "type": "boolean"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseFinancialClassTotalJson"
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseFinancialResultEntryJson"
+            }
+          }
+        }
+      },
       "ResponseGetCurrentBranchSummaryJson": {
         "required": [
           "branch",
@@ -30168,6 +31138,7 @@
       },
       "ResponseManagementOverviewJson": {
         "required": [
+          "postedReports",
           "generatedAtUtc",
           "asOfDate",
           "branchLocalNow",
@@ -30190,6 +31161,9 @@
         ],
         "type": "object",
         "properties": {
+          "postedReports": {
+            "$ref": "#/components/schemas/ResponsePostedReportingContextJson"
+          },
           "generatedAtUtc": {
             "type": "string",
             "format": "date-time"
@@ -30961,6 +31935,7 @@
       },
       "ResponseManagerQueueJson": {
         "required": [
+          "personalDifferences",
           "date",
           "totalVariance",
           "meanVariance",
@@ -30974,6 +31949,9 @@
         ],
         "type": "object",
         "properties": {
+          "personalDifferences": {
+            "$ref": "#/components/schemas/ResponsePersonalDifferencesJson"
+          },
           "date": {
             "type": "string",
             "format": "date-time"
@@ -31335,6 +32313,7 @@
       },
       "ResponseMonthlyFinancialReportJson": {
         "required": [
+          "postedReports",
           "year",
           "month",
           "asOfDate",
@@ -31357,6 +32336,9 @@
         ],
         "type": "object",
         "properties": {
+          "postedReports": {
+            "$ref": "#/components/schemas/ResponsePostedReportingContextJson"
+          },
           "year": {
             "type": "integer",
             "format": "int32"
@@ -32090,6 +33072,104 @@
           }
         }
       },
+      "ResponseOpeningDiscrepancyAdjustmentJson": {
+        "required": [
+          "id",
+          "discrepancyId",
+          "comparisonRevision",
+          "sequence",
+          "sessionId",
+          "sourceDate",
+          "postedOn",
+          "target",
+          "previousSignedAmount",
+          "signedAmount",
+          "actorUserId",
+          "createdAt",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "discrepancyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "comparisonRevision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "previousAdjustmentId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "priorAttributionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "target": {
+            "$ref": "#/components/schemas/OpeningDiscrepancyAttribution"
+          },
+          "previousOperatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "previousSignedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "operatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "signedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "actorUserId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
       "ResponseOpeningDiscrepancyItemJson": {
         "required": [
           "productId",
@@ -32198,6 +33278,57 @@
             "items": {
               "$ref": "#/components/schemas/ResponseOpeningDiscrepancyItemJson"
             }
+          }
+        }
+      },
+      "ResponseOpeningResponsibilityJson": {
+        "required": [
+          "discrepancy",
+          "sourceDate",
+          "sourceLocked",
+          "adjustments"
+        ],
+        "type": "object",
+        "properties": {
+          "discrepancy": {
+            "$ref": "#/components/schemas/ResponseOpeningDiscrepancyJson"
+          },
+          "latestAttributionId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sourceDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceLocked": {
+            "type": "boolean"
+          },
+          "latestAdjustment": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ResponseOpeningDiscrepancyAdjustmentJson"
+              }
+            ]
+          },
+          "adjustments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponseOpeningDiscrepancyAdjustmentJson"
+            }
+          },
+          "nextAfterSequence": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -32503,6 +33634,229 @@
                 "$ref": "#/components/schemas/ResponseOperatorLinkRequestJson"
               }
             ]
+          }
+        }
+      },
+      "ResponsePersonalDifferenceEntryJson": {
+        "required": [
+          "sourceId",
+          "sourceKind",
+          "sessionId",
+          "sourceDate",
+          "postedOn",
+          "sourceSignedAmount",
+          "shortageContribution",
+          "overageContribution",
+          "thresholdShortageContribution"
+        ],
+        "type": "object",
+        "properties": {
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceKind": {
+            "$ref": "#/components/schemas/PersonalDifferenceSourceKind"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "operatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "sourceDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "postedOn": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sourceSignedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "shortageContribution": {
+            "type": "number",
+            "format": "double"
+          },
+          "overageContribution": {
+            "type": "number",
+            "format": "double"
+          },
+          "thresholdShortageContribution": {
+            "type": "number",
+            "format": "double"
+          },
+          "comparisonRevision": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "ResponsePersonalDifferenceTotalJson": {
+        "required": [
+          "shortage",
+          "overage",
+          "signedNet",
+          "thresholdShortageBasis",
+          "sourceCount",
+          "currentThresholdAlert"
+        ],
+        "type": "object",
+        "properties": {
+          "operatorId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "operatorName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "operatorActive": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "shortage": {
+            "type": "number",
+            "format": "double"
+          },
+          "overage": {
+            "type": "number",
+            "format": "double"
+          },
+          "signedNet": {
+            "type": "number",
+            "format": "double"
+          },
+          "thresholdShortageBasis": {
+            "type": "number",
+            "format": "double"
+          },
+          "sourceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "currentThresholdAlert": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResponsePersonalDifferencesJson": {
+        "required": [
+          "dateFrom",
+          "dateTo",
+          "asOfDate",
+          "automaticPayrollDeduction",
+          "unassignedSourceCount",
+          "totalCount",
+          "page",
+          "pageSize",
+          "people",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "currentShortageThreshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "automaticPayrollDeduction": {
+            "type": "boolean"
+          },
+          "unassignedSourceCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsePersonalDifferenceTotalJson"
+            }
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResponsePersonalDifferenceEntryJson"
+            }
+          }
+        }
+      },
+      "ResponsePostedReportingContextJson": {
+        "required": [
+          "year",
+          "month",
+          "asOfDate",
+          "dateFrom",
+          "dateTo",
+          "bankPositionComplete"
+        ],
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "month": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "asOfDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "bankPositionComplete": {
+            "type": "boolean"
           }
         }
       },
@@ -33638,6 +34992,13 @@
             "type": "string",
             "format": "date-time"
           },
+          "personalShortageThreshold": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
           "dailyTargetHours": {
             "type": "number",
             "format": "double"
@@ -34514,6 +35875,7 @@
       },
       "ResponseUpcomingSettlementsJson": {
         "required": [
+          "postedReports",
           "asOfDate",
           "isConfigured",
           "dueDateFrom",
@@ -34530,6 +35892,9 @@
         ],
         "type": "object",
         "properties": {
+          "postedReports": {
+            "$ref": "#/components/schemas/ResponsePostedReportingContextJson"
+          },
           "asOfDate": {
             "type": "string",
             "format": "date-time"

@@ -8,6 +8,11 @@ internal class UpdateSettingFluentValidation : AbstractValidator<RequestUpdateSe
 {
     public UpdateSettingFluentValidation()
     {
+        RuleFor(x => x.PersonalShortageThreshold)
+            .Must(v => v == null || v > 0 && v <= 999999999999.99m && decimal.Round(v.Value, 2) == v)
+            .WithMessage(ResourcesErrorMessages.PERSONAL_SHORTAGE_THRESHOLD_INVALID);
+        RuleFor(x => x).Must(r => !r.ClearPersonalShortageThreshold || r.PersonalShortageThreshold == null)
+            .WithMessage(ResourcesErrorMessages.PERSONAL_SHORTAGE_THRESHOLD_INVALID);
         RuleFor(x => x.LockDate)
             .Null()
             .WithMessage(ResourcesErrorMessages.SETTING_LOCK_DATE_READ_ONLY);

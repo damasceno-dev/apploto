@@ -19,6 +19,13 @@ public class CardStatementGoldenTest(ServerWebApplicationFactory factory)
     private readonly HttpClient client = factory.CreateClient();
     private readonly Dictionary<Guid, Guid> accountBindings = [];
 
+    private async Task<ResponseFinancialResultJson> FinancialResult(ChequeScenario scenario)
+    {
+        var response = await client.GetAuthAsync("/report/financial-result?year=2026&month=10", scenario.ManagerToken);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        return await response.ReadContentAsync<ResponseFinancialResultJson>();
+    }
+
     [Fact]
     public async Task PartialThenCompleteLockedClaim_MatchesExistingNetReceipts_AndRetainsUnexplainedDifference()
     {
@@ -37,6 +44,9 @@ public class CardStatementGoldenTest(ServerWebApplicationFactory factory)
         var second = await Settle(s, Batch(provider, row, 1, 60m, 2m, 57m));
         second.Receivables.Single().OutstandingValue.ShouldBe(0m);
         second.UnmatchedDifference.ShouldBe(-1m);
+        var resultBeforeMatch = await FinancialResult(s);
+        resultBeforeMatch.KnownOwnResult.ShouldBe(-3m);
+        resultBeforeMatch.BankPositionComplete.ShouldBeFalse();
         var imported = await Import(s, Statement(("one", 39m), ("two", 57m)));
         (await s.BranchTransactionCountAsync()).ShouldBe(before);
         var proposal = await Propose(s, imported.Id);
@@ -48,6 +58,7 @@ public class CardStatementGoldenTest(ServerWebApplicationFactory factory)
         var matched = await Post<ResponseBankMatchConfirmationJson>(s, "/bank-statement/confirm", confirmation, key);
         var replay = await Post<ResponseBankMatchConfirmationJson>(s, "/bank-statement/confirm", confirmation, key);
         replay.MatchIds.ShouldBe(matched.MatchIds);
+        (await FinancialResult(s)).KnownOwnResult.ShouldBe(-3m);
         (await s.ReceiptAsync(first.BankReceipt.Id)).Status.ShouldBe(BankReceiptStatus.Confirmed);
         (await s.ReceiptAsync(second.BankReceipt.Id)).Status.ShouldBe(BankReceiptStatus.Pending);
         var duplicate = await Import(s, Statement(("one", 39m), ("two", 57m)));
@@ -84,6 +95,12 @@ public class CardStatementGoldenTest(ServerWebApplicationFactory factory)
         var unknown = await Settle(s, Batch(provider, a, 0, 50m, null, 49m));
         unknown.FeeUnknown.ShouldBeTrue(); unknown.ExpectedNetAmount.ShouldBeNull();
         unknown.BankReceipt.FeeBasis.ShouldBeNull(); unknown.BankReceipt.FeeEvidence.ShouldBeNull();
+        foreach (var financialClass in new[] { FinancialClass.ShopFeesAndIncome, FinancialClass.InternalTransfer })
+        {
+            var filtered = await client.GetAuthAsync($"/report/financial-result?year=2026&month=10&financialClass={financialClass}", s.ManagerToken);
+            filtered.StatusCode.ShouldBe(HttpStatusCode.OK, await filtered.Content.ReadAsStringAsync());
+            (await filtered.ReadContentAsync<ResponseFinancialResultJson>()).FeeAmountsComplete.ShouldBeFalse();
+        }
         var zero = await Settle(s, Batch(provider, b, 0, 50m, 0m, 50m));
         zero.FeeUnknown.ShouldBeFalse(); zero.ExpectedNetAmount.ShouldBe(50m);
         var imported = await Import(s, Statement(("zero", 50m)));
@@ -820,6 +837,9 @@ public class CardStatementGoldenTest(ServerWebApplicationFactory factory)
         resolved.FeeUnknown.ShouldBeFalse(); resolved.FeeEvidenceVersion.ShouldBe(1);
         replay.FeeEvidenceHistory.Single().Id.ShouldBe(resolved.FeeEvidenceHistory.Single().Id);
         resolved.FeeEvidenceHistory.Single().CreatedByUserId.ShouldBe(s.Day.Manager.User.Id);
+        var resultAfterFee = await FinancialResult(s);
+        resultAfterFee.KnownOwnResult.ShouldBe(-2m);
+        resultAfterFee.FeeAmountsComplete.ShouldBeTrue();
         var evidenceId = resolved.FeeEvidenceHistory.Single().Id;
         var tamper = await Should.ThrowAsync<Npgsql.PostgresException>(() => s.QueryAsync(db => db.CardSettlementFeeEvidence
             .Where(e => e.Id == evidenceId).ExecuteUpdateAsync(x => x.SetProperty(e => e.ConfirmedFee, 0m))));

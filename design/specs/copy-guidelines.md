@@ -169,6 +169,10 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 **BankMovementKind** *(M9.7 P4, typed bank provenance)*: `SafeCollection` → "Recolhimento do cofre" · `CaixaPrizeReimbursement` → "Ressarcimento de prêmios CAIXA" · `BankFee` → "Tarifa bancária".
 
 
+**FinancialResultSourceKind** *(M9.7, report source)*: `Transaction` → "Transação" · `CardSettlementBatchFee` → "Tarifa da liquidação de cartões" · `CardSettlementFeeEvidence` → "Revisão da tarifa de cartões" · `OfficialSessionVariance` → "Diferença oficial do turno" · `ChequeCustody` → "Custódia de cheque" · `ChequeDeposit` → "Depósito de cheque" · `ChequeReturn` → "Devolução de cheque" · `ChequeConversion` → "Conversão de cheque em fiado" · `ProviderPrincipalSettlement` → "Principal liquidado pelo provedor".
+
+**PersonalDifferenceSourceKind** *(M9.7, report source)*: `OfficialSessionVariance` → "Diferença oficial do turno" · `OpeningDiscrepancy` → "Diferença de abertura" · `OpeningDiscrepancyAdjustment` → "Ajuste de responsabilidade" · `OpeningDiscrepancyAdjustmentOffset` → "Compensação de atribuição anterior".
+
 ## 6. Error display
 
 The backend is the single source of error-message truth. Every API error is `ResponseErrorJson { ErrorMessages: string[] }`, already written in pt-BR (`ResourcesErrorMessages.resx`); the unexpected-error handler also returns this shape for HTTP 500.
@@ -280,3 +284,9 @@ These terms document the proposed model; they do not rename shipped wire enums o
 - Corrected operational help: **Depósito no cofre**, customer **Pagamento por PIX**, cheque **Depositado** (not a clearing guarantee). A deposit (**Depositado**, with its receipt **Pendente de confirmação**) is a recording, not “conciliado com o banco”; a late posting reads *Ocorrido em {OccurredOn}, lançado em {PostedOn}*. Matching, returns and bank settlement copy await C contracts. R$ amounts remain the pt-BR formatting contract; API ErrorMessages remain verbatim.
 
 Canonical operation help uses §6.19 O01–O22/E01–E15 with unconfirmed report premises visible. Future report notes name the remaining Q9 uncertainty rather than saying confirmed Q1–Q4 answers are still unanswered. Independent review of this candidate precedes both marker advancement and future blueprint acceptance.
+
+## Financial result and responsibility copy — v64 candidate
+
+**Faltas consideradas no limite** names the server's `ThresholdShortageBasis`; source rows expose `ThresholdShortageContribution`. A credit correcting an older month does not hide a new current-month shortage. No configured limit reads **Alerta não configurado**. The live alert uses the server field; devices do not compare or net amounts.
+
+Design 4.9.12; independent semantic review pending. **Resultado próprio conhecido** never names client money or transfers profit. **Classificação incompatível com a origem** preserves a contradictory snapshot for review without calling Tab principal revenue. **Classificação pendente**, **Tarifa ainda não informada**, **Histórico reconstruído** and **Posição bancária incompleta** retain missing-value/provenance distinctions. **Faltas**, **Sobras** and **Saldo das diferenças** name separate server measures; **Sem atribuição pessoal** assigns no blame. **Compensação de atribuição anterior** explains a signed component offset, not a new overage. Always pair personal totals with **Informativo. Não há desconto automático em folha.** Use **Registrar ajuste de responsabilidade**, source date, posting date and actor/reason; never “descontar do salário”. The two report-source enums use the public core label maps above; no new token palette is introduced.

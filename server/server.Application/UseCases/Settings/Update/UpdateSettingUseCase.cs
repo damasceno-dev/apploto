@@ -40,6 +40,9 @@ public class UpdateSettingUseCase(
         if (setting.Version != expectedVersion)
             throw new ConflictException(ResourcesErrorMessages.SETTING_STALE_WRITE);
 
+        if (request.ClearPersonalShortageThreshold) setting.PersonalShortageThreshold = null;
+        else if (request.PersonalShortageThreshold is { } threshold) setting.PersonalShortageThreshold = threshold;
+
         var policyChanged =
             (request.DailyTargetHours.HasValue && request.DailyTargetHours.Value != setting.DailyTargetHours) ||
             (request.LunchDeductionOver6H.HasValue && request.LunchDeductionOver6H.Value != setting.LunchDeductionOver6H) ||

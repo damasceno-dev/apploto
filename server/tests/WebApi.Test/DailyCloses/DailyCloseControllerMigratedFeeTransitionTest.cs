@@ -45,9 +45,14 @@ public class DailyCloseControllerMigratedFeeTransitionTest(ServerWebApplicationF
         var variance = new Product { BranchId = branch.Id, Name = CashVarianceProductResolver.CashVarianceProductName, DisplayOrder = 8 };
         var date = new DateTime(2026, 9, 15);
         var category = new Category { BranchId = branch.Id, Name = "Vendas legado", DefaultDirection = Direction.In };
-        db.AddRange(branch, user, membership, cash, fee, variance, category,
-            new Setting { BranchId = branch.Id, LockDate = date.AddDays(-1) });
+        db.AddRange(branch, user, membership, cash, fee, variance, category);
         await db.SaveChangesAsync();
+        var settingId = Guid.NewGuid();
+        var lockDate = DateOnly.FromDateTime(date.AddDays(-1));
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Settings" ("Id", "BranchId", "LockDate", "DailyTargetHours", "LunchDeductionOver6H", "LunchDeductionOver4H", "CreatedAt", "Active")
+            VALUES ({settingId}, {branch.Id}, {lockDate}, 7.33, 1, 0.25, now(), true)
+            """);
 
         // Rows at the earlier schema are written with that schema's columns (the current entities carry session ones).
         var accountId = Guid.NewGuid();

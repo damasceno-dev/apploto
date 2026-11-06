@@ -21,7 +21,8 @@ public class ManagerQueueReader(
     IOnboardingRepository onboardingRepository,
     ISessionHandoversRepository sessionHandoversRepository,
     ISessionOpeningDiscrepanciesRepository discrepanciesRepository,
-    ICustodyMappingIssuesRepository custodyMappingIssuesRepository)
+    ICustodyMappingIssuesRepository custodyMappingIssuesRepository,
+    PersonalDifferencesReader personalDifferencesReader)
 {
     public async Task<ResponseManagerQueueJson> Read(
         Guid branchId,
@@ -118,6 +119,8 @@ public class ManagerQueueReader(
         return new ResponseManagerQueueJson
         {
             Date = date,
+            PersonalDifferences = await personalDifferencesReader.Read(branchId, cashVarianceProductId,
+                branchLocalToday.Year, branchLocalToday.Month, branchLocalToday, pageSize: 1, ct: ct),
             TotalVariance = totalVariance,
             MeanVariance = meanVariance,
             PendingApprovalCount = closeRows.Count(c => c.Status == DailyCloseStatus.Submitted),

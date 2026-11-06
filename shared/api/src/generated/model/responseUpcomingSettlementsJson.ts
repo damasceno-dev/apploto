@@ -4,10 +4,12 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ResponsePostedReportingContextJson } from './responsePostedReportingContextJson';
 import type { ResponseSettlementInstrumentTotalJson } from './responseSettlementInstrumentTotalJson';
 import type { ResponseUpcomingSettlementItemJson } from './responseUpcomingSettlementItemJson';
 
 export interface ResponseUpcomingSettlementsJson {
+  postedReports: ResponsePostedReportingContextJson;
   asOfDate: string;
   isConfigured: boolean;
   dueDateFrom: string;

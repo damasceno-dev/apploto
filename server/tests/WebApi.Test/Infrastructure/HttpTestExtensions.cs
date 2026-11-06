@@ -92,7 +92,7 @@ internal static class HttpTestExtensions
         var path = requestUri.Split('?', 2)[0];
         return path is "/transaction" or "/transaction/installment" or "/transaction/fiado-payment" or "/transaction/safe-deposit"
                    or "/cheque/custody" or "/cheque/deposit"
-                   or "/session/start" or "/session/declare" or "/session/approve-day"
+                   or "/session/opening-discrepancy-adjustment" or "/session/start" or "/session/declare" or "/session/approve-day"
                || (path.StartsWith("/cheque/", StringComparison.Ordinal)
                    && (path.EndsWith("/return", StringComparison.Ordinal)
                        || path.EndsWith("/represent", StringComparison.Ordinal)

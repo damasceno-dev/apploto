@@ -75,6 +75,11 @@ public class SessionControllerHandoverTest(ServerWebApplicationFactory factory)
         attribution.StatusCode.ShouldBe(HttpStatusCode.OK, await attribution.Content.ReadAsStringAsync());
         var attributed = await attribution.ReadContentAsync<ResponseOpeningDiscrepancyJson>();
         attributed.Attribution.ShouldBe(OpeningDiscrepancyAttribution.Outgoing);
+        var personal = await _client.PersonalDifferencesAsync(scenario.Manager.Token, accepted.Incoming.Session.Date);
+        var personalSource = personal.Entries.Single(e => e.SourceId == discrepancy.Id);
+        personalSource.OperatorId.ShouldBe(scenario.MemberA.Operator!.Id);
+        personalSource.ShortageContribution.ShouldBe(20m);
+        personal.AutomaticPayrollDeduction.ShouldBeFalse();
         attributed.CountsTowardPerson.ShouldBeTrue();
 
         // The incoming operator works under the acknowledged opening.

@@ -17,6 +17,8 @@ internal class SettingConfiguration : IEntityTypeConfiguration<Setting>
         builder.Property(setting => setting.LunchDeductionOver6H).HasPrecision(4, 2);
         builder.Property(setting => setting.LunchDeductionOver4H).HasPrecision(4, 2);
 
+        builder.Property(s => s.PersonalShortageThreshold).HasPrecision(14, 2);
+        builder.ToTable(t => t.HasCheckConstraint("CK_Settings_PersonalShortageThreshold", "\"PersonalShortageThreshold\" IS NULL OR \"PersonalShortageThreshold\" > 0"));
         builder.HasIndex(setting => setting.BranchId).IsUnique();
     }
 }

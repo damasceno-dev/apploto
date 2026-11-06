@@ -104,6 +104,7 @@ const systemSources: Record<TransactionTypeSystemRole, string> = {
   SpecialFee: 'Escrito só pelo campo Tarifa Especial do fechamento.',
   SafeDepositOut: 'Escrito só pelo Depósito Dinheiro no cofre (saída do caixa).',
   SafeDepositIn: 'Escrito só pelo Depósito Dinheiro no cofre (entrada no cofre).',
+  ChequeFiadoConversion: 'Escrito pela conversão de cheque em fiado, sem movimento no caixa.',
 };
 type TabKey = 'categorias' | 'tipos';
 type Dialog =

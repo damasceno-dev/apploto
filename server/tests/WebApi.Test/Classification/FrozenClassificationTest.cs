@@ -92,6 +92,14 @@ public class FrozenClassificationTest(ServerWebApplicationFactory factory)
         (reclassified.SettlementInstrument, reclassified.Provenance, reclassified.Revision)
             .ShouldBe((SettlementInstrument.DebitCard, ClassificationProvenance.OpenPeriodReclassification, 2));
 
+        var openResult = await _client.FinancialResultAsync(s.ManagerToken, new DateTime(2025, 2, 1));
+        openResult.Classes.ShouldHaveSingleItem().FinancialClass.ShouldBe(FinancialClass.CaixaAndClientMoney);
+        openResult.Classes.Single().KnownVolume.ShouldBe(20m);
+        openResult.Entries.ShouldHaveSingleItem().Provenance.ShouldBe(ClassificationProvenance.OpenPeriodReclassification);
+        var lockedResult = await _client.FinancialResultAsync(s.ManagerToken, new DateTime(2025, 1, 1));
+        lockedResult.Classes.ShouldHaveSingleItem().FinancialClass.ShouldBe(FinancialClass.Unclassified);
+        lockedResult.Classes.Single().KnownVolume.ShouldBe(10m);
+
         var revision = await s.QueryAsync(db => db.TransactionClassificationRevisions.AsNoTracking().SingleAsync(r => r.TransactionId == open.Id));
         (revision.BatchId, revision.Revision, revision.PreviousSettlementInstrument, revision.SettlementInstrument, revision.Reason)
             .ShouldBe((outcome.BatchId!.Value, 2, (SettlementInstrument?)SettlementInstrument.None, SettlementInstrument.DebitCard, "Correção de março"));

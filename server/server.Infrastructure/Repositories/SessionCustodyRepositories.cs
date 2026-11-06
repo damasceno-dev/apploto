@@ -137,6 +137,10 @@ internal class SessionOpeningDiscrepanciesRepository(ServerDbContext dbContext) 
     public async Task AddAttribution(OpeningDiscrepancyAttributionEvent attribution, CancellationToken ct = default)
     {
         await dbContext.OpeningDiscrepancyAttributionEvents.AddAsync(attribution, ct);
+        // Appending an audited decision changes the concurrency root even when target/revision are identical.
+        // A stale If-Match must not append another reason against a head the caller never read.
+        var source = dbContext.SessionOpeningDiscrepancies.Local.Single(d => d.Id == attribution.DiscrepancyId);
+        dbContext.Entry(source).Property(d => d.Attribution).IsModified = true;
     }
 
     public async Task AddRevision(SessionOpeningDiscrepancyRevision revision, CancellationToken ct = default)
@@ -145,6 +149,10 @@ internal class SessionOpeningDiscrepanciesRepository(ServerDbContext dbContext) 
         // treated as an existing row and updated.
         await dbContext.SessionOpeningDiscrepancyRevisions.AddAsync(revision, ct);
     }
+
+    public Task<SessionOpeningDiscrepancy?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default) =>
+        WithRevisions(dbContext.SessionOpeningDiscrepancies.AsNoTracking())
+            .FirstOrDefaultAsync(d => d.Id == id && d.BranchId == branchId, ct);
 
     public Task<SessionOpeningDiscrepancy?> GetByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default)
     {
@@ -168,16 +176,15 @@ internal class SessionOpeningDiscrepanciesRepository(ServerDbContext dbContext) 
             .FirstOrDefaultAsync(discrepancy => discrepancy.BranchId == branchId && discrepancy.SessionId == sessionId, ct);
     }
 
-    public Task<OpeningDiscrepancyAttributionEvent?> GetLatestAttributionAsNoTracking(
+    public async Task<IReadOnlyList<OpeningDiscrepancyAttributionEvent>> GetAttributionHeadsAsNoTracking(
         Guid discrepancyId,
         CancellationToken ct = default)
     {
-        return dbContext.OpeningDiscrepancyAttributionEvents
+        return await dbContext.OpeningDiscrepancyAttributionEvents
             .AsNoTracking()
-            .Where(attribution => attribution.DiscrepancyId == discrepancyId)
-            .OrderByDescending(attribution => attribution.CreatedAt)
-            .ThenByDescending(attribution => attribution.Id)
-            .FirstOrDefaultAsync(ct);
+            .Where(attribution => attribution.DiscrepancyId == discrepancyId &&
+                !dbContext.OpeningDiscrepancyAttributionEvents.Any(next => next.SupersedesEventId == attribution.Id))
+            .Take(2).ToListAsync(ct);
     }
 
     public async Task<IReadOnlyList<SessionOpeningDiscrepancy>> ListAwaitingAttributionByBranchIdAsNoTracking(
@@ -195,7 +202,10 @@ internal class SessionOpeningDiscrepanciesRepository(ServerDbContext dbContext) 
                 discrepancy.Active &&
                 discrepancy.CurrentTotalDelta != 0 &&
                 (discrepancy.Attribution == OpeningDiscrepancyAttribution.Unattributed ||
-                 discrepancy.AttributedRevision != discrepancy.CurrentRevision))
+                 discrepancy.AttributedRevision != discrepancy.CurrentRevision) &&
+                !dbContext.OpeningDiscrepancyAdjustments.Any(a => a.DiscrepancyId == discrepancy.Id &&
+                    a.ComparisonRevision == discrepancy.CurrentRevision &&
+                    !dbContext.OpeningDiscrepancyAdjustments.Any(later => later.DiscrepancyId == a.DiscrepancyId && later.Sequence > a.Sequence)))
             .OrderBy(discrepancy => discrepancy.Session.Date)
             .ThenBy(discrepancy => discrepancy.Id)
             .ToListAsync(ct);
@@ -204,7 +214,7 @@ internal class SessionOpeningDiscrepanciesRepository(ServerDbContext dbContext) 
     private static IQueryable<SessionOpeningDiscrepancy> WithRevisions(IQueryable<SessionOpeningDiscrepancy> source)
     {
         return source
-            .Include(discrepancy => discrepancy.Revisions)
+            .Include(discrepancy => discrepancy.Revisions.Where(r => r.Revision == r.Discrepancy.CurrentRevision))
             .ThenInclude(revision => revision.Items);
     }
 }

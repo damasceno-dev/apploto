@@ -22,6 +22,7 @@ import type {
 
 import type {
   GetSessionOpeningCountParams,
+  GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
   GetSessionOpeningProposalParams,
   GetSessionParams,
   PostSessionApproveDayHeaders,
@@ -29,6 +30,7 @@ import type {
   PostSessionHandoverHandoverIdAcceptHeaders,
   PostSessionHandoverHandoverIdDisputeHeaders,
   PostSessionHandoverHandoverIdWithdrawHeaders,
+  PostSessionOpeningDiscrepancyAdjustmentHeaders,
   PostSessionOpeningDiscrepancyDiscrepancyIdAttributionHeaders,
   PostSessionSessionIdApproveHeaders,
   PostSessionSessionIdConferirHeaders,
@@ -49,6 +51,7 @@ import type {
   RequestDeclarePastSessionJson,
   RequestFinishSessionJson,
   RequestOfferSessionHandoverJson,
+  RequestOpeningDiscrepancyAdjustmentJson,
   RequestPutDailyCloseItemsJson,
   RequestRearrangePastSessionJson,
   RequestRecordOpeningCountJson,
@@ -66,7 +69,9 @@ import type {
   ResponseErrorJson,
   ResponseListDailyClosesJson,
   ResponseOpeningCountJson,
+  ResponseOpeningDiscrepancyAdjustmentJson,
   ResponseOpeningDiscrepancyJson,
+  ResponseOpeningResponsibilityJson,
   ResponsePutDailyCloseItemsJson,
   ResponseResolveCustodyExceptionJson,
   ResponseSessionChainChangeJson,
@@ -515,6 +520,531 @@ export const usePutSessionSessionIdItems = <
   TContext
 > => {
   return useMutation(getPutSessionSessionIdItemsMutationOptions(options), queryClient);
+};
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse200TextPlain = {
+  data: ResponseOpeningResponsibilityJson;
+  status: 200;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse200ApplicationJson = {
+  data: ResponseOpeningResponsibilityJson;
+  status: 200;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse200TextJson = {
+  data: ResponseOpeningResponsibilityJson;
+  status: 200;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponseSuccess = (
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse200TextPlain
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse200ApplicationJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponseError = (
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse400TextPlain
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse400ApplicationJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse400TextJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse401TextPlain
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse401ApplicationJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse401TextJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse403TextPlain
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse403ApplicationJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse403TextJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse404TextPlain
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse404ApplicationJson
+  | getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponse404TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityUrl = (
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/session/opening-discrepancy/${discrepancyId}/responsibility?${stringifiedParams}`
+    : `/session/opening-discrepancy/${discrepancyId}/responsibility`;
+};
+
+export const getSessionOpeningDiscrepancyDiscrepancyIdResponsibility = async (
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponseSuccess> => {
+  return apiFetch<getSessionOpeningDiscrepancyDiscrepancyIdResponsibilityResponseSuccess>(
+    getGetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityUrl(discrepancyId, params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export const getGetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityQueryKey = (
+  discrepancyId: string,
+  params?: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+) => {
+  return [
+    `/session/opening-discrepancy/${discrepancyId}/responsibility`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getGetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityQueryKey(discrepancyId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>
+  > = ({ signal }) =>
+    getSessionOpeningDiscrepancyDiscrepancyIdResponsibility(discrepancyId, params, {
+      signal,
+      ...requestOptions,
+    });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: discrepancyId !== null && discrepancyId !== undefined,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>
+>;
+export type GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityQueryError =
+  ErrorType<ResponseErrorJson>;
+
+export function useGetSessionOpeningDiscrepancyDiscrepancyIdResponsibility<
+  TData = Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+          TError,
+          Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSessionOpeningDiscrepancyDiscrepancyIdResponsibility<
+  TData = Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+          TError,
+          Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetSessionOpeningDiscrepancyDiscrepancyIdResponsibility<
+  TData = Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetSessionOpeningDiscrepancyDiscrepancyIdResponsibility<
+  TData = Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  discrepancyId: string,
+  params: GetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof getSessionOpeningDiscrepancyDiscrepancyIdResponsibility>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetSessionOpeningDiscrepancyDiscrepancyIdResponsibilityQueryOptions(
+    discrepancyId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse200TextPlain = {
+  data: ResponseOpeningDiscrepancyAdjustmentJson;
+  status: 200;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse200ApplicationJson = {
+  data: ResponseOpeningDiscrepancyAdjustmentJson;
+  status: 200;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse200TextJson = {
+  data: ResponseOpeningDiscrepancyAdjustmentJson;
+  status: 200;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type postSessionOpeningDiscrepancyAdjustmentResponseSuccess = (
+  | postSessionOpeningDiscrepancyAdjustmentResponse200TextPlain
+  | postSessionOpeningDiscrepancyAdjustmentResponse200ApplicationJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type postSessionOpeningDiscrepancyAdjustmentResponseError = (
+  | postSessionOpeningDiscrepancyAdjustmentResponse400TextPlain
+  | postSessionOpeningDiscrepancyAdjustmentResponse400ApplicationJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse400TextJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse401TextPlain
+  | postSessionOpeningDiscrepancyAdjustmentResponse401ApplicationJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse401TextJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse403TextPlain
+  | postSessionOpeningDiscrepancyAdjustmentResponse403ApplicationJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse403TextJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse404TextPlain
+  | postSessionOpeningDiscrepancyAdjustmentResponse404ApplicationJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse404TextJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse409TextPlain
+  | postSessionOpeningDiscrepancyAdjustmentResponse409ApplicationJson
+  | postSessionOpeningDiscrepancyAdjustmentResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getPostSessionOpeningDiscrepancyAdjustmentUrl = () => {
+  return `/session/opening-discrepancy-adjustment`;
+};
+
+export const postSessionOpeningDiscrepancyAdjustment = async (
+  requestOpeningDiscrepancyAdjustmentJson: RequestOpeningDiscrepancyAdjustmentJson,
+  headers: PostSessionOpeningDiscrepancyAdjustmentHeaders,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<postSessionOpeningDiscrepancyAdjustmentResponseSuccess> => {
+  const getHeaders = (
+    h?: NonNullable<RequestInit['headers']>,
+  ): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(
+          h as Iterable<Iterable<string>>,
+          (entry) => Array.from(entry) as [string, string],
+        ),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+  return apiFetch<postSessionOpeningDiscrepancyAdjustmentResponseSuccess>(
+    getPostSessionOpeningDiscrepancyAdjustmentUrl(),
+    {
+      ...options,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      callerHeaders: options?.headers,
+      body: JSON.stringify(requestOpeningDiscrepancyAdjustmentJson),
+    },
+  );
+};
+
+export const getPostSessionOpeningDiscrepancyAdjustmentMutationKey = () =>
+  ['postSessionOpeningDiscrepancyAdjustment'] as const;
+
+export const getPostSessionOpeningDiscrepancyAdjustmentMutationOptions = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postSessionOpeningDiscrepancyAdjustment>>,
+    TError,
+    PostSessionOpeningDiscrepancyAdjustmentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postSessionOpeningDiscrepancyAdjustment>>,
+  TError,
+  PostSessionOpeningDiscrepancyAdjustmentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getPostSessionOpeningDiscrepancyAdjustmentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postSessionOpeningDiscrepancyAdjustment>>,
+    PostSessionOpeningDiscrepancyAdjustmentMutationVariables
+  > = (props) => {
+    const { data, headers } = props ?? {};
+
+    return postSessionOpeningDiscrepancyAdjustment(data, headers, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostSessionOpeningDiscrepancyAdjustmentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postSessionOpeningDiscrepancyAdjustment>>
+>;
+export type PostSessionOpeningDiscrepancyAdjustmentMutationBody =
+  RequestOpeningDiscrepancyAdjustmentJson;
+export type PostSessionOpeningDiscrepancyAdjustmentMutationError = ErrorType<ResponseErrorJson>;
+export type PostSessionOpeningDiscrepancyAdjustmentMutationVariables = {
+  data: RequestOpeningDiscrepancyAdjustmentJson;
+  headers: PostSessionOpeningDiscrepancyAdjustmentHeaders;
+};
+
+export const usePostSessionOpeningDiscrepancyAdjustment = <
+  TError = ErrorType<ResponseErrorJson>,
+  TContext = unknown,
+>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof postSessionOpeningDiscrepancyAdjustment>>,
+      TError,
+      PostSessionOpeningDiscrepancyAdjustmentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof postSessionOpeningDiscrepancyAdjustment>>,
+  TError,
+  PostSessionOpeningDiscrepancyAdjustmentMutationVariables,
+  TContext
+> => {
+  return useMutation(
+    getPostSessionOpeningDiscrepancyAdjustmentMutationOptions(options),
+    queryClient,
+  );
 };
 export type postSessionSessionIdSubmitResponse200TextPlain = {
   data: ResponseDailyCloseJson;

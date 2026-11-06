@@ -332,7 +332,8 @@ internal static class TestSeeder
             FiadoPaymentKind? fiadoPaymentKind = null,
             TransactionTypeSystemRole? systemRole = null,
             SettlementInstrument settlementInstrument = SettlementInstrument.None,
-            MonthlyFinancialRole monthlyFinancialRole = MonthlyFinancialRole.None)
+            MonthlyFinancialRole monthlyFinancialRole = MonthlyFinancialRole.None,
+            FinancialClass financialClass = FinancialClass.Unclassified)
         {
             using var scope = factory.Services.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<ServerDbContext>();
@@ -348,7 +349,8 @@ internal static class TestSeeder
                 FiadoPaymentKind = fiadoPaymentKind,
                 SystemRole = systemRole,
                 SettlementInstrument = settlementInstrument,
-                MonthlyFinancialRole = monthlyFinancialRole
+                MonthlyFinancialRole = monthlyFinancialRole,
+                FinancialClass = financialClass
             };
             dbContext.TransactionTypes.Add(transactionType);
             await dbContext.SaveChangesAsync();

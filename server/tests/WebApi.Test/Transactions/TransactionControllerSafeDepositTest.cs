@@ -60,6 +60,15 @@ public class TransactionControllerSafeDepositTest(ServerWebApplicationFactory fa
         var attempt = (await _client.ConferAsync(sessionId, s.MemberA.Token)).Attempt;
         (attempt.TotalIn, attempt.TotalOut, attempt.Difference).ShouldBe((0m, 250m, 0m));
 
+        var date = (await _client.GetSessionAsync(sessionId, s.MemberA.Token)).Date;
+        var resultResponse = await _client.GetAuthAsync($"/report/financial-result?year={date.Year}&month={date.Month}", s.Manager.Token);
+        resultResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await resultResponse.Content.ReadAsStringAsync());
+        var result = await resultResponse.ReadContentAsync<ResponseFinancialResultJson>();
+        result.KnownOwnResult.ShouldBe(0m);
+        result.Classes.Single(c => c.FinancialClass == FinancialClass.InternalTransfer).KnownVolume.ShouldBe(250m);
+        result.Entries.ShouldContain(e => e.SourceId == source.Id);
+        result.Entries.ShouldNotContain(e => e.SourceId == destination.Id);
+
         // The cofre holds no session and can never start one: its stock never enters a cashbox variance.
         var safeStart = await _client.PostAuthAsync(
             "/session/start", new RequestStartSessionJson { AccountId = s.SafeId }, s.Manager.Token);

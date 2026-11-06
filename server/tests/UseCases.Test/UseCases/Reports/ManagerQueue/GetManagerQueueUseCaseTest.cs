@@ -418,8 +418,10 @@ public class GetManagerQueueUseCaseTest
                 Substitute.For<IOnboardingRepository>(),
                 Substitute.For<ISessionHandoversRepository>(),
                 Substitute.For<ISessionOpeningDiscrepanciesRepository>(),
-                Substitute.For<ICustodyMappingIssuesRepository>()),
-            ctx.BranchClock);
+                Substitute.For<ICustodyMappingIssuesRepository>(),
+                new PersonalDifferencesReader(CommonTestUtilities.Repositories.PersonalDifferencesRepositoryBuilder.Empty(), Substitute.For<ISettingsRepository>())),
+            ctx.BranchClock,
+            Substitute.For<IReportReadSnapshot>());
     }
 
     private static TestContext BuildContext(

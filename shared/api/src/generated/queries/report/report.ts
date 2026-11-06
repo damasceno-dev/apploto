@@ -23,9 +23,11 @@ import type {
   GetReportDailyLedgerParams,
   GetReportFiadoAgingParams,
   GetReportFiadoBalanceParams,
+  GetReportFinancialResultParams,
   GetReportManagementOverviewParams,
   GetReportManagerQueueParams,
   GetReportOperatorSummaryParams,
+  GetReportPersonalDifferencesParams,
   GetReportTimeentryBalanceParams,
   GetReportUpcomingSettlementsParams,
   ResponseCashVarianceSummaryJson,
@@ -33,12 +35,14 @@ import type {
   ResponseErrorJson,
   ResponseFiadoAgingJson,
   ResponseFiadoBalanceJson,
+  ResponseFinancialResultJson,
   ResponseManagementOverviewJson,
   ResponseManagerQueueJson,
   ResponseMonthlyFinancialReportJson,
   ResponseMonthlyReconciliationJson,
   ResponseOpenChequeAgingJson,
   ResponseOperatorTransactionSummaryJson,
+  ResponsePersonalDifferencesJson,
   ResponseTimeEntryBalanceSummaryJson,
   ResponseUpcomingSettlementsJson,
 } from '../../model';
@@ -66,6 +70,453 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export type getReportPersonalDifferencesResponse200TextPlain = {
+  data: ResponsePersonalDifferencesJson;
+  status: 200;
+};
+
+export type getReportPersonalDifferencesResponse200ApplicationJson = {
+  data: ResponsePersonalDifferencesJson;
+  status: 200;
+};
+
+export type getReportPersonalDifferencesResponse200TextJson = {
+  data: ResponsePersonalDifferencesJson;
+  status: 200;
+};
+
+export type getReportPersonalDifferencesResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportPersonalDifferencesResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportPersonalDifferencesResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportPersonalDifferencesResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportPersonalDifferencesResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportPersonalDifferencesResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportPersonalDifferencesResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportPersonalDifferencesResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportPersonalDifferencesResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportPersonalDifferencesResponseSuccess = (
+  | getReportPersonalDifferencesResponse200TextPlain
+  | getReportPersonalDifferencesResponse200ApplicationJson
+  | getReportPersonalDifferencesResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportPersonalDifferencesResponseError = (
+  | getReportPersonalDifferencesResponse400TextPlain
+  | getReportPersonalDifferencesResponse400ApplicationJson
+  | getReportPersonalDifferencesResponse400TextJson
+  | getReportPersonalDifferencesResponse401TextPlain
+  | getReportPersonalDifferencesResponse401ApplicationJson
+  | getReportPersonalDifferencesResponse401TextJson
+  | getReportPersonalDifferencesResponse403TextPlain
+  | getReportPersonalDifferencesResponse403ApplicationJson
+  | getReportPersonalDifferencesResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportPersonalDifferencesUrl = (params: GetReportPersonalDifferencesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/personal-differences?${stringifiedParams}`
+    : `/report/personal-differences`;
+};
+
+export const getReportPersonalDifferences = async (
+  params: GetReportPersonalDifferencesParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportPersonalDifferencesResponseSuccess> => {
+  return apiFetch<getReportPersonalDifferencesResponseSuccess>(
+    getGetReportPersonalDifferencesUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export const getGetReportPersonalDifferencesQueryKey = (
+  params?: GetReportPersonalDifferencesParams,
+) => {
+  return [`/report/personal-differences`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetReportPersonalDifferencesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportPersonalDifferencesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportPersonalDifferences>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReportPersonalDifferencesQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportPersonalDifferences>>> = ({
+    signal,
+  }) => getReportPersonalDifferences(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetReportPersonalDifferencesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReportPersonalDifferences>>
+>;
+export type GetReportPersonalDifferencesQueryError = ErrorType<ResponseErrorJson>;
+
+export function useGetReportPersonalDifferences<
+  TData = Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportPersonalDifferencesParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportPersonalDifferences>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+          TError,
+          Awaited<ReturnType<typeof getReportPersonalDifferences>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportPersonalDifferences<
+  TData = Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportPersonalDifferencesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportPersonalDifferences>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+          TError,
+          Awaited<ReturnType<typeof getReportPersonalDifferences>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportPersonalDifferences<
+  TData = Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportPersonalDifferencesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportPersonalDifferences>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetReportPersonalDifferences<
+  TData = Awaited<ReturnType<typeof getReportPersonalDifferences>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportPersonalDifferencesParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportPersonalDifferences>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetReportPersonalDifferencesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export type getReportFinancialResultResponse200TextPlain = {
+  data: ResponseFinancialResultJson;
+  status: 200;
+};
+
+export type getReportFinancialResultResponse200ApplicationJson = {
+  data: ResponseFinancialResultJson;
+  status: 200;
+};
+
+export type getReportFinancialResultResponse200TextJson = {
+  data: ResponseFinancialResultJson;
+  status: 200;
+};
+
+export type getReportFinancialResultResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportFinancialResultResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportFinancialResultResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportFinancialResultResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportFinancialResultResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportFinancialResultResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportFinancialResultResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportFinancialResultResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportFinancialResultResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportFinancialResultResponseSuccess = (
+  | getReportFinancialResultResponse200TextPlain
+  | getReportFinancialResultResponse200ApplicationJson
+  | getReportFinancialResultResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportFinancialResultResponseError = (
+  | getReportFinancialResultResponse400TextPlain
+  | getReportFinancialResultResponse400ApplicationJson
+  | getReportFinancialResultResponse400TextJson
+  | getReportFinancialResultResponse401TextPlain
+  | getReportFinancialResultResponse401ApplicationJson
+  | getReportFinancialResultResponse401TextJson
+  | getReportFinancialResultResponse403TextPlain
+  | getReportFinancialResultResponse403ApplicationJson
+  | getReportFinancialResultResponse403TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportFinancialResultUrl = (params: GetReportFinancialResultParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/financial-result?${stringifiedParams}`
+    : `/report/financial-result`;
+};
+
+export const getReportFinancialResult = async (
+  params: GetReportFinancialResultParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportFinancialResultResponseSuccess> => {
+  return apiFetch<getReportFinancialResultResponseSuccess>(getGetReportFinancialResultUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetReportFinancialResultQueryKey = (params?: GetReportFinancialResultParams) => {
+  return [`/report/financial-result`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetReportFinancialResultQueryOptions = <
+  TData = Awaited<ReturnType<typeof getReportFinancialResult>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportFinancialResultParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportFinancialResult>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetReportFinancialResultQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getReportFinancialResult>>> = ({
+    signal,
+  }) => getReportFinancialResult(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getReportFinancialResult>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetReportFinancialResultQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getReportFinancialResult>>
+>;
+export type GetReportFinancialResultQueryError = ErrorType<ResponseErrorJson>;
+
+export function useGetReportFinancialResult<
+  TData = Awaited<ReturnType<typeof getReportFinancialResult>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportFinancialResultParams,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportFinancialResult>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportFinancialResult>>,
+          TError,
+          Awaited<ReturnType<typeof getReportFinancialResult>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportFinancialResult<
+  TData = Awaited<ReturnType<typeof getReportFinancialResult>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportFinancialResultParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportFinancialResult>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getReportFinancialResult>>,
+          TError,
+          Awaited<ReturnType<typeof getReportFinancialResult>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetReportFinancialResult<
+  TData = Awaited<ReturnType<typeof getReportFinancialResult>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportFinancialResultParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportFinancialResult>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+export function useGetReportFinancialResult<
+  TData = Awaited<ReturnType<typeof getReportFinancialResult>>,
+  TError = ErrorType<ResponseErrorJson>,
+>(
+  params: GetReportFinancialResultParams,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof getReportFinancialResult>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetReportFinancialResultQueryOptions(params, options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export type getReportDailyLedgerResponse200TextPlain = {
   data: ResponseDailyLedgerJson;

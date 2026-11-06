@@ -144,6 +144,7 @@ export const forwardedOperations = [
   { method: 'GET', path: '/report/daily-ledger', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/fiado/aging', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/fiado/balance', authTier: 'branch', headers: [] },
+  { method: 'GET', path: '/report/financial-result', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/management-overview', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/manager-queue', authTier: 'branch', headers: [] },
   {
@@ -159,6 +160,7 @@ export const forwardedOperations = [
     headers: [],
   },
   { method: 'GET', path: '/report/operator-summary', authTier: 'branch', headers: [] },
+  { method: 'GET', path: '/report/personal-differences', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/timeentry-balance', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/report/upcoming-settlements', authTier: 'branch', headers: [] },
   { method: 'GET', path: '/session', authTier: 'branch', headers: [] },
@@ -191,9 +193,21 @@ export const forwardedOperations = [
   { method: 'POST', path: '/session/opening-count', authTier: 'branch', headers: [] },
   {
     method: 'POST',
+    path: '/session/opening-discrepancy-adjustment',
+    authTier: 'branch',
+    headers: ['Idempotency-Key'],
+  },
+  {
+    method: 'POST',
     path: '/session/opening-discrepancy/{discrepancyId}/attribution',
     authTier: 'branch',
     headers: ['If-Match'],
+  },
+  {
+    method: 'GET',
+    path: '/session/opening-discrepancy/{discrepancyId}/responsibility',
+    authTier: 'branch',
+    headers: [],
   },
   { method: 'GET', path: '/session/opening-proposal', authTier: 'branch', headers: [] },
   { method: 'POST', path: '/session/start', authTier: 'branch', headers: ['Idempotency-Key'] },

@@ -106,6 +106,11 @@ public class SessionControllerCorrectionChainTest(ServerWebApplicationFactory fa
         (await QueueAsync(scenario)).Custody.OpeningDiscrepanciesAwaitingAttribution
             .ShouldNotContain(row => row.OpeningDiscrepancyId == discrepancy.Id);
 
+        var attributedReport = await _client.PersonalDifferencesAsync(scenario.Manager.Token, c.Date);
+        var attributedSource = attributedReport.Entries.Single(e => e.SourceId == discrepancy.Id);
+        attributedSource.OverageContribution.ShouldBe(10m);
+        attributedSource.OperatorId.ShouldBe((await _client.GetSessionAsync(c.Id, scenario.Manager.Token)).Custody.CustodianOperatorId);
+
         // Correcting B again supersedes the attributed revision: it stops counting and returns to the queue.
         await _client.CountAsync(b.Id, scenario.Manager.Token, new Dictionary<Guid, decimal> { [scenario.Cash.Id] = 95m });
         var revised = (await (await _client.GetAuthAsync($"/session/{c.Id}/review", scenario.Manager.Token))
@@ -119,6 +124,13 @@ public class SessionControllerCorrectionChainTest(ServerWebApplicationFactory fa
         row.Attribution.ShouldBe(OpeningDiscrepancyAttribution.Incoming);
         row.AttributedRevision.ShouldBe(1);
         row.CurrentRevision.ShouldBe(2);
+        var superseded = (await _client.PersonalDifferencesAsync(scenario.Manager.Token, c.Date)).Entries.Single(e => e.SourceId == discrepancy.Id);
+        (superseded.SourceSignedAmount, superseded.ShortageContribution, superseded.OverageContribution, superseded.OperatorId)
+            .ShouldBe((5m, 0m, 0m, (Guid?)null));
+        await _client.CountAsync(b.Id, scenario.Manager.Token, new Dictionary<Guid, decimal> { [scenario.Cash.Id] = 100m });
+        var zero = (await _client.PersonalDifferencesAsync(scenario.Manager.Token, c.Date)).Entries.Single(e => e.SourceId == discrepancy.Id);
+        (zero.SourceSignedAmount, zero.ShortageContribution, zero.OverageContribution, zero.OperatorId)
+            .ShouldBe((0m, 0m, 0m, (Guid?)null));
     }
 
     [Fact]

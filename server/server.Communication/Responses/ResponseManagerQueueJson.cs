@@ -9,6 +9,8 @@ namespace server.Communication.Responses;
 /// </summary>
 public class ResponseManagerQueueJson
 {
+    public ResponsePersonalDifferencesJson PersonalDifferences { get; init; } = new();
+
     public DateTime Date { get; init; }
     public decimal TotalVariance { get; init; }
     public decimal MeanVariance { get; init; }

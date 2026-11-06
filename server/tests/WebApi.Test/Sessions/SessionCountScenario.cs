@@ -21,7 +21,9 @@ internal static class SessionCountScenario
     public static async Task<(SessionScenario Scenario, ResponseDailyCloseJson Session)> StartWithOpeningAsync(
         ServerWebApplicationFactory factory,
         HttpClient client,
-        string label)
+        string label,
+        DateTime? openingDate = null,
+        decimal? acknowledgedOpening = null)
     {
         var scenario = await SessionScenario.CreateAsync(factory, label);
         var openingCount = await client.PostAuthAsync(
@@ -29,12 +31,13 @@ internal static class SessionCountScenario
             new RequestRecordOpeningCountJson
             {
                 AccountId = scenario.Cashbox.Id,
-                AsOfDate = SessionFlow.LocalToday(),
+                AsOfDate = openingDate ?? SessionFlow.LocalToday(),
                 Items = [new RequestSessionOpeningItemJson { ProductId = scenario.Cash.Id, Value = Opening }]
             },
             scenario.Manager.Token);
         openingCount.StatusCode.ShouldBe(HttpStatusCode.OK, await openingCount.Content.ReadAsStringAsync());
-        var started = await client.StartSessionAsync(scenario.Cashbox.Id, scenario.MemberA.Token);
+        var started = await client.StartSessionAsync(scenario.Cashbox.Id, scenario.MemberA.Token,
+            acknowledgedOpening is { } value ? new Dictionary<Guid, decimal> { [scenario.Cash.Id] = value } : null);
         return (scenario, started.Session);
     }
 

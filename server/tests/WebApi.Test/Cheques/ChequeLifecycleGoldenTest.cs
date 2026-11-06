@@ -63,6 +63,10 @@ public class ChequeLifecycleGoldenTest(ServerWebApplicationFactory factory)
         (atLockedCutoff.OutstandingValue, atLockedCutoff.Events.Single().CountsAtCutoff, atLockedCutoff.Version)
             .ShouldBe((200m, false, 1));
 
+        var originalResult = await _client.FinancialResultAsync(s.ManagerToken, new DateTime(2025, 10, 2), new DateTime(2025, 10, 2));
+        originalResult.KnownOwnResult.ShouldBe(0m);
+        originalResult.Classes.Single(c => c.FinancialClass == FinancialClass.InternalTransfer).KnownSignedTotal.ShouldBe(200m);
+
         // October locks; the bank returned the cheque on 15/10 (locked), recorded on 05/11.
         await s.LockThroughAsync(new DateTime(2025, 10, 31));
         clock.AdvanceTo(new DateTime(2025, 11, 5, 9, 0, 0));
@@ -147,6 +151,15 @@ public class ChequeLifecycleGoldenTest(ServerWebApplicationFactory factory)
             (3, SettlementEventKind.ChequeConvertedToFiado, 200m, -200m)
         ]);
         events.Skip(1).Select(e => e.PreviousEventId).ShouldBe(events.Take(2).Select(e => (Guid?)e.Id));
+        var frozenResult = await _client.FinancialResultAsync(s.ManagerToken, new DateTime(2025, 10, 2), new DateTime(2025, 10, 2));
+        frozenResult.Classes.Single(c => c.FinancialClass == FinancialClass.InternalTransfer).KnownSignedTotal.ShouldBe(200m);
+        var november = await _client.FinancialResultAsync(s.ManagerToken, new DateTime(2025, 11, 5));
+        november.KnownOwnResult.ShouldBe(0m);
+        var movements = november.Classes.Single(c => c.FinancialClass == FinancialClass.InternalTransfer);
+        (movements.KnownSignedTotal, movements.KnownVolume, movements.Count).ShouldBe((0m, 400m, 2));
+        november.BankPositionComplete.ShouldBeFalse();
+        november.Entries.Single(e => e.SourceKind == FinancialResultSourceKind.ChequeReturn).SignedAmount.ShouldBe(-200m);
+        november.Entries.ShouldNotContain(e => e.SourceId == converted.ConvertedTransactionId);
         (await factory.ReloadAsync<Transaction>(cheque.Id))!.Version.ShouldBe(original.Version);
     }
 

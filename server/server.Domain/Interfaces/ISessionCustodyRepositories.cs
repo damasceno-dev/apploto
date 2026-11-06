@@ -35,10 +35,12 @@ public interface ISessionOpeningDiscrepanciesRepository
 
     /// <summary>Appends a comparison revision (with its items) to an already-persisted discrepancy.</summary>
     Task AddRevision(SessionOpeningDiscrepancyRevision revision, CancellationToken ct = default);
+    Task<SessionOpeningDiscrepancy?> GetByIdAndBranchIdAsNoTracking(Guid id, Guid branchId, CancellationToken ct = default);
     Task<SessionOpeningDiscrepancy?> GetByIdAndBranchId(Guid id, Guid branchId, CancellationToken ct = default);
     Task<SessionOpeningDiscrepancy?> GetBySessionId(Guid branchId, Guid sessionId, CancellationToken ct = default);
     Task<SessionOpeningDiscrepancy?> GetBySessionIdAsNoTracking(Guid branchId, Guid sessionId, CancellationToken ct = default);
-    Task<OpeningDiscrepancyAttributionEvent?> GetLatestAttributionAsNoTracking(Guid discrepancyId, CancellationToken ct = default);
+    /// <summary>At most two append-chain heads; two means ambiguous history, never a chosen current decision.</summary>
+    Task<IReadOnlyList<OpeningDiscrepancyAttributionEvent>> GetAttributionHeadsAsNoTracking(Guid discrepancyId, CancellationToken ct = default);
 
     /// <summary>
     /// Discrepancies whose current comparison is nonzero and whose current revision carries no attribution — never

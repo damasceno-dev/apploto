@@ -207,6 +207,7 @@ public class MonthlyFinancialReader(
 
         return new ResponseMonthlyFinancialReportJson
         {
+            PostedReports = PostedReportingContext.ForMonth(year, month, asOfDate),
             ClassificationProvenance = new ResponseClassificationProvenanceJson
             {
                 PostingCount = provenance.PostingCount,

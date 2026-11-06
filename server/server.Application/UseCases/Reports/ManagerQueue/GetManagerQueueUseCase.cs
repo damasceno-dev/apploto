@@ -12,7 +12,8 @@ namespace server.Application.UseCases.Reports.ManagerQueue;
 public class GetManagerQueueUseCase(
     IAuthenticationService authenticationService,
     ManagerQueueReader managerQueueReader,
-    IBranchClock branchClock)
+    IBranchClock branchClock,
+    IReportReadSnapshot reportReadSnapshot)
 {
     public async Task<ResponseManagerQueueJson> Execute(
         RequestManagerQueueJson request,
@@ -28,6 +29,7 @@ public class GetManagerQueueUseCase(
 
         var branchLocalToday = branchClock.LocalBusinessDate(branchClock.UtcNow());
 
+        await using var snapshot = await reportReadSnapshot.Begin(ct);
         return await managerQueueReader.Read(branchUser.BranchId, request.Date.Date, branchLocalToday, ct);
     }
 

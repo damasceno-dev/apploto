@@ -20,6 +20,8 @@ import type {
   Direction,
   FiadoPaymentKind,
   FinancialClass,
+  PersonalDifferenceSourceKind,
+  FinancialResultSourceKind,
   HolidaySource,
   InstallmentPlanStatus,
   InvitationStatus,
@@ -422,6 +424,25 @@ export const bankMovementKindLabels: Labels<BankMovementKind> = {
 export const generatedMovementMarker = 'Automática';
 
 /** Every map, by the generated enum's name (copy §5 order). */
+export const financialResultSourceKindLabels: Labels<FinancialResultSourceKind> = {
+  Transaction: 'Transação',
+  CardSettlementBatchFee: 'Tarifa da liquidação de cartões',
+  CardSettlementFeeEvidence: 'Revisão da tarifa de cartões',
+  OfficialSessionVariance: 'Diferença oficial do turno',
+  ChequeCustody: 'Custódia de cheque',
+  ChequeDeposit: 'Depósito de cheque',
+  ChequeReturn: 'Devolução de cheque',
+  ChequeConversion: 'Conversão de cheque em fiado',
+  ProviderPrincipalSettlement: 'Principal liquidado pelo provedor',
+};
+
+export const personalDifferenceSourceKindLabels: Labels<PersonalDifferenceSourceKind> = {
+  OfficialSessionVariance: 'Diferença oficial do turno',
+  OpeningDiscrepancy: 'Diferença de abertura',
+  OpeningDiscrepancyAdjustment: 'Ajuste de responsabilidade',
+  OpeningDiscrepancyAdjustmentOffset: 'Compensação de atribuição anterior',
+};
+
 export const enumLabels = {
   Role: roleLabels,
   Direction: directionLabels,
@@ -461,6 +482,8 @@ export const enumLabels = {
   SessionApprovalMode: sessionApprovalModeLabels,
   SessionCloseField: sessionCloseFieldLabels,
   FinancialClass: financialClassLabels,
+  PersonalDifferenceSourceKind: personalDifferenceSourceKindLabels,
+  FinancialResultSourceKind: financialResultSourceKindLabels,
   ClassificationProvenance: classificationProvenanceLabels,
   ReceivableCutoffBasis: receivableCutoffBasisLabels,
   ReceivableSettlementStatus: receivableSettlementStatusLabels,

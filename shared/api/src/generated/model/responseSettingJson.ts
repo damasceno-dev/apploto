@@ -9,6 +9,8 @@ export interface ResponseSettingJson {
   id: string;
   version: number;
   lockDate: string;
+  /** @nullable */
+  personalShortageThreshold?: number | null;
   dailyTargetHours: number;
   lunchDeductionOver6H: number;
   lunchDeductionOver4H: number;

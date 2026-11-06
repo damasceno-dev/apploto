@@ -43,10 +43,10 @@ function uncovered(names, oracle, cases = probe) {
 test('every public runtime export has a native case or an exhaustive label-map case', () => {
   const names = publicNames();
   assert.deepEqual(uncovered(names, reference), []);
-  // Shared core's pinned public surface (shared/core/test/boundary.test.ts): 122 runtime exports,
+  // Shared core's pinned public surface (shared/core/test/boundary.test.ts): 124 runtime exports,
   // including the twelve custody/session and ten M9.7 settlement/classification label maps. A new
   // export must gain a native case.
-  assert.equal(new Set(names).size, 122);
+  assert.equal(new Set(names).size, 124);
 });
 test('the oracle checks discriminate stale labels, missing values and missing maps', () => {
   const stale = structuredClone(reference);

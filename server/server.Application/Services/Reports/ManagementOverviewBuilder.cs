@@ -72,6 +72,7 @@ public class ManagementOverviewBuilder(
 
         return new ResponseManagementOverviewJson
         {
+            PostedReports = PostedReportingContext.ForMonth(year, month, asOfDate),
             GeneratedAtUtc = generatedAtUtc,
             AsOfDate = asOfDate,
             BranchLocalNow = branchLocalNow,

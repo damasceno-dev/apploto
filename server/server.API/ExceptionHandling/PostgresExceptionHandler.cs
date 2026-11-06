@@ -37,6 +37,9 @@ internal static class PostgresExceptionHandler
             ["CK_SettlementEvents_OutstandingWithinValue"] = ResourcesErrorMessages.CHEQUE_PARTIAL_AMOUNT_UNSUPPORTED,
             ["CK_SettlementEvents_Chronology"] = ResourcesErrorMessages.SETTLEMENT_CHRONOLOGY_INVALID,
             ["CK_SettlementEvents_Immutable"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
+            ["CK_OpeningDiscrepancyAttributionEvents_Ambiguous"] = ResourcesErrorMessages.OPENING_DISCREPANCY_ATTRIBUTION_AMBIGUOUS,
+            ["CK_OpeningDiscrepancyAttributionEvents_Chain"] = ResourcesErrorMessages.OPENING_DISCREPANCY_STALE,
+            ["CK_OpeningDiscrepancyAdjustments_Chain"] = ResourcesErrorMessages.OPENING_DISCREPANCY_STALE,
             ["CK_Transactions_ClassificationFrozen"] = ResourcesErrorMessages.TRANSACTION_TYPE_RECLASSIFY_STALE
         };
 
@@ -67,6 +70,7 @@ internal static class PostgresExceptionHandler
             ["IX_Categories_BranchId_Name"] = ResourcesErrorMessages.CATEGORY_NAME_CONFLICT,
             ["IX_TransactionTypes_CategoryId_Name"] = ResourcesErrorMessages.TRANSACTION_TYPE_NAME_CONFLICT,
             ["IX_Products_BranchId_Name"] = ResourcesErrorMessages.PRODUCT_NAME_CONFLICT,
+            ["IX_OpeningDiscrepancyAdjustments_DiscrepancyId_Sequence"] = ResourcesErrorMessages.OPENING_DISCREPANCY_STALE,
             ["IX_SettlementEvents_ReceivableTransactionId_Sequence"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
             ["IX_SettlementEvents_PreviousEventId"] = ResourcesErrorMessages.CHEQUE_STALE_VERSION,
             ["IX_SettlementEvents_ReversesEventId"] = ResourcesErrorMessages.CHEQUE_RETURN_STATE_INVALID,

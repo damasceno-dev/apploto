@@ -1115,4 +1115,9 @@
   <data name="OFX_INVALID" xml:space="preserve">
     <value>O extrato OFX é inválido ou não suportado.</value>
   </data>
+  <data name="PERSONAL_SHORTAGE_THRESHOLD_INVALID" xml:space="preserve"><value>Informe um limite de faltas positivo com até duas casas decimais, ou remova a configuração.</value></data>
+  <data name="OPENING_DISCREPANCY_ATTRIBUTION_AMBIGUOUS" xml:space="preserve"><value>O histórico de atribuição desta diferença tem decisões conflitantes. Resolva o histórico antes de continuar.</value></data>
+  <data name="OPENING_DISCREPANCY_ADJUSTMENT_DATE_INVALID" xml:space="preserve"><value>A data do ajuste deve ser igual ou posterior à origem e ao ajuste anterior, e não pode estar no futuro.</value></data>
+  <data name="OPENING_DISCREPANCY_ADJUSTMENT_SOURCE_OPEN" xml:space="preserve"><value>A origem desta diferença está em período aberto. Use a atribuição de responsabilidade da abertura.</value></data>
+  <data name="OPENING_DISCREPANCY_ADJUSTMENT_NO_CHANGE" xml:space="preserve"><value>Este ajuste não altera a responsabilidade pessoal. Nenhum ajuste foi registrado.</value></data>
 </root>

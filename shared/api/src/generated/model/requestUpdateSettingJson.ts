@@ -6,8 +6,14 @@
  */
 
 export interface RequestUpdateSettingJson {
+  clearPersonalShortageThreshold?: boolean;
   /** @nullable */
   lockDate?: string | null;
+  /**
+   * @nullable
+   * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$
+   */
+  personalShortageThreshold?: number | string | null;
   /**
    * @nullable
    * @pattern ^-?(?:0|[1-9]\d*)(?:\.\d+)?$

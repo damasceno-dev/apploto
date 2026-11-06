@@ -22,6 +22,7 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<TransactionType> TransactionTypes => Set<TransactionType>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<OpeningDiscrepancyAdjustment> OpeningDiscrepancyAdjustments => Set<OpeningDiscrepancyAdjustment>();
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Operator> Operators => Set<Operator>();
     public DbSet<Account> Accounts => Set<Account>();

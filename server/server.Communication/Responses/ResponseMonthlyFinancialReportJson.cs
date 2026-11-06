@@ -8,6 +8,8 @@ namespace server.Communication.Responses;
 /// </summary>
 public class ResponseMonthlyFinancialReportJson
 {
+    public ResponsePostedReportingContextJson PostedReports { get; init; } = new();
+
     public int Year { get; init; }
     public int Month { get; init; }
 

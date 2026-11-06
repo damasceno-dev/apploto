@@ -157,8 +157,15 @@ public sealed class M95OpeningSideInflowsMigrationTest : IAsyncLifetime
         var user = new User { Name = "Reviewer", Email = "reviewer@example.invalid", Password = "unused" };
         var fee = new Product { BranchId = branch.Id, Name = "Renamed fee" };
         var date = new DateTime(2026, 9, 10);
-        db.AddRange(branch, user, fee, new Setting { BranchId = branch.Id, LockDate = locked ? date : DateTime.MinValue });
+        db.AddRange(branch, user, fee);
         await db.SaveChangesAsync();
+        // Previous schema deliberately lacks the P7 threshold column; seed only its real columns.
+        var settingId = Guid.NewGuid();
+        var lockDate = DateOnly.FromDateTime(locked ? date : DateTime.MinValue);
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO "Settings" ("Id", "BranchId", "LockDate", "DailyTargetHours", "LunchDeductionOver6H", "LunchDeductionOver4H", "CreatedAt", "Active")
+            VALUES ({settingId}, {branch.Id}, {lockDate}, 7.33, 1, 0.25, now(), true)
+            """);
 
         // Account and close rows are written with the pre-M9.6 columns; the current entities carry session ones.
         var accountId = Guid.NewGuid();

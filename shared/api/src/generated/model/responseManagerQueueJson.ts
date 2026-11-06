@@ -8,8 +8,10 @@ import type { ResponseManagerQueueBacklogJson } from './responseManagerQueueBack
 import type { ResponseManagerQueueCloseJson } from './responseManagerQueueCloseJson';
 import type { ResponseManagerQueueCustodyJson } from './responseManagerQueueCustodyJson';
 import type { ResponseManagerQueueNotSubmittedJson } from './responseManagerQueueNotSubmittedJson';
+import type { ResponsePersonalDifferencesJson } from './responsePersonalDifferencesJson';
 
 export interface ResponseManagerQueueJson {
+  personalDifferences: ResponsePersonalDifferencesJson;
   date: string;
   totalVariance: number;
   meanVariance: number;

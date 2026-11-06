@@ -15,8 +15,10 @@ import type { ResponseManagementOverviewQueueJson } from './responseManagementOv
 import type { ResponseManagementOverviewRecentClosesJson } from './responseManagementOverviewRecentClosesJson';
 import type { ResponseManagementOverviewReconciliationJson } from './responseManagementOverviewReconciliationJson';
 import type { ResponseManagementOverviewUpcomingSettlementsJson } from './responseManagementOverviewUpcomingSettlementsJson';
+import type { ResponsePostedReportingContextJson } from './responsePostedReportingContextJson';
 
 export interface ResponseManagementOverviewJson {
+  postedReports: ResponsePostedReportingContextJson;
   generatedAtUtc: string;
   asOfDate: string;
   branchLocalNow: string;

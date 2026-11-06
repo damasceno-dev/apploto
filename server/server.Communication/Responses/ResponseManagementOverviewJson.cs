@@ -8,6 +8,8 @@ namespace server.Communication.Responses;
 /// </summary>
 public class ResponseManagementOverviewJson
 {
+    public ResponsePostedReportingContextJson PostedReports { get; init; } = new();
+
     /// <summary>The single clock read; every section is computed as of this instant.</summary>
     public DateTime GeneratedAtUtc { get; init; }
 

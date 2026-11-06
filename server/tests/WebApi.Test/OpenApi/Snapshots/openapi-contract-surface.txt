@@ -39,6 +39,7 @@ enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
 enum Direction string: In, Out
 enum FiadoPaymentKind string: CountedCash, NonCash
 enum FinancialClass string: Unclassified, CaixaAndClientMoney, ShopFeesAndIncome, OperatingExpenseAndLoss, InternalTransfer, CashDifference
+enum FinancialResultSourceKind string: Transaction, CardSettlementBatchFee, CardSettlementFeeEvidence, OfficialSessionVariance, ChequeCustody, ChequeDeposit, ChequeReturn, ChequeConversion, ProviderPrincipalSettlement
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum InvitationStatus string: Pending, Accepted, Declined, Expired
@@ -48,6 +49,7 @@ enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions
 enum OpeningDiscrepancyAttribution string: Unattributed, Outgoing, Incoming, Neither
 enum OperatorLinkRequestStatus string: Pending, Resolved
 enum OverviewSectionStatus string: Ready, Empty, NotConfigured
+enum PersonalDifferenceSourceKind string: OfficialSessionVariance, OpeningDiscrepancy, OpeningDiscrepancyAdjustment, OpeningDiscrepancyAdjustmentOffset
 enum ReceivableCutoffBasis string: Posted, Occurred
 enum ReceivableSettlementStatus string: Open, PartiallySettled, Settled
 enum Role string: Admin, Manager, Member
@@ -406,6 +408,17 @@ schema RequestOnboardingTerminalJson
   name required string
   pairedTabName optional string?
 
+schema RequestOpeningDiscrepancyAdjustmentJson
+  comparisonRevision required integer|string
+  discrepancyId required string
+  expectedAdjustmentSequence required integer|string
+  expectedVersion required integer|string
+  postedOn required string
+  previousAdjustmentId optional string?
+  priorAttributionId optional string?
+  reason required string
+  target optional enum:OpeningDiscrepancyAttribution
+
 schema RequestOperateBranchJson
   additionalProducts required string[]
   address optional string?
@@ -569,10 +582,12 @@ schema RequestUpdateProfileJson
   name required string
 
 schema RequestUpdateSettingJson
+  clearPersonalShortageThreshold optional boolean
   dailyTargetHours optional number|string?
   lockDate optional string?
   lunchDeductionOver4H optional number|string?
   lunchDeductionOver6H optional number|string?
+  personalShortageThreshold optional number|string?
 
 schema RequestUpdateTimeEntrySegmentJson
   clockIn required string
@@ -1211,6 +1226,48 @@ schema ResponseFiadoClientBalanceItemJson
   clientName required string
   outstandingTotal required number
 
+schema ResponseFinancialClassTotalJson
+  count required integer
+  financialClass required enum:FinancialClass
+  knownSignedTotal required number
+  knownVolume required number
+  migratedCount required integer
+  unknownAmountCount required integer
+
+schema ResponseFinancialResultEntryJson
+  accountActive optional boolean?
+  accountId optional string?
+  accountName optional string?
+  bankReceiptId optional string?
+  classificationConflict required boolean
+  financialClass required enum:FinancialClass
+  officialAttemptId optional string?
+  postedOn required string
+  provenance optional enum:ClassificationProvenance?
+  sessionId optional string?
+  signedAmount optional number?
+  snapshotFinancialClass optional enum:FinancialClass?
+  sourceDate required string
+  sourceHistoryComplete required boolean
+  sourceId required string
+  sourceKind required enum:FinancialResultSourceKind
+  transactionId optional string?
+
+schema ResponseFinancialResultJson
+  asOfDate required string
+  bankPositionComplete required boolean
+  classes required ResponseFinancialClassTotalJson[]
+  classificationComplete required boolean
+  dateFrom required string
+  dateTo required string
+  entries required ResponseFinancialResultEntryJson[]
+  feeAmountsComplete required boolean
+  isPartialMonth required boolean
+  knownOwnResult required number
+  page required integer
+  pageSize required integer
+  totalCount required integer
+
 schema ResponseGetCurrentBranchSummaryJson
   branch required ResponseBranchSummaryJson
   branchLocalDate required string
@@ -1509,6 +1566,7 @@ schema ResponseManagementOverviewJson
   monthlyFinancial required ResponseManagementOverviewMonthlyFinancialJson
   openCheques required ResponseManagementOverviewOpenChequesJson
   operatorActivity required ResponseManagementOverviewOperatorActivityJson
+  postedReports required ResponsePostedReportingContextJson
   queue required ResponseManagementOverviewQueueJson
   recentCloses required ResponseManagementOverviewRecentClosesJson
   reconciliation required ResponseManagementOverviewReconciliationJson
@@ -1665,6 +1723,7 @@ schema ResponseManagerQueueJson
   notSubmitted required ResponseManagerQueueNotSubmittedJson[]
   pendingApprovalCount required integer
   pendingOperatorLinkRequestCount required integer
+  personalDifferences required ResponsePersonalDifferencesJson
   totalVariance required number
   unlockedDraftTransactionCount required integer
 
@@ -1754,6 +1813,7 @@ schema ResponseMonthlyFinancialReportJson
   month required integer
   officialCloseCount required integer
   officialVarianceTotal required number
+  postedReports required ResponsePostedReportingContextJson
   specialDrawServiceFeeTotal optional number?
   terminalDays required ResponseMonthlyFinancialTerminalDayJson[]
   year required integer
@@ -1879,6 +1939,25 @@ schema ResponseOpeningCountJson
   revision required integer
   version required integer
 
+schema ResponseOpeningDiscrepancyAdjustmentJson
+  actorUserId required string
+  comparisonRevision required integer
+  createdAt required string
+  discrepancyId required string
+  id required string
+  operatorId optional string?
+  postedOn required string
+  previousAdjustmentId optional string?
+  previousOperatorId optional string?
+  previousSignedAmount required number
+  priorAttributionId optional string?
+  reason required string
+  sequence required integer
+  sessionId required string
+  signedAmount required number
+  sourceDate required string
+  target required enum:OpeningDiscrepancyAttribution
+
 schema ResponseOpeningDiscrepancyItemJson
   acknowledgedValue required number
   delta required number
@@ -1900,6 +1979,15 @@ schema ResponseOpeningDiscrepancyJson
   sessionOpeningId required string
   sourceKind required enum:SessionOpeningSourceKind
   version required integer
+
+schema ResponseOpeningResponsibilityJson
+  adjustments required ResponseOpeningDiscrepancyAdjustmentJson[]
+  discrepancy required ResponseOpeningDiscrepancyJson
+  latestAdjustment optional ResponseOpeningDiscrepancyAdjustmentJson?
+  latestAttributionId optional string?
+  nextAfterSequence optional integer?
+  sourceDate required string
+  sourceLocked required boolean
 
 schema ResponseOperatedOnboardingJson
   branchId required string
@@ -1965,6 +2053,51 @@ schema ResponseOperatorTransactionSummaryJson
 
 schema ResponseOwnOperatorLinkRequestJson
   request optional ResponseOperatorLinkRequestJson?
+
+schema ResponsePersonalDifferenceEntryJson
+  comparisonRevision optional integer?
+  operatorId optional string?
+  overageContribution required number
+  postedOn required string
+  sessionId required string
+  shortageContribution required number
+  sourceDate required string
+  sourceId required string
+  sourceKind required enum:PersonalDifferenceSourceKind
+  sourceSignedAmount required number
+  thresholdShortageContribution required number
+
+schema ResponsePersonalDifferenceTotalJson
+  currentThresholdAlert required boolean
+  operatorActive optional boolean?
+  operatorId optional string?
+  operatorName optional string?
+  overage required number
+  shortage required number
+  signedNet required number
+  sourceCount required integer
+  thresholdShortageBasis required number
+
+schema ResponsePersonalDifferencesJson
+  asOfDate required string
+  automaticPayrollDeduction required boolean
+  currentShortageThreshold optional number?
+  dateFrom required string
+  dateTo required string
+  entries required ResponsePersonalDifferenceEntryJson[]
+  page required integer
+  pageSize required integer
+  people required ResponsePersonalDifferenceTotalJson[]
+  totalCount required integer
+  unassignedSourceCount required integer
+
+schema ResponsePostedReportingContextJson
+  asOfDate required string
+  bankPositionComplete required boolean
+  dateFrom required string
+  dateTo required string
+  month required integer
+  year required integer
 
 schema ResponseProductJson
   active required boolean
@@ -2191,6 +2324,7 @@ schema ResponseSettingJson
   lockDate required string
   lunchDeductionOver4H required number
   lunchDeductionOver6H required number
+  personalShortageThreshold optional number?
   version required integer
 
 schema ResponseSettlementEventJson
@@ -2373,6 +2507,7 @@ schema ResponseUpcomingSettlementsJson
   items required ResponseUpcomingSettlementItemJson[]
   overdueCount required integer
   overdueValue required number
+  postedReports required ResponsePostedReportingContextJson
   totalCount required integer
   totalPages required integer
   totalValue required number
@@ -3198,6 +3333,19 @@ operation GET /report/fiado/balance
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
 
+operation GET /report/financial-result
+  security BranchBearer[Admin,Manager]
+  query AsOfDate optional string
+  query FinancialClass optional enum:FinancialClass
+  query Month required integer|string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Year required integer|string
+  response 200 ResponseFinancialResultJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
 operation GET /report/management-overview
   security BranchBearer[Admin,Manager]
   query Month optional integer|string
@@ -3244,6 +3392,19 @@ operation GET /report/operator-summary
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
+
+operation GET /report/personal-differences
+  security BranchBearer[Admin,Manager]
+  query AsOfDate optional string
+  query Month required integer|string
+  query OperatorId optional string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Year required integer|string
+  response 200 ResponsePersonalDifferencesJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
 
 operation GET /report/timeentry-balance
   security BranchBearer[]
@@ -3365,6 +3526,17 @@ operation POST /session/opening-count
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
 
+operation POST /session/opening-discrepancy-adjustment
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestOpeningDiscrepancyAdjustmentJson
+  response 200 ResponseOpeningDiscrepancyAdjustmentJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation POST /session/opening-discrepancy/{discrepancyId}/attribution
   security BranchBearer[Admin,Manager]
   path discrepancyId required string
@@ -3376,6 +3548,17 @@ operation POST /session/opening-discrepancy/{discrepancyId}/attribution
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
   response 409 ResponseErrorJson
+
+operation GET /session/opening-discrepancy/{discrepancyId}/responsibility
+  security BranchBearer[Admin,Manager]
+  path discrepancyId required string
+  query AfterSequence required integer|string
+  query PageSize optional integer|string
+  response 200 ResponseOpeningResponsibilityJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
 
 operation GET /session/opening-proposal
   security BranchBearer[]

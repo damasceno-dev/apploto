@@ -23,6 +23,30 @@ namespace server.Controllers;
 public class ReportController : ControllerBase
 {
     [HttpGet]
+    [Route("personal-differences")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponsePersonalDifferencesJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> PersonalDifferences(
+        [FromServices] Application.UseCases.Reports.PersonalDifferences.GetPersonalDifferencesUseCase useCase,
+        [FromQuery] RequestPersonalDifferencesJson request,
+        CancellationToken ct) => Ok(await useCase.Execute(request, ct));
+
+    [HttpGet]
+    [Route("financial-result")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseFinancialResultJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> FinancialResult(
+        [FromServices] Application.UseCases.Reports.FinancialResult.GetFinancialResultUseCase useCase,
+        [FromQuery] RequestFinancialResultJson request,
+        CancellationToken ct) => Ok(await useCase.Execute(request, ct));
+
+    [HttpGet]
     [Route("daily-ledger")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponseDailyLedgerJson), StatusCodes.Status200OK)]

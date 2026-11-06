@@ -72,6 +72,35 @@ public class SessionController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet]
+    [Route("opening-discrepancy/{discrepancyId:guid}/responsibility")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseOpeningResponsibilityJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> OpeningResponsibility(
+        [FromServices] Application.UseCases.Sessions.Adjustment.GetOpeningResponsibilityUseCase useCase,
+        [FromRoute] Guid discrepancyId,
+        [FromQuery] RequestOpeningResponsibilityJson request,
+        CancellationToken ct) => Ok(await useCase.Execute(discrepancyId, request, ct));
+
+    [HttpPost]
+    [Route("opening-discrepancy-adjustment")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseOpeningDiscrepancyAdjustmentJson), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ResponseErrorJson), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> AdjustOpeningDiscrepancy(
+        [FromServices] Application.UseCases.Sessions.Adjustment.AdjustOpeningDiscrepancyUseCase useCase,
+        [FromHeader(Name = FinancialCommandIdempotency.HeaderName)] string? key,
+        [FromBody] RequestOpeningDiscrepancyAdjustmentJson request,
+        CancellationToken ct) => Ok(await useCase.Execute(request, key, ct));
+
     [HttpPost]
     [Route("{sessionId:guid}/submit")]
     [TokenAuthenticateBranch]

@@ -94,3 +94,7 @@ From Work Queue, a Cash-variance summary row, a Monthly reconciliation blocker, 
 ## Verification boundary
 
 Static: order, row content, states and returns. Real-UI (Web/Mobile M7): queue against a local API with each group populated and empty, the backlog jump, row link names in a screen reader, approval keyboard flow including the reject dialog's focus return, and 375px with enlarged text.
+
+## Personal-difference alert and late attribution — v64 candidate
+
+Design 4.9.12, independent review pending. `[DTO] ResponseManagerQueueJson.PersonalDifferences` is the live current-month view with its own returned window, independent of the selected daily queue date. Render only returned CurrentThresholdAlert people under **Limite de faltas atingido**, with gross Shortage, Overage separately, source count and **Ver diferenças da pessoa**. No device arithmetic, salary liability or automatic deduction. Unassigned discrepancies stay in the existing custody group after approval/lock, never personal alerts or a lock blocker. **Conferir responsabilidade** reads the exact discrepancy context/history in the [report blueprint](reports-and-month-lock.md#financial-result-and-personal-responsibility--design-4912-candidate); a current late adjustment resolves the queue work item without rewriting original attribution. Lost permission/stale/uncertain outcomes use the existing error and recovery contracts. M9.8 people/payroll remains pending.

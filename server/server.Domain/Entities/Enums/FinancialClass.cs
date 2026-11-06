@@ -6,7 +6,7 @@ namespace server.Domain.Entities.Enums;
 /// </summary>
 public enum FinancialClass
 {
-    /// <summary>Not classified yet; the default until an admin (or M9.7 Phase 6) classifies the type.</summary>
+    /// <summary>No supported classification is configured; unknown or ambiguous history stays explicit.</summary>
     Unclassified = 0,
 
     /// <summary>CAIXA and client money handled.</summary>

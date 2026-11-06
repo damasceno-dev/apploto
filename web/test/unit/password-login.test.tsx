@@ -35,7 +35,7 @@ describe('password entry', () => {
     await screen.findByText('Credenciais inválidas.');
     expect(password.value).toBe('');
     expect((screen.getByLabelText('E-mail') as HTMLInputElement).value).toBe('ana@example.invalid');
-    expect(document.activeElement?.getAttribute('role')).toBe('alert');
+    await waitFor(() => expect(document.activeElement?.getAttribute('role')).toBe('alert'));
     expect(login).toHaveBeenCalledTimes(1);
   });
   it('suppresses duplicate submissions and permits a manual retry after verbatim 429', async () => {

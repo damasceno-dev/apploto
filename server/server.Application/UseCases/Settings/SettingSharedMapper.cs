@@ -11,6 +11,7 @@ public static class SettingSharedMapper
         {
             Id = setting.Id,
             Version = setting.Version,
+            PersonalShortageThreshold = setting.PersonalShortageThreshold,
             LockDate = setting.LockDate,
             DailyTargetHours = setting.DailyTargetHours,
             LunchDeductionOver6H = setting.LunchDeductionOver6H,
