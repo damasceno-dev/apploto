@@ -8,9 +8,12 @@ import type {
   GetReportCashVarianceParams,
   GetReportChequesOpenAgingParams,
   GetReportDailyLedgerParams,
+  GetReportEmployeeStatementParams,
+  GetReportEmployeeStatementPrintParams,
   GetReportFiadoAgingParams,
   GetReportFiadoBalanceParams,
   GetReportFinancialResultParams,
+  GetReportHourBankParams,
   GetReportManagementOverviewParams,
   GetReportManagerQueueParams,
   GetReportOperatorSummaryParams,
@@ -19,10 +22,12 @@ import type {
   GetReportUpcomingSettlementsParams,
   ResponseCashVarianceSummaryJson,
   ResponseDailyLedgerJson,
+  ResponseEmployeeStatementJson,
   ResponseErrorJson,
   ResponseFiadoAgingJson,
   ResponseFiadoBalanceJson,
   ResponseFinancialResultJson,
+  ResponseHourBankJson,
   ResponseManagementOverviewJson,
   ResponseManagerQueueJson,
   ResponseMonthlyFinancialReportJson,
@@ -35,6 +40,370 @@ import type {
 } from '../../model';
 
 import { apiFetch } from '../../../client/fetch';
+
+export type getReportEmployeeStatementPrintResponse200 = {
+  data: string;
+  status: 200;
+};
+
+export type getReportEmployeeStatementPrintResponse400 = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportEmployeeStatementPrintResponse401 = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportEmployeeStatementPrintResponse403 = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportEmployeeStatementPrintResponse404 = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportEmployeeStatementPrintResponse409 = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportEmployeeStatementPrintResponseSuccess =
+  getReportEmployeeStatementPrintResponse200 & {
+    headers: Headers;
+  };
+export type getReportEmployeeStatementPrintResponseError = (
+  | getReportEmployeeStatementPrintResponse400
+  | getReportEmployeeStatementPrintResponse401
+  | getReportEmployeeStatementPrintResponse403
+  | getReportEmployeeStatementPrintResponse404
+  | getReportEmployeeStatementPrintResponse409
+) & {
+  headers: Headers;
+};
+
+export const getGetReportEmployeeStatementPrintUrl = (
+  params: GetReportEmployeeStatementPrintParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/employee-statement/print?${stringifiedParams}`
+    : `/report/employee-statement/print`;
+};
+
+export const getReportEmployeeStatementPrint = async (
+  params: GetReportEmployeeStatementPrintParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportEmployeeStatementPrintResponseSuccess> => {
+  return apiFetch<getReportEmployeeStatementPrintResponseSuccess>(
+    getGetReportEmployeeStatementPrintUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
+
+export type getReportHourBankResponse200TextPlain = {
+  data: ResponseHourBankJson;
+  status: 200;
+};
+
+export type getReportHourBankResponse200ApplicationJson = {
+  data: ResponseHourBankJson;
+  status: 200;
+};
+
+export type getReportHourBankResponse200TextJson = {
+  data: ResponseHourBankJson;
+  status: 200;
+};
+
+export type getReportHourBankResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportHourBankResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportHourBankResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportHourBankResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportHourBankResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportHourBankResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportHourBankResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportHourBankResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportHourBankResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportHourBankResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportHourBankResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportHourBankResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportHourBankResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportHourBankResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportHourBankResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportHourBankResponseSuccess = (
+  | getReportHourBankResponse200TextPlain
+  | getReportHourBankResponse200ApplicationJson
+  | getReportHourBankResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportHourBankResponseError = (
+  | getReportHourBankResponse400TextPlain
+  | getReportHourBankResponse400ApplicationJson
+  | getReportHourBankResponse400TextJson
+  | getReportHourBankResponse401TextPlain
+  | getReportHourBankResponse401ApplicationJson
+  | getReportHourBankResponse401TextJson
+  | getReportHourBankResponse403TextPlain
+  | getReportHourBankResponse403ApplicationJson
+  | getReportHourBankResponse403TextJson
+  | getReportHourBankResponse404TextPlain
+  | getReportHourBankResponse404ApplicationJson
+  | getReportHourBankResponse404TextJson
+  | getReportHourBankResponse409TextPlain
+  | getReportHourBankResponse409ApplicationJson
+  | getReportHourBankResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportHourBankUrl = (params: GetReportHourBankParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/hour-bank?${stringifiedParams}`
+    : `/report/hour-bank`;
+};
+
+export const getReportHourBank = async (
+  params: GetReportHourBankParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportHourBankResponseSuccess> => {
+  return apiFetch<getReportHourBankResponseSuccess>(getGetReportHourBankUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export type getReportEmployeeStatementResponse200TextPlain = {
+  data: ResponseEmployeeStatementJson;
+  status: 200;
+};
+
+export type getReportEmployeeStatementResponse200ApplicationJson = {
+  data: ResponseEmployeeStatementJson;
+  status: 200;
+};
+
+export type getReportEmployeeStatementResponse200TextJson = {
+  data: ResponseEmployeeStatementJson;
+  status: 200;
+};
+
+export type getReportEmployeeStatementResponse400TextPlain = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportEmployeeStatementResponse400ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportEmployeeStatementResponse400TextJson = {
+  data: ResponseErrorJson;
+  status: 400;
+};
+
+export type getReportEmployeeStatementResponse401TextPlain = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportEmployeeStatementResponse401ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportEmployeeStatementResponse401TextJson = {
+  data: ResponseErrorJson;
+  status: 401;
+};
+
+export type getReportEmployeeStatementResponse403TextPlain = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportEmployeeStatementResponse403ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportEmployeeStatementResponse403TextJson = {
+  data: ResponseErrorJson;
+  status: 403;
+};
+
+export type getReportEmployeeStatementResponse404TextPlain = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportEmployeeStatementResponse404ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportEmployeeStatementResponse404TextJson = {
+  data: ResponseErrorJson;
+  status: 404;
+};
+
+export type getReportEmployeeStatementResponse409TextPlain = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportEmployeeStatementResponse409ApplicationJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportEmployeeStatementResponse409TextJson = {
+  data: ResponseErrorJson;
+  status: 409;
+};
+
+export type getReportEmployeeStatementResponseSuccess = (
+  | getReportEmployeeStatementResponse200TextPlain
+  | getReportEmployeeStatementResponse200ApplicationJson
+  | getReportEmployeeStatementResponse200TextJson
+) & {
+  headers: Headers;
+};
+export type getReportEmployeeStatementResponseError = (
+  | getReportEmployeeStatementResponse400TextPlain
+  | getReportEmployeeStatementResponse400ApplicationJson
+  | getReportEmployeeStatementResponse400TextJson
+  | getReportEmployeeStatementResponse401TextPlain
+  | getReportEmployeeStatementResponse401ApplicationJson
+  | getReportEmployeeStatementResponse401TextJson
+  | getReportEmployeeStatementResponse403TextPlain
+  | getReportEmployeeStatementResponse403ApplicationJson
+  | getReportEmployeeStatementResponse403TextJson
+  | getReportEmployeeStatementResponse404TextPlain
+  | getReportEmployeeStatementResponse404ApplicationJson
+  | getReportEmployeeStatementResponse404TextJson
+  | getReportEmployeeStatementResponse409TextPlain
+  | getReportEmployeeStatementResponse409ApplicationJson
+  | getReportEmployeeStatementResponse409TextJson
+) & {
+  headers: Headers;
+};
+
+export const getGetReportEmployeeStatementUrl = (params: GetReportEmployeeStatementParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value));
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/report/employee-statement?${stringifiedParams}`
+    : `/report/employee-statement`;
+};
+
+export const getReportEmployeeStatement = async (
+  params: GetReportEmployeeStatementParams,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<getReportEmployeeStatementResponseSuccess> => {
+  return apiFetch<getReportEmployeeStatementResponseSuccess>(
+    getGetReportEmployeeStatementUrl(params),
+    {
+      ...options,
+      method: 'GET',
+    },
+  );
+};
 
 export type getReportPersonalDifferencesResponse200TextPlain = {
   data: ResponsePersonalDifferencesJson;

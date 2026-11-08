@@ -7,6 +7,12 @@
 import type { TimeEntryStatus } from './timeEntryStatus';
 
 export interface ResponseTimeEntryBalanceSummaryDayJson {
+  /** @nullable */
+  timeEntryId?: string | null;
+  /** @nullable */
+  policyId?: string | null;
+  /** @nullable */
+  policyEffectiveFrom?: string | null;
   date: string;
   status: TimeEntryStatus;
   totalHours: number;

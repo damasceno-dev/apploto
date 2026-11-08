@@ -207,6 +207,16 @@ public class SessionControllerPersonalAdjustmentTest(ServerWebApplicationFactory
         // The historical correction credit is visible but cannot hide this month's actual shortage of 5.
         offset.ThresholdShortageBasis.ShouldBe(5m);
         offset.CurrentThresholdAlert.ShouldBeTrue();
+        var statementResponse = await client.GetAuthAsync($"/report/employee-statement?operatorId={s.MemberA.Operator!.Id}&year=2026&month=10", s.Manager.Token);
+        statementResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await statementResponse.Content.ReadAsStringAsync());
+        var statement = await statementResponse.ReadContentAsync<ResponseEmployeeStatementJson>();
+        statement.Differences.People.Single().Shortage.ShouldBe(-15m);
+        statement.Differences.People.Single().ThresholdShortageBasis.ShouldBe(5m);
+        statement.RecordedPaySignedTotal.ShouldBe(0m); // late responsibility offsets never become pay items
+        statement.Commission.ProposedAmount.ShouldBeNull();
+        var oldStatement = await (await client.GetAuthAsync($"/report/employee-statement?operatorId={s.MemberA.Operator.Id}&year=2026&month=9&asOfDate=2026-09-30", s.Manager.Token)).ReadContentAsync<ResponseEmployeeStatementJson>();
+        oldStatement.Differences.People.Single().Shortage.ShouldBe(20m);
+
     }
 
     [Fact]
@@ -378,7 +388,8 @@ public class SessionControllerPersonalAdjustmentTest(ServerWebApplicationFactory
     {
         using var clock = factory.FreezeBranchLocalTime(new DateTime(2026, 9, 10, 8, 0, 0));
         var s = await SessionScenario.CreateAsync(factory, "PersonalAdjustment");
-        await factory.SeedSettingAsync(s.Branch.Id);
+        await factory.SeedSettingAsync(s.Branch.Id,dailyTargetHours:8,lunchDeductionOver6H:0,lunchDeductionOver4H:0);
+        await factory.SeedTransactionTypeAsync(s.InCategory.Id,"Tarifa Especial sintética",systemRole:TransactionTypeSystemRole.SpecialFee,monthlyFinancialRole:MonthlyFinancialRole.SpecialDrawServiceFee,financialClass:FinancialClass.ShopFeesAndIncome);
         var manager = s.Manager.Token;
         var opening = await client.PostAuthAsync("/session/opening-count", new RequestRecordOpeningCountJson
         {
@@ -392,22 +403,38 @@ public class SessionControllerPersonalAdjustmentTest(ServerWebApplicationFactory
             financialClass: FinancialClass.CaixaAndClientMoney);
         var claim = await factory.SeedTransactionAsync(s.Branch.Id, s.Cashbox.Id, cardType.Id, cardCategory.Id, Direction.Out,
             s.MemberA.Operator!.Id, s.Manager.User.Id, date: new DateTime(2026, 9, 10), value: 100m, sessionId: first.Session.Id);
-        await client.CountAsync(first.Session.Id, s.MemberA.Token, new Dictionary<Guid, decimal> { [s.Cash.Id] = 900m });
+        var countVersion=await client.GetSessionAsync(first.Session.Id,s.MemberA.Token);
+        var feeCount=await client.PutAuthAsync($"/session/{first.Session.Id}/items",new VersionedRequestPutDailyCloseItemsJson
+        {
+            Version=countVersion.Version,Items=[new(){ProductId=s.Cash.Id,Value=915}],
+            CloseFields=[new(){Field=SessionCloseField.SpecialFee,Value=15}]
+        },s.MemberA.Token);
+        feeCount.StatusCode.ShouldBe(HttpStatusCode.OK,await feeCount.Content.ReadAsStringAsync());
         await client.SubmitAsync(first.Session.Id, s.MemberA.Token);
         clock.AdvanceTo(new DateTime(2026, 9, 10, 9, 0, 0));
         await client.FinishAsync(first.Session.Id, s.MemberA.Token);
         (await client.ApproveSessionAsync(first.Session.Id, manager)).StatusCode.ShouldBe(HttpStatusCode.OK);
         clock.AdvanceTo(new DateTime(2026, 9, 10, 10, 0, 0));
         var second = await client.StartSessionAsync(s.Cashbox.Id, s.MemberB.Token,
-            new Dictionary<Guid, decimal> { [s.Cash.Id] = 880m });
+            new Dictionary<Guid, decimal> { [s.Cash.Id] = 895m });
         var discrepancy = second.OpeningDiscrepancy.ShouldNotBeNull();
         discrepancy.CurrentTotalDelta.ShouldBe(-20m);
         discrepancy.HandoverId.ShouldBeNull();
-        await client.CountAsync(second.Session.Id, s.MemberB.Token, new Dictionary<Guid, decimal> { [s.Cash.Id] = 875m });
+        await client.CountAsync(second.Session.Id, s.MemberB.Token, new Dictionary<Guid, decimal> { [s.Cash.Id] = 890m });
         await client.SubmitAsync(second.Session.Id, s.MemberB.Token);
         clock.AdvanceTo(new DateTime(2026, 9, 10, 11, 0, 0));
         await client.FinishAsync(second.Session.Id, s.MemberB.Token);
         (await client.ApproveSessionAsync(second.Session.Id, manager)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        clock.AdvanceTo(new DateTime(2026,9,10,11,10,0));
+        var third=await client.StartSessionAsync(s.Cashbox.Id,s.MemberA.Token);
+        await client.CountAsync(third.Session.Id,s.MemberA.Token,new Dictionary<Guid,decimal>{[s.Cash.Id]=890});
+        await client.SubmitAsync(third.Session.Id,s.MemberA.Token);
+        clock.AdvanceTo(new DateTime(2026,9,10,11,20,0));
+        await client.FinishAsync(third.Session.Id,s.MemberA.Token);
+        (await client.ApproveSessionAsync(third.Session.Id,manager)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        clock.AdvanceTo(new DateTime(2026,9,30,12,0,0));
+        var peopleDemo=new WebApi.Test.People.IntegratedPeopleDemo(factory,client,s.Branch.Id,s.MemberA.Operator!.Id,manager);
+        await peopleDemo.SeedSeptember(first.Session.Id);
         var setting = await (await client.GetAuthAsync("/setting", manager)).ReadContentAsync<ResponseSettingJson>();
         var configure = await client.PutAuthAsync("/setting", new RequestUpdateSettingJson { PersonalShortageThreshold = 20m }, manager, setting.Version);
         configure.StatusCode.ShouldBe(HttpStatusCode.OK, await configure.Content.ReadAsStringAsync());
@@ -416,6 +443,7 @@ public class SessionControllerPersonalAdjustmentTest(ServerWebApplicationFactory
         var locked = await client.PostAuthAsync("/setting/lock-month", new RequestLockSettingMonthJson { Year = 2026, Month = 9 }, manager,
             expectedVersion: setting.Version);
         locked.StatusCode.ShouldBe(HttpStatusCode.OK, await locked.Content.ReadAsStringAsync());
+        await peopleDemo.CrossOctober();
         await PostedCardJourney.ConfirmAsync(factory, client, s.Branch.Id, manager, claim);
         var settledResult = await Result(10);
         settledResult.KnownOwnResult.ShouldBe(-2m);
@@ -490,6 +518,7 @@ public class SessionControllerPersonalAdjustmentTest(ServerWebApplicationFactory
         var tail = await (await client.GetAuthAsync($"/session/opening-discrepancy/{discrepancy.Id}/responsibility?afterSequence=2", manager))
             .ReadContentAsync<ResponseOpeningResponsibilityJson>();
         tail.Adjustments.ShouldHaveSingleItem().Sequence.ShouldBe(3);
+        await peopleDemo.VerifyAfterResponsibilityCorrections();
         // Durable history is protected even from an accidental repository update.
         using (var scope = factory.Services.CreateScope())
         {

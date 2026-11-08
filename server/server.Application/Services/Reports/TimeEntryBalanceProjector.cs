@@ -100,6 +100,7 @@ public class TimeEntryBalanceProjector(
 
             days.Add(new ResponseTimeEntryBalanceSummaryDayJson
             {
+                TimeEntryId = entry.Id, PolicyId = policy.Id, PolicyEffectiveFrom = policy.EffectiveFrom,
                 Date = entry.Date,
                 Status = entry.Status,
                 TotalHours = dayTotalHours,

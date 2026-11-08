@@ -4,6 +4,10 @@
 // and an extra key fails too. Labels are sentence case and literal copy; tenant data (names) is
 // never passed through these maps.
 import type {
+  PayItemKind,
+  HourBankEntryKind,
+  CommissionBasisComponent,
+  PeopleSourceCompleteness,
   AccountType,
   AgingBucket,
   BankMovementKind,
@@ -443,7 +447,35 @@ export const personalDifferenceSourceKindLabels: Labels<PersonalDifferenceSource
   OpeningDiscrepancyAdjustmentOffset: 'Compensação de atribuição anterior',
 };
 
+export const payItemKindLabels: Labels<PayItemKind> = {
+  Addition: 'Acréscimo',
+  Deduction: 'Desconto',
+};
+
+export const hourBankEntryKindLabels: Labels<HourBankEntryKind> = {
+  Opening: 'Saldo inicial comprovado',
+  Payment: 'Pagamento de horas',
+  Adjustment: 'Ajuste de horas',
+};
+
+export const commissionBasisComponentLabels: Labels<CommissionBasisComponent> = {
+  BolaoServiceFee: 'Tarifa Bolão',
+  SpecialDrawServiceFee: 'Tarifa Especial',
+  ExplicitSource: 'Base explícita comprovada',
+};
+
+export const peopleSourceCompletenessLabels: Labels<PeopleSourceCompleteness> = {
+  Complete: 'Completo para as origens declaradas',
+  NotConfigured: 'Não configurado',
+  Incomplete: 'Incompleto',
+};
+
 export const enumLabels = {
+  PayItemKind: payItemKindLabels,
+  HourBankEntryKind: hourBankEntryKindLabels,
+  CommissionBasisComponent: commissionBasisComponentLabels,
+  PeopleSourceCompleteness: peopleSourceCompletenessLabels,
+
   Role: roleLabels,
   Direction: directionLabels,
   AccountType: accountTypeLabels,

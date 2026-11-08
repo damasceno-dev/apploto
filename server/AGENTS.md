@@ -707,3 +707,13 @@ dotnet test tests/WebApi.Test
 - Keep web and mobile aligned through generated TypeScript from OpenAPI, not through shared C# assemblies.
 - Keep `server.Exceptions` internal to the backend and expose only the serialized error contract.
 - When adding a new server pattern, update this file so it stays the single authoritative guide for the folder.
+
+## Employee records and statement (M9.8)
+
+- `UseCases/People/PeopleCommandRunner` coordinates append-only employee commands with current branch authority, durable idempotency, month/employee/source locks and atomic audit. Revisions append a `PreviousId` successor; never update or delete recorded originals.
+- Employee identity is `Operator`, independently of login/membership. Manager/Admin reports retain inactive/unlinked history. Commission proposals, recorded pay, financial payments and attendance are separate; no shortage-derived deduction or automatic money/hour conversion.
+- Commission uses typed, evidenced source roles and inclusive effective rules. Preserve actual basis/rule/cutoff evidence when recording a derived item; unknown upgrade classification or private legacy allocation cannot become verified zero.
+- Statement readers use one read-only snapshot and posting cutoff. Hour-bank attendance follows each date's policy; initial carry-over requires an explicit anchor. Late-declared anchors reconstruct carry-over once, and in-progress flags consider only included days. Existing attendance period totals retain their meaning.
+- Official session submission captures immutable EmployeeCommissionFeePosting deltas keyed by count attempt, source and causing classification revision (older versions remain null/unknown) in the same transaction, using the actual branch posting date and original source date. Unsnapshotted fee history stays unavailable; pay revisions explicitly reconcile the recorded target and new proposal without a second root.
+- Explicit open reclassification keeps the financial-result contract. Statements compare current fee class/role with the last official published basis and block divergent commission until confer/resubmit; type-default edits alone do not rewrite frozen rows. Allocation publication cannot precede its exact referenced draw revision.
+- Zero-capable required numeric command fields must reject omitted JSON fields. HTML print success is declared explicitly in OpenAPI; errors retain the JSON error contract. See canonical specs §3.34/§6.27 and M9.8 in `docs/milestones.md` for sources and verification.

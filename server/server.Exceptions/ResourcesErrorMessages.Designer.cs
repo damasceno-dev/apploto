@@ -2014,5 +2014,16 @@ namespace server.Exceptions {
         public static string CARD_CLAIM_INVALID => ResourceManager.GetString("CARD_CLAIM_INVALID", resourceCulture)!;
         public static string CARD_FEE_EVIDENCE_REQUIRED => ResourceManager.GetString("CARD_FEE_EVIDENCE_REQUIRED", resourceCulture)!;
         public static string OFX_INVALID => ResourceManager.GetString("OFX_INVALID", resourceCulture)!;
+        public static string PEOPLE_INPUT_INVALID => ResourceManager.GetString("PEOPLE_INPUT_INVALID", resourceCulture)!;
+        public static string PEOPLE_RECORD_NOT_FOUND => ResourceManager.GetString("PEOPLE_RECORD_NOT_FOUND", resourceCulture)!;
+        public static string PEOPLE_STALE => ResourceManager.GetString("PEOPLE_STALE", resourceCulture)!;
+        public static string PEOPLE_PERIOD_LOCKED => ResourceManager.GetString("PEOPLE_PERIOD_LOCKED", resourceCulture)!;
+        public static string PEOPLE_RULE_OVERLAP => ResourceManager.GetString("PEOPLE_RULE_OVERLAP", resourceCulture)!;
+        public static string PEOPLE_POLICY_REQUIRED => ResourceManager.GetString("PEOPLE_POLICY_REQUIRED", resourceCulture)!;
+        public static string PEOPLE_SOURCE_UNAVAILABLE => ResourceManager.GetString("PEOPLE_SOURCE_UNAVAILABLE", resourceCulture)!;
+        public static string PEOPLE_DUPLICATE_SOURCE => ResourceManager.GetString("PEOPLE_DUPLICATE_SOURCE", resourceCulture)!;
+        public static string PEOPLE_OPENING_REQUIRED => ResourceManager.GetString("PEOPLE_OPENING_REQUIRED", resourceCulture)!;
+        public static string PEOPLE_ALLOCATION_EXCEEDED => ResourceManager.GetString("PEOPLE_ALLOCATION_EXCEEDED", resourceCulture)!;
+        public static string PEOPLE_REPORT_TOO_LARGE => ResourceManager.GetString("PEOPLE_REPORT_TOO_LARGE", resourceCulture)!;
     }
 }

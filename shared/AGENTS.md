@@ -165,3 +165,9 @@ Commands (from `shared/api`, or `pnpm --filter @loto/api <script>` from the root
 - `pnpm format:check` must also stay green, because the web and mobile standing gates run it across the whole workspace.
 - `pnpm -r test` runs Vitest (installed by Shared M2, decision D1) for both packages; `@loto/core`'s suites include the purity boundary and the copy §5 conformance check.
 - `@loto/api` typecheck and lint carry the contract gates: enum names, required and nullable fidelity, numeric direction, financial headers and the import boundary. `generate:check` (Node only) and `export:check` (.NET 10 SDK) prove the generated tree and the committed document are current.
+
+## M9.8 compatibility extension (v65 candidate, 2026-11-06)
+
+- Four additional pure label exports: `payItemKindLabels`, `hourBankEntryKindLabels`, `commissionBasisComponentLabels`, `peopleSourceCompletenessLabels`; 54 documented maps. No formatter/parser or platform runtime change.
+- The generated operation map derives optional `textResponse: true` only from an operation whose success representation is exclusively `text/html`. The client returns that HTML as text, requiring its declared response media type; JSON operations keep strict JSON parsing. This supports the server-rendered managerial employee-statement print route. Errors, header isolation, token scope, result envelopes and no-retry behavior keep their existing meaning.
+- New people/pay/hour management operations are Manager/Admin-only .NET contracts. Existing Member time-entry self-service is period attendance, not payroll or hour-bank authority. Native/oracle compatibility changes do not establish real-device execution or acceptance after a future merge.

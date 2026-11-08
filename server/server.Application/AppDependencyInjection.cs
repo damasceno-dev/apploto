@@ -372,6 +372,19 @@ public static class AppDependencyInjection
         services.AddScoped<server.Application.UseCases.BankMovements.Create.BankMovementUseCase>();
         services.AddScoped<server.Application.UseCases.BankStatements.AccountBinding.CreateBankStatementAccountBindingUseCase>();
         services.AddScoped<server.Application.UseCases.BankStatements.ListAccountBindings.ListBankStatementAccountBindingsUseCase>();
+        services.AddScoped<server.Application.UseCases.People.PeopleCommandRunner>();
+        services.AddScoped<server.Application.UseCases.People.RecordPayCategoryUseCase>();
+        services.AddScoped<server.Application.UseCases.People.RecordPayItemUseCase>();
+        services.AddScoped<server.Application.UseCases.People.RecordCommissionRuleUseCase>();
+        services.AddScoped<server.Application.UseCases.People.RecordCommissionSourceUseCase>();
+        services.AddScoped<server.Application.UseCases.People.RecordHourBankEntryUseCase>();
+        services.AddScoped<server.Application.UseCases.People.RecordSpecialDrawUseCase>();
+        services.AddScoped<server.Application.UseCases.People.RecordSpecialDrawAllocationUseCase>();
+        services.AddScoped<server.Application.UseCases.People.GetEmployeeStatementUseCase>();
+        services.AddScoped<server.Application.Services.Reports.EmployeeStatementReader>();
+        services.AddScoped<server.Application.Services.Reports.EmployeeHourBankReader>();
+        services.AddScoped<server.Application.UseCases.People.PeopleRecordReader>();
+        services.AddScoped<server.Application.Services.Reports.EmployeeSpecialDrawReader>();
         services.AddScoped<PasswordEncryption>();
         services.AddScoped<IAuthenticationService, AuthenticationService>();
     }

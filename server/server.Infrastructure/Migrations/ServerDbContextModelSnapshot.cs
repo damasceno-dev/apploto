@@ -1339,6 +1339,403 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("DailyCloseReviewEventItems", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.EmployeeCommissionFeePosting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("AttemptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<short?>("ClassificationProvenance")
+                        .HasColumnType("smallint");
+
+                    b.Property<int?>("ClassificationRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<short>("Component")
+                        .HasColumnType("smallint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("SignedAmount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("SourceDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("TransactionId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("OperatorId");
+
+                    b.HasIndex("TransactionId");
+
+                    b.HasIndex("BranchId", "OperatorId", "PostedOn");
+
+                    b.HasIndex("SessionId", "AttemptId", "TransactionId", "Component", "SourceDate", "ClassificationRevision")
+                        .IsUnique()
+                        .HasDatabaseName("UX_CommissionFeePosting_AttemptTransactionSource");
+
+                    b.ToTable("EmployeeCommissionFeePostings", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeeCommissionRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("EffectiveTo")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IncludeBolaoFee")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludeExplicitSources")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IncludeSpecialFee")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("OperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("RatePercent")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("numeric(14,4)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OperatorId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.ToTable("EmployeeCommissionRules", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeeCommissionSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExternalIdentity")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("SignedAmount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("SignedContribution")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("SourceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SourceRole")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OperatorId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "ExternalIdentity")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.ToTable("EmployeeCommissionSources", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeePayCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.ToTable("EmployeePayCategories", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeePayItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Cancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CommissionCalculationId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CommissionEvidenceJson")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeductionPolicy")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("OperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("SignedContribution")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("SourceDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("SourceMonth")
+                        .HasColumnType("date");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("OperatorId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "CommissionCalculationId")
+                        .IsUnique()
+                        .HasFilter("\"CommissionCalculationId\" IS NOT NULL AND \"PreviousId\" IS NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.HasIndex("BranchId", "OperatorId", "SourceMonth")
+                        .IsUnique()
+                        .HasFilter("\"CommissionCalculationId\" IS NOT NULL AND \"PreviousId\" IS NULL");
+
+                    b.ToTable("EmployeePayItems", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.GoogleIdentity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1449,6 +1846,94 @@ namespace server.Infrastructure.Migrations
                         .HasFilter("\"Active\" = true");
 
                     b.ToTable("Holidays", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.HourBankEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Cancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExternalIdentity")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<short>("Kind")
+                        .HasColumnType("smallint");
+
+                    b.Property<Guid>("OperatorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("SignedContribution")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<decimal>("SignedHours")
+                        .HasPrecision(14, 4)
+                        .HasColumnType("numeric(14,4)");
+
+                    b.Property<DateTime>("SourceDate")
+                        .HasColumnType("date");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OperatorId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "ExternalIdentity")
+                        .IsUnique()
+                        .HasFilter("\"ExternalIdentity\" <> '' AND \"PreviousId\" IS NULL");
+
+                    b.HasIndex("BranchId", "OperatorId")
+                        .IsUnique()
+                        .HasFilter("\"Kind\" = 1 AND \"PreviousId\" IS NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.ToTable("HourBankEntries", (string)null);
                 });
 
             modelBuilder.Entity("server.Domain.Entities.IdempotencyRequest", b =>
@@ -2969,6 +3454,176 @@ namespace server.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.SpecialDraw", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Contest")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Modality")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("PeriodFrom")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PeriodTo")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Prize")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.ToTable("SpecialDraws", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SpecialDrawAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Cancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DrawId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Evidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("PostedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("SessionFieldEffectId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SessionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("SignedContribution")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<DateTime>("SourceDate")
+                        .HasColumnType("date");
+
+                    b.Property<int>("SourceRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("SourceValue")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("DrawId");
+
+                    b.HasIndex("PreviousId")
+                        .IsUnique()
+                        .HasFilter("\"PreviousId\" IS NOT NULL");
+
+                    b.HasIndex("SessionFieldEffectId");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("BranchId", "PostedOn");
+
+                    b.ToTable("SpecialDrawAllocations", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.Terminal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -4100,6 +4755,143 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.EmployeeCommissionFeePosting", b =>
+                {
+                    b.HasOne("server.Domain.Entities.SessionCountAttempt", null)
+                        .WithMany()
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeeCommissionRule", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.EmployeeCommissionRule", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeeCommissionSource", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.EmployeeCommissionSource", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeePayCategory", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.EmployeePayCategory", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.EmployeePayItem", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.EmployeePayCategory", null)
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.EmployeePayItem", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.GoogleIdentity", b =>
                 {
                     b.HasOne("server.Domain.Entities.User", "User")
@@ -4120,6 +4912,32 @@ namespace server.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Branch");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.HourBankEntry", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Operator", null)
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.HourBankEntry", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("server.Domain.Entities.IdempotencyRequest", b =>
@@ -4743,6 +5561,64 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("BankReceipt");
 
                     b.Navigation("ReceivableTransaction");
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SpecialDraw", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SpecialDraw", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.SpecialDrawAllocation", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SpecialDraw", null)
+                        .WithMany()
+                        .HasForeignKey("DrawId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.SpecialDrawAllocation", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.SessionFieldEffect", null)
+                        .WithMany()
+                        .HasForeignKey("SessionFieldEffectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.DailyClose", null)
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("server.Domain.Entities.Terminal", b =>

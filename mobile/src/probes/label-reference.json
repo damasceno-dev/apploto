@@ -308,5 +308,24 @@
     "OpeningDiscrepancy": "Diferença de abertura",
     "OpeningDiscrepancyAdjustment": "Ajuste de responsabilidade",
     "OpeningDiscrepancyAdjustmentOffset": "Compensação de atribuição anterior"
+  },
+  "PayItemKind": {
+    "Addition": "Acréscimo",
+    "Deduction": "Desconto"
+  },
+  "HourBankEntryKind": {
+    "Opening": "Saldo inicial comprovado",
+    "Payment": "Pagamento de horas",
+    "Adjustment": "Ajuste de horas"
+  },
+  "CommissionBasisComponent": {
+    "BolaoServiceFee": "Tarifa Bolão",
+    "SpecialDrawServiceFee": "Tarifa Especial",
+    "ExplicitSource": "Base explícita comprovada"
+  },
+  "PeopleSourceCompleteness": {
+    "Complete": "Completo para as origens declaradas",
+    "NotConfigured": "Não configurado",
+    "Incomplete": "Incompleto"
   }
 }

@@ -40,7 +40,7 @@ internal sealed class FinancialDayScenario
     public IReadOnlyDictionary<string, Product> Products { get; private init; } = null!;
     public IReadOnlyDictionary<TransactionTypeSystemRole, TransactionType> SystemTypes { get; private init; } = null!;
     public IReadOnlyDictionary<string, TransactionType> SeededTypes { get; private init; } = null!;
-    public DateTime Today { get; } = SessionFlow.LocalToday();
+    public DateTime Today { get; private init; } = SessionFlow.LocalToday();
 
     public Product Cash => Products["Dinheiro"];
     public Product Stock => Products["Raspadinha"];
@@ -55,7 +55,8 @@ internal sealed class FinancialDayScenario
         string label,
         decimal openingCash = 1_000m,
         decimal openingStock = 0m,
-        bool grantSafeToMemberA = true)
+        bool grantSafeToMemberA = true,
+        DateTime? businessDate = null)
     {
         var branch = await factory.SeedConfiguredBranchAsync($"{label} {Guid.NewGuid():N}");
         var manager = await ActorAsync(factory, branch, Role.Manager, withOperator: false);
@@ -92,6 +93,7 @@ internal sealed class FinancialDayScenario
 
         var scenario = new FinancialDayScenario(factory, client)
         {
+            Today = businessDate ?? SessionFlow.LocalToday(),
             Branch = branch,
             Manager = manager,
             Approver = approver,

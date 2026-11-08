@@ -56,6 +56,10 @@ Blueprints are grouped by coherent feature rather than one file per screen, beca
 | Add employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#add-employee-guided) | Web/Mobile M11 | Ready |
 | Offboard employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#offboard-employee-guided) | Web/Mobile M11 | Partial — withdrawing an invitation (gap AC) |
 
+| Employee statement | [reports-and-month-lock.md](reports-and-month-lock.md#employee-statement) | Web/Mobile M8 | Authored — semantics independently accepted 2026-11-08 |
+| Special draws | [administration.md](administration.md#special-draws) | Web/Mobile M10 | Authored — semantics independently accepted 2026-11-08 |
+| Hour-bank management | [time-and-self-service.md](time-and-self-service.md#hour-bank-management) | Web/Mobile M9 | Authored — semantics independently accepted 2026-11-08 |
+
 **M11 report extension (2026-10-22):** Dashboard, Upcoming settlements and Monthly financial report have full blueprints: envelope/nested fields, periods, configuration/empty/error states, responsive/focus behavior, source-specific financial meaning and exact drill-down/return filters. Source contracts are accepted at `84f75b9`; this design extension awaits independent acceptance under 4.8.4. Nine reports and 45 catalog entries remain indexed. The [shell route map](shell-and-identity.md#route-map-web) and [report route audit](reports-and-month-lock.md#branch-scoped-report-entry-and-return-audit) apply the owner-confirmed D-M2-1 `/f/{branchId}` convention. Existing tokens/components remain unchanged; AA/AB/AC and real app evidence remain with their owners.
 
 ## What every blueprint specifies

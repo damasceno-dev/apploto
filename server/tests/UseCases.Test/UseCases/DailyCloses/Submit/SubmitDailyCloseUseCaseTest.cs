@@ -60,7 +60,7 @@ public class SubmitDailyCloseUseCaseTest
             ctx.BranchUser.BranchId,
             ctx.DailyClose.AccountId,
             Arg.Any<CancellationToken>());
-        await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.UnitOfWork.Received(2).Commit();
         await ctx.DailyCloseLedgerCoordinationScope.Received(1).Complete(Arg.Any<CancellationToken>());
     }
 
@@ -88,7 +88,7 @@ public class SubmitDailyCloseUseCaseTest
         ctx.DailyClose.Items.Count(item => item.ProductId == ctx.CashVarianceProductId && item.Active).ShouldBe(1);
         existingCashVariance.Id.ShouldBe(existingItemId);
         existingCashVariance.Value.ShouldBe(ctx.ComputedVariance);
-        await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.UnitOfWork.Received(2).Commit();
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public class SubmitDailyCloseUseCaseTest
         ctx.DailyClose.RecordedByOperatorId.ShouldBe(recordingOperator.Id);
         ctx.DailyClose.SubmittedByUserId.ShouldBe(ctx.BranchUser.UserId);
         ctx.DailyClose.SubmittedByOperatorId.ShouldBe(ctx.CallerOperator!.Id);
-        await ctx.UnitOfWork.Received(1).Commit();
+        await ctx.UnitOfWork.Received(2).Commit();
     }
 
     [Fact]
@@ -387,7 +387,8 @@ public class SubmitDailyCloseUseCaseTest
                 ctx.ComputedVariance,
                 ctx.CashVarianceProductResolver,
                 ctx.DailyClosesRepository),
-            ctx.UnitOfWork);
+            ctx.UnitOfWork,
+            NSubstitute.Substitute.For<server.Domain.Interfaces.IEmployeeStatementSources>());
     }
 
     // The ordinary Conferir → Submit path: the session's latest attempt is current and named with its revisions.

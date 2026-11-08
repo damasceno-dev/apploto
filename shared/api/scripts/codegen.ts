@@ -56,7 +56,17 @@ interface OpenApiParameter {
 
 interface OpenApiDocument {
   security?: unknown[];
-  paths: Record<string, Record<string, { security?: unknown; parameters?: OpenApiParameter[] }>>;
+  paths: Record<
+    string,
+    Record<
+      string,
+      {
+        security?: unknown;
+        parameters?: OpenApiParameter[];
+        responses?: Record<string, { content?: Record<string, unknown> }>;
+      }
+    >
+  >;
   components?: {
     securitySchemes?: Record<string, { type?: string; scheme?: string }>;
     parameters?: Record<string, OpenApiParameter>;
@@ -69,6 +79,7 @@ export interface OperationContract {
   authTier: AuthTier;
   /** The header parameters the operation declares (for example `Idempotency-Key`), sorted. */
   headers: string[];
+  textResponse?: boolean;
 }
 
 const httpMethods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
@@ -129,7 +140,23 @@ export function deriveOperations(document: OpenApiDocument): OperationContract[]
         .filter((parameter) => parameter.in === 'header')
         .map((parameter) => parameter.name as string)
         .sort(compare);
-      operations.push({ method: method.toUpperCase(), path, authTier, headers });
+      const mediaTypes = [
+        ...new Set(
+          Object.entries(operation.responses ?? {})
+            .filter(([status]) => /^2\d\d$/.test(status))
+            .flatMap(([, response]) => Object.keys(response.content ?? {})),
+        ),
+      ];
+      const textResponse = mediaTypes.includes('text/html');
+      if (textResponse && mediaTypes.some((media) => media !== 'text/html'))
+        throw new Error(`${where} mixes HTML and other success representations.`);
+      operations.push({
+        method: method.toUpperCase(),
+        path,
+        authTier,
+        headers,
+        ...(textResponse ? { textResponse: true } : {}),
+      });
     }
   }
 
@@ -195,7 +222,7 @@ async function writeOperations(root: string): Promise<void> {
       (op) =>
         `  { method: '${op.method}', path: '${op.path}', authTier: '${op.authTier}', headers: [${op.headers
           .map((name) => `'${name}'`)
-          .join(', ')}] },`,
+          .join(', ')}]${op.textResponse ? ', textResponse: true' : ''} },`,
     )
     .join('\n');
   const source = `/**
@@ -210,6 +237,7 @@ ${entries}
   readonly path: string;
   readonly authTier: 'anonymous' | 'identity' | 'branch';
   readonly headers: readonly string[];
+  readonly textResponse?: boolean;
 }[];
 `;
   const destination = join(root, operationsRelativePath);

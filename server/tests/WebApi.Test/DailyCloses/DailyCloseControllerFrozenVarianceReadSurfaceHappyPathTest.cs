@@ -109,7 +109,7 @@ public class DailyCloseControllerFrozenVarianceReadSurfaceHappyPathTest(ServerWe
         var monthlyResponse = await _client.GetAuthAsync(
             $"/report/monthly-reconciliation/{date.Year}/{date.Month}",
             token);
-        monthlyResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        monthlyResponse.StatusCode.ShouldBe(HttpStatusCode.OK, await monthlyResponse.Content.ReadAsStringAsync());
         var monthly = await monthlyResponse.ReadContentAsync<ResponseMonthlyReconciliationJson>();
         var day = monthly.Days.Single(row => row.Date.Day == date.Day);
         day.NetVariance.ShouldBe(0m);

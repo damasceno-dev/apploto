@@ -120,7 +120,7 @@ public sealed class FinancialCommandIdempotency(
         context.Request.ResponseEnvelope = JsonSerializer.Serialize(response, JsonOptions);
     }
 
-    private static void EnsureValidKey(string? key)
+    internal static void EnsureValidKey(string? key)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new OnValidationException([ResourcesErrorMessages.IDEMPOTENCY_KEY_REQUIRED]);

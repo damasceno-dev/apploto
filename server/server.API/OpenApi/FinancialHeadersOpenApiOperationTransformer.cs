@@ -51,6 +51,7 @@ internal sealed class FinancialHeadersOpenApiOperationTransformer : IOpenApiOper
             return false;
 
         var path = relativePath.Split('?', 2)[0];
+        if (path.StartsWith("people/", StringComparison.Ordinal) && (method == "POST" || path.Contains("{id}") )) return true;
         return path switch
         {
             "setting" or "setting/lock-month" => true,

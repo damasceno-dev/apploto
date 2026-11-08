@@ -23,6 +23,49 @@ namespace server.Controllers;
 public class ReportController : ControllerBase
 {
     [HttpGet]
+    [Route("employee-statement/print")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(string), 200, "text/html")]
+    [ProducesResponseType(typeof(ResponseErrorJson), 400, "application/json")]
+    [ProducesResponseType(typeof(ResponseErrorJson), 401, "application/json")]
+    [ProducesResponseType(typeof(ResponseErrorJson), 403, "application/json")]
+    [ProducesResponseType(typeof(ResponseErrorJson), 404, "application/json")]
+    [ProducesResponseType(typeof(ResponseErrorJson), 409, "application/json")]
+    public async Task<IActionResult> PrintEmployeeStatement(
+        [FromServices] Application.UseCases.People.GetEmployeeStatementUseCase useCase,
+        [FromQuery] RequestEmployeeStatementJson request, CancellationToken ct)
+    {
+        var statement = await useCase.Execute(request, ct, printable: true);
+        return Content(Application.Services.Reports.EmployeeStatementPrintRenderer.Render(statement), "text/html; charset=utf-8");
+    }
+
+    [HttpGet]
+    [Route("hour-bank")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseHourBankJson), 200)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 400)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 401)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 403)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 404)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 409)]
+    public async Task<IActionResult> HourBank(
+        [FromServices] Application.UseCases.People.GetEmployeeStatementUseCase useCase,
+        [FromQuery] RequestEmployeeStatementJson request, CancellationToken ct) => Ok((await useCase.Execute(request, ct)).HourBank);
+
+    [HttpGet]
+    [Route("employee-statement")]
+    [TokenAuthorize(Role.Manager, Role.Admin)]
+    [ProducesResponseType(typeof(ResponseEmployeeStatementJson), 200)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 400)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 401)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 403)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 404)]
+    [ProducesResponseType(typeof(ResponseErrorJson), 409)]
+    public async Task<IActionResult> EmployeeStatement(
+        [FromServices] Application.UseCases.People.GetEmployeeStatementUseCase useCase,
+        [FromQuery] RequestEmployeeStatementJson request, CancellationToken ct) => Ok(await useCase.Execute(request, ct));
+
+    [HttpGet]
     [Route("personal-differences")]
     [TokenAuthorize(Role.Manager, Role.Admin)]
     [ProducesResponseType(typeof(ResponsePersonalDifferencesJson), StatusCodes.Status200OK)]

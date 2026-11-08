@@ -476,3 +476,14 @@ Raw Intl display differences do not change the NBSP/minus/unsigned-zero/copy con
 - Alphanumeric CNPJ is outside the current numeric-only formatting contract: it renders verbatim and fails `isValidCnpj`; supporting it requires a product/design decision.
 - Mobile M1 retains an unexplained 2026-10-27 iOS SIGABRT in `objc_storeWeak` during UIKit keyboard-shortcut enumeration. Later clean runs bound observation only. See [Mobile M1/M2](../../mobile/docs/milestones.md#milestone-1--expo-scaffold).
 - Server M9.6 Phase 8 records parser integration separately; design owns the universal money-field interaction pattern. No future session/custody enum or financial API is introduced here.
+
+
+### M9.8 people contract compatibility — v67 candidate (2026-11-08)
+
+Authoritative .NET/OpenAPI adds Manager/Admin-only employee statement/print/hour-bank and typed append-only `/people/*` commands/history. Existing attendance period totals retain their meaning; nullable HourBanks is management-only and nullable day provenance adds TimeEntryId/PolicyId/PolicyEffectiveFrom. Four public core label maps are added: payItemKindLabels, hourBankEntryKindLabels, commissionBasisComponentLabels and peopleSourceCompletenessLabels (54 enum maps). Server HTML print success is decoded only when generated OpenAPI media metadata declares text/html; JSON/error/header/auth/no-retry behavior remains intact. Generated raw/hooks/models/operation map and existing Web BFF/Mobile auth/request-policy compatibility are regenerated, not hand-edited. Mobile oracle additions are reference compatibility, not native execution. Manual independent review and v67 design-marker acceptance remain pending; no app UI or consumer acceptance after a future user-managed merge is implied.
+
+Compatibility verification: API 107 and core 325 tests pass, along with workspace typecheck/lint/format, fresh server export and 499-file generated drift. Existing Web 334 + 9 tooling and Mobile 456 + 32 tooling tests pass in this checkout. These results do not replace native execution or affected-consumer checks after the user-managed merge.
+
+The v67 additive statement contract exposes unresolved custody ids, fee posting-history completeness/transaction provenance and recorded-versus-proposed commission reconciliation. OpenAPI remains 157 paths/197 operations/357 schemas; 499-file drift and the same consumer checks pass. Both design markers are v67.
+
+v67 verification (2026-11-08): the public DTO/OpenAPI shape remains unchanged (c265653e…); fresh export/drift, API 107, core 325 and workspace typecheck/lint/format pass. Classification-divergence and allocation-chronology behavior stays server-owned; no app runtime or native execution is added.

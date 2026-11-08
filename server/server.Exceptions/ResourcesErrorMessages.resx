@@ -1120,4 +1120,15 @@
   <data name="OPENING_DISCREPANCY_ADJUSTMENT_DATE_INVALID" xml:space="preserve"><value>A data do ajuste deve ser igual ou posterior à origem e ao ajuste anterior, e não pode estar no futuro.</value></data>
   <data name="OPENING_DISCREPANCY_ADJUSTMENT_SOURCE_OPEN" xml:space="preserve"><value>A origem desta diferença está em período aberto. Use a atribuição de responsabilidade da abertura.</value></data>
   <data name="OPENING_DISCREPANCY_ADJUSTMENT_NO_CHANGE" xml:space="preserve"><value>Este ajuste não altera a responsabilidade pessoal. Nenhum ajuste foi registrado.</value></data>
+  <data name="PEOPLE_INPUT_INVALID" xml:space="preserve"><value>Informe datas, valores e evidências válidos para o registro da pessoa.</value></data>
+  <data name="PEOPLE_RECORD_NOT_FOUND" xml:space="preserve"><value>Registro da pessoa não encontrado nesta filial.</value></data>
+  <data name="PEOPLE_STALE" xml:space="preserve"><value>O registro da pessoa foi alterado. Atualize e tente novamente.</value></data>
+  <data name="PEOPLE_PERIOD_LOCKED" xml:space="preserve"><value>O período está bloqueado para este registro.</value></data>
+  <data name="PEOPLE_RULE_OVERLAP" xml:space="preserve"><value>Já existe uma regra de comissão para este intervalo.</value></data>
+  <data name="PEOPLE_POLICY_REQUIRED" xml:space="preserve"><value>Informe a política do responsável para registrar o desconto.</value></data>
+  <data name="PEOPLE_SOURCE_UNAVAILABLE" xml:space="preserve"><value>A origem informada não está disponível ou não corresponde a este registro.</value></data>
+  <data name="PEOPLE_DUPLICATE_SOURCE" xml:space="preserve"><value>Esta origem já foi registrada para a pessoa.</value></data>
+  <data name="PEOPLE_OPENING_REQUIRED" xml:space="preserve"><value>Informe um saldo inicial de horas com data e evidência.</value></data>
+  <data name="PEOPLE_ALLOCATION_EXCEEDED" xml:space="preserve"><value>A distribuição excede a Tarifa Especial comprovada na sessão.</value></data>
+  <data name="PEOPLE_REPORT_TOO_LARGE" xml:space="preserve"><value>O demonstrativo excede o limite de detalhes. Consulte os relatórios de origem.</value></data>
 </root>

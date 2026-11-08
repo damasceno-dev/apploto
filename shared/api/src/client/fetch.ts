@@ -123,7 +123,18 @@ export async function apiFetch<T>(url: string, init: ApiFetchInit = {}): Promise
   }
 
   let data: unknown;
-  if (text.length > 0) {
+  if (operation.textResponse) {
+    if (
+      response.headers.get('Content-Type')?.split(';', 1)[0]?.trim().toLowerCase() !== 'text/html'
+    )
+      throw fail('invalid-response', true, {
+        status: response.status,
+        headers: response.headers,
+        body: 'unrecognized',
+        rawBody: text,
+      });
+    data = text;
+  } else if (text.length > 0) {
     try {
       data = JSON.parse(text);
     } catch (error) {

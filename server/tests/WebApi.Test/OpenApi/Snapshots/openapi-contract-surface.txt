@@ -33,6 +33,7 @@ enum BrazilianHolidayImportStatus string: Imported, Skipped
 enum BrazilianHolidayType string: National, OptionalFederal
 enum ChequeLifecycleState string: Received, InSafe, Deposited, Returned, AwaitingRedeposit, ConvertedToFiado, SettledBeforeEvents
 enum ClassificationProvenance string: Posting, MigratedFromTypeAtUpgrade, OpenPeriodReclassification
+enum CommissionBasisComponent string: BolaoServiceFee, SpecialDrawServiceFee, ExplicitSource
 enum CustodyExceptionAction string: Finish, AcceptAndStart
 enum DailyCloseReviewEventType string: Rejected, OpeningChanged
 enum DailyCloseStatus string: Draft, Submitted, Approved, Rejected
@@ -41,6 +42,7 @@ enum FiadoPaymentKind string: CountedCash, NonCash
 enum FinancialClass string: Unclassified, CaixaAndClientMoney, ShopFeesAndIncome, OperatingExpenseAndLoss, InternalTransfer, CashDifference
 enum FinancialResultSourceKind string: Transaction, CardSettlementBatchFee, CardSettlementFeeEvidence, OfficialSessionVariance, ChequeCustody, ChequeDeposit, ChequeReturn, ChequeConversion, ProviderPrincipalSettlement
 enum HolidaySource string: Manual, Canonical, BrasilApi, Nager
+enum HourBankEntryKind string: Opening, Payment, Adjustment
 enum InstallmentPlanStatus string: Draft, Active, Mixed, Cancelled
 enum InvitationStatus string: Pending, Accepted, Declined, Expired
 enum MailDeliveryStatus string: Pending, Sent, Failed
@@ -49,6 +51,8 @@ enum MonthlyReconciliationBlockerType string: UnapprovedClose, DraftTransactions
 enum OpeningDiscrepancyAttribution string: Unattributed, Outgoing, Incoming, Neither
 enum OperatorLinkRequestStatus string: Pending, Resolved
 enum OverviewSectionStatus string: Ready, Empty, NotConfigured
+enum PayItemKind string: Addition, Deduction
+enum PeopleSourceCompleteness string: Complete, NotConfigured, Incomplete
 enum PersonalDifferenceSourceKind string: OfficialSessionVariance, OpeningDiscrepancy, OpeningDiscrepancyAdjustment, OpeningDiscrepancyAdjustmentOffset
 enum ReceivableCutoffBasis string: Posted, Occurred
 enum ReceivableSettlementStatus string: Open, PartiallySettled, Settled
@@ -240,6 +244,31 @@ schema RequestChequeReturnJson
   postedOn optional string?
   returnReason optional string?
 
+schema RequestCommissionRuleJson
+  effectiveFrom required string
+  effectiveTo required string
+  enabled optional boolean
+  evidence required string
+  includeBolaoFee optional boolean
+  includeExplicitSources optional boolean
+  includeSpecialFee optional boolean
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  ratePercent required number|string
+  reason required string
+
+schema RequestCommissionSourceJson
+  evidence required string
+  externalIdentity required string
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  signedAmount required number|string
+  sourceDate required string
+  sourceRole required string
+
 schema RequestConferSessionCountJson
   confirmCountStillObserved optional boolean
   confirmationToken required string
@@ -376,6 +405,18 @@ schema RequestGoogleSignInJson
   name optional string?
   state required string
 
+schema RequestHourBankEntryJson
+  cancelled optional boolean
+  evidence required string
+  externalIdentity required string
+  kind required enum:HourBankEntryKind
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  signedHours required number|string
+  sourceDate required string
+
 schema RequestInstallmentPlanRowVersionJson
   transactionId required string
   version required integer|string
@@ -433,6 +474,30 @@ schema RequestOperateBranchJson
 schema RequestPairTabAccountJson
   tabAccountId required string
   terminalAccountId required string
+
+schema RequestPayCategoryJson
+  enabled optional boolean
+  evidence required string
+  kind required enum:PayItemKind
+  name required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+
+schema RequestPayItemJson
+  amount required number|string
+  cancelled optional boolean
+  categoryId required string
+  commissionCalculationId optional string?
+  deductionPolicy optional string?
+  evidence required string
+  kind required enum:PayItemKind
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  sourceDate required string
+  sourceMonth required string
 
 schema RequestPutDailyCloseItemsJson
   closeFields optional RequestSessionCloseFieldJson[]?
@@ -530,6 +595,32 @@ schema RequestSessionOpeningItemJson
 
 schema RequestSessionReasonJson
   reason optional string?
+
+schema RequestSpecialDrawAllocationJson
+  amount required number|string
+  cancelled optional boolean
+  drawId required string
+  evidence required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  sessionFieldEffectId required string
+  sessionId required string
+  sourceDate required string
+  sourceRevision required integer|string
+
+schema RequestSpecialDrawJson
+  contest required string
+  enabled optional boolean
+  evidence required string
+  modality required string
+  name required string
+  periodFrom required string
+  periodTo required string
+  postedOn required string
+  previousId optional string?
+  prize required number|string
+  reason required string
 
 schema RequestStartSessionJson
   accountId required string
@@ -945,6 +1036,57 @@ schema ResponseClientJson
   phone required string
   phoneSecondary optional string?
 
+schema ResponseCommissionBasisJson
+  classificationProvenance optional enum:ClassificationProvenance?
+  component required enum:CommissionBasisComponent
+  evidence required string
+  postedOn required string
+  postingHistoryComplete required boolean
+  ratePercent optional number?
+  ruleId optional string?
+  sessionId optional string?
+  signedAmount required number
+  sourceDate required string
+  sourceId required string
+  transactionId optional string?
+  unroundedCommission optional number?
+
+schema ResponseCommissionRuleJson
+  actorUserId required string
+  branchId required string
+  createdAt required string
+  effectiveFrom required string
+  effectiveTo required string
+  enabled required boolean
+  evidence required string
+  id required string
+  includeBolaoFee required boolean
+  includeExplicitSources required boolean
+  includeSpecialFee required boolean
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  ratePercent required number
+  reason required string
+  version required integer
+
+schema ResponseCommissionSourceJson
+  actorUserId required string
+  branchId required string
+  createdAt required string
+  evidence required string
+  externalIdentity required string
+  id required string
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  signedAmount required number
+  signedContribution required number
+  sourceDate required string
+  sourceRole required string
+  version required integer
+
 schema ResponseConferSessionCountJson
   attempt required ResponseSessionCountAttemptJson
   replayed required boolean
@@ -1182,6 +1324,67 @@ schema ResponseEditTransactionPreviewJson
   transactionId required string
   warnings required string[]
 
+schema ResponseEmployeeCommissionJson
+  asOfDate required string
+  basis required ResponseCommissionBasisJson[]
+  basisSourceCount required integer
+  calculationId optional string?
+  completeness required enum:PeopleSourceCompleteness
+  dateFrom required string
+  dateTo required string
+  differenceFromRecorded optional number?
+  isCalculatedProposal required boolean
+  knownBasis required number
+  missingInputs required string[]
+  proposedAmount optional number?
+  recordedCalculationId optional string?
+  recordedPayItemId optional string?
+  recordedSourceMonthAmount required number
+  representsPayment required boolean
+  requiresReconciliation required boolean
+  rules required ResponseCommissionRuleJson[]
+
+schema ResponseEmployeeSessionJson
+  accountId required string
+  custodianOperatorId optional string?
+  historyComplete required boolean
+  officialAttemptId optional string?
+  recorderOperatorId optional string?
+  sessionId required string
+  sourceDate required string
+  status required enum:DailyCloseStatus
+  submitterOperatorId optional string?
+
+schema ResponseEmployeeStatementJson
+  asOfDate required string
+  attendance required ResponseTimeEntryBalanceOperatorJson
+  automaticPayrollDeduction required boolean
+  commission required ResponseEmployeeCommissionJson
+  contractRevision required integer
+  custodyHistoryComplete required boolean
+  dateFrom required string
+  dateTo required string
+  differences required ResponsePersonalDifferencesJson
+  hourBank required ResponseHourBankJson
+  isLockedPeriod required boolean
+  limitations required string[]
+  operatorActive required boolean
+  operatorId required string
+  operatorName required string
+  page required integer
+  pageSize required integer
+  payItemCount required integer
+  payItems required ResponsePayItemJson[]
+  recordedAdditions required number
+  recordedDeductions required number
+  recordedPaySignedTotal required number
+  representsPayment required boolean
+  sessionCount required integer
+  sessions required ResponseEmployeeSessionJson[]
+  specialDraws required ResponseSpecialDrawTotalsJson
+  unassignedInformationalSourceCount required integer
+  unresolvedCustodySessionIds required string[]
+
 schema ResponseErrorJson
   errorMessages required string[]?
 
@@ -1286,6 +1489,44 @@ schema ResponseHolidayJson
   date required string
   description optional string?
   id required string
+
+schema ResponseHourBankEntryJson
+  actorUserId required string
+  branchId required string
+  cancelled required boolean
+  createdAt required string
+  evidence required string
+  externalIdentity required string
+  id required string
+  kind required enum:HourBankEntryKind
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  signedContribution required number
+  signedHours required number
+  sourceDate required string
+  version required integer
+
+schema ResponseHourBankJson
+  adjustmentHours required number
+  asOfDate required string
+  attendanceContributionHours required number
+  attendanceDays required ResponseTimeEntryBalanceSummaryDayJson[]
+  carryOverHours optional number?
+  closingBalanceHours optional number?
+  completeness required enum:PeopleSourceCompleteness
+  containsInProgress required boolean
+  dateFrom required string
+  dateTo required string
+  entries required ResponseHourBankEntryJson[]
+  entryCount required integer
+  missingInput required string
+  openingSourceDate optional string?
+  openingSourceId optional string?
+  operatorId required string
+  paymentHours required number
+  periodOpeningHours required number
 
 schema ResponseInstallmentPlanJson
   accountId required string
@@ -2054,6 +2295,43 @@ schema ResponseOperatorTransactionSummaryJson
 schema ResponseOwnOperatorLinkRequestJson
   request optional ResponseOperatorLinkRequestJson?
 
+schema ResponsePayCategoryJson
+  actorUserId required string
+  branchId required string
+  createdAt required string
+  enabled required boolean
+  evidence required string
+  id required string
+  kind required enum:PayItemKind
+  name required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  version required integer
+
+schema ResponsePayItemJson
+  actorUserId required string
+  amount required number
+  branchId required string
+  cancelled required boolean
+  categoryId required string
+  categoryName required string
+  commissionCalculationId optional string?
+  commissionEvidenceJson optional string?
+  createdAt required string
+  deductionPolicy optional string?
+  evidence required string
+  id required string
+  kind required enum:PayItemKind
+  operatorId required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  signedContribution required number
+  sourceDate required string
+  sourceMonth required string
+  version required integer
+
 schema ResponsePersonalDifferenceEntryJson
   comparisonRevision optional integer?
   operatorId optional string?
@@ -2358,6 +2636,61 @@ schema ResponseSettlementInstrumentTotalJson
   instrument required enum:SettlementInstrument
   value required number
 
+schema ResponseSpecialDrawAllocationJson
+  actorUserId required string
+  amount required number
+  branchId required string
+  cancelled required boolean
+  createdAt required string
+  drawId required string
+  evidence required string
+  id required string
+  postedOn required string
+  previousId optional string?
+  reason required string
+  sessionFieldEffectId required string
+  sessionId required string
+  signedContribution required number
+  sourceDate required string
+  sourceRevision required integer
+  sourceValue required number
+  version required integer
+
+schema ResponseSpecialDrawJson
+  actorUserId required string
+  branchId required string
+  contest required string
+  createdAt required string
+  enabled required boolean
+  evidence required string
+  id required string
+  modality required string
+  name required string
+  periodFrom required string
+  periodTo required string
+  postedOn required string
+  previousId optional string?
+  prize required number
+  reason required string
+  version required integer
+
+schema ResponseSpecialDrawTotalJson
+  allocatedFee required number
+  drawId required string
+  name required string
+
+schema ResponseSpecialDrawTotalsJson
+  allocatedFeeTotal required number
+  allocations required ResponseSpecialDrawAllocationJson[]
+  asOfDate required string
+  draws required ResponseSpecialDrawTotalJson[]
+  history required ResponseSpecialDrawJson[]
+  sourceFeeTotal required number
+  sourceMappingComplete required boolean
+  unallocatedFeeTotal required number
+  unmappedSourceFeeTotal required number
+  unmappedSourceIds required string[]
+
 schema ResponseStartSessionJson
   openingDiscrepancy optional ResponseOpeningDiscrepancyJson?
   session required ResponseDailyCloseJson
@@ -2386,12 +2719,16 @@ schema ResponseTimeEntryBalanceSummaryDayJson
   balanceHours required number
   date required string
   isInProgress required boolean
+  policyEffectiveFrom optional string?
+  policyId optional string?
   status required enum:TimeEntryStatus
+  timeEntryId optional string?
   totalHours required number
 
 schema ResponseTimeEntryBalanceSummaryJson
   dateFrom required string
   dateTo required string
+  hourBanks optional ResponseHourBankJson[]?
   operators required ResponseTimeEntryBalanceOperatorJson[]
 
 schema ResponseTimeEntryJson
@@ -3190,6 +3527,307 @@ operation PUT /operator/{operatorId}/accounts/{accountId}/primary
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
 
+operation GET /people/commission-rule
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseCommissionRuleJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/commission-rule
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestCommissionRuleJson
+  response 201 ResponseCommissionRuleJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/commission-rule/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseCommissionRuleJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/commission-rule/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestCommissionRuleJson
+  response 201 ResponseCommissionRuleJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/commission-source
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseCommissionSourceJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/commission-source
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestCommissionSourceJson
+  response 201 ResponseCommissionSourceJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/commission-source/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseCommissionSourceJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/commission-source/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestCommissionSourceJson
+  response 201 ResponseCommissionSourceJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/hour-bank-entry
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseHourBankEntryJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/hour-bank-entry
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestHourBankEntryJson
+  response 201 ResponseHourBankEntryJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/hour-bank-entry/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseHourBankEntryJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/hour-bank-entry/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestHourBankEntryJson
+  response 201 ResponseHourBankEntryJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/pay-category
+  security BranchBearer[Admin,Manager]
+  response 200 ResponsePayCategoryJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/pay-category
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestPayCategoryJson
+  response 201 ResponsePayCategoryJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/pay-category/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponsePayCategoryJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/pay-category/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestPayCategoryJson
+  response 201 ResponsePayCategoryJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/pay-item
+  security BranchBearer[Admin,Manager]
+  response 200 ResponsePayItemJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/pay-item
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestPayItemJson
+  response 201 ResponsePayItemJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/pay-item/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponsePayItemJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/pay-item/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestPayItemJson
+  response 201 ResponsePayItemJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/special-draw
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseSpecialDrawJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/special-draw
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestSpecialDrawJson
+  response 201 ResponseSpecialDrawJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/special-draw-allocation
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseSpecialDrawAllocationJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/special-draw-allocation
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestSpecialDrawAllocationJson
+  response 201 ResponseSpecialDrawAllocationJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/special-draw-allocation/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseSpecialDrawAllocationJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/special-draw-allocation/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestSpecialDrawAllocationJson
+  response 201 ResponseSpecialDrawAllocationJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /people/special-draw/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseSpecialDrawJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /people/special-draw/{id}/revision
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestSpecialDrawJson
+  response 201 ResponseSpecialDrawJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation POST /platform/onboarding
   security IdentityBearer[]
   body required RequestOperateBranchJson
@@ -3312,6 +3950,36 @@ operation GET /report/daily-ledger
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
 
+operation GET /report/employee-statement
+  security BranchBearer[Admin,Manager]
+  query AsOfDate optional string
+  query Month required integer|string
+  query OperatorId required string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Year required integer|string
+  response 200 ResponseEmployeeStatementJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /report/employee-statement/print
+  security BranchBearer[Admin,Manager]
+  query AsOfDate optional string
+  query Month required integer|string
+  query OperatorId required string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Year required integer|string
+  response 200 string
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
 operation GET /report/fiado/aging
   security BranchBearer[Admin,Manager]
   query AccountId optional string
@@ -3345,6 +4013,21 @@ operation GET /report/financial-result
   response 400 ResponseErrorJson
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
+
+operation GET /report/hour-bank
+  security BranchBearer[Admin,Manager]
+  query AsOfDate optional string
+  query Month required integer|string
+  query OperatorId required string
+  query Page optional integer|string
+  query PageSize optional integer|string
+  query Year required integer|string
+  response 200 ResponseHourBankJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation GET /report/management-overview
   security BranchBearer[Admin,Manager]

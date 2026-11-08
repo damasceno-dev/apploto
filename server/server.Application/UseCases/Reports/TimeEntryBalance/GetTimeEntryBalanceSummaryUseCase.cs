@@ -16,7 +16,9 @@ public class GetTimeEntryBalanceSummaryUseCase(
     IOperatorsRepository operatorsRepository,
     TimeEntryBalanceProjector timeEntryBalanceProjector,
     IBranchClock branchClock,
-    IMemberAccountScopeResolver memberAccountScopeResolver)
+    IMemberAccountScopeResolver memberAccountScopeResolver,
+    EmployeeHourBankReader hourBankReader,
+    IReportReadSnapshot snapshot)
 {
     public async Task<ResponseTimeEntryBalanceSummaryJson> Execute(
         RequestTimeEntryBalanceSummaryJson request,
@@ -24,6 +26,7 @@ public class GetTimeEntryBalanceSummaryUseCase(
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         Validate(request);
+        await using var read = await snapshot.Begin(ct);
 
         // Resolve the read into one of three shapes: a single named/own operator,
         // an empty result (unlinked Member), or the branch-wide roll-up
@@ -85,8 +88,34 @@ public class GetTimeEntryBalanceSummaryUseCase(
             ? await timeEntryBalanceProjector.BuildBranchWide(branchUser.BranchId, request.DateFrom, request.DateTo, branchLocalNow, ct)
             : [await timeEntryBalanceProjector.BuildForOperator(branchUser.BranchId, targetOperator!, request.DateFrom, request.DateTo, branchLocalNow, ct)];
 
+        var bankHistory = branchUser.Role is Role.Manager or Role.Admin
+            ? await hourBankReader.LoadHistory(branchUser.BranchId, ct) : null;
+        List<ResponseHourBankJson>? hourBanks = null;
+        if (branchUser.Role is Role.Manager or Role.Admin)
+        {
+            hourBanks = [];
+            foreach (var summary in operators)
+            {
+                var person = targetOperator ?? await operatorsRepository.GetByIdAndBranchIdAsNoTracking(summary.OperatorId, branchUser.BranchId, ct);
+                if (person != null)
+                    hourBanks.Add(await hourBankReader.Read(branchUser.BranchId, person, request.DateFrom, request.DateTo,
+                        branchLocalNow.Date, branchLocalNow, 1, 200, ct, summary, bankHistory));
+            }
+        }
+        if (branchWide && hourBanks != null)
+        {
+            foreach (var personId in bankHistory!.Where(r => r.PostedOn <= branchLocalNow.Date).Select(r => r.OperatorId).Distinct())
+            {
+                if (hourBanks.Any(h => h.OperatorId == personId)) continue;
+                var person = await operatorsRepository.GetByIdAndBranchIdAsNoTracking(personId, branchUser.BranchId, ct);
+                if (person != null)
+                    hourBanks.Add(await hourBankReader.Read(branchUser.BranchId, person, request.DateFrom, request.DateTo,
+                        branchLocalNow.Date, branchLocalNow, 1, 200, ct, branchEntries: bankHistory));
+            }
+        }
         return new ResponseTimeEntryBalanceSummaryJson
         {
+            HourBanks = hourBanks,
             DateFrom = request.DateFrom,
             DateTo = request.DateTo,
             Operators = operators

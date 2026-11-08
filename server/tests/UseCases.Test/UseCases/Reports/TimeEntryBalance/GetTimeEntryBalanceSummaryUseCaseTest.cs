@@ -294,7 +294,10 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
         ctx.StubActiveOperators([operatorAlfa, operatorBravo]);
         ctx.StubBranchWideEntries(DateFrom, DateTo, [bravoPresent, alfaPresent, alfaSunday]);
 
-        var response = await CreateUseCase(ctx).Execute(Request().Build());
+        var records = Substitute.For<IEmployeeRecordsRepository>();
+        records.List<HourBankEntry>(branchUser.BranchId, Arg.Any<CancellationToken>()).Returns((IReadOnlyList<HourBankEntry>)[]);
+        var response = await CreateUseCase(ctx, records).Execute(Request().Build());
+        await records.Received(1).List<HourBankEntry>(branchUser.BranchId, Arg.Any<CancellationToken>());
 
         response.Operators.Count.ShouldBe(2);
         response.Operators[0].OperatorName.ShouldBe("Alfa");
@@ -691,7 +694,7 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
             .WithDateTo(DateTo);
     }
 
-    private static GetTimeEntryBalanceSummaryUseCase CreateUseCase(TestContext ctx)
+    private static GetTimeEntryBalanceSummaryUseCase CreateUseCase(TestContext ctx, IEmployeeRecordsRepository? records = null)
     {
         return new GetTimeEntryBalanceSummaryUseCase(
             ctx.AuthenticationService,
@@ -702,7 +705,9 @@ public class GetTimeEntryBalanceSummaryUseCaseTest
                 ctx.TimeEntryPoliciesRepository,
                 ctx.CalculationService),
             ctx.BranchClock,
-            ctx.MemberScopeResolver);
+            ctx.MemberScopeResolver,
+            new EmployeeHourBankReader(records ?? Substitute.For<IEmployeeRecordsRepository>(), new TimeEntryBalanceProjector(ctx.OperatorsRepository, ctx.TimeEntriesRepository, ctx.TimeEntryPoliciesRepository, ctx.CalculationService)),
+            Substitute.For<IReportReadSnapshot>());
     }
 
     private static TimeEntry BuildClosedPresentEntry(Operator op, DateTime date)

@@ -21,6 +21,12 @@ internal static class PostgresExceptionHandler
     private static readonly Dictionary<string, string> SessionGuardMessages =
         new(StringComparer.Ordinal)
         {
+            ["CK_People_Immutable"] = ResourcesErrorMessages.PEOPLE_STALE,
+            ["CK_People_PeriodAuthority"] = ResourcesErrorMessages.PEOPLE_PERIOD_LOCKED,
+            ["CK_People_Source"] = ResourcesErrorMessages.PEOPLE_SOURCE_UNAVAILABLE,
+            ["CK_People_Chain"] = ResourcesErrorMessages.PEOPLE_STALE,
+            ["CK_People_RuleOverlap"] = ResourcesErrorMessages.PEOPLE_RULE_OVERLAP,
+            ["CK_People_Allocation"] = ResourcesErrorMessages.PEOPLE_ALLOCATION_EXCEEDED,
             ["CK_DailyCloses_SessionIntervalOverlap"] = ResourcesErrorMessages.SESSION_DECLARE_OVERLAP,
             ["CK_DailyCloses_DeclaredWindow"] = ResourcesErrorMessages.SESSION_DECLARE_WINDOW_INVALID,
             ["CK_DailyCloses_SessionStartMatchesDate"] = ResourcesErrorMessages.SESSION_DECLARE_WINDOW_INVALID,
@@ -46,6 +52,18 @@ internal static class PostgresExceptionHandler
     private static readonly Dictionary<string, string> UniqueConstraintMessages =
         new(StringComparer.Ordinal)
         {
+            ["IX_EmployeePayCategories_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_EmployeePayItems_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_EmployeeCommissionRules_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_EmployeeCommissionSources_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_HourBankEntries_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_SpecialDraws_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_SpecialDrawAllocations_PreviousId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_HourBankEntries_BranchId_OperatorId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_HourBankEntries_BranchId_ExternalIdentity"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_EmployeeCommissionSources_BranchId_ExternalIdentity"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_EmployeePayItems_BranchId_CommissionCalculationId"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
+            ["IX_EmployeePayItems_BranchId_OperatorId_SourceMonth"] = ResourcesErrorMessages.PEOPLE_DUPLICATE_SOURCE,
             ["IX_Users_Email"] = ResourcesErrorMessages.EMAIL_ALREADY_REGISTERED,
             ["IX_Invitations_BranchId_Email"] = ResourcesErrorMessages.INVITATION_PENDING_CONFLICT,
             ["IX_OperatorLinkRequests_BranchId_UserId"] = ResourcesErrorMessages.OPERATOR_REQUEST_CONFLICT,

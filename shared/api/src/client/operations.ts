@@ -15,6 +15,7 @@ export interface OperationContract {
   readonly authTier: AuthTier;
   /** Declared header parameter names, lower-cased (for example `idempotency-key`, `if-match`). */
   readonly headers: ReadonlySet<string>;
+  readonly textResponse: boolean;
 }
 
 interface CompiledOperation extends OperationContract {
@@ -36,6 +37,7 @@ function compile(): readonly CompiledOperation[] {
       segments,
       literals: segments.filter((segment) => segment !== null).length,
       authTier: operation.authTier,
+      textResponse: 'textResponse' in operation && operation.textResponse === true,
       headers: new Set(operation.headers.map((name) => name.toLowerCase())),
     };
   });

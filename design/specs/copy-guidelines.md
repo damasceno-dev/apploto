@@ -173,6 +173,14 @@ The contract `shared/core` (Shared M3) implements — one map per backend enum, 
 
 **PersonalDifferenceSourceKind** *(M9.7, report source)*: `OfficialSessionVariance` → "Diferença oficial do turno" · `OpeningDiscrepancy` → "Diferença de abertura" · `OpeningDiscrepancyAdjustment` → "Ajuste de responsabilidade" · `OpeningDiscrepancyAdjustmentOffset` → "Compensação de atribuição anterior".
 
+**PayItemKind** *(M9.8)*: `Addition` → "Acréscimo" · `Deduction` → "Desconto".
+
+**HourBankEntryKind** *(M9.8)*: `Opening` → "Saldo inicial comprovado" · `Payment` → "Pagamento de horas" · `Adjustment` → "Ajuste de horas".
+
+**CommissionBasisComponent** *(M9.8)*: `BolaoServiceFee` → "Tarifa Bolão" · `SpecialDrawServiceFee` → "Tarifa Especial" · `ExplicitSource` → "Base explícita comprovada".
+
+**PeopleSourceCompleteness** *(M9.8)*: `Complete` → "Completo para as origens declaradas" · `NotConfigured` → "Não configurado" · `Incomplete` → "Incompleto".
+
 ## 6. Error display
 
 The backend is the single source of error-message truth. Every API error is `ResponseErrorJson { ErrorMessages: string[] }`, already written in pt-BR (`ResourcesErrorMessages.resx`); the unexpected-error handler also returns this shape for HTTP 500.
@@ -289,4 +297,14 @@ Canonical operation help uses §6.19 O01–O22/E01–E15 with unconfirmed report
 
 **Faltas consideradas no limite** names the server's `ThresholdShortageBasis`; source rows expose `ThresholdShortageContribution`. A credit correcting an older month does not hide a new current-month shortage. No configured limit reads **Alerta não configurado**. The live alert uses the server field; devices do not compare or net amounts.
 
-Design 4.9.12; independent semantic review pending. **Resultado próprio conhecido** never names client money or transfers profit. **Classificação incompatível com a origem** preserves a contradictory snapshot for review without calling Tab principal revenue. **Classificação pendente**, **Tarifa ainda não informada**, **Histórico reconstruído** and **Posição bancária incompleta** retain missing-value/provenance distinctions. **Faltas**, **Sobras** and **Saldo das diferenças** name separate server measures; **Sem atribuição pessoal** assigns no blame. **Compensação de atribuição anterior** explains a signed component offset, not a new overage. Always pair personal totals with **Informativo. Não há desconto automático em folha.** Use **Registrar ajuste de responsabilidade**, source date, posting date and actor/reason; never “descontar do salário”. The two report-source enums use the public core label maps above; no new token palette is introduced.
+Design 4.9.12; semantics independently accepted 2026-11-08. **Resultado próprio conhecido** never names client money or transfers profit. **Classificação incompatível com a origem** preserves a contradictory snapshot for review without calling Tab principal revenue. **Classificação pendente**, **Tarifa ainda não informada**, **Histórico reconstruído** and **Posição bancária incompleta** retain missing-value/provenance distinctions. **Faltas**, **Sobras** and **Saldo das diferenças** name separate server measures; **Sem atribuição pessoal** assigns no blame. **Compensação de atribuição anterior** explains a signed component offset, not a new overage. Always pair personal totals with **Informativo. Não há desconto automático em folha.** Use **Registrar ajuste de responsabilidade**, source date, posting date and actor/reason; never “descontar do salário”. The two report-source enums use the public core label maps above; no new token palette is introduced.
+
+## M9.8 managerial statement and hours copy (v67 candidate)
+
+Use **Demonstrativo da pessoa**, **Comissão calculada — proposta**, **Acréscimos registrados**, **Descontos registrados**, **Total de itens registrados**, **Registrado, sem confirmação de pagamento**, **Informativo. Nenhum desconto é automático.**, **Política do responsável**, **Origem**, **Data de origem**, **Lançado em**, **Sem distribuição** and **Origem sem mapeamento**. Never label a proposal paid, merge it into the registered total, call a shortage a payroll deduction or call this a statutory payslip. Month/year/source/cutoff must remain explicit; unknown is not zero.
+
+Hour management uses **Banco de horas**, **Saldo anterior**, **Saldo inicial no período**, **Frequência do período**, **Pagamento de horas**, **Ajuste de horas**, **Saldo final**, **Horas em andamento**. Existing own-time period labels remain attendance-only. **Saldo inicial comprovado** asks for its date/source evidence; it never creates punches. No label implies money conversion or an employment-law entitlement. Positive/negative source deltas keep signs; corrections retain actor/reason and both dates. Render all backend ErrorMessages verbatim, including policy, lock, overlap, source, stale and duplicate failures. Unknown writes follow §6 recovery, without automatic retry or a new operation key.
+
+M9.8 v67: missing hour-bank evidence reads **Não comprovado**, never a verified zero. Commission distinguishes **Comissão registrada para o mês de origem**, **Diferença para a proposta** and **Revisão explícita necessária**. Draw totals label **Distribuição publicada no período**; later corrections never masquerade as source-month sales.
+
+M9.8 v67: **Saldo sem distribuição negativo: há alocações publicadas neste período para tarifas publicadas em outro mês. O valor representa movimentos do período.** Classification divergence names the affected transaction and session, explains that commission follows the last official submission, and offers the manager-owned confer/resubmit action; never present the stale proposal as available.

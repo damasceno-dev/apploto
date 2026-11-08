@@ -4,9 +4,12 @@
  * server.API | v1
  * OpenAPI spec version: 1.0.0
  */
+import type { ResponseHourBankJson } from './responseHourBankJson';
 import type { ResponseTimeEntryBalanceOperatorJson } from './responseTimeEntryBalanceOperatorJson';
 
 export interface ResponseTimeEntryBalanceSummaryJson {
+  /** @nullable */
+  hourBanks?: ResponseHourBankJson[] | null;
   dateFrom: string;
   dateTo: string;
   operators: ResponseTimeEntryBalanceOperatorJson[];

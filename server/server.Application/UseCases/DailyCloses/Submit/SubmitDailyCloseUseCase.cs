@@ -32,7 +32,8 @@ public class SubmitDailyCloseUseCase(
     IDailyCloseAccountCoordination accountCoordination,
     SessionOpeningResolver openingResolver,
     SessionCountService countService,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IEmployeeStatementSources employeeStatementSources)
 {
     /// <summary>
     /// Submits against the confirmed attempt (M9.6 Phase 4): the latest attempt must be the one named, still Current —
@@ -165,6 +166,8 @@ public class SubmitDailyCloseUseCase(
         close.UpdatedAt = now;
         close.UpdatedByUserId = branchUser.UserId;
 
+        await unitOfWork.Commit(ct);
+        await employeeStatementSources.CaptureCommissionBasis(close.BranchId, close.Id, branchClock.LocalBusinessDate(now), now, ct);
         await unitOfWork.Commit(ct);
         await coordination.Complete(ct);
 

@@ -20,6 +20,7 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<BranchUser> BranchUsers => Set<BranchUser>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<TransactionType> TransactionTypes => Set<TransactionType>();
+    public DbSet<EmployeeCommissionFeePosting> EmployeeCommissionFeePostings => Set<EmployeeCommissionFeePosting>();
     public DbSet<Transaction> Transactions => Set<Transaction>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<OpeningDiscrepancyAdjustment> OpeningDiscrepancyAdjustments => Set<OpeningDiscrepancyAdjustment>();
@@ -67,6 +68,14 @@ public DbSet<Invitation> Invitations => Set<Invitation>();
     public DbSet<CardSettlementBatch> CardSettlementBatches => Set<CardSettlementBatch>();
     public DbSet<BankReceipt> BankReceipts => Set<BankReceipt>();
     public DbSet<TransactionClassificationRevision> TransactionClassificationRevisions => Set<TransactionClassificationRevision>();
+
+    public DbSet<EmployeePayCategory> EmployeePayCategories => Set<EmployeePayCategory>();
+    public DbSet<EmployeePayItem> EmployeePayItems => Set<EmployeePayItem>();
+    public DbSet<EmployeeCommissionRule> EmployeeCommissionRules => Set<EmployeeCommissionRule>();
+    public DbSet<EmployeeCommissionSource> EmployeeCommissionSources => Set<EmployeeCommissionSource>();
+    public DbSet<HourBankEntry> HourBankEntries => Set<HourBankEntry>();
+    public DbSet<SpecialDraw> SpecialDraws => Set<SpecialDraw>();
+    public DbSet<SpecialDrawAllocation> SpecialDrawAllocations => Set<SpecialDrawAllocation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -27,8 +27,8 @@ for (const line of section.split('\n')) {
 const generated = api as unknown as Record<string, Record<string, string> | undefined>;
 
 describe('copy §5 enum label maps', () => {
-  it('covers exactly the 50 documented enums', () => {
-    expect(documented.size).toBe(50);
+  it('covers exactly the 54 documented enums', () => {
+    expect(documented.size).toBe(54);
     expect(Object.keys(enumLabels).sort()).toEqual([...documented.keys()].sort());
   });
 

@@ -611,3 +611,32 @@ describe('pre-dispatch failures (review finding 4, 5)', () => {
     expect(calls).toHaveLength(0);
   });
 });
+
+describe('server-authored printable statement', () => {
+  it('returns declared HTML as text while retaining the generated branch operation and headers', async () => {
+    const { getReportEmployeeStatementPrint } = await import('../src/index');
+    const html = '<!doctype html><html lang="pt-BR"><p>Não comprova pagamento</p></html>';
+    const client = createApiClient({
+      baseUrl: 'https://test.invalid',
+      getAccessToken: () => null,
+      fetch: async () =>
+        new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }),
+    });
+    const result = await getReportEmployeeStatementPrint(
+      { OperatorId: transactionId, Year: 2026, Month: 9 },
+      { client },
+    );
+    expect(result.data).toBe(html);
+  });
+  it('keeps the ordinary JSON response parser strict for malformed successful bodies', async () => {
+    const client = createApiClient({
+      baseUrl: 'https://test.invalid',
+      getAccessToken: () => null,
+      fetch: async () =>
+        new Response('<html>unexpected</html>', { headers: { 'Content-Type': 'text/html' } }),
+    });
+    const error = await rejection(getBranchMyBranches({ client }));
+    expect(isApiError(error)).toBe(true);
+    expect((error as ApiError).kind).toBe('invalid-response');
+  });
+});

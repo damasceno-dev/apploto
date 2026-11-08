@@ -12,6 +12,7 @@ export * from './invitation/invitation';
 export * from './operator/operator';
 export * from './operator-account/operator-account';
 export * from './operator-link-request/operator-link-request';
+export * from './people/people';
 export * from './platform/platform';
 export * from './product/product';
 export * from './receivable/receivable';
