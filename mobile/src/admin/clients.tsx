@@ -127,6 +127,7 @@ export function ClientsScreen() {
             returnsToCreate ? (
               <Button
                 label="Voltar com este cliente"
+                testID="client-return"
                 onPress={() => void shell.back({ clientId: created.id })}
               />
             ) : undefined

@@ -12,6 +12,7 @@ export type DestinationKey =
   | 'plan-new'
   | 'plan'
   | 'edit'
+  | 'safe-deposit'
   | 'clients'
   | 'statement'
   | 'payment'
@@ -97,6 +98,15 @@ export const destinations: readonly Destination[] = [
     'shared',
     6,
     undefined,
+    'transactions',
+  ),
+  item(
+    'safe-deposit',
+    '/transacoes/deposito-cofre',
+    'Depósito Dinheiro',
+    'shared',
+    6,
+    'Gestão',
     'transactions',
   ),
   item('edit', '/transacoes/:id', 'Transação', 'shared', 6, undefined, 'transactions'),
@@ -290,13 +300,15 @@ export function menuDestinations(role: Role, mode: WorkMode) {
       canEnter(d, role) &&
       (d.owner === mode ||
         (d.owner === 'shared' &&
-          (mode === 'management' || ['create', 'transactions', 'clients'].includes(d.key)))),
+          (mode === 'management' ||
+            ['create', 'transactions', 'safe-deposit', 'clients'].includes(d.key)))),
   );
   const shift: readonly DestinationKey[] = [
     'today',
     'create',
     'transactions',
     'clients',
+    'safe-deposit',
     'clock',
     'my-transactions',
     'my-hours',

@@ -44,6 +44,12 @@ const names = [
   'RequestCreateTransactionJson',
   'RequestCreateTransactionInstallmentJson',
   'RequestReceiveFiadoPaymentJson',
+  'RequestSafeDepositJson',
+  'RequestChequeCustodyJson',
+  'RequestChequeDepositJson',
+  'RequestChequeReturnJson',
+  'RequestChequeRepresentJson',
+  'RequestChequeConvertToFiadoJson',
 ];
 const schemas = {};
 function collect(name) {

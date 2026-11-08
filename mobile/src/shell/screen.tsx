@@ -33,7 +33,7 @@ import { validateResource } from '@/day/resources';
 import { DaySurface, isDaySurface } from '@/day/surface';
 import { TimeSurface, isTimeSurface } from '@/time/surface';
 import { AdminSurface, isAdminSurface } from '@/admin/surface';
-import { STATEMENT_SETUP, statementAllowed } from '@/admin/clients';
+import { LedgerSurface, isLedgerSurface } from '@/ledger/surface';
 import {
   destinations,
   canEnter,
@@ -91,7 +91,10 @@ function GuardedScreen() {
   // editors, pickers and confirmations survive; any scope change still discards them.
   const keepTimeView = Boolean(
     entry &&
-    (isTimeSurface(entry.key) || isAdminSurface(entry.key) || isDaySurface(entry.key)) &&
+    (isTimeSurface(entry.key) ||
+      isAdminSurface(entry.key) ||
+      isDaySurface(entry.key) ||
+      isLedgerSurface(entry.key)) &&
     canEnter(entry, snapshot.branch?.role ?? 'Member') &&
     verifiedEntry === verificationKey &&
     snapshot.user &&
@@ -410,11 +413,13 @@ function GuardedScreen() {
               />
             ) : isAdminSurface(entry.key) ? (
               <AdminSurface destination={entry.key} preserveVerifiedView={keepTimeView} />
-            ) : entry.key === 'statement' && !statementAllowed(snapshot) ? (
-              <EmptyState
-                kind="setup-needed"
-                statement="Extrato de fiado indisponível para seu perfil."
-                explanation={STATEMENT_SETUP}
+            ) : isLedgerSurface(entry.key) ? (
+              <LedgerSurface
+                key={
+                  ['edit', 'plan', 'statement', 'payment'].includes(entry.key) ? path : entry.key
+                }
+                destination={entry.key}
+                preserveVerifiedView={keepTimeView}
               />
             ) : (
               <Availability title={entry.title.toLowerCase()} />
