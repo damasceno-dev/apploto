@@ -392,13 +392,99 @@ Every branch destination below passes the common authority gate before its avail
 | Fechar dia / Corrigir | `src/day/close.tsx`, `count.ts`, `arithmetic.tsx`                  | blind states, autosave/If-Match/coalescing, stale reconciliation, Conferir/Recontar/Submit, AA lock, open-calculation gate, revision-bound confirmation, retry If-Match, signed paste, unknown custody, rollover, restore |
 | Routing               | `surface.tsx`, `resources.ts`, shell integration                   | renewal keeps input, branch claim, unlinked Gestão                                                                                                                                                                        |
 
-**Boundaries:** M6 transaction create/edit/list stay availability destinations (drafts and movements are seeded through APIs in native proof); M7 queue/approval and opening-discrepancy attribution; M11 link request/guided flows; gap AA editing semantics; P6/P7 P&L and attributed shortages; declared/rearranged past turnos.
+**Boundaries:** M6 owns transaction create/edit/list since Mobile M6 (native M5 proof seeded movements through APIs); M7 queue/approval and opening-discrepancy attribution; M11 link request/guided flows; gap AA editing semantics; P6/P7 P&L and attributed shortages; declared/rearranged past turnos.
 
 **Next action:** recheck of the seven review fixes (native rerun of AA lock, open calculation and unknown custody included); physical/spoken device checks.
 
 ## Milestone 6 — Transactions Ledger
 
-**Scope and gates:** as Web M6. **Mobile-specific:** fast entry optimized for one-handed numeric input; the Transactions list uses virtualized, paginated scrolling.
+**Scope and gates:** as Web M6. **Mobile-specific:** fast entry optimized for one-handed numeric input; the Transactions list is server-paginated (20/50/100 rows per page, rendered inside the screen scroll; no client-side virtualization or local search is needed at those bounds).
+
+**Status (2026-11-08):** the M6 core and the reachable cheque lifecycle are implemented in the current `paralell/app` checkout against the merged v64 contract (OpenAPI and generated Shared unchanged by this lane) and verified by Jest/RNTL against an in-memory model of the shipped rules, both-OS production exports and native journeys on both OSs (all journeys on Android; a subset on iOS, see 9.3). The first independent review did not accept M6 (2 P1, 3 P2); the re-review accepted four fixes and found the cheque receipt still lost on a failed transaction reread, now also fixed, together with already-open cancel dialogs and cheque sheets that could still send after a read failure, each with a Jest regression; re-review of these fixes pending. The M5 seven fixes passed the code/test recheck; their full native acceptance and the remaining M6 acceptance stay open (criteria 9.4–9.5). Bank/provider discovery, OFX and card-batch UI are a named later banking increment (criterion 8.4), not part of this delivery.
+
+**Sources:** catalog [Transaction — Create](../../design/docs/screens.md#transaction--create-fast-entry), [Edit](../../design/docs/screens.md#transaction--edit-correction--audit), [Transactions list](../../design/docs/screens.md#transactions-list), [Installment plan](../../design/docs/screens.md#installment-pre-dated-cheque-plan), [Client statement](../../design/docs/screens.md#client-statement-extrato-de-fiado) and [Receber pagamento](../../design/docs/screens.md#receber-pagamento); Web M6 flow-alignment (Batch B/C); the actual `TransactionController`, `ChequeController`, `ReceivableController`, `DailyCloseLedgerGuard`, `ListTransactionsUseCase`, create/preview/update/finalize/cancel, installment, fiado-payment, safe-deposit and cheque use cases and their DTOs.
+
+### Phase 1 — inventory, routing and authority
+
+- [x] **1.1** Destinations `transactions`, `create`, `edit`, `plan-new`, `plan`, `statement`, `payment` and the new shared `safe-deposit` (`/transacoes/deposito-cofre`) dispatch to `src/ledger/` after the shell guard; the surface re-checks role. Availability placeholders for these routes are gone; M7/M8/M11 destinations keep theirs.
+- [x] **1.2** Resource origins/intents (`/transacoes/:id`, plan, client statement/payment) restore only after a fresh server read in this branch (`src/ledger/resources.ts`, chained into `validateResource`); statement/payment also re-check current statement access. Mode, `Mine`, `OperatorId` and the stored address grant nothing.
+- [ ] **1.3** M5 seven-fix recheck by the independent reviewer and its native rerun (see criterion 9.4).
+
+### Phase 2 — Transactions list and detail/audit
+
+- [x] **2.1** Server pages, ordering and filters only (date window, status, account, type, client, operator, `Mine`), kept in the route so opening a row and returning restores filter, page and focus. Members never send `OperatorId`; an unlinked caller never sends `Mine` (a server no-op). No totals, no local search.
+- [x] **2.5** Applying or clearing filters writes every filter key (a cleared one empty), so a removed filter never survives in later queries.
+- [x] **2.2** Rows show type, signed value by direction, status, **Automática** (structural `GenerationKind`), frozen financial class, plan membership, cheque due date and the turno marker. Draft rows of a plan open the plan editor.
+- [x] **2.3** M5 Draft-blocker context (one cashbox, one day, Draft): server own/other split via `Mine`; "nothing pending" only after a fresh successful read; **Voltar ao fechamento** returns to the retained close input.
+- [x] **2.4** Detail shows the current resource, frozen classification, recorder (own/other), audit instants, cancellation reason, generated-row origin/counterpart, session (close) and plan links.
+
+### Phase 3 — fast entry and preview
+
+- [x] **3.1** Type-driven form: system, repayment (Tab `In` or `FiadoPaymentKind`), retired and unknown-direction types are never offered; fiado types list only Tabs, others cashboxes and banks (never a cofre). A fiado sale names its paired cashbox leg and never offers a second saída; an unpaired/ungranted pairing blocks the sale.
+- [x] **3.2** Amount through the M5 arithmetic field (blank ≠ zero, open calculation blocks sending); date/time from the branch clock; client with **Cadastrar cliente** → Clientes → returns selected with values intact; Manager/Admin on-behalf operator (required when unlinked).
+- [x] **3.3** Automatic, debounced, signature-fenced server preview (late responses never shown; never blocks or saves); Draft close variance stays blind; a non-cashbox account says so instead of a zero difference.
+- [x] **3.4** Input retained on the device (exact schema/privacy validation, no token/version); a lost choice is cleared and named, never reinterpreted.
+
+### Phase 4 — inline opening, durable intent, create/finalize
+
+- [x] **4.1** No active turno today: the M5 acknowledgment (proposal source, full vector, observed differences, explicit zero, responsible operator/reason) travels on the same create request after an explicit confirmation bound to the shown proposal; never a separate Start. A competitor turno or changed proposal at dispatch refuses locally and keeps the form. Earlier day: Manager/Admin choose a Draft session of that day with a reason; Members are told it is a manager task.
+- [x] **4.2** Durable intent per form (`FinancialOperation`, now also Depósito Dinheiro and the five cheque commands; targeted commands persist their path id): exact bytes/key before dispatch, unknown outcome verified only by the identical explicit retry (also after remount/restart), changed input blocked while unresolved, replay-window expiry → manual reconciliation and explicit discard.
+- [x] **4.3** A confirmed result keeps its receipt through failed follow-up reads; **Salvar como rascunho** and **Finalizar** are separate commands (finalize with the returned version as If-Match).
+
+### Phase 5 — correction/audit Edit and cancellation
+
+- [x] **5.1** Only Description/DueDate/ClientId/TransactionTime are editable; value/account/type/date read-only; no PaidAt. Generated, cancelled and (Member) other-operator/prior-day rows are read-only with the reason; the client is locked once the receivable has command events (Manager/Admin read; Members get the server refusal verbatim).
+- [x] **5.2** Manager/Admin edit-preview (fenced, non-blocking); save/finalize/cancel with the loaded strong ETag in memory only. A conflict keeps the buffer, blocks every command and requires **Reler a transação**: unchanged version → nothing applied; new version → explicit adopt-or-discard. Unknown outcomes are reconciled the same way, never replayed.
+- [x] **5.3** Cancel with required reason (counterpart cancelled server-side); **Corrigir valor, conta, tipo ou data** is an explicit cancel followed by a separate new transaction prefilled from a fresh read (`copyOf`). Settlement-event refusals render verbatim; no compensating row.
+
+### Phase 6 — cheque plans
+
+- [x] **6.3** Saving binds to the exact accepted request: the input on screen at the tap is sent, and an edit made while the turno is re-checked stops the send until the new schedule is accepted. A plan restored on return from Clientes keeps later edits (state-driven retention, no stale overwrite).
+- [x] **6.1** New plan: cheque-rule types on cashbox/bank accounts, manual rows (2–24, integer-cent sum hint) or auto-generation (first due date + count); the server preview schedule must be explicitly accepted (bound to the request signature) before a durable create/Draft create, with the same inline opening.
+- [x] **6.2** Existing plan: status/counts/total and every sibling with its status; **Finalizar plano** / **Finalizar parcelas restantes** sends every Draft id and version in one request (`ConfirmMixedPlan` for Mixed); a stale set changes nothing and requires a reread. Selected-row cancellation is one guarded command per row in order, stopping at the first failure without undoing earlier ones. Row corrections open each installment's own editor and return to the plan.
+
+### Phase 7 — statement, repayment, Depósito Dinheiro
+
+- [x] **7.1** Statement access (Manager/Admin or explicit Tab grant) is checked before any read; balance, oldest unpaid date, window opening/closing, running balances and rows are the server's through core's fiado mapping (debt, quitado, `+… · crédito do cliente`); window/page in the route.
+- [x] **7.4** The balance after a payment comes only from a read that succeeded after the confirmation; a failed reread says so and never shows the cached earlier balance.
+- [x] **7.2** Receber pagamento: repayment method with no default (refused locally with **Escolha a forma de pagamento.**), receiving Tab (workstation's paired Tab default only when granted), drawer effect by `FiadoPaymentKind`; Dinheiro may need the inline opening of the paired cashbox, other methods send no session fields. New balance is re-read from the statement.
+- [x] **7.3** Depósito Dinheiro: granted cashbox → granted cofre through `POST /transaction/safe-deposit` (two server legs, both or none), inline opening when needed; receipt links both legs; no bank deposit or revenue claim.
+
+### Phase 8 — cheque lifecycle
+
+- [x] **8.1** Manager/Admin: the receivable chain (state, outstanding, custody, attempts, events with occurred/posted dates) is read for the exact cheque; commands offered by current state: Levar ao cofre, Depositar, Registrar devolução (client fixed once identified, next deposit date, alínea), Reapresentar, Converter em fiado (Tab, no cashbox leg). Exact expected version and one durable idempotent intent per cheque; unknown outcomes are verified by the identical retry.
+- [x] **8.2** Batch custody/deposit from explicitly selected list or plan rows: each selected cheque is re-read; only eligible whole cheques are sent in one request; excluded ones are named. A deposit reports one pending bank receipt, never arrival.
+- [x] **8.5** A confirmed cheque command's receipt stays visible when a follow-up read fails — the receivable or the transaction itself (a failed transaction reread keeps the screen mounted with a warning); no further command is offered or sent until a successful reread, including from a cancel dialog or cheque sheet that was already open.
+- [x] **8.3** Results show the server's new cheque state, pending receipt and the converted fiado debt link.
+- [ ] **8.4** Later banking increment (not in this delivery): provider settlement batches, bank movements/recolhimento, OFX statement import and match confirmation, card batches — destinations for M6/M8 banking UI. No GUID entry, receipt inbox or manual credit workaround is offered.
+
+### Phase 9 — verification
+
+- [x] **9.1** Jest/RNTL: `ledger-contracts` (40), `ledger-operations` (3), `ledger-ui` (31, on `test/unit/ledger-server.ts`, an in-memory model of the shipped transaction/fiado/cofre/cheque rules), plus an overlay regression. Request-shape validation now understands nullable `oneOf` references (the inline opening was refused locally before).
+- [x] **9.2** Workspace typecheck, lint and format pass; Mobile 32 tooling tests and 531 Jest tests in 30 suites on the final source (an earlier run showed one load-dependent timeout in the existing `admin-financial-ui` suite that passes in isolation). Fresh `dist/m6-final` iOS/Android exports with both proof flags and source maps pass the exclusion/single-runtime gate and ship all 14 `src/ledger` modules, no probe or test source.
+- [x] **9.3** Native journeys (`tooling/native-ledger-fixture.mjs`, `native-ledger-flow.mjs`; Maestro 2.11.0 on iPhone 17 Pro / iOS 26.5, `native-day-android.mjs` on Lotero_API36 / Android 16) against the owned .NET/PostgreSQL stack, checked by supported API rereads. **Android, all journeys:** inline opening with explicit zero → expense (turno and row in one create); Draft → explicit finalize; Draft → Fechar dia blocked → **Finalizar movimentações** → list → finalize → list re-read clear → back to the close with the typed count kept (server: count 77,70 saved, 0 Drafts); Cadastrar cliente → back with the new client and the typed values → fiado sale with its server `FiadoSale` cashbox leg → statement → PIX (no cashbox leg) and Dinheiro (cashbox leg) repayments with re-read balances (40 → 30 → 25); Depósito Dinheiro opening the second cashbox atomically (generated cofre leg); cheque plan (server schedule accepted) saved as Draft → atomic **Finalizar plano** → cheque custody → deposit (one pending bank receipt) → return → re-present → conversion (one Tab fiado debt, no cashbox leg; chain version 0→5). **iOS:** inline opening + create, Draft → finalize, Depósito Dinheiro with inline opening, and a full cheque lifecycle on a concrete cheque (custody → deposit → return → re-present → conversion, version 0→5). Not run natively on iOS: the Draft-blocker round trip and the fiado sale/repayments (after the branch midnight the iOS cashbox held the previous day's turno, which the server refuses for today's writes until it is ended), and the plan form (its lower fields could not be driven by Maestro on iOS). Owned-stack tokens were raised to 15 minutes with the existing runtime tool for these journeys (renewal itself is covered by M2/M9).
+- [ ] **9.4** Final-source native rerun of the seven M5 fixes on both OSs (not done; only the M5 close/Draft-blocker integration ran, on Android) and independent recheck.
+- [ ] **9.5** Independent M6 re-review of the five corrections; physical-device, spoken VoiceOver/TalkBack and enlarged-text acceptance.
+
+### Surface / test map
+
+| Surface                 | Artifacts                                                    | Decisive tests                                                                                                                                   |
+| ----------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Transactions list       | `src/ledger/list.tsx`, `contracts.ts#parseListFilter`        | server filter/paging, Member no OperatorId, unlinked no Mine, Draft blocker split and fresh clear                                                |
+| Create / inline opening | `create.tsx`, `opening.tsx`, `common.tsx#useFinancialIntent` | type exclusions, fenced late preview, atomic opening, competitor/refused opening, unknown→remount→identical retry, receipt retention, fiado pair |
+| Edit                    | `detail.tsx`                                                 | stale If-Match → reread → adopt, generated/other-operator read-only, Member no preview, event-locked cancel                                      |
+| Plan                    | `plan.tsx`                                                   | accepted schedule, Draft create, atomic finalize with all versions, stale all-or-nothing                                                         |
+| Statement / payment     | `statement.tsx`, `payment.tsx`                               | access before read, credit mapping, no default method, PIX vs Dinheiro legs                                                                      |
+| Depósito Dinheiro       | `safe.tsx`                                                   | one two-leg command                                                                                                                              |
+| Cheque                  | `cheque.tsx`                                                 | custody→deposit→return→re-present versions/keys, conversion debt without cashbox leg, unknown deposit single receipt                             |
+
+**Boundaries:** M7 queue/approval, M8 reports and month lock, M11 identity/guided flows, the later banking increment (8.4) and server M9.8 people features.
+
+**Defects found natively and fixed:** a preview sent before the inline opening was confirmed was refused and read as "unavailable" (now waits for the binding; the opening preview names the turno being opened); a cancelled or session-waiting preview showed "unavailable" (now re-asked); the opening hint changed height under the finger; **Nova transação** after a receipt silently stopped retaining input (fresh form per create); a client created from the form was cleared by the stale client list and the router's fresh form lost the typed values (fresh list read; validated device copy restored for review with the client); Receber pagamento/Extrato remounted mid-send during a self-context check, losing the receipt (last access decision kept while checking); short bottom sheets (a searched select) sat behind the Android keyboard (sheet now above it); the return sheet named R$ 0,00 after a deposit (now the cheque's face value). Each has a Jest regression.
+
+**Limitations:** iOS Maestro on this simulator reports off-screen nodes as visible, so iOS journeys scroll with fixed swipes and rely on screenshots and API rereads for below-the-fold checks; the Android emulator needed one reboot (System UI/app not responding under load). Captures, flows and rereads were kept outside Git in a temporary folder that the system has since cleaned; the server-confirmed outcomes are recorded above, and the journeys regenerate from `tooling/native-ledger-flow.mjs`.
+
+**Next action:** iOS native Draft-blocker and fiado journeys on a fresh branch day, the M5 seven-fix native rerun (9.4) and the independent review (9.5).
 
 ## Milestone 7 — Manager Work Queue & Approvals
 

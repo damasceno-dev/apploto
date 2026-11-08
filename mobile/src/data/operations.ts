@@ -1,10 +1,22 @@
 import {
+  postChequeCustody,
+  postChequeDeposit,
+  postChequeTransactionIdConvertToFiado,
+  postChequeTransactionIdRepresent,
+  postChequeTransactionIdReturn,
   postTransaction,
   postTransactionInstallment,
   postTransactionFiadoPayment,
+  postTransactionSafeDeposit,
+  type RequestChequeConvertToFiadoJson,
+  type RequestChequeCustodyJson,
+  type RequestChequeDepositJson,
+  type RequestChequeRepresentJson,
+  type RequestChequeReturnJson,
   type RequestCreateTransactionJson,
   type RequestCreateTransactionInstallmentJson,
   type RequestReceiveFiadoPaymentJson,
+  type RequestSafeDepositJson,
   type ApiRequestOptions,
 } from '@loto/api';
 import type { SessionEngine } from '../session/engine';
@@ -14,12 +26,25 @@ import { validFinancialPayload } from './request-shape';
 import { assertDeviceSafe } from '../storage/privacy';
 import { actionFailure, type ActionFailure } from './failures';
 
+/**
+ * Every contract-idempotent financial command (`Idempotency-Key`, deterministic replay). Cheque
+ * return/re-present/conversion address one cheque in the path: `target` is part of the intent.
+ */
 export type FinancialIntent =
-  | { operation: 'transaction'; payload: RequestCreateTransactionJson }
-  | { operation: 'installment'; payload: RequestCreateTransactionInstallmentJson }
-  | { operation: 'fiado-payment'; payload: RequestReceiveFiadoPaymentJson };
+  | { operation: 'transaction'; payload: RequestCreateTransactionJson; target?: null }
+  | { operation: 'installment'; payload: RequestCreateTransactionInstallmentJson; target?: null }
+  | { operation: 'fiado-payment'; payload: RequestReceiveFiadoPaymentJson; target?: null }
+  | { operation: 'safe-deposit'; payload: RequestSafeDepositJson; target?: null }
+  | { operation: 'cheque-custody'; payload: RequestChequeCustodyJson; target?: null }
+  | { operation: 'cheque-deposit'; payload: RequestChequeDepositJson; target?: null }
+  | { operation: 'cheque-return'; payload: RequestChequeReturnJson; target: string }
+  | { operation: 'cheque-represent'; payload: RequestChequeRepresentJson; target: string }
+  | { operation: 'cheque-convert'; payload: RequestChequeConvertToFiadoJson; target: string };
+const targeted = new Set(['cheque-return', 'cheque-represent', 'cheque-convert']);
 export interface OperationRecord {
   readonly operation: FinancialIntent['operation'];
+  /** The path resource (cheque transaction id) for targeted commands; absent otherwise. */
+  readonly target?: string | null;
   readonly key: string;
   readonly payloadJson: string;
   readonly status: 'pending' | ActionFailure['kind'];
@@ -41,7 +66,18 @@ export type OperationOutcome =
         | 'cancelled';
     };
 export type Reconciliation = 'confirmed' | 'not-executed' | 'unresolved';
-const operations = new Set(['transaction', 'installment', 'fiado-payment']);
+const operations = new Set([
+  'transaction',
+  'installment',
+  'fiado-payment',
+  'safe-deposit',
+  'cheque-custody',
+  'cheque-deposit',
+  'cheque-return',
+  'cheque-represent',
+  'cheque-convert',
+]);
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function isOperationRecord(value: unknown): value is OperationRecord {
   if (typeof value !== 'object' || value === null) return false;
   const record = value as OperationRecord;
@@ -65,7 +101,10 @@ export function isOperationRecord(value: unknown): value is OperationRecord {
     !(
       record.firstServerMs === null ||
       (typeof record.firstServerMs === 'number' && Number.isFinite(record.firstServerMs))
-    )
+    ) ||
+    (targeted.has(record.operation)
+      ? typeof record.target !== 'string' || !uuidPattern.test(record.target)
+      : record.target !== undefined && record.target !== null)
   )
     return false;
   try {
@@ -98,6 +137,45 @@ function send(record: OperationRecord, options: ApiRequestOptions) {
         headers,
         options,
       );
+    case 'safe-deposit':
+      return postTransactionSafeDeposit(
+        JSON.parse(record.payloadJson) as RequestSafeDepositJson,
+        headers,
+        options,
+      );
+    case 'cheque-custody':
+      return postChequeCustody(
+        JSON.parse(record.payloadJson) as RequestChequeCustodyJson,
+        headers,
+        options,
+      );
+    case 'cheque-deposit':
+      return postChequeDeposit(
+        JSON.parse(record.payloadJson) as RequestChequeDepositJson,
+        headers,
+        options,
+      );
+    case 'cheque-return':
+      return postChequeTransactionIdReturn(
+        record.target!,
+        JSON.parse(record.payloadJson) as RequestChequeReturnJson,
+        headers,
+        options,
+      );
+    case 'cheque-represent':
+      return postChequeTransactionIdRepresent(
+        record.target!,
+        JSON.parse(record.payloadJson) as RequestChequeRepresentJson,
+        headers,
+        options,
+      );
+    case 'cheque-convert':
+      return postChequeTransactionIdConvertToFiado(
+        record.target!,
+        JSON.parse(record.payloadJson) as RequestChequeConvertToFiadoJson,
+        headers,
+        options,
+      );
   }
 }
 /** Explicit user continuation only: there is no reconnect flush, automatic mutation retry or queue. */
@@ -119,6 +197,29 @@ export class FinancialOperation {
   }
   async verifyAndRetry(): Promise<OperationOutcome> {
     return this.execute(null);
+  }
+  /**
+   * The retained record for this resource, read without dispatching, minting a key or changing it:
+   * after a restart a `pending` record means its outcome is unknown.
+   */
+  async inspect(): Promise<
+    | { status: 'none' }
+    | { status: 'corrupt' }
+    | { status: 'found'; record: OperationRecord; unknown: boolean }
+  > {
+    try {
+      this.store.assert(this.scope);
+    } catch {
+      return { status: 'none' };
+    }
+    const loaded = await this.store.read('operation', this.scope, this.resource, isOperationRecord);
+    if (loaded.status === 'found')
+      return {
+        status: 'found',
+        record: loaded.value,
+        unknown: loaded.value.status === 'pending' || loaded.value.everUncertain,
+      };
+    return loaded.status === 'corrupt' ? { status: 'corrupt' } : { status: 'none' };
   }
   /** Explicit loss acknowledgement after a fresh supported-resource/manual outcome check.
    * A missing listing row alone is not proof of non-execution. Never dispatches or mints a key.
@@ -198,9 +299,14 @@ export class FinancialOperation {
             if (!validFinancialPayload(intent.operation, intent.payload))
               throw new RangeError('Invalid financial request shape');
             const payloadJson = JSON.stringify(intent.payload);
+            const target = targeted.has(intent.operation) ? (intent.target ?? null) : null;
+            if (targeted.has(intent.operation) && (!target || !uuidPattern.test(target)))
+              throw new RangeError('Invalid financial command target');
             if (
               record &&
-              (record.operation !== intent.operation || record.payloadJson !== payloadJson)
+              (record.operation !== intent.operation ||
+                record.payloadJson !== payloadJson ||
+                (record.target ?? null) !== target)
             ) {
               if (
                 record.everUncertain ||
@@ -214,6 +320,7 @@ export class FinancialOperation {
             if (!record)
               record = {
                 operation: intent.operation,
+                ...(target ? { target } : {}),
                 key: this.uuid(),
                 payloadJson,
                 status: 'pending',

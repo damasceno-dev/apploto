@@ -146,5 +146,122 @@
         ]
       }
     }
+  },
+  "RequestSafeDepositJson": {
+    "required": ["date", "value", "accountId", "safeAccountId"],
+    "type": "object",
+    "properties": {
+      "date": { "type": "string", "format": "date-time" },
+      "value": {
+        "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+        "type": ["number", "string"],
+        "format": "double"
+      },
+      "transactionTime": { "type": ["null", "string"], "format": "time" },
+      "description": { "type": ["null", "string"] },
+      "accountId": { "type": "string", "format": "uuid" },
+      "safeAccountId": { "type": "string", "format": "uuid" },
+      "recordedByOperatorId": { "type": ["null", "string"], "format": "uuid" },
+      "saveAsDraft": { "type": "boolean" },
+      "sessionId": { "type": ["null", "string"], "format": "uuid" },
+      "historicalReason": { "type": ["null", "string"] },
+      "openingAcknowledgment": {
+        "oneOf": [
+          { "type": "null" },
+          { "$ref": "#/components/schemas/RequestSessionOpeningAcknowledgmentJson" }
+        ]
+      }
+    }
+  },
+  "RequestChequeCustodyJson": {
+    "required": ["safeAccountId", "occurredOn", "items"],
+    "type": "object",
+    "properties": {
+      "safeAccountId": { "type": "string", "format": "uuid" },
+      "occurredOn": { "type": "string", "format": "date-time" },
+      "postedOn": { "type": ["null", "string"], "format": "date-time" },
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/RequestChequeOperationItemJson" }
+      }
+    }
+  },
+  "RequestChequeOperationItemJson": {
+    "required": ["transactionId", "expectedVersion"],
+    "type": "object",
+    "properties": {
+      "transactionId": { "type": "string", "format": "uuid" },
+      "expectedVersion": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["integer", "string"],
+        "format": "int32"
+      }
+    }
+  },
+  "RequestChequeDepositJson": {
+    "required": ["bankAccountId", "occurredOn", "items"],
+    "type": "object",
+    "properties": {
+      "bankAccountId": { "type": "string", "format": "uuid" },
+      "occurredOn": { "type": "string", "format": "date-time" },
+      "postedOn": { "type": ["null", "string"], "format": "date-time" },
+      "description": { "type": ["null", "string"] },
+      "items": {
+        "type": "array",
+        "items": { "$ref": "#/components/schemas/RequestChequeOperationItemJson" }
+      }
+    }
+  },
+  "RequestChequeReturnJson": {
+    "required": [
+      "depositEventId",
+      "expectedVersion",
+      "occurredOn",
+      "clientId",
+      "nextExpectedDepositDate"
+    ],
+    "type": "object",
+    "properties": {
+      "depositEventId": { "type": "string", "format": "uuid" },
+      "expectedVersion": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["integer", "string"],
+        "format": "int32"
+      },
+      "occurredOn": { "type": "string", "format": "date-time" },
+      "postedOn": { "type": ["null", "string"], "format": "date-time" },
+      "clientId": { "type": "string", "format": "uuid" },
+      "nextExpectedDepositDate": { "type": "string", "format": "date-time" },
+      "returnReason": { "type": ["null", "string"] }
+    }
+  },
+  "RequestChequeRepresentJson": {
+    "required": ["expectedVersion", "occurredOn"],
+    "type": "object",
+    "properties": {
+      "expectedVersion": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["integer", "string"],
+        "format": "int32"
+      },
+      "occurredOn": { "type": "string", "format": "date-time" },
+      "postedOn": { "type": ["null", "string"], "format": "date-time" }
+    }
+  },
+  "RequestChequeConvertToFiadoJson": {
+    "required": ["expectedVersion", "clientId", "tabAccountId", "occurredOn"],
+    "type": "object",
+    "properties": {
+      "expectedVersion": {
+        "pattern": "^-?(?:0|[1-9]\\d*)$",
+        "type": ["integer", "string"],
+        "format": "int32"
+      },
+      "clientId": { "type": "string", "format": "uuid" },
+      "tabAccountId": { "type": "string", "format": "uuid" },
+      "occurredOn": { "type": "string", "format": "date-time" },
+      "postedOn": { "type": ["null", "string"], "format": "date-time" },
+      "description": { "type": ["null", "string"] }
+    }
   }
 }

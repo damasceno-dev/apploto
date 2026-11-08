@@ -74,6 +74,7 @@ const catalogRoutes: readonly Href[] = [
     params: { id: '20000000-0000-4000-8000-000000000001' },
   },
   '/transacoes/cheque-pre-datado/novo',
+  '/transacoes/deposito-cofre',
   '/transacoes/nova',
   '/transacoes',
   '/turno/banco-de-horas',

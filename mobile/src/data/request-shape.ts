@@ -10,9 +10,15 @@ interface Schema {
   readonly enum?: readonly unknown[];
   readonly pattern?: string;
   readonly format?: string;
+  /** Nullable references are emitted as `oneOf: [{ type: 'null' }, { $ref }]`. */
+  readonly oneOf?: readonly Schema[];
+  readonly anyOf?: readonly Schema[];
 }
 function shape(schema: Schema, value: unknown, depth = 0): boolean {
   if (depth > 32) return false;
+  if (schema.oneOf)
+    return schema.oneOf.filter((branch) => shape(branch, value, depth + 1)).length === 1;
+  if (schema.anyOf) return schema.anyOf.some((branch) => shape(branch, value, depth + 1));
   if (schema.$ref) {
     const name = schema.$ref.split('/').pop()!;
     const referenced = (schemas as unknown as Record<string, Schema>)[name];
@@ -64,7 +70,14 @@ const roots = {
   transaction: 'RequestCreateTransactionJson',
   installment: 'RequestCreateTransactionInstallmentJson',
   'fiado-payment': 'RequestReceiveFiadoPaymentJson',
+  'safe-deposit': 'RequestSafeDepositJson',
+  'cheque-custody': 'RequestChequeCustodyJson',
+  'cheque-deposit': 'RequestChequeDepositJson',
+  'cheque-return': 'RequestChequeReturnJson',
+  'cheque-represent': 'RequestChequeRepresentJson',
+  'cheque-convert': 'RequestChequeConvertToFiadoJson',
 } as const;
+export type FinancialOperationName = keyof typeof roots;
 export function validFinancialPayload(operation: keyof typeof roots, payload: unknown): boolean {
   return shape((schemas as unknown as Record<string, Schema>)[roots[operation]]!, payload);
 }

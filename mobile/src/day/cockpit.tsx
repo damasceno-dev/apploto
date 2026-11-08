@@ -422,6 +422,12 @@ export function CockpitScreen() {
           variant="secondary"
           onPress={() => go(`/transacoes/nova?accountId=${workstation!.accountId}`)}
         />
+        <Button
+          label="Depósito Dinheiro"
+          variant="secondary"
+          testID="cockpit-safe-deposit"
+          onPress={() => go(`/transacoes/deposito-cofre?accountId=${workstation!.accountId}`)}
+        />
       </Card>
       <Card title="Meus números">
         <Button

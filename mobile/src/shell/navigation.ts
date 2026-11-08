@@ -107,6 +107,8 @@ export function navigationAddress(
     'accountId',
     'operatorId',
     'clientId',
+    'typeId',
+    'copyOf',
     'tab',
     'section',
     'year',

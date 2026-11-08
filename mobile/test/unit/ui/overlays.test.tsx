@@ -1,6 +1,6 @@
 import { act, fireEvent, screen } from '@testing-library/react-native';
 import { useRef, useState } from 'react';
-import { AccessibilityInfo, Modal } from 'react-native';
+import { AccessibilityInfo, Modal, Text } from 'react-native';
 import {
   Button,
   ConfirmDialog,
@@ -234,6 +234,30 @@ describe('Overlay with an open keyboard', () => {
       fireEvent.press(await screen.findByTestId('open'));
       // The keyboard replaces the bottom safe-area inset it covers (34 pt in the test frame).
       expect(styleOf(screen.getByTestId('dialog')).maxHeight).toBe(closed - 320 + 34);
+    } finally {
+      visible.mockRestore();
+      metrics.mockRestore();
+    }
+  });
+  test('a bottom sheet sits on top of an open keyboard, not behind it', async () => {
+    const { Keyboard } = jest.requireActual('react-native') as typeof import('react-native');
+    const visible = jest.spyOn(Keyboard, 'isVisible').mockReturnValue(true);
+    const metrics = jest
+      .spyOn(Keyboard, 'metrics')
+      .mockReturnValue({ height: 320, width: 375, screenX: 0, screenY: 492 });
+    try {
+      renderThemed(
+        <Overlay
+          visible
+          variant="bottom-sheet"
+          title="Lista"
+          testID="sheet"
+          onDismiss={() => undefined}
+        >
+          <Text>Opção</Text>
+        </Overlay>,
+      );
+      expect(styleOf(await screen.findByTestId('sheet')).bottom).toBe(320);
     } finally {
       visible.mockRestore();
       metrics.mockRestore();

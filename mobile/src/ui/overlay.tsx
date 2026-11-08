@@ -259,7 +259,9 @@ function Surface({
           position: 'absolute',
           left: 0,
           right: 0,
-          bottom: 0,
+          // Absolute placement ignores the keyboard-avoiding padding: sit on top of the keyboard,
+          // or a sheet shortened by its own search (few results) ends up behind it.
+          bottom: keyboard,
           maxHeight: (height - keyboard) * 0.9,
           paddingBottom: keyboard > 0 ? 0 : insets.bottom,
         }
@@ -407,6 +409,8 @@ export function ConfirmDialog({
   busyLabel,
   destructive = false,
   busy = false,
+  confirmDisabled = false,
+  confirmDisabledReason,
   onConfirm,
   onDismiss,
   returnFocus,
@@ -420,6 +424,9 @@ export function ConfirmDialog({
   readonly busyLabel?: string;
   readonly destructive?: boolean;
   readonly busy?: boolean;
+  /** The decision cannot be confirmed right now (the reason is shown beside the button). */
+  readonly confirmDisabled?: boolean;
+  readonly confirmDisabledReason?: string;
   readonly onConfirm: () => void;
   readonly onDismiss: () => void;
   readonly returnFocus?: RefObject<{ focus?: () => void } | null>;
@@ -440,9 +447,12 @@ export function ConfirmDialog({
         <>
           <Button
             label={confirmLabel}
+            testID={testID ? `${testID}-confirm` : undefined}
             variant={destructive ? 'danger-solid' : 'primary'}
             loading={busy}
             loadingLabel={busyLabel}
+            disabled={confirmDisabled}
+            disabledReason={confirmDisabled ? confirmDisabledReason : undefined}
             onPress={onConfirm}
             fullWidth
           />
