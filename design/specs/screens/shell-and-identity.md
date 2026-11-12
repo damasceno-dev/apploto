@@ -147,3 +147,7 @@ A bookmark, copied link or fresh tab with no app navigation state carries only t
 ## Verification boundary
 
 Static here: regions, order, tokens, states, focus and returns. Real-UI work for the app milestones: keyboard-only and screen-reader passes through every state above, 375px and 200% text, drawer focus containment, Google and e-mail links on real devices, and fragment stripping in browser history.
+
+### Go-live entry — M10 candidate
+
+Gestão → Cadastros → **Implantação da filial** opens `/f/{branchId}/gestao/implantacao` through the existing Manager/Admin destination gate. Direct entry returns to Manager Work Queue; this route does not grant an operator identity. The [Go-live blueprint](go-live.md#go-live) owns its input, confirmation and recovery states.

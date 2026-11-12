@@ -15,6 +15,7 @@ public class ResponseListTransactionsJson
 
 public class ResponseListTransactionItemJson
 {
+    public Guid? GoLiveOpeningId { get; init; }
     public Guid Id { get; init; }
     public uint Version { get; init; }
     public DateTime Date { get; init; }

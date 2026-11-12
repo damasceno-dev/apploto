@@ -3,6 +3,7 @@ using server.Communication.Requests;
 using server.Domain.Entities;
 using server.Domain.Entities.Enums;
 using server.Domain.Interfaces;
+using server.Domain.Models;
 
 namespace server.Application.Services.DailyCloses;
 
@@ -57,6 +58,6 @@ public class CashVarianceCalculator(
         var totalTransactionsIn = await transactionsRepository.SumActiveValueBySessionAsNoTracking(session, Direction.In, ct);
         var totalTransactionsOut = await transactionsRepository.SumActiveValueBySessionAsNoTracking(session, Direction.Out, ct);
 
-        return totalClosing - totalOpening - (totalTransactionsIn - totalTransactionsOut);
+        return CashVarianceFormula.Calculate(totalClosing, totalOpening, totalTransactionsIn, totalTransactionsOut);
     }
 }

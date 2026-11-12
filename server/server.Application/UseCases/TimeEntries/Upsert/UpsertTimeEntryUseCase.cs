@@ -516,45 +516,7 @@ public class UpsertTimeEntryUseCase(
     /// TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN, TIMEENTRY_MULTIPLE_OPEN_SEGMENTS,
     /// TIMEENTRY_SEGMENTS_OVERLAP.
     /// </exception>
-    private static void EnsureSegmentRules(TimeEntry entry)
-    {
-        var segments = ActiveSegments(entry).ToList();
-        var dayStart = entry.Date.Date;
-        var dayEnd = dayStart.AddDays(1);
-
-        foreach (var segment in segments)
-        {
-            if (segment.ClockIn == default)
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_SEGMENT_CLOCK_IN_REQUIRED]);
-
-            if (segment.ClockIn < dayStart || segment.ClockIn >= dayEnd)
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS]);
-
-            if (segment.ClockOut is not { } clockOut)
-                continue;
-
-            if (clockOut <= segment.ClockIn)
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_SEGMENT_CLOCK_OUT_BEFORE_CLOCK_IN]);
-
-            if (clockOut - segment.ClockIn > TimeSpan.FromHours(24))
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_SEGMENT_OUT_OF_DAY_BOUNDS]);
-        }
-
-        if (segments.Count(segment => segment.ClockOut is null) > 1)
-            throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_MULTIPLE_OPEN_SEGMENTS]);
-
-        for (var index = 0; index < segments.Count - 1; index++)
-        {
-            var current = segments[index];
-            var next = segments[index + 1];
-
-            if (current.ClockOut is null)
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_MULTIPLE_OPEN_SEGMENTS]);
-
-            if (current.ClockOut > next.ClockIn)
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_SEGMENTS_OVERLAP]);
-        }
-    }
+    private static void EnsureSegmentRules(TimeEntry entry) => TimeEntryRules.EnsureSegments(entry);
 
     /// <summary>
     /// Pre-flight calendar checks tied to the requested <see cref="TimeEntryStatus"/>.
@@ -571,31 +533,7 @@ public class UpsertTimeEntryUseCase(
     /// <exception cref="InvalidOperationException">
     /// <paramref name="status"/> is outside the known enum set — system bug, not user input.
     /// </exception>
-    private async Task EnsureCalendarStatusRulesAsync(TimeEntryStatus status, DateTime date, Guid branchId)
-    {
-        switch (status)
-        {
-            case TimeEntryStatus.Sunday when date.DayOfWeek is not DayOfWeek.Sunday:
-                throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_SUNDAY_REQUIRES_SUNDAY_DATE]);
-            case TimeEntryStatus.Holiday:
-            {
-                var holiday = await holidaysRepository.GetActiveByBranchIdAndDate(branchId, date);
-                if (holiday is null)
-                    throw new OnValidationException([ResourcesErrorMessages.TIMEENTRY_HOLIDAY_REQUIRES_ACTIVE_HOLIDAY]);
-
-                break;
-            }
-            case TimeEntryStatus.Sunday:
-            case TimeEntryStatus.Present:
-            case TimeEntryStatus.DayOff:
-            case TimeEntryStatus.Vacation:
-            case TimeEntryStatus.JustifiedAbsence:
-            case TimeEntryStatus.UnjustifiedAbsence:
-                break;
-            default:
-                throw new InvalidOperationException($"Unexpected {nameof(TimeEntryStatus)}: {status}");
-        }
-    }
+    private Task EnsureCalendarStatusRulesAsync(TimeEntryStatus status,DateTime date,Guid branchId) => TimeEntryRules.EnsureCalendar(status,date,branchId,holidaysRepository);
 
     /// <summary>
     /// Carve-out gate for the overnight-Close-on-prior-day-row rule. Returns <c>true</c>
@@ -760,14 +698,7 @@ public class UpsertTimeEntryUseCase(
     /// </summary>
     /// <param name="entry">The parent entry whose segments are projected.</param>
     /// <returns>The ordered active segments. Deferred enumeration.</returns>
-    private static IEnumerable<TimeEntrySegment> ActiveSegments(TimeEntry entry)
-    {
-        return entry.Segments
-            .Where(segment => segment.Active)
-            .OrderBy(segment => segment.ClockIn)
-            .ThenBy(segment => segment.CreatedAt)
-            .ThenBy(segment => segment.Id);
-    }
+    private static IEnumerable<TimeEntrySegment> ActiveSegments(TimeEntry entry) => TimeEntryRules.ActiveSegments(entry);
 
     /// <summary>
     /// Builds a synthetic zero-value response for the Member-Close-with-no-existing-entry

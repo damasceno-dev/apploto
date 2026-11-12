@@ -4,6 +4,7 @@ namespace server.Communication.Responses;
 
 public class ResponseTransactionJson
 {
+    public Guid? GoLiveOpeningId { get; init; }
     public Guid Id { get; init; }
     public uint Version { get; init; }
     public DateTime Date { get; init; }

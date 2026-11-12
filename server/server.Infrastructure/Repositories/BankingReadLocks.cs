@@ -5,6 +5,14 @@ namespace server.Infrastructure.Repositories;
 
 internal class BankingReadLocks(ServerDbContext db) : IBankingReadLocks
 {
+    public async Task Clients(Guid branchId, IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            SELECT "Id" FROM "Clients" WHERE "BranchId" = {branchId} AND "Id" = ANY({ids.ToArray()}) ORDER BY "Id" FOR SHARE
+            """, ct);
+    public async Task Operators(Guid branchId, IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            SELECT "Id" FROM "Operators" WHERE "BranchId" = {branchId} AND "Id" = ANY({ids.ToArray()}) ORDER BY "Id" FOR SHARE
+            """, ct);
     public async Task Accounts(Guid branchId, IReadOnlyCollection<Guid> ids, CancellationToken ct) =>
         await db.Database.ExecuteSqlInterpolatedAsync($"""
             SELECT "Id" FROM "Accounts" WHERE "BranchId" = {branchId} AND "Id" = ANY({ids.ToArray()}) ORDER BY "Id" FOR SHARE

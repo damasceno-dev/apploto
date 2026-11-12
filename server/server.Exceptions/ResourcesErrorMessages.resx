@@ -1131,4 +1131,15 @@
   <data name="PEOPLE_OPENING_REQUIRED" xml:space="preserve"><value>Informe um saldo inicial de horas com data e evidência.</value></data>
   <data name="PEOPLE_ALLOCATION_EXCEEDED" xml:space="preserve"><value>A distribuição excede a Tarifa Especial comprovada na sessão.</value></data>
   <data name="PEOPLE_REPORT_TOO_LARGE" xml:space="preserve"><value>O demonstrativo excede o limite de detalhes. Consulte os relatórios de origem.</value></data>
+  <data name="GOLIVE_OPENING_INVALID" xml:space="preserve"><value>Os dados da obrigação de implantação são inválidos.</value></data>
+  <data name="GOLIVE_OPENING_EXISTS" xml:space="preserve"><value>Já existe uma obrigação de implantação ativa para esta origem.</value></data>
+  <data name="GOLIVE_OPENING_CONSUMED" xml:space="preserve"><value>A obrigação já possui consumo ou eventos e não pode ser cancelada.</value></data>
+<data name="GOLIVE_SOURCE_INVALID" xml:space="preserve"><value>Exportação inválida. Confira perfil, codificação, tabelas, colunas e limites de tamanho.</value></data>
+<data name="GOLIVE_IMPORT_STALE" xml:space="preserve"><value>A origem, o mapeamento ou os dados da filial mudaram. Gere uma nova prévia.</value></data>
+<data name="GOLIVE_IMPORT_UNRESOLVED" xml:space="preserve"><value>Resolva ou exclua explicitamente os registros pendentes antes de ativar.</value></data>
+<data name="GOLIVE_IMPORT_NOT_FOUND" xml:space="preserve"><value>Importação não encontrada.</value></data>
+<data name="GOLIVE_MONEY_PRECISION_REQUIRED" xml:space="preserve"><value>O valor de origem tem precisão excedente. Informe um valor de destino válido e justifique a resolução.</value></data>
+<data name="GOLIVE_SOURCE_DATE_INVALID" xml:space="preserve"><value>A data de origem está ausente ou é inválida. Resolva a evidência antes de ativar.</value></data>
+  <data name="GOLIVE_OPENING_IMPORT_OWNED" xml:space="preserve"><value>Obrigações criadas pela importação são evidências de implantação e não podem ser substituídas ou canceladas pelos comandos manuais.</value></data>
+  <data name="GOLIVE_IMPORT_INTERPRETATION_CONFLICT" xml:space="preserve"><value>Esta origem já foi recebida com outro perfil ou codificação. Use a interpretação registrada; a nova escolha não foi aplicada.</value></data>
 </root>

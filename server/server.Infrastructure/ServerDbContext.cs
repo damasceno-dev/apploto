@@ -6,6 +6,10 @@ namespace server.Infrastructure;
 public class ServerDbContext(DbContextOptions<ServerDbContext> options)
     : DbContext(options)
 {
+    public DbSet<GoLiveImportAudit> GoLiveImportAudits => Set<GoLiveImportAudit>();
+    public DbSet<GoLiveImportTarget> GoLiveImportTargets => Set<GoLiveImportTarget>();
+    public DbSet<GoLiveImport> GoLiveImports => Set<GoLiveImport>();
+    public DbSet<GoLiveOpening> GoLiveOpenings => Set<GoLiveOpening>();
     public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
 public DbSet<RecoveryThrottle> RecoveryThrottles => Set<RecoveryThrottle>();
     public DbSet<LoginThrottle> LoginThrottles => Set<LoginThrottle>();

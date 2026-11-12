@@ -176,6 +176,34 @@ describe('forwarder target constraints', () => {
     expect(response.status).toBe(413);
     expect(h.sent).toHaveLength(0);
   });
+  it.each(['/go-live/imports', '/go-live/imports/00000000-0000-0000-0000-000000000001/mapping'])(
+    'forwards bounded source bodies above the normal cap only on %s',
+    async (path) => {
+      const h = harness(() => json({}));
+      const body = 'x'.repeat(1024 * 1024 + 1);
+      const { response } = await forward(
+        request(path, { method: 'POST', body, headers: { 'content-type': 'application/json' } }),
+        h.cookies,
+        h.config(),
+      );
+      expect(response.status).toBe(200);
+      expect(h.sent[0]?.body?.length).toBe(body.length);
+    },
+  );
+  it('rejects an upload above its declared cap before forwarding', async () => {
+    const h = harness(() => json({}));
+    const { response } = await forward(
+      request('/go-live/imports', {
+        method: 'POST',
+        body: '{}',
+        headers: { 'content-type': 'application/json', 'content-length': '100000001' },
+      }),
+      h.cookies,
+      h.config(),
+    );
+    expect(response.status).toBe(413);
+    expect(h.sent).toHaveLength(0);
+  });
 });
 
 describe('forwarder fidelity', () => {

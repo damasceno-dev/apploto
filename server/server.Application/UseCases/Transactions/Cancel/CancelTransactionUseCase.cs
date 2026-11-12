@@ -43,7 +43,7 @@ public class CancelTransactionUseCase(
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         // A generated Terminal leg never moves on its own (M7.7 Phase 5.7); its source carries it.
-        if (transactionKey.GenerationKind is not null)
+        if (transactionKey.GenerationKind is not null || transactionKey.GoLiveOpeningId is not null)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
 
         var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);

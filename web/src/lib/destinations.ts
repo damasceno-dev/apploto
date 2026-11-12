@@ -169,6 +169,7 @@ export const destinations: readonly Destination[] = [
   item('categories', '/gestao/categorias', 'Categorias e tipos', 'management', 10, 'Cadastros'),
   item('products', '/gestao/produtos', 'Produtos', 'management', 10, 'Cadastros'),
   item('holidays', '/gestao/feriados', 'Feriados', 'management', 10, 'Cadastros'),
+  item('go-live', '/gestao/implantacao', 'Implantação da filial', 'management', 10, 'Cadastros'),
   item('settings', '/gestao/configuracoes', 'Configurações', 'management', 10, 'Cadastros'),
   item('members', '/gestao/membros', 'Membros da filial', 'management', 10, 'Cadastros'),
   item(

@@ -142,6 +142,13 @@ public static class AppDependencyInjection
 {
     public static void AddApplication(this IServiceCollection services)
     {
+        services.AddScoped<server.Application.UseCases.GoLive.Imports.GoLivePeopleStage>();
+        services.AddScoped<server.Application.UseCases.GoLive.Imports.GoLiveHistoryStage>();
+        services.AddScoped<server.Application.UseCases.GoLive.Imports.GoLiveImportUseCase>();
+        services.AddScoped<server.Application.UseCases.GoLive.Openings.ListGoLiveOpeningsUseCase>();
+        services.AddScoped<server.Application.UseCases.GoLive.Openings.AmendGoLiveOpeningUseCase>();
+        services.AddScoped<server.Application.UseCases.GoLive.Openings.RecordGoLiveOpeningUseCase>();
+        services.AddScoped<server.Application.UseCases.GoLive.Openings.CancelGoLiveOpeningUseCase>();
         services.AddScoped<ListBranchUsersUseCase>();
         services.AddScoped<UpdateBranchUserRoleUseCase>();
         services.AddScoped<RemoveBranchUserUseCase>();

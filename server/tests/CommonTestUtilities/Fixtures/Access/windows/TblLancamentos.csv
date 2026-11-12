@@ -1,0 +1,2 @@
+lco_id,lco_data,lco_valor,id_categoria,id_tipo,lco_descricao,id_cliente,lco_vencimento,lco_data_pagamento,id_conta,lco_sinal,lco_condicao,lco_forma_pagamento,lco_origem,lco_status,lco_dataRegistro
+1,2026/11/01 00:00:00,125.50,9,2,Obrigação sintética,1,2026/12/01 00:00:00,,1,Negativo,,,,,2026/11/01 00:00:00

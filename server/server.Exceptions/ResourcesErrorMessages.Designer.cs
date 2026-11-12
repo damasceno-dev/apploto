@@ -2025,5 +2025,16 @@ namespace server.Exceptions {
         public static string PEOPLE_OPENING_REQUIRED => ResourceManager.GetString("PEOPLE_OPENING_REQUIRED", resourceCulture)!;
         public static string PEOPLE_ALLOCATION_EXCEEDED => ResourceManager.GetString("PEOPLE_ALLOCATION_EXCEEDED", resourceCulture)!;
         public static string PEOPLE_REPORT_TOO_LARGE => ResourceManager.GetString("PEOPLE_REPORT_TOO_LARGE", resourceCulture)!;
+        public static string GOLIVE_OPENING_INVALID => ResourceManager.GetString("GOLIVE_OPENING_INVALID", resourceCulture)!;
+        public static string GOLIVE_OPENING_EXISTS => ResourceManager.GetString("GOLIVE_OPENING_EXISTS", resourceCulture)!;
+        public static string GOLIVE_OPENING_CONSUMED => ResourceManager.GetString("GOLIVE_OPENING_CONSUMED", resourceCulture)!;
+        public static string GOLIVE_SOURCE_INVALID => ResourceManager.GetString("GOLIVE_SOURCE_INVALID", resourceCulture)!;
+        public static string GOLIVE_IMPORT_STALE => ResourceManager.GetString("GOLIVE_IMPORT_STALE", resourceCulture)!;
+        public static string GOLIVE_IMPORT_UNRESOLVED => ResourceManager.GetString("GOLIVE_IMPORT_UNRESOLVED", resourceCulture)!;
+        public static string GOLIVE_IMPORT_NOT_FOUND => ResourceManager.GetString("GOLIVE_IMPORT_NOT_FOUND", resourceCulture)!;
+        public static string GOLIVE_MONEY_PRECISION_REQUIRED => ResourceManager.GetString("GOLIVE_MONEY_PRECISION_REQUIRED", resourceCulture)!;
+        public static string GOLIVE_SOURCE_DATE_INVALID => ResourceManager.GetString("GOLIVE_SOURCE_DATE_INVALID", resourceCulture)!;
+        public static string GOLIVE_OPENING_IMPORT_OWNED => ResourceManager.GetString("GOLIVE_OPENING_IMPORT_OWNED", resourceCulture)!;
+        public static string GOLIVE_IMPORT_INTERPRETATION_CONFLICT => ResourceManager.GetString("GOLIVE_IMPORT_INTERPRETATION_CONFLICT", resourceCulture)!;
     }
 }

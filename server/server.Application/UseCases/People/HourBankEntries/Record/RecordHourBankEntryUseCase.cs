@@ -20,8 +20,13 @@ public class RecordHourBankEntryUseCase(PeopleCommandRunner runner, IEmployeeRec
                 var rows = await records.List<HourBankEntry>(actor.BranchId, token);
                 PeopleHistory.SourceExists(rows, request.PreviousId);
             },
-            async (actor, locked, token) =>
-            {
+            (actor, locked, token) => Stage(actor, locked, request, version, token), ct);
+    }
+
+    public async Task<(Guid Id, ResponseHourBankEntryJson Response)> Stage(BranchUser actor, DateTime locked, RequestHourBankEntryJson request, uint? version, CancellationToken token)
+    {
+        PeopleValidation.Validate(new HourBankEntryFluentValidation(), request);
+
                 var rows = await records.List<HourBankEntry>(actor.BranchId, token);
                 var prior = PeopleHistory.Previous(rows, request.PreviousId, version, r => r.PreviousId, r => r.Version);
                 PeopleHistory.Require(request.SourceDate <= request.PostedOn);
@@ -54,6 +59,5 @@ public class RecordHourBankEntryUseCase(PeopleCommandRunner runner, IEmployeeRec
                 await records.Add(row, token);
                 await unitOfWork.Commit(token);
                 return (row.Id, row.ToResponse());
-            }, ct);
     }
 }

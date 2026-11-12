@@ -119,6 +119,8 @@ internal class TransactionClassificationRepository(ServerDbContext dbContext) : 
             .Where(t =>
                 t.BranchId == branchId &&
                 t.GenerationKind != TransactionGenerationKind.BankMovement &&
+                t.GoLiveOpeningId == null &&
+                !dbContext.GoLiveImportTargets.Any(source=>source.BranchId==branchId&&source.TargetId==t.Id&&source.TargetKind=="ImportedDebt") &&
                 t.TransactionTypeId == transactionTypeId &&
                 t.Active &&
                 t.Status == TransactionStatus.Active &&

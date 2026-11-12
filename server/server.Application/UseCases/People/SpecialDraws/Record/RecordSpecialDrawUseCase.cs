@@ -20,8 +20,13 @@ public class RecordSpecialDrawUseCase(PeopleCommandRunner runner, IEmployeeRecor
                 var rows = await records.List<SpecialDraw>(actor.BranchId, token);
                 PeopleHistory.SourceExists(rows, request.PreviousId);
             },
-            async (actor, locked, token) =>
-            {
+            (actor, locked, token) => Stage(actor, locked, request, version, token), ct);
+    }
+
+    public async Task<(Guid Id, ResponseSpecialDrawJson Response)> Stage(BranchUser actor, DateTime locked, RequestSpecialDrawJson request, uint? version, CancellationToken token)
+    {
+        PeopleValidation.Validate(new SpecialDrawFluentValidation(), request);
+
                 var rows = await records.List<SpecialDraw>(actor.BranchId, token);
                 var prior = PeopleHistory.Previous(rows, request.PreviousId, version, r => r.PreviousId, r => r.Version);
                 if (prior != null)
@@ -42,6 +47,5 @@ public class RecordSpecialDrawUseCase(PeopleCommandRunner runner, IEmployeeRecor
                 await records.Add(row, token);
                 await unitOfWork.Commit(token);
                 return (row.Id, row.ToResponse());
-            }, ct);
     }
 }

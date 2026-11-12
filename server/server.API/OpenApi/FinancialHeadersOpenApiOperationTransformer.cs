@@ -54,6 +54,7 @@ internal sealed class FinancialHeadersOpenApiOperationTransformer : IOpenApiOper
         if (path.StartsWith("people/", StringComparison.Ordinal) && (method == "POST" || path.Contains("{id}") )) return true;
         return path switch
         {
+            "go-live/openings" or "go-live/openings/{id}/cancel" or "go-live/openings/{id}/amend" => method == "POST",
             "setting" or "setting/lock-month" => true,
             "session/start" or "session/declare" or "session/opening-count" => method == "POST",
             "session/handover/{handoverId}/accept" or

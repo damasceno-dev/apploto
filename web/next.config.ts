@@ -19,6 +19,7 @@ export default function config(phase: string): NextConfig {
       },
     },
     reactStrictMode: true,
+    experimental: { proxyClientMaxBodySize: 100_000_000 },
     typedRoutes: true,
     pageExtensions: [
       ...(e2eFixtures ? ['e2e.tsx'] : []),

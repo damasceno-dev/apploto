@@ -41,7 +41,7 @@ public class FinalizeTransactionUseCase(
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         // A generated Terminal leg never moves on its own (M7.7 Phase 5.7); its source carries it.
-        if (transactionKey.GenerationKind is not null)
+        if (transactionKey.GenerationKind is not null || transactionKey.GoLiveOpeningId is not null)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
 
         var memberScope = await memberAccountScopeResolver.Resolve(branchUser.UserId, branchUser.BranchId, ct);
@@ -52,10 +52,10 @@ public class FinalizeTransactionUseCase(
             ct);
 
         await using var coordination = counterpartKey is null
-            ? await dailyCloseAccountCoordination.Acquire(branchUser.BranchId, transactionKey.AccountId, ct)
+            ? await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, [transactionKey.AccountId, transactionKey.ClientId ?? transactionKey.AccountId], ct)
             : await dailyCloseAccountCoordination.AcquireMany(
                 branchUser.BranchId,
-                [transactionKey.AccountId, counterpartKey.AccountId],
+                [transactionKey.AccountId, counterpartKey.AccountId, transactionKey.ClientId ?? transactionKey.AccountId],
                 ct);
 
         var transaction = await transactionsRepository.GetByIdAndBranchId(transactionId, branchUser.BranchId, ct)

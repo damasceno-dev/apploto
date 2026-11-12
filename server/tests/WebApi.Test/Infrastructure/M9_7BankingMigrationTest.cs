@@ -131,7 +131,7 @@ public sealed class M9_7BankingMigrationTest : IAsyncLifetime
         await migrator.MigrateAsync("20261031020206_M9_6Phase6To9FinancialFoundation");
         var legacy = await M9_7SettlementEventsMigrationTest.SeedPriorSchemaAsync(db);
         await migrator.MigrateAsync("20261103130725_M9_7Phase1To2SettlementEvents");
-        var original = await db.Transactions.AsNoTracking().SingleAsync(t => t.Id == legacy.Unpaid);
+        var original = await db.Transactions.AsNoTracking().Where(t => t.Id == legacy.Unpaid).Select(t=>new {t.Version,t.Value,t.ClassificationRevision,t.PostedSettlementInstrument}).SingleAsync();
         var receipt = new BankReceipt
         {
             BranchId = legacy.BranchId, BankAccountId = legacy.BankAccountId, SourceKind = BankReceiptSourceKind.ChequeDeposit,

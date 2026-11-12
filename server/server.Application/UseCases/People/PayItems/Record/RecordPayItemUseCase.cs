@@ -28,8 +28,13 @@ public class RecordPayItemUseCase(
                 PeopleHistory.SourceExists(rows, request.PreviousId);
                 PeopleHistory.SourceExists(await records.List<EmployeePayCategory>(actor.BranchId, token), request.CategoryId);
             },
-            async (actor, locked, token) =>
-            {
+            (actor, locked, token) => Stage(actor, locked, request, version, token), ct);
+    }
+
+    public async Task<(Guid Id, ResponsePayItemJson Response)> Stage(BranchUser actor, DateTime locked, RequestPayItemJson request, uint? version, CancellationToken token)
+    {
+        PeopleValidation.Validate(new PayItemFluentValidation(), request);
+
                 var rows = await records.List<EmployeePayItem>(actor.BranchId, token);
                 var prior = PeopleHistory.Previous(rows, request.PreviousId, version, r => r.PreviousId, r => r.Version);
                 var categories = await records.List<EmployeePayCategory>(actor.BranchId, token);
@@ -66,6 +71,5 @@ public class RecordPayItemUseCase(
                 await records.Add(row, token);
                 await unitOfWork.Commit(token);
                 return (row.Id, row.ToResponse());
-            }, ct);
     }
 }

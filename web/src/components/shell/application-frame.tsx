@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { GoLiveDesk } from '@/components/go-live/go-live-desk';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { isApiError, type ResponseSelfContextJson, type Role } from '@loto/api';
@@ -723,7 +724,9 @@ export function ApplicationFrame({
                   Voltar para a fila de trabalho
                 </ButtonLink>
               </div>
-            ) : selfFailure !== null && entry.owner === 'shift' ? null : (
+            ) : selfFailure !== null && entry.owner === 'shift' ? null : entry.key === 'go-live' ? (
+              <GoLiveDesk today={initialDate} />
+            ) : (
               <>
                 <Notice kind="info" title="Esta função estará disponível em uma próxima etapa.">
                   Os dados e as ações de {entry.title.toLowerCase()} ainda não estão disponíveis

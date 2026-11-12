@@ -85,9 +85,20 @@ schema RequestAcceptSessionHandoverJson
   items optional RequestSessionOpeningItemJson[]?
   reason optional string?
 
+schema RequestActivateGoLiveImportJson
+  dryRunVersion required string
+  mappingRevision required integer|string
+  previewId required string
+  sourceDigest required string
+  targetFingerprint required string
+
 schema RequestAddTimeEntrySegmentJson
   clockIn required string
   clockOut optional string?
+
+schema RequestAmendGoLiveOpeningJson
+  opening required RequestGoLiveOpeningJson
+  reason required string
 
 schema RequestApproveSessionBatchItemJson
   sessionId required string
@@ -156,6 +167,9 @@ schema RequestBankStatementImportJson
 
 schema RequestBeginSessionRecountJson
   previousAttemptId required string
+
+schema RequestCancelGoLiveOpeningJson
+  reason required string
 
 schema RequestCancelTransactionJson
   cancellationReason required string
@@ -396,6 +410,107 @@ schema RequestFinishSessionJson
 
 schema RequestForgotPasswordJson
   email required string
+
+schema RequestGoLiveImportJson
+  encoding required string
+  files required RequestGoLiveSourceFileJson[]
+  profile required string
+
+schema RequestGoLiveMappingJson
+  expectedRevision required integer|string
+  resolutions required RequestGoLiveResolutionJson[]
+
+schema RequestGoLiveOpeningItemJson
+  dueDate required string
+  value required number|string
+
+schema RequestGoLiveOpeningItemJsonOutput
+  dueDate required string
+  value required number
+
+schema RequestGoLiveOpeningJson
+  accountId required string
+  asOfDate required string
+  clientId optional string?
+  isCheque optional boolean
+  items required RequestGoLiveOpeningItemJson[]
+  recordedByOperatorId required string
+  sourceEvidence required string
+  sourceReference required string
+  transactionTypeId required string
+
+schema RequestGoLiveOpeningJsonOutput
+  accountId required string
+  asOfDate required string
+  clientId optional string?
+  isCheque optional boolean
+  items required RequestGoLiveOpeningItemJsonOutput[]
+  recordedByOperatorId required string
+  sourceEvidence required string
+  sourceReference required string
+  transactionTypeId required string
+
+schema RequestGoLiveResolutionJson
+  accountId optional string?
+  action required string
+  attendanceStatus optional enum:TimeEntryStatus?
+  clientId optional string?
+  deductionPolicy optional string?
+  endsAt optional string?
+  exclusionDisposition optional string?
+  field optional enum:SessionCloseField?
+  historyComplete optional boolean
+  operatorId optional string?
+  payCategoryId optional string?
+  payKind optional enum:PayItemKind?
+  postedOn optional string?
+  productId optional string?
+  reason required string
+  sequence optional integer|string?
+  sourceDate optional string?
+  sourceId required string
+  sourceTerminalId optional string?
+  startsAt optional string?
+  table required string
+  targetHours optional number|string?
+  targetName optional string?
+  targetValue optional number|string?
+  terminalId optional string?
+  transactionTypeId optional string?
+  year optional integer|string?
+
+schema RequestGoLiveResolutionJsonOutput
+  accountId optional string?
+  action required string
+  attendanceStatus optional enum:TimeEntryStatus?
+  clientId optional string?
+  deductionPolicy optional string?
+  endsAt optional string?
+  exclusionDisposition optional string?
+  field optional enum:SessionCloseField?
+  historyComplete optional boolean
+  operatorId optional string?
+  payCategoryId optional string?
+  payKind optional enum:PayItemKind?
+  postedOn optional string?
+  productId optional string?
+  reason required string
+  sequence optional integer?
+  sourceDate optional string?
+  sourceId required string
+  sourceTerminalId optional string?
+  startsAt optional string?
+  table required string
+  targetHours optional number?
+  targetName optional string?
+  targetValue optional number?
+  terminalId optional string?
+  transactionTypeId optional string?
+  year optional integer?
+
+schema RequestGoLiveSourceFileJson
+  base64 required string
+  name required string
 
 schema RequestGoogleSignInJson
   challengeId required string
@@ -1147,6 +1262,7 @@ schema ResponseCreateTransactionJson
   generatedFromTransactionId optional string?
   generatedTransactionId optional string?
   generationKind optional enum:TransactionGenerationKind?
+  goLiveOpeningId optional string?
   id required string
   openingDiscrepancyId optional string?
   recordedByOperatorId required string
@@ -1476,6 +1592,104 @@ schema ResponseGetCurrentBranchSummaryJson
   branchLocalDate required string
   branchLocalDateTime required string
 
+schema ResponseGoLiveAttendanceComparisonJson
+  calculatedBalanceHours required number
+  calculatedTotalHours required number
+  dailyTargetHours required number
+  lunchDeductionOver4H required number
+  lunchDeductionOver6H required number
+  policyId required string
+  sourceBalanceHours required string
+  sourceId required string
+  sourceTotalHours required string
+
+schema ResponseGoLiveDayJson
+  accessDifference optional number?
+  appDifference optional number?
+  completeness required string
+  countedClosing required string
+  date required string
+  hasPriorCalendarDay required boolean
+  positiveRowDifference required number
+  priorCountedOpening optional string?
+  rawAccessDifference optional string?
+  rawAppDifference optional string?
+  recordedAccessDifference optional string?
+  signedSourceMovements required string
+  sourceAccountId required string
+  sourceFeesAndReport required string
+  sourceFiadoDelta optional string?
+  unsignedSourceMovements required string
+
+schema ResponseGoLiveImportJson
+  id required string
+  mappingRevision required integer
+  preview optional ResponseGoLivePreviewJson?
+  previewId optional string?
+  profile required string
+  resolutions required RequestGoLiveResolutionJsonOutput[]
+  schemaVersion required string
+  sourceDigest required string
+  sourceLockDate optional string?
+  status required string
+  suggestions required RequestGoLiveResolutionJsonOutput[]
+  tables required object
+  targetFingerprint optional string?
+  targetIds required string[]
+  targets required ResponseGoLiveImportTargetJson[]
+
+schema ResponseGoLiveImportTargetJson
+  sourceId required string
+  sourceTable required string
+  targetId required string
+  targetKind required string
+
+schema ResponseGoLiveIssueJson
+  code required string
+  message required string
+  sourceId required string
+  sourceValue optional string?
+  table required string
+
+schema ResponseGoLiveOpeningItemJson
+  dueDate required string
+  id required string
+  status required enum:TransactionStatus
+  value required number
+
+schema ResponseGoLiveOpeningJson
+  accountId required string
+  active required boolean
+  asOfDate required string
+  clientCreditObserved required boolean
+  clientId optional string?
+  id required string
+  isCheque required boolean
+  items required ResponseGoLiveOpeningItemJson[]
+  previousId optional string?
+  recordedByOperatorId required string
+  sourceEvidence required string
+  sourceImportId optional string?
+  sourceReference required string
+  transactionIds required string[]
+  version required integer
+
+schema ResponseGoLivePreviewJson
+  attendanceComparisons required ResponseGoLiveAttendanceComparisonJson[]
+  canActivate required boolean
+  days required ResponseGoLiveDayJson[]
+  excludedRows required integer
+  explainedIssues required ResponseGoLiveIssueJson[]
+  historicalPlan required RequestGoLiveResolutionJsonOutput[]
+  id required string
+  issues required ResponseGoLiveIssueJson[]
+  mappingRevision required integer
+  openingPlan required RequestGoLiveOpeningJsonOutput[]
+  quarantinedRows required integer
+  supportedRows required integer
+  targetFingerprint required string
+  toolVersion required string
+
 schema ResponseGoogleChallengeJson
   challengeId required string
   expiresAt required string
@@ -1683,6 +1897,7 @@ schema ResponseListTransactionItemJson
   dueDate required string
   generatedFromTransactionId optional string?
   generationKind optional enum:TransactionGenerationKind?
+  goLiveOpeningId optional string?
   id required string
   originTransactionId optional string?
   sessionId optional string?
@@ -2791,6 +3006,7 @@ schema ResponseTransactionJson
   generatedFromTransactionId optional string?
   generatedTransactionId optional string?
   generationKind optional enum:TransactionGenerationKind?
+  goLiveOpeningId optional string?
   id required string
   originTransactionId optional string?
   recordedByOperatorId required string
@@ -3277,6 +3493,115 @@ operation GET /client/{clientId}/fiado-statement
   response 401 ResponseErrorJson
   response 403 ResponseErrorJson
   response 404 ResponseErrorJson
+
+operation GET /go-live/imports
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseGoLiveImportJson[]
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /go-live/imports
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestGoLiveImportJson
+  response 200 ResponseGoLiveImportJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /go-live/imports/{id}
+  security BranchBearer[Admin,Manager]
+  path id required string
+  response 200 ResponseGoLiveImportJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /go-live/imports/{id}/activate
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  body required RequestActivateGoLiveImportJson
+  response 200 ResponseGoLiveImportJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /go-live/imports/{id}/mapping
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  body required RequestGoLiveMappingJson
+  response 200 ResponseGoLiveImportJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /go-live/imports/{id}/preview
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  body required RequestGoLiveMappingJson
+  response 200 ResponseGoLiveImportJson
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation GET /go-live/openings
+  security BranchBearer[Admin,Manager]
+  response 200 ResponseGoLiveOpeningJson[]
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+
+operation POST /go-live/openings
+  security BranchBearer[Admin,Manager]
+  header Idempotency-Key required string
+  body required RequestGoLiveOpeningJson
+  response 201 ResponseGoLiveOpeningJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /go-live/openings/{id}/amend
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestAmendGoLiveOpeningJson
+  response 200 ResponseGoLiveOpeningJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
+
+operation POST /go-live/openings/{id}/cancel
+  security BranchBearer[Admin,Manager]
+  path id required string
+  header Idempotency-Key required string
+  header If-Match required string
+  body required RequestCancelGoLiveOpeningJson
+  response 200 ResponseGoLiveOpeningJson headers=ETag
+  response 400 ResponseErrorJson
+  response 401 ResponseErrorJson
+  response 403 ResponseErrorJson
+  response 404 ResponseErrorJson
+  response 409 ResponseErrorJson
 
 operation GET /holiday
   security BranchBearer[]

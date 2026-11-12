@@ -10,6 +10,8 @@ import type { TransactionGenerationKind } from './transactionGenerationKind';
 import type { TransactionStatus } from './transactionStatus';
 
 export interface ResponseTransactionJson {
+  /** @nullable */
+  goLiveOpeningId?: string | null;
   id: string;
   version: number;
   date: string;

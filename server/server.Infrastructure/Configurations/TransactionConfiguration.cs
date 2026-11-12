@@ -11,6 +11,9 @@ internal class TransactionConfiguration : IEntityTypeConfiguration<Transaction>
     {
         builder.ToTable("Transactions");
         builder.HasKey(t => t.Id);
+        builder.ToTable(table=>table.HasCheckConstraint("CK_Transactions_GoLiveOpeningAsset",
+            "\"GoLiveOpeningId\" IS NULL OR COALESCE((\"Direction\"=1 AND \"SessionId\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL AND \"GenerationKind\" IS NULL AND \"PostedFinancialClass\"=1 AND \"PostedMonthlyFinancialRole\"=0 AND \"PostedSettlementInstrument\" IN (0,1)),false)"));
+        builder.HasOne(t => t.GoLiveOpening).WithMany().HasForeignKey(t => t.GoLiveOpeningId).OnDelete(DeleteBehavior.Restrict);
 
         builder.Property(t => t.Version).IsRowVersion();
         builder.Property(t => t.Date).HasColumnType("date").IsRequired();

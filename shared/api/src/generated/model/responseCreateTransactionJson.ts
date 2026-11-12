@@ -9,6 +9,8 @@ import type { TransactionGenerationKind } from './transactionGenerationKind';
 import type { TransactionStatus } from './transactionStatus';
 
 export interface ResponseCreateTransactionJson {
+  /** @nullable */
+  goLiveOpeningId?: string | null;
   id: string;
   version: number;
   date: string;
