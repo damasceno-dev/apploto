@@ -39,15 +39,27 @@ const [width, height] = /(\d+)x(\d+)/
   .slice(1)
   .map(Number);
 const log = [];
+const started = Date.now();
 const say = (line) => {
-  log.push(line);
-  console.log(line);
+  // Elapsed seconds since launch: the dev client reloads JS about three minutes after process start.
+  const stamped = `[${Math.round((Date.now() - started) / 1000)}s] ${line}`;
+  log.push(stamped);
+  console.log(stamped);
 };
 let bottom = 0;
 function nodes() {
   // An open keypad covers the lower screen: nothing under it counts as tappable.
   bottom = imeWindowVisible(sh('shell', 'dumpsys', 'input_method')) ? height * 0.66 : height - 90;
-  sh('shell', 'uiautomator', 'dump', '/sdcard/loto-m5.xml');
+  // uiautomator refuses to dump while the screen is still animating (cold start, caret blink): retry.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      sh('shell', 'uiautomator', 'dump', '/sdcard/loto-m5.xml');
+      break;
+    } catch (error) {
+      if (attempt >= 6) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000);
+    }
+  }
   return nativeNodes(sh('shell', 'cat', '/sdcard/loto-m5.xml')).map((n) => {
     const b = /\[(-?\d+),(-?\d+)\]\[(-?\d+),(-?\d+)\]/.exec(n.bounds ?? '');
     return { ...n, box: b ? b.slice(1).map(Number) : null };
@@ -103,8 +115,10 @@ async function reveal(selector, budget = 60) {
       // Move toward a known off-screen node; otherwise sweep in the current direction.
       const down = off ? off.box[1] > height / 2 : direction === 'down';
       // Drag in the band above an open keypad (which starts near 68% of the height).
-      if (down) drag(height * 0.58, height * 0.3);
-      else drag(height * 0.3, height * 0.58);
+      // LOTO_FAST_SCROLL=1 uses long drags for long review pages (default keeps the short M5 drags).
+      const [near, far] = process.env.LOTO_FAST_SCROLL === '1' ? [0.82, 0.2] : [0.58, 0.3];
+      if (down) drag(height * near, height * far);
+      else drag(height * far, height * near);
       await sleep(700);
     }
   return null;
@@ -157,9 +171,16 @@ async function run(list) {
       case 'extendedWaitUntil': {
         const target = arg.visible ?? arg.notVisible;
         const selector = typeof target === 'string' ? { text: target } : target;
-        let ok = await waitFor(selector, arg.timeout ?? 30000, !!arg.visible);
-        // A visible-wait target may be in the scroll content: search once before failing.
+        const total = arg.timeout ?? 30000;
+        // A visible-wait target may be in the scroll content: look briefly, scroll to find it, and only
+        // then spend the rest of the timeout waiting (a long idle wait would outlast the dev client).
+        let ok = await waitFor(
+          selector,
+          arg.visible ? Math.min(total, 6000) : total,
+          !!arg.visible,
+        );
         if (!ok && arg.visible) ok = !!(await reveal(selector, 20));
+        if (!ok && arg.visible) ok = await waitFor(selector, total, true);
         if (!ok) throw new Error('Wait failed: ' + label);
         break;
       }
@@ -170,7 +191,9 @@ async function run(list) {
         const selector = arg.id ? { id: arg.id } : { text: arg.text };
         const hit = (await reveal(selector)) ?? null;
         if (!hit) throw new Error('Tap target missing: ' + label);
-        tapNode(hit);
+        // A drag can leave fling momentum: let the list settle and re-read the node before tapping.
+        await sleep(900);
+        tapNode(find(selector) ?? hit);
         await sleep(900);
         break;
       }
@@ -185,7 +208,12 @@ async function run(list) {
         break;
       case 'pressKey':
         if (arg === 'Enter') sh('shell', 'input', 'keyevent', '66');
-        else throw new Error('Unsupported key ' + arg);
+        // Back closes an open keypad first, so a dialog's confirm stays reachable without a drag.
+        // Only while the keypad is actually shown: with no keypad, Back would navigate away.
+        else if (arg === 'Back') {
+          if (imeWindowVisible(sh('shell', 'dumpsys', 'input_method')))
+            sh('shell', 'input', 'keyevent', '4');
+        } else throw new Error('Unsupported key ' + arg);
         break;
       case 'swipe':
         // Generated content drags only (never edge gestures); executed slowly.

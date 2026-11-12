@@ -34,6 +34,7 @@ import { DaySurface, isDaySurface } from '@/day/surface';
 import { TimeSurface, isTimeSurface } from '@/time/surface';
 import { AdminSurface, isAdminSurface } from '@/admin/surface';
 import { LedgerSurface, isLedgerSurface } from '@/ledger/surface';
+import { ManagerSurface, isManagerSurface } from '@/manager/surface';
 import {
   destinations,
   canEnter,
@@ -94,6 +95,7 @@ function GuardedScreen() {
     (isTimeSurface(entry.key) ||
       isAdminSurface(entry.key) ||
       isDaySurface(entry.key) ||
+      isManagerSurface(entry.key) ||
       isLedgerSurface(entry.key)) &&
     canEnter(entry, snapshot.branch?.role ?? 'Member') &&
     verifiedEntry === verificationKey &&
@@ -413,6 +415,12 @@ function GuardedScreen() {
               />
             ) : isAdminSurface(entry.key) ? (
               <AdminSurface destination={entry.key} preserveVerifiedView={keepTimeView} />
+            ) : isManagerSurface(entry.key) ? (
+              <ManagerSurface
+                key={entry.key === 'approval' ? path : address}
+                destination={entry.key}
+                preserveVerifiedView={keepTimeView}
+              />
             ) : isLedgerSurface(entry.key) ? (
               <LedgerSurface
                 key={

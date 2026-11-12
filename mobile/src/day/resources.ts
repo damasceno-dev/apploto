@@ -3,6 +3,7 @@ import type { SessionEngine } from '@/session/engine';
 import { matchDestination } from '@/shell/policy';
 import { validateTimeResource } from '@/time/resources';
 import { validateLedgerResource } from '@/ledger/resources';
+import { validateManagerResource } from '@/manager/resources';
 /**
  * Fresh validation of an M5 resource origin/intent: the exact session must still be readable in
  * this branch by the current caller (server scope/role), and only then may navigation restore it.
@@ -25,11 +26,12 @@ export async function validateDayResource(engine: SessionEngine, path: string): 
     return false;
   }
 }
-/** Every shipped feature-owned resource validator (M9 time, M5 sessions, M6 ledger). Others stay refused. */
+/** Every shipped feature-owned resource validator (M9 time, M5 sessions, M6 ledger, M7 review). Others stay refused. */
 export async function validateResource(engine: SessionEngine, path: string): Promise<boolean> {
   return (
     (await validateTimeResource(engine, path)) ||
     (await validateDayResource(engine, path)) ||
-    (await validateLedgerResource(engine, path))
+    (await validateLedgerResource(engine, path)) ||
+    (await validateManagerResource(engine, path))
   );
 }

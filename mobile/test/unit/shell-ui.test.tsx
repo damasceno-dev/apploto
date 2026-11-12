@@ -7,6 +7,7 @@ import { ShellNavigationStore } from '../../src/shell/navigation';
 import { nativeDeviceStore, emailPartitionKey } from '../../src/storage/native';
 import { ScopedDeviceStore } from '../../src/storage/scoped';
 import { BranchPicker } from '../../src/shell/entry';
+import { managerServer } from './manager-server';
 import { rig, branch, branchId, otherBranch, profile, response, deferred, userId } from './support';
 import { renderThemed } from './ui/support';
 
@@ -224,17 +225,9 @@ it('keeps a protected destination behind a fresh entry read before mounting its 
       before,
     ),
   );
-  expect(
-    screen.queryByText(
-      'Os dados e as ações de fila de trabalho ainda não estão disponíveis neste aplicativo.',
-    ),
-  ).toBeNull();
+  expect(screen.queryByTestId('manager-queue')).toBeNull();
   held.resolve();
-  expect(
-    await screen.findByText(
-      'Os dados e as ações de fila de trabalho ainda não estão disponíveis neste aplicativo.',
-    ),
-  ).toBeTruthy();
+  expect(await screen.findByTestId('manager-queue')).toBeTruthy();
 });
 
 it.each([false, true])('shows retained-work rail only for the caller (own=%s)', async (own) => {
@@ -249,7 +242,7 @@ it.each([false, true])('shows retained-work rail only for the caller (own=%s)', 
   const keys = jest.spyOn(ScopedDeviceStore.prototype, 'inspectOwnWork');
   mockPath = '/gestao/fila';
   mount(r);
-  await screen.findByText(/Os dados e as ações de fila de trabalho/);
+  await screen.findByTestId('manager-queue');
   await waitFor(() => expect(keys).toHaveBeenCalled());
   const message = /Há alterações ou operações guardadas neste dispositivo/;
   if (own) expect(await screen.findByText(message)).toBeTruthy();
@@ -286,10 +279,13 @@ it('keeps a long branch name, address, CNPJ and live role in one complete access
 
 it('ordinary focus and clock refresh do not insert the session-verification rail item', async () => {
   const r = rig();
+  // The home is the real queue now: answer its reads (an unmodelled 403 would force a re-verify).
+  const queueServer = managerServer();
+  r.intercept((path, init) => queueServer.handle(path, init, r.calls));
   await r.ready();
   mockPath = '/gestao/fila';
   mount(r);
-  await screen.findByText(/Os dados e as ações de fila de trabalho/);
+  await screen.findByTestId('manager-queue');
   const reads = r.calls.filter((call) => call.path === '/operator/self-context').length;
   // SessionProvider starts/recreates the engine; each real creation gets one context read.
   expect(reads).toBe(r.calls.filter((call) => call.path === '/branch/session').length);
@@ -307,7 +303,7 @@ it('menu opening refreshes self-context with a quiet internal write hold', async
   await r.ready();
   mockPath = '/gestao/fila';
   mount(r);
-  await screen.findByText(/Os dados e as ações de fila de trabalho/);
+  await screen.findByTestId('manager-queue');
   const entered = deferred<void>();
   const wait = deferred<Response>();
   r.intercept(async (path) => {
@@ -347,7 +343,7 @@ it('enables Meu turno after a Manager is linked mid-session and opens the menu a
   await r.ready();
   mockPath = '/gestao/fila';
   mount(r);
-  await screen.findByText(/Os dados e as ações de fila de trabalho/);
+  await screen.findByTestId('manager-queue');
   fireEvent.press(screen.getByTestId('session-menu'));
   expect(
     (await screen.findByRole('radio', { name: 'Meu turno' })).props.accessibilityState.disabled,
