@@ -17,6 +17,12 @@ using server.Exceptions;
 using server.Exceptions.Exceptions;
 using server.Infrastructure;
 
+if (args.Length > 0 && args[0] == "access-replay")
+{
+    Environment.ExitCode = server.Application.UseCases.GoLive.Imports.AccessReplayTool.Run(args);
+    return;
+}
+
 if (args.Length == 0 || args.Contains("--help"))
 {
     Console.WriteLine("Uso: loto-cli <bootstrap-platform|onboard|inspect|reissue|set-platform> --environment Development|Staging --connection <PostgreSQL> [opções] [--execute]");

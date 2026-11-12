@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Selected workflows, concepts, and design rationale derived from the canonical spec. This file must not introduce facts absent from it.
-Spec revision: v67
+Spec revision: v68
 -->
 <html lang="en">
 <head>
@@ -268,6 +268,11 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-s
 <p>Open reclassification keeps the financial-result contract. Commission retains the last official submission classification and becomes unavailable with transaction/session evidence when that basis diverges from current class or fee role, until confer/resubmit publishes the correction. Allocation PostedOn must be on or after its referenced draw revision’s PostedOn; both command and SQL enforce this chronology. A negative undistributed posting-period balance explains allocation of fees published in another month.</p>
 <p>Fee publication identity includes the causing transaction classification revision, so a valid count attempt can be reused when cash arithmetic did not change. Historical publications keep an unknown/null revision on upgrade; new entries require the actual current revision, and downgrade protects that evidence.</p>
 </section>
+<section id="m10-go-live-v68"><h2>v68 · Implantação local da filial — revisão independente pendente</h2>
+<p>As obrigações de uma importação ativada preservam a evidência do corte: os comandos manuais recusam substituição e cancelamento mesmo antes do consumo; os eventos normais posteriores de fiado/cheque continuam permitidos. O vínculo origem→destino permanece íntegro. SourceImportId na consulta de obrigações identifica a importação; a tela informa essa origem e desabilita a revisão manual. Obrigações de origem manual mantêm suas regras de revisão. O digest identifica bytes; reenviar a mesma origem com outro perfil ou codificação gera conflito explícito, sem trocar nem ignorar a interpretação.</p>
+<p>Gestor/Admin usa /go-live/openings para fiado e cheques iniciais sem saída de caixa ou turno, receita ou despesa operacional. A classificação é dinheiro de clientes/CAIXA, sem papel mensal; obrigações iniciais e dívida histórica importada não entram na reclassificação posterior do tipo. Planos contêm somente recebíveis reais. Substituição e cancelamento exigem versão atual e recusam consumo, crédito observado ou período bloqueado. Contagem física reutiliza OpeningCount; histórico contado importado torna-se a proposta anterior.</p>
+<p>/go-live/imports preserva bytes e digest, esquema, mapeamento revisado, prévia e registro origem→destino. CSV Windows (13 tabelas) e Mestre BE/FE 1.5.0 (19) são limitados e lidos sem executar Access. Precisão excedente, custódia, ano e origem desconhecidos exigem resolução; quarentena impede ativação. Prévia não cria dinheiro. A confirmação identifica ferramenta, revisão, prévia, digest e estado dos destinos.</p>
+<p>Ativação serializada e transacional inclui histórico, eventos pagos sem segundo recebimento, campos de taxa uma vez, ponto/horas/remuneração separados (prévia de ponto com política efetiva e comparação dos resultados), bloqueio legado e auditoria. Turnos migrados permanecem Draft, sem reconhecimento inventado. Repetição retorna o mesmo resultado; alteração ou falha recusa/desfaz o conjunto. A tela protegida /f/{branchId}/gestao/implantacao oferece cadastro, contagem, obrigações, upload, resolução, recortes, comparação e retomada. D4 externo é evidência privada de leitura, não aceite dos dados. Fórmula inalterada; AA, nativo, produção e revisão independente continuam separados. Canonical §3.35/§6.28.</p></section>
 <script>
 const ACCENT='#e67e22',DIM='#9c9a92',BORDER='#555';
 

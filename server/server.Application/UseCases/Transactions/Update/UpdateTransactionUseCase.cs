@@ -38,7 +38,7 @@ public class UpdateTransactionUseCase(
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         // A generated Terminal leg is system-owned (M7.7 Phase 5.7): it is corrected only through its source.
-        if (transactionKey.GenerationKind is not null)
+        if (transactionKey.GenerationKind is not null || transactionKey.GoLiveOpeningId is not null)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
 
         await using var coordination = await monthLockCoordination.TryAcquireShared(branchUser.BranchId, ct)

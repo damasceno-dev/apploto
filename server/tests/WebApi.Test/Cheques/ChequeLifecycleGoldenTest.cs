@@ -22,12 +22,26 @@ public class ChequeLifecycleGoldenTest(ServerWebApplicationFactory factory)
 {
     private readonly HttpClient _client = factory.CreateClient();
 
-    [Fact]
-    public async Task LockCrossingDepositReturnAndConversion_ShouldKeepLockedFiguresAndPostEachOutcomeOnce()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task LockCrossingDepositReturnAndConversion_ShouldKeepLockedFiguresAndPostEachOutcomeOnce(bool goLiveOpening)
     {
         var s = await ChequeScenario.CreateAsync(factory, _client, "ChequeE13a");
         using var clock = factory.FreezeBranchLocalTime(new DateTime(2025, 10, 2, 10, 0, 0));
-        var cheque = await s.SeedChequeAsync(new DateTime(2025, 9, 10), 200m, dueDate: new DateTime(2025, 9, 30));
+        Transaction cheque;
+        if(goLiveOpening)
+        {
+            var response=await _client.PostAuthAsync("/go-live/openings",new RequestGoLiveOpeningJson {
+                AccountId=s.Day.SafeId, ClientId=s.Day.ClientId,IsCheque=true,TransactionTypeId=s.Day.SeededTypes["saidas.deposito-cheque"].Id,
+                RecordedByOperatorId=s.Day.MemberA.Operator!.Id,AsOfDate=new DateTime(2025,9,10),SourceReference="D5 known opening cheque",SourceEvidence="Synthetic opening before lock, no cashbox leg",
+                Items=[new() {Value=200,DueDate=new DateTime(2025,9,30)}]},s.ManagerToken,Guid.NewGuid().ToString());
+            response.StatusCode.ShouldBe(HttpStatusCode.Created,await response.Content.ReadAsStringAsync());
+            var opening=await response.ReadContentAsync<ResponseGoLiveOpeningJson>();
+            cheque=(await factory.ReloadAsync<Transaction>(opening.TransactionIds.Single()))!;
+            cheque.GoLiveOpeningId.ShouldBe(opening.Id);cheque.SessionId.ShouldBeNull();cheque.GeneratedFromTransactionId.ShouldBeNull();
+        }
+        else cheque = await s.SeedChequeAsync(new DateTime(2025, 9, 10), 200m, dueDate: new DateTime(2025, 9, 30));
         var original = (await factory.ReloadAsync<Transaction>(cheque.Id))!;
         (original.PostedSettlementInstrument, original.ClassificationProvenance, original.ClassificationRevision)
             .ShouldBe((SettlementInstrument.Cheque, (ClassificationProvenance?)ClassificationProvenance.Posting, 1));

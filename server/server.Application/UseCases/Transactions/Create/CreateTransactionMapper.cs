@@ -58,6 +58,7 @@ public static class CreateTransactionMapper
                 AccountId = transaction.AccountId,
                 ClientId = transaction.ClientId,
                 DueDate = transaction.DueDate,
+                GoLiveOpeningId = transaction.GoLiveOpeningId,
                 GenerationKind = transaction.GenerationKind,
                 GeneratedFromTransactionId = transaction.GeneratedFromTransactionId,
                 SessionId = transaction.SessionId,

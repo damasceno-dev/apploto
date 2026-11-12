@@ -317,13 +317,14 @@ The server's flow-alignment plan (`server/docs/milestones.md`, *Flow-alignment p
 **Lane 2 — Batch D, people and go-live** *(blueprint gate: the M9.6 Phase 3, M9.8 and M10 phase each screen draws on is shipped and reconciled)*
 - [ ] **4.9.13** **Authored 2026-11-06; semantic scope independently accepted 2026-11-08; both review markers are v67; real-app UI acceptance remains pending.** **Employee statement** (sessions, differences, hours, pay items, effective-dated commission, no automatic deduction, printable) and the **special-draws catalog**.
 - [ ] **4.9.14** **Authored 2026-11-06; semantic scope independently accepted 2026-11-08; both review markers are v67; real-app UI acceptance remains pending.** Hour bank: carry-over balance and manager *Pagamento/Ajuste de horas* entries, as a revision of Time-entry management and My time-entry balance.
-- [ ] **4.9.15** Go-live: **Opening count** (server M9.6 Phase 3), **opening fiado balances and opening receivables** (M10 Part A) and **Access import** (M10 Part B: export guide, mapping step, dry run with explained exceptions, confirmation).
+- [ ] **4.9.15** Authored/reconciled to M10 v68 candidate; independent review and Mobile/native evidence pending. Go-live: **Opening count** (server M9.6 Phase 3), **opening fiado balances and opening receivables** (M10 Part A) and **Access import** (M10 Part B: export guide, mapping step, dry run with explained exceptions, confirmation).
 - [ ] **4.9.16** Inventory, index and checks: every new or revised screen has its row below and in `design/specs/screens/README.md`; full design-doc, contrast and doc-sync gates green; independent acceptance per batch.
 
 ### Blueprint inventory
 
 | Screen (catalog entry) | Blueprint | App milestone | Current contract (server) | Remainder |
 |---|---|---|---|---|
+| Go-live | `go-live.md` | Project M10 scoped Web; Mobile later | M10 v68 candidate + OpeningCount | Independent review; native/customer-data evidence |
 | Employee statement | `reports-and-month-lock.md` | Web/Mobile M8 | M9.8 v67 DTOs | App/native execution |
 | Special draws | `administration.md` | Web/Mobile M10 | M9.8 v67 DTOs | App/native execution |
 | Hour-bank management | `time-and-self-service.md` | Web/Mobile M9 | M9.8 v67 DTOs | App/native execution |

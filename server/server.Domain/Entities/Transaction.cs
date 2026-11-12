@@ -4,6 +4,9 @@ namespace server.Domain.Entities;
 
 public class Transaction : EntityBase
 {
+    public Guid? GoLiveOpeningId { get; init; }
+    public GoLiveOpening? GoLiveOpening { get; init; }
+
     public uint Version { get; set; }
     public DateTime Date { get; set; }
     public decimal Value { get; init; }

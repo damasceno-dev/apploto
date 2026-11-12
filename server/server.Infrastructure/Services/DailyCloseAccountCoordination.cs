@@ -14,6 +14,9 @@ internal sealed class DailyCloseAccountCoordination(
     private static readonly EventId AcquiredEvent = new(7701, "DailyCloseAccountCoordinationAcquired");
     private static readonly EventId ReleasedEvent = new(7702, "DailyCloseAccountCoordinationReleased");
 
+    public Task<IDailyCloseAccountCoordinationScope> AcquireForImport(Guid branchId, IReadOnlyCollection<Guid> accountIds, CancellationToken ct = default) =>
+        AcquireOrdered(branchId, accountIds, includePairingKey: false, ct, includePeopleKey: true);
+
     public Task<IDailyCloseAccountCoordinationScope> Acquire(
         Guid branchId,
         Guid accountId,
@@ -42,7 +45,8 @@ internal sealed class DailyCloseAccountCoordination(
         Guid branchId,
         IReadOnlyCollection<Guid> accountIds,
         bool includePairingKey,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool includePeopleKey = false)
     {
         if (accountIds.Count == 0)
             throw new ArgumentException("At least one account is required.", nameof(accountIds));
@@ -67,9 +71,13 @@ internal sealed class DailyCloseAccountCoordination(
             // this order and form a deadlock cycle.
             var waitStartedAt = Stopwatch.GetTimestamp();
             var monthLockKey = MonthLockCoordinationKey.Compute(branchId);
-            await dbContext.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT pg_advisory_xact_lock_shared({monthLockKey})",
-                ct);
+            if (includePeopleKey)
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock({monthLockKey})", ct);
+            else
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock_shared({monthLockKey})", ct);
+
+            if (includePeopleKey)
+                await dbContext.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({"people:" + branchId.ToString()}, 0))", ct);
 
             if (includePairingKey)
             {

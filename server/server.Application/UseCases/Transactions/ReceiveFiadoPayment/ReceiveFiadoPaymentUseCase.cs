@@ -73,8 +73,8 @@ public class ReceiveFiadoPaymentUseCase(
             : null;
 
         await using var coordination = pairedTerminalId is { } terminalToLock
-            ? await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, [request.AccountId, terminalToLock], ct)
-            : await dailyCloseAccountCoordination.Acquire(branchUser.BranchId, request.AccountId, ct);
+            ? await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, [request.AccountId, terminalToLock, request.ClientId], ct)
+            : await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, [request.AccountId, request.ClientId], ct);
 
         var idempotency = await financialCommandIdempotency
             .Prepare<RequestReceiveFiadoPaymentJson, ResponseCreateTransactionJson>(

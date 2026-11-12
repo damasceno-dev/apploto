@@ -7,6 +7,7 @@ export * from './card-settlement/card-settlement';
 export * from './category/category';
 export * from './cheque/cheque';
 export * from './client/client';
+export * from './go-live/go-live';
 export * from './holiday/holiday';
 export * from './invitation/invitation';
 export * from './operator/operator';

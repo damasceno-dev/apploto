@@ -44,7 +44,7 @@ public class PreviewEditTransactionUseCase(
             ?? throw new NotFoundException(ResourcesErrorMessages.TRANSACTION_NOT_FOUND);
 
         // Mirrors PUT /transaction/{id}: a generated Terminal leg is never edited on its own (M7.7 Phase 5.7).
-        if (snapshot.GenerationKind is not null)
+        if (snapshot.GenerationKind is not null || snapshot.GoLiveOpeningId is not null)
             throw new ConflictException(ResourcesErrorMessages.TRANSACTION_GENERATED_ROW_READ_ONLY);
 
         if (snapshot.Status == TransactionStatus.Cancelled)

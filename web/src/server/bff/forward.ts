@@ -21,6 +21,7 @@ import { checkBffRequest, isStateChanging } from './policy';
 import { bffErrorResponse, noStoreHeaders } from './responses';
 
 export const maxForwardBodyBytes = 1024 * 1024;
+export const maxGoLiveBodyBytes = 100_000_000;
 
 /** Request headers the contract depends on; everything else (cookies, hop-by-hop) stays behind. */
 const forwardedRequestHeaders = ['accept', 'content-type'] as const;
@@ -92,11 +93,38 @@ export async function forward(
 
   let body: ArrayBuffer | null = null;
   if (isStateChanging(method)) {
+    const limit =
+      operation.method === 'POST' &&
+      (operation.template === '/go-live/imports' ||
+        operation.template === '/go-live/imports/{id}/mapping')
+        ? maxGoLiveBodyBytes
+        : maxForwardBodyBytes;
     const declared = Number(request.headers.get('content-length') ?? '0');
-    if (declared > maxForwardBodyBytes) return refused('body-too-large');
-    body = await request.arrayBuffer();
-    if (body.byteLength > maxForwardBodyBytes) return refused('body-too-large');
-    if (body.byteLength === 0) body = null;
+    if (declared > limit) return refused('body-too-large');
+    const reader = request.body?.getReader();
+    if (reader) {
+      const chunks: Uint8Array[] = [];
+      let length = 0;
+      while (true) {
+        const part = await reader.read();
+        if (part.done) break;
+        length += part.value.byteLength;
+        if (length > limit) {
+          await reader.cancel();
+          return refused('body-too-large');
+        }
+        chunks.push(part.value);
+      }
+      if (length > 0) {
+        const bytes = new Uint8Array(length);
+        let offset = 0;
+        for (const chunk of chunks) {
+          bytes.set(chunk, offset);
+          offset += chunk.length;
+        }
+        body = bytes.buffer;
+      }
+    }
   }
 
   const credentials = await ensureCredentials(config.context, cookies, operation.authTier, {

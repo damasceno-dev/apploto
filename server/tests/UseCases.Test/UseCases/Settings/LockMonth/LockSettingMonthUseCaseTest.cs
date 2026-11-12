@@ -448,7 +448,8 @@ public sealed class LockSettingMonthUseCaseTest
             new MonthLockReadinessEvaluator(),
             ctx.BranchClock,
             ctx.MonthLockCoordination,
-            ctx.UnitOfWork);
+            ctx.UnitOfWork,
+            NSubstitute.Substitute.For<IGoLiveImportsRepository>());
     }
 
     private sealed class TestContext

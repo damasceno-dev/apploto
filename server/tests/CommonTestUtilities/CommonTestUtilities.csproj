@@ -17,4 +17,7 @@
       <PackageReference Include="NSubstitute" Version="5.3.0" />
     </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Fixtures/Access/**/*.csv" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

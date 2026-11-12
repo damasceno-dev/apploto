@@ -1736,6 +1736,265 @@ namespace server.Infrastructure.Migrations
                     b.ToTable("EmployeePayItems", (string)null);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.GoLiveImport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("MappingJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("MappingRevision")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("PreviewId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PreviewJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Profile")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ResultJson")
+                        .HasColumnType("text");
+
+                    b.Property<string>("SchemaVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("SourceDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("SourceJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("SourceLockDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("TargetFingerprint")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UpdatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BranchId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Activated'");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("BranchId", "SourceDigest")
+                        .IsUnique();
+
+                    b.ToTable("GoLiveImports", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.GoLiveImportAudit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EvidenceJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("GoLiveImportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("MappingRevision")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("GoLiveImportId");
+
+                    b.ToTable("GoLiveImportAudits", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.GoLiveImportTarget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GoLiveImportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceId")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("SourceTable")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoLiveImportId");
+
+                    b.HasIndex("BranchId", "SourceTable", "SourceId")
+                        .IsUnique();
+
+                    b.ToTable("GoLiveImportTargets", (string)null);
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.GoLiveOpening", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("AsOfDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("BranchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ClientCreditObservedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClientCreditTransactionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Identity")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsCheque")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("PreviousId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RecordedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceEvidence")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("SourceReference")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("ClientCreditTransactionId");
+
+                    b.HasIndex("ClientId");
+
+                    b.HasIndex("PreviousId");
+
+                    b.HasIndex("RecordedByUserId");
+
+                    b.HasIndex("BranchId", "Identity")
+                        .IsUnique()
+                        .HasFilter("\"Active\"");
+
+                    b.ToTable("GoLiveOpenings", (string)null);
+                });
+
             modelBuilder.Entity("server.Domain.Entities.GoogleIdentity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -3863,6 +4122,9 @@ namespace server.Infrastructure.Migrations
                     b.Property<short?>("GenerationKind")
                         .HasColumnType("smallint");
 
+                    b.Property<Guid?>("GoLiveOpeningId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("OriginTransactionId")
                         .HasColumnType("uuid");
 
@@ -3924,6 +4186,8 @@ namespace server.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("\"GeneratedFromTransactionId\" IS NOT NULL");
 
+                    b.HasIndex("GoLiveOpeningId");
+
                     b.HasIndex("OriginTransactionId")
                         .HasFilter("\"OriginTransactionId\" IS NOT NULL");
 
@@ -3959,6 +4223,8 @@ namespace server.Infrastructure.Migrations
                             t.HasCheckConstraint("CK_Transactions_ClassificationSnapshot", "(\"ClassificationRevision\" = 0 AND \"ClassificationProvenance\" IS NULL AND \"PostedSettlementInstrument\" IS NULL AND \"PostedMonthlyFinancialRole\" IS NULL AND \"PostedFinancialClass\" IS NULL AND \"ClassifiedAt\" IS NULL) OR (\"ClassificationRevision\" >= 1 AND \"ClassificationProvenance\" IS NOT NULL AND \"PostedSettlementInstrument\" IS NOT NULL AND \"PostedMonthlyFinancialRole\" IS NOT NULL AND \"PostedFinancialClass\" IS NOT NULL AND \"ClassifiedAt\" IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_Transactions_GenerationOrigin", "(\"GenerationKind\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL) OR (\"GenerationKind\" IN (1, 2, 6, 7) AND \"GeneratedFromTransactionId\" IS NOT NULL) OR (\"GenerationKind\" = 8 AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NULL) OR (\"GenerationKind\" IN (3, 4, 5) AND \"GeneratedFromTransactionId\" IS NULL AND \"SessionId\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_Transactions_GoLiveOpeningAsset", "\"GoLiveOpeningId\" IS NULL OR COALESCE((\"Direction\"=1 AND \"SessionId\" IS NULL AND \"GeneratedFromTransactionId\" IS NULL AND \"GenerationKind\" IS NULL AND \"PostedFinancialClass\"=1 AND \"PostedMonthlyFinancialRole\"=0 AND \"PostedSettlementInstrument\" IN (0,1)),false)");
                         });
                 });
 
@@ -4892,6 +5158,81 @@ namespace server.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("server.Domain.Entities.GoLiveImport", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.GoLiveImportAudit", b =>
+                {
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.GoLiveImport", null)
+                        .WithMany()
+                        .HasForeignKey("GoLiveImportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.GoLiveImportTarget", b =>
+                {
+                    b.HasOne("server.Domain.Entities.GoLiveImport", null)
+                        .WithMany()
+                        .HasForeignKey("GoLiveImportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("server.Domain.Entities.GoLiveOpening", b =>
+                {
+                    b.HasOne("server.Domain.Entities.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("server.Domain.Entities.Transaction", null)
+                        .WithMany()
+                        .HasForeignKey("ClientCreditTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.Client", null)
+                        .WithMany()
+                        .HasForeignKey("ClientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.GoLiveOpening", null)
+                        .WithMany()
+                        .HasForeignKey("PreviousId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("server.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RecordedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("server.Domain.Entities.GoogleIdentity", b =>
                 {
                     b.HasOne("server.Domain.Entities.User", "User")
@@ -5728,6 +6069,11 @@ namespace server.Infrastructure.Migrations
                         .HasForeignKey("GeneratedFromTransactionId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("server.Domain.Entities.GoLiveOpening", "GoLiveOpening")
+                        .WithMany()
+                        .HasForeignKey("GoLiveOpeningId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("server.Domain.Entities.Transaction", "OriginTransaction")
                         .WithMany()
                         .HasForeignKey("OriginTransactionId")
@@ -5763,6 +6109,8 @@ namespace server.Infrastructure.Migrations
                     b.Navigation("CreatedByUser");
 
                     b.Navigation("GeneratedFromTransaction");
+
+                    b.Navigation("GoLiveOpening");
 
                     b.Navigation("OriginTransaction");
 

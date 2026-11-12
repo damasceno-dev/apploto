@@ -7,6 +7,8 @@ namespace server.Domain.Interfaces;
 /// </summary>
 public interface IDailyCloseAccountCoordination
 {
+    /// <summary>Exclusive month boundary, people branch key, then account keys; imports initialize an atomic branch cutover.</summary>
+    Task<IDailyCloseAccountCoordinationScope> AcquireForImport(Guid branchId, IReadOnlyCollection<Guid> accountIds, CancellationToken ct = default);
     Task<IDailyCloseAccountCoordinationScope> Acquire(Guid branchId, Guid accountId, CancellationToken ct = default);
 
     /// <summary>

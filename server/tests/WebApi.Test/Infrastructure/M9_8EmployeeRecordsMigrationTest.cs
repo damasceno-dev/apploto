@@ -103,7 +103,12 @@ public sealed class M9_8EmployeeRecordsMigrationTest : IAsyncLifetime
             await db.Database.ExecuteSqlRawAsync("SET LOCAL session_replication_role = replica");
             db.AddRange(terminal, account, category, type, session, new Setting { BranchId = legacy.BranchId });
             await db.SaveChangesAsync();
-            db.AddRange(attempt, transaction); await db.SaveChangesAsync();
+            db.Add(attempt); await db.SaveChangesAsync();
+            // Write the historical schema explicitly: the current entity also carries M10 columns.
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO "Transactions" ("Id","BranchId","AccountId","CategoryId","TransactionTypeId","SessionId","RecordedByOperatorId","CreatedByUserId","Date","DueDate","Value","Direction","Status","CreatedAt","Active")
+                VALUES ({transaction.Id},{legacy.BranchId},{account.Id},{category.Id},{type.Id},{session.Id},{legacy.OperatorId},{legacy.UserId},{DateOnly.FromDateTime(day)},{DateOnly.FromDateTime(day)},100,0,1,now(),true)
+                """);
             session.SubmittedAttemptId = attempt.Id; await db.SaveChangesAsync();
             await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"Transactions\" SET \"PostedFinancialClass\"=2, \"PostedMonthlyFinancialRole\"=1, \"ClassificationRevision\"=1, \"ClassificationProvenance\"=1 WHERE \"Id\"={transaction.Id}");
             await setup.CommitAsync();

@@ -3,7 +3,7 @@
 Sync group: loto-backend-docs
 Canonical source: docs/loto-specs.md
 Coverage: Entities, keys, relationships, and cardinality only.
-Spec revision: v67
+Spec revision: v68
 -->
 <html lang="en">
 <head>
@@ -245,6 +245,13 @@ Spec revision: v67
 
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6/dist/svg-pan-zoom.min.js"></script>
+<section id="m10-go-live-v68"><h2>v68 · Relações de implantação — revisão independente pendente</h2>
+<p>As obrigações de uma importação ativada preservam a evidência do corte: os comandos manuais recusam substituição e cancelamento mesmo antes do consumo; os eventos normais posteriores de fiado/cheque continuam permitidos. O vínculo origem→destino permanece íntegro. SourceImportId na consulta de obrigações identifica a importação; a tela informa essa origem e desabilita a revisão manual. Obrigações de origem manual mantêm suas regras de revisão. O digest identifica bytes; reenviar a mesma origem com outro perfil ou codificação gera conflito explícito, sem trocar nem ignorar a interpretação.</p>
+<table><thead><tr><th>Relacionamento</th><th>Cardinalidade e restrição</th></tr></thead><tbody>
+<tr><td>Branch / Account / Client / User → GoLiveOpening → Transaction</td><td>Uma filial/conta/autor; cliente opcional somente para cheque; muitas linhas reais por obrigação; Transaction.GoLiveOpeningId opcional com FK restritiva. Identidade ativa única por filial. CHECK de Transaction preserva Out, ausência de sessão/geração e classificação de ativo (dinheiro de clientes/CAIXA, sem papel mensal), nunca resultado próprio. PreviousId restritivo liga substituições; xmin protege a raiz. Crédito observado mantém referência restritiva à transação.</td></tr>
+<tr><td>Branch / uploader User → GoLiveImport → GoLiveImportAudit</td><td>Muitas evidências por filial, digest único por filial e uma única Activated. Auditoria append-only com ator e revisão; bytes, mapeamento e prévia retidos.</td></tr>
+<tr><td>GoLiveImport → GoLiveImportTarget</td><td>Muitos registros imutáveis. BranchId+SourceTable+SourceId único. TargetId polimórfico com TargetKind: sessão/campo/transação/ponto/pagamento/horas/loteria ou cadastro/bloqueio associado; não é FK exclusiva de Transaction. Associações auxiliares permanecem na evidência de mapeamento.</td></tr>
+</tbody></table><p>Demais FKs, classificação e integridade de sessões/eventos/pessoas seguem os modelos existentes; nenhum reconhecimento de abertura ou vínculo de login é inferido. Canonical §3.35/§6.28.</p></section>
 <script>
 (function () {
   var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;

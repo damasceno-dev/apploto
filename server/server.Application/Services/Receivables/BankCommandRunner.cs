@@ -33,7 +33,8 @@ public class BankCommandRunner(
         string? idempotencyKey,
         Func<BranchUser, CancellationToken, Task<IReadOnlyCollection<Guid>>> resolveAccountIds,
         Func<BranchUser, CancellationToken, Task<(Guid ResourceId, TResponse Response)>> execute,
-        CancellationToken ct = default) where TResponse : class
+        CancellationToken ct = default,
+        bool coordinatePeople = false) where TResponse : class
     {
         var branchUser = await authenticationService.GetAuthenticatedBranchUser();
         if (branchUser.Role is not Role.Manager and not Role.Admin)
@@ -47,7 +48,9 @@ public class BankCommandRunner(
             return replay;
 
         var accountIds = await resolveAccountIds(branchUser, ct);
-        await using var coordination = await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, accountIds.ToList(), ct);
+        await using var coordination = coordinatePeople
+            ? await dailyCloseAccountCoordination.AcquireForImport(branchUser.BranchId, accountIds.ToList(), ct)
+            : await dailyCloseAccountCoordination.AcquireMany(branchUser.BranchId, accountIds.ToList(), ct);
 
         await readLocks.Accounts(branchUser.BranchId, accountIds, ct);
         await securityCoordination.HoldSharedInCurrentTransaction(SecurityRules.BranchKey(branchUser.BranchId), ct);

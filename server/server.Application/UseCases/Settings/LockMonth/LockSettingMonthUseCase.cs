@@ -19,7 +19,8 @@ public sealed class LockSettingMonthUseCase(
     MonthLockReadinessEvaluator readinessEvaluator,
     IBranchClock branchClock,
     IMonthLockCoordination monthLockCoordination,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IGoLiveImportsRepository goLiveImports)
 {
     public async Task<ResponseSettingJson> Execute(
         RequestLockSettingMonthJson request,
@@ -43,6 +44,10 @@ public sealed class LockSettingMonthUseCase(
 
         var setting = await settingsRepository.GetByBranchId(branchUser.BranchId, ct)
             ?? throw new InvalidOperationException($"Setting row missing for branch {branchUser.BranchId}.");
+
+        var importedLock = await goLiveImports.ActivatedLockDate(branchUser.BranchId, ct);
+        if (importedLock is { } protectedBoundary && requestedMonth.AddMonths(1).AddDays(-1) < protectedBoundary)
+            throw new ConflictException(ResourcesErrorMessages.GOLIVE_IMPORT_STALE);
 
         if (setting.Version != expectedVersion)
             throw new ConflictException(ResourcesErrorMessages.SETTING_STALE_WRITE);

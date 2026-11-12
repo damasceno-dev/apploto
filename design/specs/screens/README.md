@@ -56,6 +56,7 @@ Blueprints are grouped by coherent feature rather than one file per screen, beca
 | Add employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#add-employee-guided) | Web/Mobile M11 | Ready |
 | Offboard employee (guided) | [onboarding-and-employees.md](onboarding-and-employees.md#offboard-employee-guided) | Web/Mobile M11 | Partial — withdrawing an invitation (gap AC) |
 
+| Go-live | [go-live.md](go-live.md#go-live) | Project M10 scoped Web; Mobile later | v68 candidate — independent review pending |
 | Employee statement | [reports-and-month-lock.md](reports-and-month-lock.md#employee-statement) | Web/Mobile M8 | Authored — semantics independently accepted 2026-11-08 |
 | Special draws | [administration.md](administration.md#special-draws) | Web/Mobile M10 | Authored — semantics independently accepted 2026-11-08 |
 | Hour-bank management | [time-and-self-service.md](time-and-self-service.md#hour-bank-management) | Web/Mobile M9 | Authored — semantics independently accepted 2026-11-08 |
